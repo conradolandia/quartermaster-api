@@ -8,3 +8,4 @@ node_modules/
 
 # Add gihub for now
 .github/
+.github-temp/
