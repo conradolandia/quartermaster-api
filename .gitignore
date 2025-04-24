@@ -6,6 +6,6 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
-# Add gihub for now
+# Remove github for now
 .github/
 .github-temp/
