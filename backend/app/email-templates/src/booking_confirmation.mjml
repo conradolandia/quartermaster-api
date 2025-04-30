@@ -1,0 +1,130 @@
+<mjml>
+  <mj-head>
+    <mj-title>Booking Confirmation</mj-title>
+    <mj-preview>Your Star✦Fleet Tours booking confirmation</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-all>
+      <mj-text font-weight="400" font-size="16px" color="#000000" line-height="24px" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-text>
+    </mj-attributes>
+    <mj-style inline="inline">
+      .body-section {
+        -webkit-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
+        -moz-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
+        box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
+      }
+    </mj-style>
+    <mj-style inline="inline">
+      .text-link {
+        color: #5e6ebf
+      }
+    </mj-style>
+    <mj-style inline="inline">
+      .footer-link {
+        color: #888888
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#E7E7E7" width="600px">
+    <mj-section full-width="full-width" background-color="#040B4F" padding-bottom="0">
+      <mj-column width="100%">
+        <mj-text color="#ffffff" font-weight="bold" align="center" font-size="18px" letter-spacing="1px" padding-top="20px">
+          Star✦Fleet Tours
+        </mj-text>
+        <mj-text color="#17CBC4" align="center" font-size="13px" padding-top="0" font-weight="bold">
+          BOOKING CONFIRMATION
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-wrapper padding-top="0" padding-bottom="0" css-class="body-section">
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px">
+        <mj-column width="100%">
+          <mj-text color="#212b35" font-weight="bold" font-size="20px">
+            Thank you for your booking!
+          </mj-text>
+          <mj-text color="#637381" font-size="16px">
+            Hi {{ user_name }},
+          </mj-text>
+          <mj-text color="#637381" font-size="16px">
+            Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
+          </mj-text>
+          <mj-text color="#637381" font-size="16px">
+            Please save this email for your records. You'll need your confirmation code to access your digital tickets.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-divider border-color="#DFE3E8" border-width="1px" />
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+            Booking Summary
+          </mj-text>
+          {% for item in booking_items %}
+          <mj-text color="#637381" font-size="16px" padding-top="10px" padding-bottom="0">
+            {{ item.quantity }}x {{ item.type }} - ${{ "%.2f"|format(item.price_per_unit) }} each
+          </mj-text>
+          {% endfor %}
+          <mj-text color="#212b35" font-weight="bold" font-size="16px" padding-top="20px">
+            Total: ${{ "%.2f"|format(total_amount) }}
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-divider border-color="#DFE3E8" border-width="1px" />
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+            Your Tickets
+          </mj-text>
+          <mj-text color="#637381" font-size="16px">
+            Access your digital tickets by clicking the button below or visiting our website and entering your confirmation code.
+          </mj-text>
+          <mj-button background-color="#040B4F" color="white" font-size="17px" align="center" padding="15px 30px" border-radius="4px" href="{{ confirmation_link }}" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+            View Your Tickets
+          </mj-button>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-divider border-color="#DFE3E8" border-width="1px" />
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+        <mj-column width="100%">
+          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+            Need Help?
+          </mj-text>
+          <mj-text color="#637381" font-size="16px">
+            If you have any questions or need to make changes to your booking, please contact us at support@star-fleet.tours.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+
+    <mj-wrapper full-width="full-width">
+      <mj-section>
+        <mj-column width="100%" padding="0">
+          <mj-text color="#445566" font-size="14px" align="center" line-height="20px">
+            Star✦Fleet Tours - Making space accessible to everyone
+          </mj-text>
+          <mj-text color="#445566" font-size="12px" align="center" line-height="20px">
+            © 2023 Star✦Fleet Tours, All Rights Reserved.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -121,3 +122,31 @@ def verify_password_reset_token(token: str) -> str | None:
         return str(decoded_token["sub"])
     except InvalidTokenError:
         return None
+
+
+def generate_slug(text: str) -> str:
+    """
+    Convert a string to a URL-friendly slug.
+
+    Args:
+        text: The string to convert to a slug
+
+    Returns:
+        A URL-friendly slug
+    """
+    # Convert to lowercase
+    slug = text.lower()
+
+    # Replace spaces with hyphens
+    slug = re.sub(r"\s+", "-", slug)
+
+    # Remove special characters
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+
+    # Remove duplicate hyphens
+    slug = re.sub(r"-+", "-", slug)
+
+    # Remove leading and trailing hyphens
+    slug = slug.strip("-")
+
+    return slug

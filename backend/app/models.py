@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
@@ -111,3 +112,39 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+# Location models
+class LocationBase(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    slug: str = Field(index=True, unique=True, max_length=255)
+    state: str = Field(max_length=100)
+
+
+class LocationCreate(LocationBase):
+    id: str = Field(primary_key=True, max_length=50)
+
+
+class LocationUpdate(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    slug: str | None = Field(default=None, max_length=255)
+    state: str | None = Field(default=None, max_length=100)
+
+
+class Location(LocationBase, table=True):
+    id: str = Field(primary_key=True, max_length=50)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
+    )
+
+
+class LocationPublic(LocationBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class LocationsPublic(SQLModel):
+    data: list[LocationPublic]
+    count: int

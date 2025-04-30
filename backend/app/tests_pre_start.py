@@ -24,6 +24,8 @@ def init(db_engine: Engine) -> None:
         # Try to create session to check if DB is awake
         with Session(db_engine) as session:
             session.exec(select(1))
+            # Explicitly commit to close the transaction
+            session.commit()
     except Exception as e:
         logger.error(e)
         raise e

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
@@ -6,12 +8,15 @@ from app.models import User
 
 
 def test_create_user(client: TestClient, db: Session) -> None:
+    # Generate a random email to avoid conflicts
+    random_email = f"user_{uuid.uuid4()}@example.com"
+
     r = client.post(
         f"{settings.API_V1_STR}/private/users/",
         json={
-            "email": "pollo@listo.com",
+            "email": random_email,
             "password": "password123",
-            "full_name": "Pollo Listo",
+            "full_name": "Test User",
         },
     )
 
@@ -22,5 +27,5 @@ def test_create_user(client: TestClient, db: Session) -> None:
     user = db.exec(select(User).where(User.id == data["id"])).first()
 
     assert user
-    assert user.email == "pollo@listo.com"
-    assert user.full_name == "Pollo Listo"
+    assert user.email == random_email
+    assert user.full_name == "Test User"

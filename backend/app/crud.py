@@ -4,7 +4,17 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.models import (
+    Item,
+    ItemCreate,
+    Location,
+    LocationCreate,
+    LocationUpdate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
+from app.utils import generate_slug
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -52,3 +62,66 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
     session.commit()
     session.refresh(db_item)
     return db_item
+
+
+# Location CRUD operations
+def create_location(*, session: Session, location_in: LocationCreate) -> Location:
+    """Create a new location."""
+    # Auto-generate slug if not provided
+    data = location_in.model_dump()
+    if not data.get("slug"):
+        data["slug"] = generate_slug(data["name"])
+
+    db_obj = Location.model_validate(data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_location(*, session: Session, location_id: str) -> Location | None:
+    """Get a location by ID."""
+    return session.get(Location, location_id)
+
+
+def get_location_by_slug(*, session: Session, slug: str) -> Location | None:
+    """Get a location by slug."""
+    statement = select(Location).where(Location.slug == slug)
+    return session.exec(statement).first()
+
+
+def get_locations(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[Location]:
+    """Get a list of locations with pagination."""
+    statement = select(Location).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_locations_count(*, session: Session) -> int:
+    """Get the total count of locations."""
+    statement = select(Location)
+    return len(session.exec(statement).all())
+
+
+def update_location(
+    *, session: Session, db_obj: Location, obj_in: LocationUpdate
+) -> Location:
+    """Update a location."""
+    data = obj_in.model_dump(exclude_unset=True)
+
+    # Auto-generate slug if name changed but slug not provided
+    if "name" in data and "slug" not in data:
+        data["slug"] = generate_slug(data["name"])
+
+    db_obj.sqlmodel_update(data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_location(*, session: Session, db_obj: Location) -> None:
+    """Delete a location."""
+    session.delete(db_obj)
+    session.commit()
