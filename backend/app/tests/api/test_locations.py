@@ -41,22 +41,25 @@ def test_create_location(client: TestClient, superuser_token_headers: dict) -> N
 
 
 def test_read_locations(
-    client: TestClient, normal_user_token_headers: dict, test_db: Session
+    client: TestClient, normal_user_token_headers: dict, db: Session
 ) -> None:
     """Test retrieving locations."""
     # Create a few locations
     location1 = LocationCreate(
-        id="cape-api-1",
-        name="Cape Canaveral API 1",
+        id="cape-api-read-1",
+        name="Cape Canaveral API Read 1",
         state="Florida",
-        slug="cape-canaveral-api-1",
+        slug="cape-canaveral-api-read-1",
     )
     location2 = LocationCreate(
-        id="starbase-api-1", name="Starbase API 1", state="Texas", slug="starbase-api-1"
+        id="starbase-api-read-1",
+        name="Starbase API Read 1",
+        state="Texas",
+        slug="starbase-api-read-1",
     )
 
-    crud.create_location(session=test_db, location_in=location1)
-    crud.create_location(session=test_db, location_in=location2)
+    crud.create_location(session=db, location_in=location1)
+    crud.create_location(session=db, location_in=location2)
 
     # Call API
     response = client.get(
@@ -73,22 +76,22 @@ def test_read_locations(
 
     # Check that our created locations are in the list
     location_ids = [location["id"] for location in content["data"]]
-    assert "cape-api-1" in location_ids
-    assert "starbase-api-1" in location_ids
+    assert "cape-api-read-1" in location_ids
+    assert "starbase-api-read-1" in location_ids
 
 
 def test_read_location(
-    client: TestClient, normal_user_token_headers: dict, test_db: Session
+    client: TestClient, normal_user_token_headers: dict, db: Session
 ) -> None:
     """Test retrieving a specific location."""
     # Create a location
     location = LocationCreate(
-        id="test-location-api-2",
-        name="Test Location API 2",
+        id="test-location-api-read-2",
+        name="Test Location API Read 2",
         state="Test State",
-        slug="test-location-api-2",
+        slug="test-location-api-read-2",
     )
-    db_location = crud.create_location(session=test_db, location_in=location)
+    db_location = crud.create_location(session=db, location_in=location)
 
     # Call API
     response = client.get(
@@ -106,20 +109,20 @@ def test_read_location(
 
 
 def test_update_location(
-    client: TestClient, superuser_token_headers: dict, test_db: Session
+    client: TestClient, superuser_token_headers: dict, db: Session
 ) -> None:
     """Test updating a location."""
     # Create a location
     location = LocationCreate(
-        id="update-test-api-1",
-        name="Update Test API 1",
+        id="update-test-api-loc-1",
+        name="Update Test API Loc 1",
         state="Test State",
-        slug="update-test-api-1",
+        slug="update-test-api-loc-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location)
+    db_location = crud.create_location(session=db, location_in=location)
 
     # Update data
-    data = {"name": "Updated Name API 1", "state": "Updated State"}
+    data = {"name": "Updated Name API Loc 1", "state": "Updated State"}
 
     # Call API
     response = client.put(
@@ -132,23 +135,23 @@ def test_update_location(
     assert response.status_code == 200
     content = response.json()
     assert content["id"] == db_location.id
-    assert content["name"] == "Updated Name API 1"
+    assert content["name"] == "Updated Name API Loc 1"
     assert content["state"] == "Updated State"
-    assert content["slug"] == "updated-name-api-1"  # Slug should be auto-updated
+    assert content["slug"] == "updated-name-api-loc-1"  # Slug should be auto-updated
 
 
 def test_delete_location(
-    client: TestClient, superuser_token_headers: dict, test_db: Session
+    client: TestClient, superuser_token_headers: dict, db: Session
 ) -> None:
     """Test deleting a location."""
     # Create a location
     location = LocationCreate(
-        id="delete-test-api-1",
-        name="Delete Test API 1",
+        id="delete-test-api-loc-1",
+        name="Delete Test API Loc 1",
         state="Test State",
-        slug="delete-test-api-1",
+        slug="delete-test-api-loc-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location)
+    db_location = crud.create_location(session=db, location_in=location)
 
     # Call API
     response = client.delete(
@@ -160,7 +163,7 @@ def test_delete_location(
     assert response.status_code == 204
 
     # Clear the session to ensure we get fresh data
-    test_db.close()
+    db.close()
 
     # Open a new session and verify deletion
     with Session(engine) as new_session:

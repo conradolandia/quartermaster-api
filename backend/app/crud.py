@@ -7,6 +7,9 @@ from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
     ItemCreate,
+    Jurisdiction,
+    JurisdictionCreate,
+    JurisdictionUpdate,
     Location,
     LocationCreate,
     LocationUpdate,
@@ -123,5 +126,83 @@ def update_location(
 
 def delete_location(*, session: Session, db_obj: Location) -> None:
     """Delete a location."""
+    session.delete(db_obj)
+    session.commit()
+
+
+# Jurisdiction CRUD operations
+def create_jurisdiction(
+    *, session: Session, jurisdiction_in: JurisdictionCreate
+) -> Jurisdiction:
+    """Create a new jurisdiction."""
+    # Auto-generate slug if not provided
+    data = jurisdiction_in.model_dump()
+    if not data.get("slug"):
+        data["slug"] = generate_slug(data["name"])
+
+    db_obj = Jurisdiction.model_validate(data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_jurisdiction(*, session: Session, jurisdiction_id: str) -> Jurisdiction | None:
+    """Get a jurisdiction by ID."""
+    return session.get(Jurisdiction, jurisdiction_id)
+
+
+def get_jurisdiction_by_slug(*, session: Session, slug: str) -> Jurisdiction | None:
+    """Get a jurisdiction by slug."""
+    statement = select(Jurisdiction).where(Jurisdiction.slug == slug)
+    return session.exec(statement).first()
+
+
+def get_jurisdictions(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[Jurisdiction]:
+    """Get a list of jurisdictions with pagination."""
+    statement = select(Jurisdiction).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_jurisdictions_by_location(
+    *, session: Session, location_id: str, skip: int = 0, limit: int = 100
+) -> list[Jurisdiction]:
+    """Get jurisdictions for a specific location."""
+    statement = (
+        select(Jurisdiction)
+        .where(Jurisdiction.location_id == location_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_jurisdictions_count(*, session: Session) -> int:
+    """Get the total count of jurisdictions."""
+    statement = select(Jurisdiction)
+    return len(session.exec(statement).all())
+
+
+def update_jurisdiction(
+    *, session: Session, db_obj: Jurisdiction, obj_in: JurisdictionUpdate
+) -> Jurisdiction:
+    """Update a jurisdiction."""
+    data = obj_in.model_dump(exclude_unset=True)
+
+    # Auto-generate slug if name changed but slug not provided
+    if "name" in data and "slug" not in data:
+        data["slug"] = generate_slug(data["name"])
+
+    db_obj.sqlmodel_update(data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_jurisdiction(*, session: Session, db_obj: Jurisdiction) -> None:
+    """Delete a jurisdiction."""
     session.delete(db_obj)
     session.commit()

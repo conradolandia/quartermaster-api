@@ -148,3 +148,44 @@ class LocationPublic(LocationBase):
 class LocationsPublic(SQLModel):
     data: list[LocationPublic]
     count: int
+
+
+# Jurisdiction models
+class JurisdictionBase(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    slug: str = Field(index=True, unique=True, max_length=255)
+    state: str = Field(max_length=100)
+    sales_tax_rate: float = Field(ge=0.0, le=1.0)
+    location_id: str = Field(foreign_key="location.id", max_length=50)
+
+
+class JurisdictionCreate(JurisdictionBase):
+    id: str = Field(primary_key=True, max_length=50)
+
+
+class JurisdictionUpdate(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    slug: str | None = Field(default=None, max_length=255)
+    state: str | None = Field(default=None, max_length=100)
+    sales_tax_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    location_id: str | None = Field(default=None, max_length=50)
+
+
+class Jurisdiction(JurisdictionBase, table=True):
+    id: str = Field(primary_key=True, max_length=50)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
+    )
+    # Relationship with location could be added here if needed
+
+
+class JurisdictionPublic(JurisdictionBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class JurisdictionsPublic(SQLModel):
+    data: list[JurisdictionPublic]
+    count: int

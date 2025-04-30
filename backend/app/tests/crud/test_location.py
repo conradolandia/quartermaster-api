@@ -4,7 +4,7 @@ from app import crud
 from app.models import LocationCreate, LocationUpdate
 
 
-def test_create_location(test_db: Session) -> None:
+def test_create_location(db: Session) -> None:
     """Test creating a location."""
     location_id = "test-location-1"
     location_name = "Test Location 1"
@@ -17,7 +17,7 @@ def test_create_location(test_db: Session) -> None:
         slug="test-location-1",
     )
 
-    location = crud.create_location(session=test_db, location_in=location_in)
+    location = crud.create_location(session=db, location_in=location_in)
 
     assert location.id == location_id
     assert location.name == location_name
@@ -27,7 +27,7 @@ def test_create_location(test_db: Session) -> None:
     assert location.updated_at is not None
 
 
-def test_get_location(test_db: Session) -> None:
+def test_get_location(db: Session) -> None:
     """Test retrieving a location by ID."""
     # Create a location
     location_in = LocationCreate(
@@ -36,10 +36,10 @@ def test_get_location(test_db: Session) -> None:
         state="Test State",
         slug="get-test-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location_in)
+    db_location = crud.create_location(session=db, location_in=location_in)
 
     # Retrieve the location
-    location = crud.get_location(session=test_db, location_id=db_location.id)
+    location = crud.get_location(session=db, location_id=db_location.id)
 
     assert location is not None
     assert location.id == db_location.id
@@ -48,7 +48,7 @@ def test_get_location(test_db: Session) -> None:
     assert location.slug == db_location.slug
 
 
-def test_get_location_by_slug(test_db: Session) -> None:
+def test_get_location_by_slug(db: Session) -> None:
     """Test retrieving a location by slug."""
     # Create a location
     location_in = LocationCreate(
@@ -57,10 +57,10 @@ def test_get_location_by_slug(test_db: Session) -> None:
         state="Test State",
         slug="slug-test-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location_in)
+    db_location = crud.create_location(session=db, location_in=location_in)
 
     # Retrieve the location by slug
-    location = crud.get_location_by_slug(session=test_db, slug=db_location.slug)
+    location = crud.get_location_by_slug(session=db, slug=db_location.slug)
 
     assert location is not None
     assert location.id == db_location.id
@@ -68,7 +68,7 @@ def test_get_location_by_slug(test_db: Session) -> None:
     assert location.state == db_location.state
 
 
-def test_get_locations(test_db: Session) -> None:
+def test_get_locations(db: Session) -> None:
     """Test retrieving a list of locations."""
     # Create a few locations
     location1 = LocationCreate(
@@ -81,11 +81,11 @@ def test_get_locations(test_db: Session) -> None:
         id="starbase-test", name="Starbase Test", state="Texas", slug="starbase-test"
     )
 
-    crud.create_location(session=test_db, location_in=location1)
-    crud.create_location(session=test_db, location_in=location2)
+    crud.create_location(session=db, location_in=location1)
+    crud.create_location(session=db, location_in=location2)
 
     # Get locations
-    locations = crud.get_locations(session=test_db)
+    locations = crud.get_locations(session=db)
 
     # We should have at least the two locations we just created
     assert len(locations) >= 2
@@ -96,7 +96,7 @@ def test_get_locations(test_db: Session) -> None:
     assert "starbase-test" in location_ids
 
 
-def test_update_location(test_db: Session) -> None:
+def test_update_location(db: Session) -> None:
     """Test updating a location."""
     # Create a location
     location_in = LocationCreate(
@@ -105,7 +105,7 @@ def test_update_location(test_db: Session) -> None:
         state="Test State",
         slug="update-test-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location_in)
+    db_location = crud.create_location(session=db, location_in=location_in)
 
     # Update data
     update_in = LocationUpdate(
@@ -115,7 +115,7 @@ def test_update_location(test_db: Session) -> None:
 
     # Update the location
     updated_location = crud.update_location(
-        session=test_db, db_obj=db_location, obj_in=update_in
+        session=db, db_obj=db_location, obj_in=update_in
     )
 
     assert updated_location.id == db_location.id
@@ -124,7 +124,7 @@ def test_update_location(test_db: Session) -> None:
     assert updated_location.slug == "updated-name-1"  # Slug should be auto-updated
 
 
-def test_delete_location(test_db: Session) -> None:
+def test_delete_location(db: Session) -> None:
     """Test deleting a location."""
     # Create a location
     location_in = LocationCreate(
@@ -133,11 +133,11 @@ def test_delete_location(test_db: Session) -> None:
         state="Test State",
         slug="delete-test-1",
     )
-    db_location = crud.create_location(session=test_db, location_in=location_in)
+    db_location = crud.create_location(session=db, location_in=location_in)
 
     # Delete the location
-    crud.delete_location(session=test_db, db_obj=db_location)
+    crud.delete_location(session=db, db_obj=db_location)
 
     # Verify deletion
-    location = crud.get_location(session=test_db, location_id=db_location.id)
+    location = crud.get_location(session=db, location_id=db_location.id)
     assert location is None

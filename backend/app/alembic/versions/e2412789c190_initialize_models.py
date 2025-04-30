@@ -1,7 +1,7 @@
 """Initialize models
 
 Revision ID: e2412789c190
-Revises:
+Revises: 41e00d18f8c5
 Create Date: 2023-11-24 22:55:43.195942
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "e2412789c190"
-down_revision = None
+down_revision = "41e00d18f8c5"
 branch_labels = None
 depends_on = None
 
