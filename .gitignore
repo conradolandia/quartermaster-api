@@ -8,4 +8,3 @@ node_modules/
 
 # Remove github for now
 .github/
-.github-temp/
