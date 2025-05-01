@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from sqlmodel import Session, SQLModel, create_engine, inspect, select
 
 from app import crud
@@ -63,9 +61,7 @@ def init_db(session: Session) -> None:
     if not location:
         location_in = LocationCreate(
             name="Default Location",
-            slug="default-location",
             state="FL",
-            id=str(uuid4()),
         )
         location = crud.create_location(session=session, location_in=location_in)
     print(f"Location created: {location}")
@@ -77,11 +73,9 @@ def init_db(session: Session) -> None:
     if not jurisdiction:
         jurisdiction_in = JurisdictionCreate(
             name="Default Jurisdiction",
-            slug="default-jurisdiction",
             state="FL",
             sales_tax_rate=0.06,
             location_id=location.id,
-            id=str(uuid4()),
         )
         jurisdiction = crud.create_jurisdiction(
             session=session, jurisdiction_in=jurisdiction_in

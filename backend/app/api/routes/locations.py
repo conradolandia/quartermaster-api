@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,7 +26,9 @@ def read_locations(
     """
     Retrieve locations.
     """
-    locations = crud.get_locations(session=session, skip=skip, limit=limit)
+    locations = crud.get_locations_no_relationships(
+        session=session, skip=skip, limit=limit
+    )
     count = crud.get_locations_count(session=session)
     return LocationsPublic(data=locations, count=count)
 
@@ -39,24 +42,6 @@ def create_location(
     """
     Create new location.
     """
-    location = crud.get_location(session=session, location_id=location_in.id)
-    if location:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Location with ID {location_in.id} already exists",
-        )
-
-    # Check if a location with this slug already exists
-    if location_in.slug:
-        location_by_slug = crud.get_location_by_slug(
-            session=session, slug=location_in.slug
-        )
-        if location_by_slug:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Location with slug {location_in.slug} already exists",
-            )
-
     location = crud.create_location(session=session, location_in=location_in)
     return location
 
@@ -65,7 +50,7 @@ def create_location(
 def read_location(
     *,
     session: Session = Depends(deps.get_db),
-    location_id: str,
+    location_id: uuid.UUID,
 ) -> Any:
     """
     Get location by ID.
@@ -83,7 +68,7 @@ def read_location(
 def update_location(
     *,
     session: Session = Depends(deps.get_db),
-    location_id: str,
+    location_id: uuid.UUID,
     location_in: LocationUpdate,
 ) -> Any:
     """
@@ -95,18 +80,6 @@ def update_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Location with ID {location_id} not found",
         )
-
-    # Check if slug is being updated and if it already exists
-    if location_in.slug and location_in.slug != location.slug:
-        location_by_slug = crud.get_location_by_slug(
-            session=session, slug=location_in.slug
-        )
-        if location_by_slug and location_by_slug.id != location_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Location with slug {location_in.slug} already exists",
-            )
-
     location = crud.update_location(
         session=session, db_obj=location, obj_in=location_in
     )
@@ -117,7 +90,7 @@ def update_location(
 def delete_location(
     *,
     session: Session = Depends(deps.get_db),
-    location_id: str,
+    location_id: uuid.UUID,
 ) -> None:
     """
     Delete a location.
@@ -128,9 +101,5 @@ def delete_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Location with ID {location_id} not found",
         )
-
-    # Check if this location has related jurisdictions
-    # This would require foreign key checks, which we'll implement later
-    # when we create the Jurisdiction model
 
     crud.delete_location(session=session, db_obj=location)

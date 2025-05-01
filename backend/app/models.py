@@ -1,8 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import EmailStr
+from pydantic import EmailStr, validator
 from sqlmodel import Field, Relationship, SQLModel
+
+from app.core.constants import VALID_US_STATES
 
 
 # Shared properties
@@ -116,31 +118,82 @@ class NewPassword(SQLModel):
 
 # Location models
 class LocationBase(SQLModel):
-    name: str = Field(index=True, max_length=255)
-    slug: str = Field(index=True, unique=True, max_length=255)
-    state: str = Field(max_length=100)
+    name: str = Field(min_length=1, max_length=255)
+    state: str = Field(min_length=2, max_length=2)
+
+    @validator("state")
+    def validate_state(cls, v):
+        if v.upper() not in VALID_US_STATES:
+            raise ValueError(
+                f"Invalid state code. Must be one of {', '.join(VALID_US_STATES)}"
+            )
+        return v.upper()  # Ensure state is always uppercase
 
 
 class LocationCreate(LocationBase):
-    id: str = Field(primary_key=True, max_length=50)
+    pass
 
 
 class LocationUpdate(SQLModel):
-    name: str | None = Field(default=None, max_length=255)
-    slug: str | None = Field(default=None, max_length=255)
-    state: str | None = Field(default=None, max_length=100)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    state: str | None = Field(default=None, min_length=2, max_length=2)
 
 
 class Location(LocationBase, table=True):
-    id: str = Field(primary_key=True, max_length=50)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
     )
 
 
+# Jurisdiction models
+class JurisdictionBase(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    state: str = Field(max_length=100)
+    sales_tax_rate: float = Field(ge=0.0, le=1.0)
+    location_id: uuid.UUID = Field(foreign_key="location.id")
+
+    @validator("state")
+    def validate_state(cls, v):
+        if v.upper() not in VALID_US_STATES:
+            raise ValueError(
+                f"Invalid state code. Must be one of {', '.join(VALID_US_STATES)}"
+            )
+        return v.upper()  # Ensure state is always uppercase
+
+
+class JurisdictionCreate(JurisdictionBase):
+    pass
+
+
+class JurisdictionUpdate(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    state: str | None = Field(default=None, max_length=100)
+    sales_tax_rate: float | None = Field(default=None, ge=0.0, le=1.0)
+    location_id: uuid.UUID | None = Field(default=None)
+
+
+class Jurisdiction(JurisdictionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - jurisdiction knows its location but location doesn't track jurisdictions
+    location: "Location" = Relationship()
+
+
+class JurisdictionPublic(JurisdictionBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
 class LocationPublic(LocationBase):
-    id: str
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
@@ -148,42 +201,6 @@ class LocationPublic(LocationBase):
 class LocationsPublic(SQLModel):
     data: list[LocationPublic]
     count: int
-
-
-# Jurisdiction models
-class JurisdictionBase(SQLModel):
-    name: str = Field(index=True, max_length=255)
-    slug: str = Field(index=True, unique=True, max_length=255)
-    state: str = Field(max_length=100)
-    sales_tax_rate: float = Field(ge=0.0, le=1.0)
-    location_id: str = Field(foreign_key="location.id", max_length=50)
-
-
-class JurisdictionCreate(JurisdictionBase):
-    id: str = Field(primary_key=True, max_length=50)
-
-
-class JurisdictionUpdate(SQLModel):
-    name: str | None = Field(default=None, max_length=255)
-    slug: str | None = Field(default=None, max_length=255)
-    state: str | None = Field(default=None, max_length=100)
-    sales_tax_rate: float | None = Field(default=None, ge=0.0, le=1.0)
-    location_id: str | None = Field(default=None, max_length=50)
-
-
-class Jurisdiction(JurisdictionBase, table=True):
-    id: str = Field(primary_key=True, max_length=50)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow, sa_column_kwargs={"onupdate": datetime.utcnow}
-    )
-    # Relationship with location could be added here if needed
-
-
-class JurisdictionPublic(JurisdictionBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
 
 
 class JurisdictionsPublic(SQLModel):

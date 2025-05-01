@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic.networks import EmailStr
 
 from app.api.deps import get_current_active_superuser
+from app.core.constants import US_STATE_NAMES, VALID_US_STATES
 from app.models import Message
 from app.utils import generate_test_email, send_email
 
@@ -27,5 +28,13 @@ def test_email(email_to: EmailStr) -> Message:
 
 
 @router.get("/health-check/")
-async def health_check() -> bool:
-    return True
+def health_check() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
+@router.get("/us-states/")
+def get_us_states() -> dict[str, list[dict[str, str]]]:
+    """Get a list of US states."""
+    states = [{"code": code, "name": US_STATE_NAMES[code]} for code in VALID_US_STATES]
+    return {"data": states}

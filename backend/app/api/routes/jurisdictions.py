@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,7 +22,7 @@ def read_jurisdictions(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    location_id: str = None,
+    location_id: uuid.UUID = None,
 ) -> Any:
     """
     Retrieve jurisdictions with optional filtering by location.
@@ -51,28 +52,28 @@ def create_jurisdiction(
     """
     Create new jurisdiction.
     """
-    # Check if a jurisdiction with this ID already exists
-    jurisdiction = crud.get_jurisdiction(
-        session=session, jurisdiction_id=jurisdiction_in.id
-    )
-    if jurisdiction:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Jurisdiction with ID {jurisdiction_in.id} already exists",
-        )
+    # The check for existing ID (derived from name/state) is now handled in crud.create_jurisdiction
+    # jurisdiction = crud.get_jurisdiction(
+    #     session=session, jurisdiction_id=jurisdiction_in.id
+    # )
+    # if jurisdiction:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"Jurisdiction with ID {jurisdiction_in.id} already exists",
+    #     )
 
-    # Check if a jurisdiction with this slug already exists
-    if jurisdiction_in.slug:
-        jurisdiction_by_slug = crud.get_jurisdiction_by_slug(
-            session=session, slug=jurisdiction_in.slug
-        )
-        if jurisdiction_by_slug:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Jurisdiction with slug {jurisdiction_in.slug} already exists",
-            )
+    # Check if a jurisdiction with this slug already exists - REMOVED
+    # if jurisdiction_in.slug:
+    #     jurisdiction_by_slug = crud.get_jurisdiction_by_slug(
+    #         session=session, slug=jurisdiction_in.slug
+    #     )
+    #     if jurisdiction_by_slug:
+    #         raise HTTPException(
+    #             status_code=400,
+    #             detail=f"Jurisdiction with slug {jurisdiction_in.slug} already exists",
+    #         )
 
-    # Check if location exists
+    # Check if location exists - Still needed
     location = crud.get_location(
         session=session, location_id=jurisdiction_in.location_id
     )
@@ -127,18 +128,18 @@ def update_jurisdiction(
             detail=f"Jurisdiction with ID {jurisdiction_id} not found",
         )
 
-    # Check if slug is being updated and if it already exists
-    if jurisdiction_in.slug and jurisdiction_in.slug != jurisdiction.slug:
-        jurisdiction_by_slug = crud.get_jurisdiction_by_slug(
-            session=session, slug=jurisdiction_in.slug
-        )
-        if jurisdiction_by_slug and jurisdiction_by_slug.id != jurisdiction_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Jurisdiction with slug {jurisdiction_in.slug} already exists",
-            )
+    # Check if slug is being updated and if it already exists - REMOVED
+    # if jurisdiction_in.slug and jurisdiction_in.slug != jurisdiction.slug:
+    #     jurisdiction_by_slug = crud.get_jurisdiction_by_slug(
+    #         session=session, slug=jurisdiction_in.slug
+    #     )
+    #     if jurisdiction_by_slug and jurisdiction_by_slug.id != jurisdiction_id:
+    #         raise HTTPException(
+    #             status_code=400,
+    #             detail=f"Jurisdiction with slug {jurisdiction_in.slug} already exists",
+    #         )
 
-    # If location_id is being updated, check if the new location exists
+    # If location_id is being updated, check if the new location exists - Still needed
     if (
         jurisdiction_in.location_id
         and jurisdiction_in.location_id != jurisdiction.location_id
@@ -151,6 +152,8 @@ def update_jurisdiction(
                 status_code=404,
                 detail=f"Location with ID {jurisdiction_in.location_id} not found",
             )
+
+    # Check for ID change due to name/state update is handled in crud.update_jurisdiction
 
     jurisdiction = crud.update_jurisdiction(
         session=session, db_obj=jurisdiction, obj_in=jurisdiction_in

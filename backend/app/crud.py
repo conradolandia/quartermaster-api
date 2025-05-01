@@ -17,7 +17,6 @@ from app.models import (
     UserCreate,
     UserUpdate,
 )
-from app.utils import generate_slug
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -69,28 +68,17 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
 
 # Location CRUD operations
 def create_location(*, session: Session, location_in: LocationCreate) -> Location:
-    """Create a new location."""
-    # Auto-generate slug if not provided
-    data = location_in.model_dump()
-    if not data.get("slug"):
-        data["slug"] = generate_slug(data["name"])
-
-    db_obj = Location.model_validate(data)
+    """Create a new location with UUID as ID."""
+    db_obj = Location.model_validate(location_in.model_dump())
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_location(*, session: Session, location_id: str) -> Location | None:
+def get_location(*, session: Session, location_id: uuid.UUID) -> Location | None:
     """Get a location by ID."""
     return session.get(Location, location_id)
-
-
-def get_location_by_slug(*, session: Session, slug: str) -> Location | None:
-    """Get a location by slug."""
-    statement = select(Location).where(Location.slug == slug)
-    return session.exec(statement).first()
 
 
 def get_locations(
@@ -99,6 +87,29 @@ def get_locations(
     """Get a list of locations with pagination."""
     statement = select(Location).offset(skip).limit(limit)
     return session.exec(statement).all()
+
+
+def get_locations_no_relationships(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get a list of locations without loading related jurisdictions to avoid recursion.
+    Returns dictionaries instead of ORM objects to break relationship chains.
+    """
+    statement = select(Location).offset(skip).limit(limit)
+    locations = session.exec(statement).all()
+
+    # Convert to dictionaries to break the ORM relationship chain
+    return [
+        {
+            "id": loc.id,
+            "name": loc.name,
+            "state": loc.state,
+            "created_at": loc.created_at,
+            "updated_at": loc.updated_at,
+        }
+        for loc in locations
+    ]
 
 
 def get_locations_count(*, session: Session) -> int:
@@ -111,13 +122,8 @@ def update_location(
     *, session: Session, db_obj: Location, obj_in: LocationUpdate
 ) -> Location:
     """Update a location."""
-    data = obj_in.model_dump(exclude_unset=True)
-
-    # Auto-generate slug if name changed but slug not provided
-    if "name" in data and "slug" not in data:
-        data["slug"] = generate_slug(data["name"])
-
-    db_obj.sqlmodel_update(data)
+    update_data = obj_in.model_dump(exclude_unset=True)
+    db_obj.sqlmodel_update(update_data)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -134,28 +140,19 @@ def delete_location(*, session: Session, db_obj: Location) -> None:
 def create_jurisdiction(
     *, session: Session, jurisdiction_in: JurisdictionCreate
 ) -> Jurisdiction:
-    """Create a new jurisdiction."""
-    # Auto-generate slug if not provided
-    data = jurisdiction_in.model_dump()
-    if not data.get("slug"):
-        data["slug"] = generate_slug(data["name"])
-
-    db_obj = Jurisdiction.model_validate(data)
+    """Create a new jurisdiction with UUID as ID."""
+    db_obj = Jurisdiction.model_validate(jurisdiction_in.model_dump())
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_jurisdiction(*, session: Session, jurisdiction_id: str) -> Jurisdiction | None:
+def get_jurisdiction(
+    *, session: Session, jurisdiction_id: uuid.UUID
+) -> Jurisdiction | None:
     """Get a jurisdiction by ID."""
     return session.get(Jurisdiction, jurisdiction_id)
-
-
-def get_jurisdiction_by_slug(*, session: Session, slug: str) -> Jurisdiction | None:
-    """Get a jurisdiction by slug."""
-    statement = select(Jurisdiction).where(Jurisdiction.slug == slug)
-    return session.exec(statement).first()
 
 
 def get_jurisdictions(
@@ -167,7 +164,7 @@ def get_jurisdictions(
 
 
 def get_jurisdictions_by_location(
-    *, session: Session, location_id: str, skip: int = 0, limit: int = 100
+    *, session: Session, location_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[Jurisdiction]:
     """Get jurisdictions for a specific location."""
     statement = (
@@ -189,13 +186,8 @@ def update_jurisdiction(
     *, session: Session, db_obj: Jurisdiction, obj_in: JurisdictionUpdate
 ) -> Jurisdiction:
     """Update a jurisdiction."""
-    data = obj_in.model_dump(exclude_unset=True)
-
-    # Auto-generate slug if name changed but slug not provided
-    if "name" in data and "slug" not in data:
-        data["slug"] = generate_slug(data["name"])
-
-    db_obj.sqlmodel_update(data)
+    update_data = obj_in.model_dump(exclude_unset=True)
+    db_obj.sqlmodel_update(update_data)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
