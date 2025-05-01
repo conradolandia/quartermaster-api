@@ -64,6 +64,35 @@ export type JurisdictionUpdate = {
   location_id?: string | null
 }
 
+export type LaunchCreate = {
+  name: string
+  launch_timestamp: string
+  summary: string
+  location_id: string
+}
+
+export type LaunchesPublic = {
+  data: Array<LaunchPublic>
+  count: number
+}
+
+export type LaunchPublic = {
+  name: string
+  launch_timestamp: string
+  summary: string
+  location_id: string
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type LaunchUpdate = {
+  name?: string | null
+  launch_timestamp?: string | null
+  summary?: string | null
+  location_id?: string | null
+}
+
 export type LocationCreate = {
   name: string
   state: string
@@ -223,6 +252,46 @@ export type JurisdictionsDeleteJurisdictionData = {
 }
 
 export type JurisdictionsDeleteJurisdictionResponse = void
+
+export type LaunchesReadLaunchesData = {
+  limit?: number
+  skip?: number
+}
+
+export type LaunchesReadLaunchesResponse = LaunchesPublic
+
+export type LaunchesCreateLaunchData = {
+  requestBody: LaunchCreate
+}
+
+export type LaunchesCreateLaunchResponse = LaunchPublic
+
+export type LaunchesReadLaunchData = {
+  launchId: string
+}
+
+export type LaunchesReadLaunchResponse = LaunchPublic
+
+export type LaunchesUpdateLaunchData = {
+  launchId: string
+  requestBody: LaunchUpdate
+}
+
+export type LaunchesUpdateLaunchResponse = LaunchPublic
+
+export type LaunchesDeleteLaunchData = {
+  launchId: string
+}
+
+export type LaunchesDeleteLaunchResponse = void
+
+export type LaunchesReadLaunchesByLocationData = {
+  limit?: number
+  locationId: string
+  skip?: number
+}
+
+export type LaunchesReadLaunchesByLocationResponse = LaunchesPublic
 
 export type LocationsReadLocationsData = {
   limit?: number

@@ -24,6 +24,18 @@ import type {
   JurisdictionsUpdateJurisdictionResponse,
   JurisdictionsDeleteJurisdictionData,
   JurisdictionsDeleteJurisdictionResponse,
+  LaunchesReadLaunchesData,
+  LaunchesReadLaunchesResponse,
+  LaunchesCreateLaunchData,
+  LaunchesCreateLaunchResponse,
+  LaunchesReadLaunchData,
+  LaunchesReadLaunchResponse,
+  LaunchesUpdateLaunchData,
+  LaunchesUpdateLaunchResponse,
+  LaunchesDeleteLaunchData,
+  LaunchesDeleteLaunchResponse,
+  LaunchesReadLaunchesByLocationData,
+  LaunchesReadLaunchesByLocationResponse,
   LocationsReadLocationsData,
   LocationsReadLocationsResponse,
   LocationsCreateLocationData,
@@ -305,6 +317,156 @@ export class JurisdictionsService {
       url: "/api/v1/jurisdictions/{jurisdiction_id}",
       path: {
         jurisdiction_id: data.jurisdictionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class LaunchesService {
+  /**
+   * Read Launches
+   * Retrieve launches.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns LaunchesPublic Successful Response
+   * @throws ApiError
+   */
+  public static readLaunches(
+    data: LaunchesReadLaunchesData = {},
+  ): CancelablePromise<LaunchesReadLaunchesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/launches/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Launch
+   * Create new launch.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns LaunchPublic Successful Response
+   * @throws ApiError
+   */
+  public static createLaunch(
+    data: LaunchesCreateLaunchData,
+  ): CancelablePromise<LaunchesCreateLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/launches/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Launch
+   * Get launch by ID.
+   * @param data The data for the request.
+   * @param data.launchId
+   * @returns LaunchPublic Successful Response
+   * @throws ApiError
+   */
+  public static readLaunch(
+    data: LaunchesReadLaunchData,
+  ): CancelablePromise<LaunchesReadLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/launches/{launch_id}",
+      path: {
+        launch_id: data.launchId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Launch
+   * Update a launch.
+   * @param data The data for the request.
+   * @param data.launchId
+   * @param data.requestBody
+   * @returns LaunchPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateLaunch(
+    data: LaunchesUpdateLaunchData,
+  ): CancelablePromise<LaunchesUpdateLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/launches/{launch_id}",
+      path: {
+        launch_id: data.launchId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Launch
+   * Delete a launch.
+   * @param data The data for the request.
+   * @param data.launchId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteLaunch(
+    data: LaunchesDeleteLaunchData,
+  ): CancelablePromise<LaunchesDeleteLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/launches/{launch_id}",
+      path: {
+        launch_id: data.launchId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Launches By Location
+   * Retrieve launches for a specific location.
+   * @param data The data for the request.
+   * @param data.locationId
+   * @param data.skip
+   * @param data.limit
+   * @returns LaunchesPublic Successful Response
+   * @throws ApiError
+   */
+  public static readLaunchesByLocation(
+    data: LaunchesReadLaunchesByLocationData,
+  ): CancelablePromise<LaunchesReadLaunchesByLocationResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/launches/location/{location_id}",
+      path: {
+        location_id: data.locationId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
       },
       errors: {
         422: "Validation Error",

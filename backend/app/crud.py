@@ -10,6 +10,9 @@ from app.models import (
     Jurisdiction,
     JurisdictionCreate,
     JurisdictionUpdate,
+    Launch,
+    LaunchCreate,
+    LaunchUpdate,
     Location,
     LocationCreate,
     LocationUpdate,
@@ -196,5 +199,86 @@ def update_jurisdiction(
 
 def delete_jurisdiction(*, session: Session, db_obj: Jurisdiction) -> None:
     """Delete a jurisdiction."""
+    session.delete(db_obj)
+    session.commit()
+
+
+# Launch CRUD operations
+def create_launch(*, session: Session, launch_in: LaunchCreate) -> Launch:
+    """Create a new launch with UUID as ID."""
+    db_obj = Launch.model_validate(launch_in.model_dump())
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_launch(*, session: Session, launch_id: uuid.UUID) -> Launch | None:
+    """Get a launch by ID."""
+    return session.get(Launch, launch_id)
+
+
+def get_launches(*, session: Session, skip: int = 0, limit: int = 100) -> list[Launch]:
+    """Get a list of launches with pagination."""
+    statement = select(Launch).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_launches_by_location(
+    *, session: Session, location_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[Launch]:
+    """Get launches for a specific location."""
+    statement = (
+        select(Launch)
+        .where(Launch.location_id == location_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_launches_no_relationships(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get a list of launches without loading related entities to avoid recursion.
+    Returns dictionaries instead of ORM objects to break relationship chains.
+    """
+    statement = select(Launch).offset(skip).limit(limit)
+    launches = session.exec(statement).all()
+
+    # Convert to dictionaries to break the ORM relationship chain
+    return [
+        {
+            "id": launch.id,
+            "name": launch.name,
+            "launch_timestamp": launch.launch_timestamp,
+            "summary": launch.summary,
+            "location_id": launch.location_id,
+            "created_at": launch.created_at,
+            "updated_at": launch.updated_at,
+        }
+        for launch in launches
+    ]
+
+
+def get_launches_count(*, session: Session) -> int:
+    """Get the total count of launches."""
+    statement = select(Launch)
+    return len(session.exec(statement).all())
+
+
+def update_launch(*, session: Session, db_obj: Launch, obj_in: LaunchUpdate) -> Launch:
+    """Update a launch."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    db_obj.sqlmodel_update(update_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_launch(*, session: Session, db_obj: Launch) -> None:
+    """Delete a launch."""
     session.delete(db_obj)
     session.commit()

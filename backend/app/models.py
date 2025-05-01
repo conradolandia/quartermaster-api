@@ -206,3 +206,44 @@ class LocationsPublic(SQLModel):
 class JurisdictionsPublic(SQLModel):
     data: list[JurisdictionPublic]
     count: int
+
+
+# Launch models
+class LaunchBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    launch_timestamp: datetime
+    summary: str = Field(max_length=1000)
+    location_id: uuid.UUID = Field(foreign_key="location.id")
+
+
+class LaunchCreate(LaunchBase):
+    pass
+
+
+class LaunchUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    launch_timestamp: datetime | None = None
+    summary: str | None = Field(default=None, max_length=1000)
+    location_id: uuid.UUID | None = None
+
+
+class Launch(LaunchBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - launch knows its location but location doesn't track launches
+    location: "Location" = Relationship()
+
+
+class LaunchPublic(LaunchBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class LaunchesPublic(SQLModel):
+    data: list[LaunchPublic]
+    count: int
