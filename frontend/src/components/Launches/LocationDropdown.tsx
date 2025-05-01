@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { LocationsService } from "@/client"
-import React, { RefObject } from "react"
+import { RefObject } from "react"
 
 interface LocationDropdownProps {
   value: string
