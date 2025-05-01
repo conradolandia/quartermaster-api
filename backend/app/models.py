@@ -148,6 +148,17 @@ class Location(LocationBase, table=True):
     )
 
 
+class LocationPublic(LocationBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class LocationsPublic(SQLModel):
+    data: list[LocationPublic]
+    count: int
+
+
 # Jurisdiction models
 class JurisdictionBase(SQLModel):
     name: str = Field(index=True, max_length=255)
@@ -190,17 +201,6 @@ class JurisdictionPublic(JurisdictionBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
-
-
-class LocationPublic(LocationBase):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-
-
-class LocationsPublic(SQLModel):
-    data: list[LocationPublic]
-    count: int
 
 
 class JurisdictionsPublic(SQLModel):

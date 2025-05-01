@@ -1,10 +1,12 @@
-from sqlmodel import Session, SQLModel, create_engine, inspect, select
+from sqlmodel import Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
 from app.models import (
     Jurisdiction,
     JurisdictionCreate,
+    Launch,
+    LaunchCreate,
     Location,
     LocationCreate,
     User,
@@ -20,26 +22,8 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
 def init_db(session: Session) -> None:
-    # Tables should be created with Alembic migrations
-    # But if you don't want to use migrations, create
-    # the tables un-commenting the next lines
-    # from sqlmodel import SQLModel
-
-    # This works because the models are already imported and registered from app.models
-    # SQLModel.metadata.create_all(engine)
-
-    # Check if required tables exist
-    inspector = inspect(engine)
-    required_tables = ["location", "jurisdiction", "user", "item"]
-    existing_tables = inspector.get_table_names()
-
-    # Create tables if any required table is missing
-    missing_tables = [
-        table for table in required_tables if table not in existing_tables
-    ]
-    if missing_tables:
-        SQLModel.metadata.create_all(engine)
-        print(f"Created missing tables: {missing_tables}")
+    # Tables are created with Alembic migrations
+    # This function only creates initial data if it doesn't exist
 
     # Create user if it doesn't exist
     user = session.exec(
@@ -81,3 +65,20 @@ def init_db(session: Session) -> None:
             session=session, jurisdiction_in=jurisdiction_in
         )
     print(f"Jurisdiction created: {jurisdiction}")
+
+    # Create default launch if it doesn't exist
+    launch = session.exec(select(Launch).where(Launch.name == "Default Launch")).first()
+    if not launch:
+        from datetime import datetime, timedelta, timezone
+
+        # Create a launch scheduled for 30 days from now
+        future_date = datetime.now(timezone.utc) + timedelta(days=30)
+
+        launch_in = LaunchCreate(
+            name="Default Launch",
+            launch_timestamp=future_date,
+            summary="This is a default launch created during initial setup",
+            location_id=location.id,
+        )
+        launch = crud.create_launch(session=session, launch_in=launch_in)
+    print(f"Launch created: {launch}")
