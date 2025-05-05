@@ -14,7 +14,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>
-        <IconButton variant="ghost" color="inherit">
+        <IconButton variant="ghost" color="ui.main">
           <BsThreeDotsVertical />
         </IconButton>
       </MenuTrigger>

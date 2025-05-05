@@ -55,6 +55,22 @@ import type {
   LoginResetPasswordResponse,
   LoginRecoverPasswordHtmlContentData,
   LoginRecoverPasswordHtmlContentResponse,
+  MissionsReadMissionsData,
+  MissionsReadMissionsResponse,
+  MissionsCreateMissionData,
+  MissionsCreateMissionResponse,
+  MissionsReadMissionData,
+  MissionsReadMissionResponse,
+  MissionsUpdateMissionData,
+  MissionsUpdateMissionResponse,
+  MissionsDeleteMissionData,
+  MissionsDeleteMissionResponse,
+  MissionsReadMissionsByLaunchData,
+  MissionsReadMissionsByLaunchResponse,
+  MissionsReadActiveMissionsData,
+  MissionsReadActiveMissionsResponse,
+  MissionsReadPublicMissionsData,
+  MissionsReadPublicMissionsResponse,
   PrivateCreateUserData,
   PrivateCreateUserResponse,
   UsersReadUsersData,
@@ -693,6 +709,206 @@ export class LoginService {
       url: "/api/v1/password-recovery-html-content/{email}",
       path: {
         email: data.email,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class MissionsService {
+  /**
+   * Read Missions
+   * Retrieve missions.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns MissionsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readMissions(
+    data: MissionsReadMissionsData = {},
+  ): CancelablePromise<MissionsReadMissionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/missions/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Mission
+   * Create new mission.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns MissionPublic Successful Response
+   * @throws ApiError
+   */
+  public static createMission(
+    data: MissionsCreateMissionData,
+  ): CancelablePromise<MissionsCreateMissionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/missions/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Mission
+   * Get mission by ID.
+   * @param data The data for the request.
+   * @param data.missionId
+   * @returns MissionPublic Successful Response
+   * @throws ApiError
+   */
+  public static readMission(
+    data: MissionsReadMissionData,
+  ): CancelablePromise<MissionsReadMissionResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/missions/{mission_id}",
+      path: {
+        mission_id: data.missionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Mission
+   * Update a mission.
+   * @param data The data for the request.
+   * @param data.missionId
+   * @param data.requestBody
+   * @returns MissionPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateMission(
+    data: MissionsUpdateMissionData,
+  ): CancelablePromise<MissionsUpdateMissionResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/missions/{mission_id}",
+      path: {
+        mission_id: data.missionId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Mission
+   * Delete a mission.
+   * @param data The data for the request.
+   * @param data.missionId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteMission(
+    data: MissionsDeleteMissionData,
+  ): CancelablePromise<MissionsDeleteMissionResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/missions/{mission_id}",
+      path: {
+        mission_id: data.missionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Missions By Launch
+   * Retrieve missions for a specific launch.
+   * @param data The data for the request.
+   * @param data.launchId
+   * @param data.skip
+   * @param data.limit
+   * @returns MissionsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readMissionsByLaunch(
+    data: MissionsReadMissionsByLaunchData,
+  ): CancelablePromise<MissionsReadMissionsByLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/missions/launch/{launch_id}",
+      path: {
+        launch_id: data.launchId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Active Missions
+   * Retrieve active missions.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns MissionsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readActiveMissions(
+    data: MissionsReadActiveMissionsData = {},
+  ): CancelablePromise<MissionsReadActiveMissionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/missions/active/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Public Missions
+   * Retrieve public missions.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns MissionsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readPublicMissions(
+    data: MissionsReadPublicMissionsData = {},
+  ): CancelablePromise<MissionsReadPublicMissionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/missions/public/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
       },
       errors: {
         422: "Validation Error",

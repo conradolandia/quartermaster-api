@@ -14,7 +14,7 @@ export const LocationActionsMenu = ({ location }: LocationActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>
-        <IconButton variant="ghost" color="inherit">
+        <IconButton variant="ghost" color="ui.main">
           <BsThreeDotsVertical />
         </IconButton>
       </MenuTrigger>

@@ -6,6 +6,7 @@ from app.api.routes import (
     launches,
     locations,
     login,
+    missions,
     private,
     users,
     utils,
@@ -20,6 +21,7 @@ api_router.include_router(items.router)
 api_router.include_router(locations.router)
 api_router.include_router(jurisdictions.router)
 api_router.include_router(launches.router)
+api_router.include_router(missions.router)
 
 
 if settings.ENVIRONMENT == "local":

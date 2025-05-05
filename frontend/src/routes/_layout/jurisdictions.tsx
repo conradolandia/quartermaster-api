@@ -6,7 +6,6 @@ import {
   Heading,
   Table,
   VStack,
-  Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -14,7 +13,7 @@ import { FiSearch, FiPlus } from "react-icons/fi"
 import { useState } from "react"
 import { z } from "zod"
 
-import { JurisdictionsService } from "@/client"
+import { JurisdictionsService, LocationsService } from "@/client"
 import AddJurisdiction from "@/components/Jurisdictions/AddJurisdiction"
 import JurisdictionActionsMenu from "@/components/Common/JurisdictionActionsMenu"
 import PendingJurisdictions from "@/components/Pending/PendingJurisdictions"
@@ -44,6 +43,24 @@ function getJurisdictionsQueryOptions({ page, locationId }: { page: number, loca
   }
 }
 
+// Function to create a map of location IDs to location objects
+function useLocationsMap() {
+  const { data } = useQuery({
+    queryKey: ["locations-map"],
+    queryFn: () => LocationsService.readLocations({ limit: 100 }),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  })
+
+  const locationsMap = new Map()
+  if (data?.data) {
+    data.data.forEach(location => {
+      locationsMap.set(location.id, location)
+    })
+  }
+
+  return locationsMap
+}
+
 export const Route = createFileRoute("/_layout/jurisdictions")({
   component: Jurisdictions,
   validateSearch: (search) => jurisdictionsSearchSchema.parse(search),
@@ -52,6 +69,7 @@ export const Route = createFileRoute("/_layout/jurisdictions")({
 function JurisdictionsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, locationId } = Route.useSearch()
+  const locationsMap = useLocationsMap()
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getJurisdictionsQueryOptions({ page, locationId }),
@@ -115,8 +133,7 @@ function JurisdictionsTable() {
                 {jurisdiction.sales_tax_rate}%
               </Table.Cell>
               <Table.Cell truncate maxW="sm">
-                {/* This would need to be improved to show location name instead of ID */}
-                {jurisdiction.location_id}
+                {locationsMap.get(jurisdiction.location_id)?.name || jurisdiction.location_id}
               </Table.Cell>
               <Table.Cell>
                 <JurisdictionActionsMenu jurisdiction={jurisdiction} />

@@ -120,6 +120,41 @@ export type Message = {
   message: string
 }
 
+export type MissionCreate = {
+  name: string
+  launch_id: string
+  active?: boolean
+  public?: boolean
+  sales_open_at?: string | null
+  refund_cutoff_hours?: number
+}
+
+export type MissionPublic = {
+  name: string
+  launch_id: string
+  active?: boolean
+  public?: boolean
+  sales_open_at?: string | null
+  refund_cutoff_hours?: number
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type MissionsPublic = {
+  data: Array<MissionPublic>
+  count: number
+}
+
+export type MissionUpdate = {
+  name?: string | null
+  launch_id?: string | null
+  active?: boolean | null
+  public?: boolean | null
+  sales_open_at?: string | null
+  refund_cutoff_hours?: number | null
+}
+
 export type NewPassword = {
   token: string
   new_password: string
@@ -350,6 +385,60 @@ export type LoginRecoverPasswordHtmlContentData = {
 }
 
 export type LoginRecoverPasswordHtmlContentResponse = string
+
+export type MissionsReadMissionsData = {
+  limit?: number
+  skip?: number
+}
+
+export type MissionsReadMissionsResponse = MissionsPublic
+
+export type MissionsCreateMissionData = {
+  requestBody: MissionCreate
+}
+
+export type MissionsCreateMissionResponse = MissionPublic
+
+export type MissionsReadMissionData = {
+  missionId: string
+}
+
+export type MissionsReadMissionResponse = MissionPublic
+
+export type MissionsUpdateMissionData = {
+  missionId: string
+  requestBody: MissionUpdate
+}
+
+export type MissionsUpdateMissionResponse = MissionPublic
+
+export type MissionsDeleteMissionData = {
+  missionId: string
+}
+
+export type MissionsDeleteMissionResponse = void
+
+export type MissionsReadMissionsByLaunchData = {
+  launchId: string
+  limit?: number
+  skip?: number
+}
+
+export type MissionsReadMissionsByLaunchResponse = MissionsPublic
+
+export type MissionsReadActiveMissionsData = {
+  limit?: number
+  skip?: number
+}
+
+export type MissionsReadActiveMissionsResponse = MissionsPublic
+
+export type MissionsReadPublicMissionsData = {
+  limit?: number
+  skip?: number
+}
+
+export type MissionsReadPublicMissionsResponse = MissionsPublic
 
 export type PrivateCreateUserData = {
   requestBody: PrivateUserCreate

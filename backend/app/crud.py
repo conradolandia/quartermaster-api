@@ -16,6 +16,9 @@ from app.models import (
     Location,
     LocationCreate,
     LocationUpdate,
+    Mission,
+    MissionCreate,
+    MissionUpdate,
     User,
     UserCreate,
     UserUpdate,
@@ -280,5 +283,103 @@ def update_launch(*, session: Session, db_obj: Launch, obj_in: LaunchUpdate) -> 
 
 def delete_launch(*, session: Session, db_obj: Launch) -> None:
     """Delete a launch."""
+    session.delete(db_obj)
+    session.commit()
+
+
+# Mission CRUD operations
+def create_mission(*, session: Session, mission_in: MissionCreate) -> Mission:
+    """Create a new mission with UUID as ID."""
+    db_obj = Mission.model_validate(mission_in.model_dump())
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_mission(*, session: Session, mission_id: uuid.UUID) -> Mission | None:
+    """Get a mission by ID."""
+    return session.get(Mission, mission_id)
+
+
+def get_missions(*, session: Session, skip: int = 0, limit: int = 100) -> list[Mission]:
+    """Get a list of missions with pagination."""
+    statement = select(Mission).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_missions_by_launch(
+    *, session: Session, launch_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[Mission]:
+    """Get missions for a specific launch."""
+    statement = (
+        select(Mission).where(Mission.launch_id == launch_id).offset(skip).limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_active_missions(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[Mission]:
+    """Get active missions."""
+    statement = select(Mission).where(Mission.active is True).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_public_missions(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[Mission]:
+    """Get public missions."""
+    statement = select(Mission).where(Mission.public is True).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_missions_no_relationships(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get a list of missions without loading related entities to avoid recursion.
+    Returns dictionaries instead of ORM objects to break relationship chains.
+    """
+    statement = select(Mission).offset(skip).limit(limit)
+    missions = session.exec(statement).all()
+
+    # Convert to dictionaries to break the ORM relationship chain
+    return [
+        {
+            "id": mission.id,
+            "name": mission.name,
+            "launch_id": mission.launch_id,
+            "active": mission.active,
+            "public": mission.public,
+            "sales_open_at": mission.sales_open_at,
+            "refund_cutoff_hours": mission.refund_cutoff_hours,
+            "created_at": mission.created_at,
+            "updated_at": mission.updated_at,
+        }
+        for mission in missions
+    ]
+
+
+def get_missions_count(*, session: Session) -> int:
+    """Get the total count of missions."""
+    statement = select(Mission)
+    return len(session.exec(statement).all())
+
+
+def update_mission(
+    *, session: Session, db_obj: Mission, obj_in: MissionUpdate
+) -> Mission:
+    """Update a mission."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    db_obj.sqlmodel_update(update_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_mission(*, session: Session, db_obj: Mission) -> None:
+    """Delete a mission."""
     session.delete(db_obj)
     session.commit()

@@ -247,3 +247,48 @@ class LaunchPublic(LaunchBase):
 class LaunchesPublic(SQLModel):
     data: list[LaunchPublic]
     count: int
+
+
+# Mission models
+class MissionBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    launch_id: uuid.UUID = Field(foreign_key="launch.id")
+    active: bool = Field(default=True)
+    public: bool = Field(default=False)
+    sales_open_at: datetime | None = None
+    refund_cutoff_hours: int = Field(default=12, ge=0, le=72)
+
+
+class MissionCreate(MissionBase):
+    pass
+
+
+class MissionUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    launch_id: uuid.UUID | None = None
+    active: bool | None = None
+    public: bool | None = None
+    sales_open_at: datetime | None = None
+    refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
+
+
+class Mission(MissionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - mission knows its launch but launch doesn't track missions
+    launch: "Launch" = Relationship()
+
+
+class MissionPublic(MissionBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class MissionsPublic(SQLModel):
+    data: list[MissionPublic]
+    count: int

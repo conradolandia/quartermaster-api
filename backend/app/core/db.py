@@ -9,6 +9,8 @@ from app.models import (
     LaunchCreate,
     Location,
     LocationCreate,
+    Mission,
+    MissionCreate,
     User,
     UserCreate,
 )
@@ -22,8 +24,13 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 
 def init_db(session: Session) -> None:
-    # Tables are created with Alembic migrations
-    # This function only creates initial data if it doesn't exist
+    # Create tables directly
+    from sqlmodel import SQLModel
+
+    # Create tables directly
+    SQLModel.metadata.create_all(engine)
+
+    # This function also creates initial data if it doesn't exist
 
     # Create user if it doesn't exist
     user = session.exec(
@@ -82,3 +89,24 @@ def init_db(session: Session) -> None:
         )
         launch = crud.create_launch(session=session, launch_in=launch_in)
     print(f"Launch created: {launch}")
+
+    # Create default mission if it doesn't exist
+    mission = session.exec(
+        select(Mission).where(Mission.name == "Default Mission")
+    ).first()
+    if not mission:
+        from datetime import datetime, timedelta, timezone
+
+        # Create a mission with sales opening 7 days before launch
+        sales_open_date = launch.launch_timestamp - timedelta(days=7)
+
+        mission_in = MissionCreate(
+            name="Default Mission",
+            launch_id=launch.id,
+            active=True,
+            public=True,
+            sales_open_at=sales_open_date,
+            refund_cutoff_hours=12,
+        )
+        mission = crud.create_mission(session=session, mission_in=mission_in)
+    print(f"Mission created: {mission}")
