@@ -15,6 +15,10 @@ from app.models import (
     LocationCreate,
     Mission,
     MissionCreate,
+    Trip,
+    TripBoat,
+    TripBoatCreate,
+    TripCreate,
     User,
     UserCreate,
 )
@@ -110,27 +114,49 @@ def init_db(session: Session) -> None:
     # Create default boat if it doesn't exist
     boat = session.exec(select(Boat).where(Boat.name == "Boaty McBoatface")).first()
     if not boat:
-        # Crear los datos del barco explícitamente
-        boat_data = {
-            "name": "Boaty McBoatface",
-            "slug": "boaty-mcboatface",  # Proporcionamos el slug explícitamente
-            "capacity": 30,
-            "provider_name": "Ocean Adventures",
-            "provider_location": "Marina Bay",
-            "provider_address": "123 Harbor St, Marina Bay, FL",
-            "jurisdiction_id": jurisdiction.id,
-            "map_link": "https://goo.gl/maps/fictional-boat-location",
-        }
-
-        # Crear el objeto BoatCreate
-        try:
-            boat_in = BoatCreate(**boat_data)
-            boat = crud.create_boat(session=session, boat_in=boat_in)
-        except Exception as e:
-            print(f"ERROR: Creating boat failed: {str(e)}")
-            # Imprimir los detalles del error
-            import traceback
-
-            traceback.print_exc()
-            raise
+        boat_in = BoatCreate(
+            name="Boaty McBoatface",
+            capacity=150,
+            provider_name="Default Provider",
+            provider_location="Cape Canaveral",
+            provider_address="123 Main St, Cape Canaveral, FL 32920",
+            jurisdiction_id=jurisdiction.id,
+            map_link="https://maps.example.com/boaty",
+        )
+        boat = crud.create_boat(session=session, boat_in=boat_in)
     print(f"Boat created: {boat}")
+
+    # Create default trip if it doesn't exist
+    trip = session.exec(
+        select(Trip).where(Trip.mission_id == mission.id, Trip.type == "launch_viewing")
+    ).first()
+    if not trip:
+        # Create times based on the launch time
+        launch_time = launch.launch_timestamp
+        check_in_time = launch_time - timedelta(hours=3)
+        boarding_time = launch_time - timedelta(hours=2, minutes=30)
+        departure_time = launch_time - timedelta(hours=2)
+
+        trip_in = TripCreate(
+            mission_id=mission.id,
+            type="launch_viewing",
+            active=True,
+            check_in_time=check_in_time,
+            boarding_time=boarding_time,
+            departure_time=departure_time,
+        )
+        trip = crud.create_trip(session=session, trip_in=trip_in)
+    print(f"Trip created: {trip}")
+
+    # Create default trip-boat association if it doesn't exist
+    trip_boat = session.exec(
+        select(TripBoat).where(TripBoat.trip_id == trip.id, TripBoat.boat_id == boat.id)
+    ).first()
+    if not trip_boat:
+        trip_boat_in = TripBoatCreate(
+            trip_id=trip.id,
+            boat_id=boat.id,
+            max_capacity=120,  # Optional override of default capacity
+        )
+        trip_boat = crud.create_trip_boat(session=session, trip_boat_in=trip_boat_in)
+    print(f"Trip-Boat association created: {trip_boat}")

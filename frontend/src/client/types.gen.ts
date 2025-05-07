@@ -212,6 +212,53 @@ export type Token = {
   token_type?: string
 }
 
+export type TripBoatCreate = {
+  trip_id: string
+  boat_id: string
+  max_capacity?: number | null
+}
+
+export type TripBoatUpdate = {
+  trip_id?: string | null
+  boat_id?: string | null
+  max_capacity?: number | null
+}
+
+export type TripCreate = {
+  mission_id: string
+  type: string
+  active?: boolean
+  check_in_time: string
+  boarding_time: string
+  departure_time: string
+}
+
+export type TripPublic = {
+  mission_id: string
+  type: string
+  active?: boolean
+  check_in_time: string
+  boarding_time: string
+  departure_time: string
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type TripsPublic = {
+  data: Array<TripPublic>
+  count: number
+}
+
+export type TripUpdate = {
+  mission_id?: string | null
+  type?: string | null
+  active?: boolean | null
+  check_in_time?: string | null
+  boarding_time?: string | null
+  departure_time?: string | null
+}
+
 export type UpdatePassword = {
   current_password: string
   new_password: string
@@ -525,6 +572,81 @@ export type PrivateCreateUserData = {
 }
 
 export type PrivateCreateUserResponse = UserPublic
+
+export type TripBoatsCreateTripBoatData = {
+  requestBody: TripBoatCreate
+}
+
+export type TripBoatsCreateTripBoatResponse = unknown
+
+export type TripBoatsReadTripBoatsByTripData = {
+  limit?: number
+  skip?: number
+  tripId: string
+}
+
+export type TripBoatsReadTripBoatsByTripResponse = unknown
+
+export type TripBoatsReadTripBoatsByBoatData = {
+  boatId: string
+  limit?: number
+  skip?: number
+}
+
+export type TripBoatsReadTripBoatsByBoatResponse = unknown
+
+export type TripBoatsUpdateTripBoatData = {
+  requestBody: TripBoatUpdate
+  tripBoatId: string
+}
+
+export type TripBoatsUpdateTripBoatResponse = unknown
+
+export type TripBoatsDeleteTripBoatData = {
+  tripBoatId: string
+}
+
+export type TripBoatsDeleteTripBoatResponse = unknown
+
+export type TripsReadTripsData = {
+  limit?: number
+  skip?: number
+}
+
+export type TripsReadTripsResponse = TripsPublic
+
+export type TripsCreateTripData = {
+  requestBody: TripCreate
+}
+
+export type TripsCreateTripResponse = TripPublic
+
+export type TripsReadTripData = {
+  tripId: string
+}
+
+export type TripsReadTripResponse = TripPublic
+
+export type TripsUpdateTripData = {
+  requestBody: TripUpdate
+  tripId: string
+}
+
+export type TripsUpdateTripResponse = TripPublic
+
+export type TripsDeleteTripData = {
+  tripId: string
+}
+
+export type TripsDeleteTripResponse = TripPublic
+
+export type TripsReadTripsByMissionData = {
+  limit?: number
+  missionId: string
+  skip?: number
+}
+
+export type TripsReadTripsByMissionResponse = TripsPublic
 
 export type UsersReadUsersData = {
   limit?: number

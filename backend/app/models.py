@@ -342,3 +342,81 @@ class BoatPublic(BoatBase):
 class BoatsPublic(SQLModel):
     data: list[BoatPublic]
     count: int
+
+
+# Trip models
+class TripBase(SQLModel):
+    mission_id: uuid.UUID = Field(foreign_key="mission.id")
+    type: str = Field(max_length=50)  # launch_viewing or pre_launch
+    active: bool = Field(default=True)
+    check_in_time: datetime
+    boarding_time: datetime
+    departure_time: datetime
+
+
+class TripCreate(TripBase):
+    pass
+
+
+class TripUpdate(SQLModel):
+    mission_id: uuid.UUID | None = None
+    type: str | None = Field(default=None, max_length=50)
+    active: bool | None = None
+    check_in_time: datetime | None = None
+    boarding_time: datetime | None = None
+    departure_time: datetime | None = None
+
+
+class Trip(TripBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - trip knows its mission but mission doesn't track trips
+    mission: "Mission" = Relationship()
+    # Relationship to TripBoat
+    trip_boats: list["TripBoat"] = Relationship(
+        back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
+    )
+
+
+class TripPublic(TripBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class TripsPublic(SQLModel):
+    data: list[TripPublic]
+    count: int
+
+
+# TripBoat models
+class TripBoatBase(SQLModel):
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    max_capacity: int | None = None  # Optional override of boat's standard capacity
+
+
+class TripBoatCreate(TripBoatBase):
+    pass
+
+
+class TripBoatUpdate(SQLModel):
+    trip_id: uuid.UUID | None = None
+    boat_id: uuid.UUID | None = None
+    max_capacity: int | None = None
+
+
+class TripBoat(TripBoatBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Relationships
+    trip: "Trip" = Relationship(back_populates="trip_boats")
+    boat: "Boat" = Relationship()

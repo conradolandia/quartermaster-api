@@ -5,7 +5,7 @@ import { FiHome, FiSettings, FiUsers } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
-import { FaBalanceScale, FaMapMarked, FaRocket, FaShip, FaSpaceShuttle } from "react-icons/fa"
+import { FaBalanceScale, FaMapMarked, FaRocket, FaShip, FaSpaceShuttle, FaRoute } from "react-icons/fa"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
@@ -14,6 +14,7 @@ const items = [
   { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FaMapMarked, title: "Locations", path: "/locations" },
   { icon: FaShip, title: "Boats", path: "/boats" },
+  { icon: FaRoute, title: "Trips", path: "/trips" },
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]
 

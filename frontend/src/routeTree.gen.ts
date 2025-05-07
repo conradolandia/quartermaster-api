@@ -17,6 +17,7 @@ import { Route as RecoverPasswordImport } from './routes/recover-password'
 import { Route as LoginImport } from './routes/login'
 import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
+import { Route as LayoutTripsImport } from './routes/_layout/trips'
 import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutMissionsImport } from './routes/_layout/missions'
 import { Route as LayoutLocationsImport } from './routes/_layout/locations'
@@ -55,6 +56,11 @@ const LayoutRoute = LayoutImport.update({
 
 const LayoutIndexRoute = LayoutIndexImport.update({
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutTripsRoute = LayoutTripsImport.update({
+  path: '/trips',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -154,6 +160,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/trips': {
+      preLoaderRoute: typeof LayoutTripsImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/': {
       preLoaderRoute: typeof LayoutIndexImport
       parentRoute: typeof LayoutImport
@@ -173,6 +183,7 @@ export const routeTree = rootRoute.addChildren([
     LayoutLocationsRoute,
     LayoutMissionsRoute,
     LayoutSettingsRoute,
+    LayoutTripsRoute,
     LayoutIndexRoute,
   ]),
   LoginRoute,

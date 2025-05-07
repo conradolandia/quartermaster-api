@@ -85,6 +85,28 @@ import type {
   MissionsReadPublicMissionsResponse,
   PrivateCreateUserData,
   PrivateCreateUserResponse,
+  TripBoatsCreateTripBoatData,
+  TripBoatsCreateTripBoatResponse,
+  TripBoatsReadTripBoatsByTripData,
+  TripBoatsReadTripBoatsByTripResponse,
+  TripBoatsReadTripBoatsByBoatData,
+  TripBoatsReadTripBoatsByBoatResponse,
+  TripBoatsUpdateTripBoatData,
+  TripBoatsUpdateTripBoatResponse,
+  TripBoatsDeleteTripBoatData,
+  TripBoatsDeleteTripBoatResponse,
+  TripsReadTripsData,
+  TripsReadTripsResponse,
+  TripsCreateTripData,
+  TripsCreateTripResponse,
+  TripsReadTripData,
+  TripsReadTripResponse,
+  TripsUpdateTripData,
+  TripsUpdateTripResponse,
+  TripsDeleteTripData,
+  TripsDeleteTripResponse,
+  TripsReadTripsByMissionData,
+  TripsReadTripsByMissionResponse,
   UsersReadUsersData,
   UsersReadUsersResponse,
   UsersCreateUserData,
@@ -1096,6 +1118,287 @@ export class PrivateService {
       url: "/api/v1/private/users/",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class TripBoatsService {
+  /**
+   * Create Trip Boat
+   * Create new trip boat association.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static createTripBoat(
+    data: TripBoatsCreateTripBoatData,
+  ): CancelablePromise<TripBoatsCreateTripBoatResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trip-boats/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trip Boats By Trip
+   * Get all boats for a specific trip.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.skip
+   * @param data.limit
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static readTripBoatsByTrip(
+    data: TripBoatsReadTripBoatsByTripData,
+  ): CancelablePromise<TripBoatsReadTripBoatsByTripResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boats/trip/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trip Boats By Boat
+   * Get all trips for a specific boat.
+   * @param data The data for the request.
+   * @param data.boatId
+   * @param data.skip
+   * @param data.limit
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static readTripBoatsByBoat(
+    data: TripBoatsReadTripBoatsByBoatData,
+  ): CancelablePromise<TripBoatsReadTripBoatsByBoatResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boats/boat/{boat_id}",
+      path: {
+        boat_id: data.boatId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Trip Boat
+   * Update a trip boat association.
+   * @param data The data for the request.
+   * @param data.tripBoatId
+   * @param data.requestBody
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static updateTripBoat(
+    data: TripBoatsUpdateTripBoatData,
+  ): CancelablePromise<TripBoatsUpdateTripBoatResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/trip-boats/{trip_boat_id}",
+      path: {
+        trip_boat_id: data.tripBoatId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Trip Boat
+   * Delete a trip boat association.
+   * @param data The data for the request.
+   * @param data.tripBoatId
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static deleteTripBoat(
+    data: TripBoatsDeleteTripBoatData,
+  ): CancelablePromise<TripBoatsDeleteTripBoatResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/trip-boats/{trip_boat_id}",
+      path: {
+        trip_boat_id: data.tripBoatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class TripsService {
+  /**
+   * Read Trips
+   * Retrieve trips.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns TripsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readTrips(
+    data: TripsReadTripsData = {},
+  ): CancelablePromise<TripsReadTripsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Trip
+   * Create new trip.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static createTrip(
+    data: TripsCreateTripData,
+  ): CancelablePromise<TripsCreateTripResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trip
+   * Get trip by ID.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static readTrip(
+    data: TripsReadTripData,
+  ): CancelablePromise<TripsReadTripResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Trip
+   * Update a trip.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.requestBody
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateTrip(
+    data: TripsUpdateTripData,
+  ): CancelablePromise<TripsUpdateTripResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/trips/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Trip
+   * Delete a trip.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static deleteTrip(
+    data: TripsDeleteTripData,
+  ): CancelablePromise<TripsDeleteTripResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/trips/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trips By Mission
+   * Retrieve trips for a specific mission.
+   * @param data The data for the request.
+   * @param data.missionId
+   * @param data.skip
+   * @param data.limit
+   * @returns TripsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readTripsByMission(
+    data: TripsReadTripsByMissionData,
+  ): CancelablePromise<TripsReadTripsByMissionResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/mission/{mission_id}",
+      path: {
+        mission_id: data.missionId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
       errors: {
         422: "Validation Error",
       },

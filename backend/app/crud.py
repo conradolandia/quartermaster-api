@@ -2,6 +2,7 @@ import re
 import uuid
 from typing import Any
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
@@ -23,6 +24,12 @@ from app.models import (
     Mission,
     MissionCreate,
     MissionUpdate,
+    Trip,
+    TripBoat,
+    TripBoatCreate,
+    TripBoatUpdate,
+    TripCreate,
+    TripUpdate,
     User,
     UserCreate,
     UserUpdate,
@@ -489,3 +496,146 @@ def delete_boat(*, session: Session, db_obj: Boat) -> None:
     """Delete a boat."""
     session.delete(db_obj)
     session.commit()
+
+
+# Trip CRUD
+def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
+    """Get trip by ID."""
+    return session.get(Trip, trip_id)
+
+
+def get_trips(*, session: Session, skip: int = 0, limit: int = 100) -> list[Trip]:
+    """Get all trips with relationships."""
+    statement = select(Trip).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_trips_no_relationships(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[Trip]:
+    """Get all trips without loading relationships."""
+    # Add unique() to handle the eagerly loaded collection
+    statement = select(Trip).offset(skip).limit(limit)
+    trips = session.exec(statement).unique().all()
+    # Convert to dictionaries to break the ORM relationship chain
+    trip_dicts = [
+        {
+            "id": trip.id,
+            "mission_id": trip.mission_id,
+            "type": trip.type,
+            "active": trip.active,
+            "check_in_time": trip.check_in_time,
+            "boarding_time": trip.boarding_time,
+            "departure_time": trip.departure_time,
+            "created_at": trip.created_at,
+            "updated_at": trip.updated_at,
+        }
+        for trip in trips
+    ]
+    return trip_dicts
+
+
+def get_trips_count(*, session: Session) -> int:
+    """Get total count of trips."""
+    statement = select(func.count()).select_from(Trip)
+    return session.exec(statement).one()
+
+
+def get_trips_by_mission(
+    *, session: Session, mission_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[Trip]:
+    """Get trips for a specific mission."""
+    statement = (
+        select(Trip).where(Trip.mission_id == mission_id).offset(skip).limit(limit)
+    )
+    return session.exec(statement).unique().all()
+
+
+def create_trip(*, session: Session, trip_in: TripCreate) -> Trip:
+    """Create a new trip."""
+    trip = Trip.model_validate(trip_in)
+    session.add(trip)
+    session.commit()
+    session.refresh(trip)
+    return trip
+
+
+def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate) -> Trip:
+    """Update a trip."""
+    # Convert model to dict, excluding any None values
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
+    """Delete a trip."""
+    trip = get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        return None
+    session.delete(trip)
+    session.commit()
+    return trip
+
+
+# TripBoat CRUD
+def get_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat | None:
+    """Get trip_boat by ID."""
+    return session.get(TripBoat, trip_boat_id)
+
+
+def get_trip_boats_by_trip(
+    *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[TripBoat]:
+    """Get trip boats for a specific trip."""
+    statement = (
+        select(TripBoat).where(TripBoat.trip_id == trip_id).offset(skip).limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_trip_boats_by_boat(
+    *, session: Session, boat_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[TripBoat]:
+    """Get trip boats for a specific boat."""
+    statement = (
+        select(TripBoat).where(TripBoat.boat_id == boat_id).offset(skip).limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def create_trip_boat(*, session: Session, trip_boat_in: TripBoatCreate) -> TripBoat:
+    """Create a new trip boat association."""
+    trip_boat = TripBoat.model_validate(trip_boat_in)
+    session.add(trip_boat)
+    session.commit()
+    session.refresh(trip_boat)
+    return trip_boat
+
+
+def update_trip_boat(
+    *, session: Session, db_obj: TripBoat, obj_in: TripBoatUpdate
+) -> TripBoat:
+    """Update a trip boat association."""
+    # Convert model to dict, excluding any None values
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat:
+    """Delete a trip boat association."""
+    trip_boat = get_trip_boat(session=session, trip_boat_id=trip_boat_id)
+    if not trip_boat:
+        return None
+    session.delete(trip_boat)
+    session.commit()
+    return trip_boat

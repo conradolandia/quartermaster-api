@@ -9,6 +9,8 @@ from app.api.routes import (
     login,
     missions,
     private,
+    trip_boats,
+    trips,
     users,
     utils,
 )
@@ -24,6 +26,8 @@ api_router.include_router(jurisdictions.router)
 api_router.include_router(launches.router)
 api_router.include_router(missions.router)
 api_router.include_router(boats.router)
+api_router.include_router(trips.router)
+api_router.include_router(trip_boats.router)
 
 
 if settings.ENVIRONMENT == "local":
