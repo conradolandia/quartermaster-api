@@ -286,9 +286,15 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   <VStack align="stretch" gap={3} mb={4} p={3} borderWidth="1px" borderRadius="md">
                     <Field label="Select Boat" required>
                       <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={selectedBoatId}
-                        onChange={(e) => setSelectedBoatId(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedBoatId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid',
+                          borderColor: 'inherit'
+                        }}
                       >
                         <option value="">Select a boat</option>
                         {boatsData.map((boat) => (
