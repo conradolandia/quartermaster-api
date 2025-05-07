@@ -1,36 +1,42 @@
+import { RefObject } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Portal, Select, createListCollection } from "@chakra-ui/react"
-import { LocationsService } from "@/client"
-import React, { RefObject } from "react"
+// @ts-ignore
+import { JurisdictionsService } from "@/client"
 
-interface LocationDropdownProps {
+interface JurisdictionDropdownProps {
   value: string
   onChange: (value: string) => void
   id?: string
+  locationId?: string
   isDisabled?: boolean
   portalRef?: RefObject<HTMLElement>
   [key: string]: any // For other props
 }
 
-export const LocationDropdown = ({
+export const JurisdictionDropdown = ({
   value,
   onChange,
   id,
+  locationId,
   isDisabled,
   portalRef,
   ...props
-}: LocationDropdownProps) => {
-  // Use React Query to fetch locations
+}: JurisdictionDropdownProps) => {
+  // Use React Query to fetch jurisdictions
   const {
-    data: locationsResponse,
+    data: jurisdictionsResponse,
     isLoading,
   } = useQuery({
-    queryKey: ["locations-dropdown"],
+    queryKey: ["jurisdictions-dropdown", locationId],
     queryFn: () => {
       try {
-        return LocationsService.readLocations()
+        return JurisdictionsService.readJurisdictions({
+          limit: 100,
+          locationId
+        })
       } catch (error) {
-        console.error("Error fetching locations:", error)
+        console.error("Error fetching jurisdictions:", error)
         throw error
       }
     },
@@ -39,16 +45,16 @@ export const LocationDropdown = ({
   })
 
   // Create a collection from the API response
-  const locationsCollection = createListCollection({
-    items: locationsResponse?.data?.map(location => ({
-      label: `${location.name} (${location.state})`,
-      value: location.id
+  const jurisdictionsCollection = createListCollection({
+    items: jurisdictionsResponse?.data?.map(jurisdiction => ({
+      label: `${jurisdiction.name} (${jurisdiction.state})`,
+      value: jurisdiction.id
     })) || []
   })
 
   return (
     <Select.Root
-      collection={locationsCollection}
+      collection={jurisdictionsCollection}
       size="md"
       value={value ? [value] : []}
       onValueChange={(e) => onChange(e.value[0] || "")}
@@ -58,7 +64,7 @@ export const LocationDropdown = ({
       <Select.HiddenSelect id={id} />
       <Select.Control>
         <Select.Trigger>
-          <Select.ValueText placeholder="Select location" />
+          <Select.ValueText placeholder="Select jurisdiction" />
         </Select.Trigger>
         <Select.IndicatorGroup>
           <Select.Indicator />
@@ -67,12 +73,12 @@ export const LocationDropdown = ({
       <Portal container={portalRef}>
         <Select.Positioner>
           <Select.Content>
-            {locationsResponse?.data?.map((location) => (
+            {jurisdictionsResponse?.data?.map((jurisdiction) => (
               <Select.Item
-                key={location.id}
-                item={{ value: location.id, label: `${location.name} (${location.state})` }}
+                key={jurisdiction.id}
+                item={{ value: jurisdiction.id, label: `${jurisdiction.name} (${jurisdiction.state})` }}
               >
-                {location.name} ({location.state})
+                {jurisdiction.name} ({jurisdiction.state})
                 <Select.ItemIndicator />
               </Select.Item>
             ))}
@@ -83,4 +89,4 @@ export const LocationDropdown = ({
   )
 }
 
-export default LocationDropdown;
+export default JurisdictionDropdown

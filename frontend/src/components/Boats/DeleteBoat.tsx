@@ -1,18 +1,9 @@
-import {
-  Button,
-  ButtonGroup,
-  DialogActionTrigger,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FaTrash } from "react-icons/fa"
-
-import { type ApiError, type JurisdictionPublic, JurisdictionsService } from "@/client"
-import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
+import { FiTrash2 } from "react-icons/fi"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
+  DialogActionTrigger,
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -21,31 +12,38 @@ import {
   DialogRoot,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog"
+} from "@/components/ui/dialog"
+import { type ApiError, BoatsService } from "@/client"
+import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 
-interface DeleteJurisdictionProps {
-  jurisdiction: JurisdictionPublic
+// Este es un componente simplificado para mostrar la estructura
+// En una implementación real, incluiría llamadas a la API
+
+interface DeleteBoatProps {
+  id: string
+  name: string
 }
 
-const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
+const DeleteBoat = ({ id, name }: DeleteBoatProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
   const mutation = useMutation({
     mutationFn: () =>
-      JurisdictionsService.deleteJurisdiction({
-        jurisdictionId: jurisdiction.id,
+      BoatsService.deleteBoat({
+        boatId: id,
       }),
     onSuccess: () => {
-      showSuccessToast("Jurisdiction deleted successfully.")
+      showSuccessToast("Boat deleted successfully.")
       setIsOpen(false)
     },
     onError: (err: ApiError) => {
       handleError(err)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["jurisdictions"] })
+      queryClient.invalidateQueries({ queryKey: ["boats"] })
     },
   })
 
@@ -57,27 +55,30 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
     <DialogRoot
       size={{ base: "xs", md: "md" }}
       placement="center"
+      role="alertdialog"
       open={isOpen}
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
-          <FaTrash fontSize="16px" />
-          Delete Jurisdiction
+          <FiTrash2 fontSize="16px" />
+          Delete Boat
         </Button>
       </DialogTrigger>
+
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Jurisdiction</DialogTitle>
+          <DialogTitle>Delete Boat</DialogTitle>
         </DialogHeader>
         <DialogBody>
           <VStack gap={4} align="flex-start">
             <Text>
-              Are you sure you want to delete {jurisdiction.name}?
+              Boat "{name}" will be permanently deleted. Are you sure?
             </Text>
             <Text>This action cannot be undone.</Text>
           </VStack>
         </DialogBody>
+
         <DialogFooter gap={2}>
           <ButtonGroup>
             <DialogActionTrigger asChild>
@@ -91,7 +92,7 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
             </DialogActionTrigger>
             <Button
               variant="solid"
-              colorScheme="red"
+              colorPalette="red"
               onClick={handleDelete}
               loading={mutation.isPending}
             >
@@ -105,4 +106,4 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
   )
 }
 
-export default DeleteJurisdiction
+export default DeleteBoat

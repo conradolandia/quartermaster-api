@@ -1,19 +1,19 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
-import { FiBriefcase, FiHome, FiSettings, FiUsers } from "react-icons/fi"
+import { FiHome, FiSettings, FiUsers } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
-import { FaBalanceScale, FaMapMarked, FaRocket, FaSpaceShuttle } from "react-icons/fa"
+import { FaBalanceScale, FaMapMarked, FaRocket, FaShip, FaSpaceShuttle } from "react-icons/fa"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
-  { icon: FiBriefcase, title: "Items", path: "/items" },
-  { icon: FaMapMarked, title: "Locations", path: "/locations" },
-  { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FaRocket, title: "Launches", path: "/launches" },
   { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
+  { icon: FaShip, title: "Boats", path: "/boats" },
+  { icon: FaMapMarked, title: "Locations", path: "/locations" },
+  { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FiSettings, title: "User Settings", path: "/settings" },
 ]
 

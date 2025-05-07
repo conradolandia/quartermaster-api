@@ -1,6 +1,6 @@
 import useCustomToast from "@/hooks/useCustomToast";
-import { Button, Input, VStack, Portal } from "@chakra-ui/react";
-import { useState, useRef } from "react";
+import { Button, Input, VStack, Portal, ButtonGroup } from "@chakra-ui/react";
+import { useRef } from "react";
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -9,13 +9,15 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
+  DialogActionTrigger,
 } from "../ui/dialog";
 
 import { Field } from "../ui/field";
 import { LocationsService, type LocationCreate } from "@/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
+import { type SubmitHandler, useForm, Controller } from "react-hook-form";
 import StateDropdown from "./StateDropdown";
+import { handleError } from "@/utils";
 
 // Props interface
 interface AddLocationProps {
@@ -29,11 +31,24 @@ export const AddLocation = ({
   onClose,
   onSuccess,
 }: AddLocationProps) => {
-  const [name, setName] = useState("");
-  const [state, setState] = useState("");
-  const { showSuccessToast, showErrorToast } = useCustomToast();
+  const { showSuccessToast } = useCustomToast();
   const queryClient = useQueryClient();
   const contentRef = useRef(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<LocationCreate>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      name: "",
+      state: "",
+    },
+  });
 
   // Use mutation for creating location
   const mutation = useMutation({
@@ -41,25 +56,18 @@ export const AddLocation = ({
       LocationsService.createLocation({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("Location was successfully added");
-      setName("");
-      setState("");
+      reset();
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       onSuccess();
       onClose();
     },
     onError: (error: any) => {
-      console.error("Error adding location:", error);
-      showErrorToast(
-        error.response?.data?.detail ||
-          "An error occurred while adding the location"
-      );
+      handleError(error);
     },
   });
 
-  const handleSubmit = async () => {
-    if (!name || !state) return;
-
-    mutation.mutate({ name, state });
+  const onSubmit: SubmitHandler<LocationCreate> = (data) => {
+    mutation.mutate(data);
   };
 
   return (
@@ -71,48 +79,70 @@ export const AddLocation = ({
     >
       <Portal>
         <DialogContent ref={contentRef}>
-          <DialogHeader>
-            <DialogTitle>Add Location</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <VStack gap={4}>
-              <Field label="Name" required>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Location name"
-                />
-              </Field>
-              <Field label="State" required>
-                <StateDropdown
-                  value={state}
-                  onChange={setState}
-                  id="state"
-                  isDisabled={mutation.isPending}
-                  portalRef={contentRef}
-                />
-              </Field>
-            </VStack>
-          </DialogBody>
-          <DialogFooter gap={2}>
-            <Button
-              variant="subtle"
-              colorPalette="gray"
-              onClick={onClose}
-              disabled={mutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              onClick={handleSubmit}
-              loading={mutation.isPending}
-              disabled={!name || !state || mutation.isPending}
-            >
-              Add
-            </Button>
-          </DialogFooter>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Add Location</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <VStack gap={4}>
+                <Field
+                  label="Name"
+                  required
+                  invalid={!!errors.name}
+                  errorText={errors.name?.message}
+                >
+                  <Input
+                    id="name"
+                    {...register("name", {
+                      required: "Name is required",
+                      minLength: { value: 1, message: "Name is required" },
+                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                    })}
+                    placeholder="Location name"
+                  />
+                </Field>
+                <Field
+                  label="State"
+                  required
+                  invalid={!!errors.state}
+                  errorText={errors.state?.message}
+                >
+                  <Controller
+                    name="state"
+                    control={control}
+                    rules={{
+                      required: "State is required"
+                    }}
+                    render={({ field }) => (
+                      <StateDropdown
+                        value={field.value}
+                        onChange={field.onChange}
+                        id="state"
+                        isDisabled={isSubmitting}
+                        portalRef={contentRef}
+                      />
+                    )}
+                  />
+                </Field>
+              </VStack>
+            </DialogBody>
+            <DialogFooter gap={2}>
+              <ButtonGroup>
+                <DialogActionTrigger asChild>
+                  <Button
+                    variant="subtle"
+                    colorPalette="gray"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </DialogActionTrigger>
+                <Button variant="solid" type="submit" loading={isSubmitting}>
+                  Add
+                </Button>
+              </ButtonGroup>
+            </DialogFooter>
+          </form>
           <DialogCloseTrigger />
         </DialogContent>
       </Portal>

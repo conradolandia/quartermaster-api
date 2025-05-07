@@ -106,10 +106,14 @@ const EditLocation = ({ location }: EditLocationProps) => {
                   invalid={!!errors.name}
                   errorText={errors.name?.message}
                   label="Name"
+                  required
                 >
                   <Input
                     id="name"
-                    {...register("name")}
+                    {...register("name", {
+                      minLength: { value: 1, message: "Name cannot be empty" },
+                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                    })}
                     placeholder="Name"
                     type="text"
                   />
@@ -119,10 +123,15 @@ const EditLocation = ({ location }: EditLocationProps) => {
                   invalid={!!errors.state}
                   errorText={errors.state?.message}
                   label="State"
+                  required
                 >
                   <Controller
                     name="state"
                     control={control}
+                    rules={{
+                      minLength: { value: 2, message: "State code must be 2 characters" },
+                      maxLength: { value: 2, message: "State code must be 2 characters" }
+                    }}
                     render={({ field }) => (
                       <StateDropdown
                         id="state"

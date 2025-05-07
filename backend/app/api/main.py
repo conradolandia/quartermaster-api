@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    boats,
     items,
     jurisdictions,
     launches,
@@ -22,6 +23,7 @@ api_router.include_router(locations.router)
 api_router.include_router(jurisdictions.router)
 api_router.include_router(launches.router)
 api_router.include_router(missions.router)
+api_router.include_router(boats.router)
 
 
 if settings.ENVIRONMENT == "local":

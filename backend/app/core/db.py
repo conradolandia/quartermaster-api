@@ -1,8 +1,12 @@
-from sqlmodel import Session, create_engine, select
+from datetime import datetime, timedelta, timezone
+
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import crud
 from app.core.config import settings
 from app.models import (
+    Boat,
+    BoatCreate,
     Jurisdiction,
     JurisdictionCreate,
     Launch,
@@ -25,13 +29,9 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
 def init_db(session: Session) -> None:
     # Create tables directly
-    from sqlmodel import SQLModel
-
-    # Create tables directly
     SQLModel.metadata.create_all(engine)
 
     # This function also creates initial data if it doesn't exist
-
     # Create user if it doesn't exist
     user = session.exec(
         select(User).where(User.email == settings.FIRST_SUPERUSER)
@@ -76,8 +76,6 @@ def init_db(session: Session) -> None:
     # Create default launch if it doesn't exist
     launch = session.exec(select(Launch).where(Launch.name == "Default Launch")).first()
     if not launch:
-        from datetime import datetime, timedelta, timezone
-
         # Create a launch scheduled for 30 days from now
         future_date = datetime.now(timezone.utc) + timedelta(days=30)
 
@@ -95,8 +93,6 @@ def init_db(session: Session) -> None:
         select(Mission).where(Mission.name == "Default Mission")
     ).first()
     if not mission:
-        from datetime import datetime, timedelta, timezone
-
         # Create a mission with sales opening 7 days before launch
         sales_open_date = launch.launch_timestamp - timedelta(days=7)
 
@@ -110,3 +106,31 @@ def init_db(session: Session) -> None:
         )
         mission = crud.create_mission(session=session, mission_in=mission_in)
     print(f"Mission created: {mission}")
+
+    # Create default boat if it doesn't exist
+    boat = session.exec(select(Boat).where(Boat.name == "Boaty McBoatface")).first()
+    if not boat:
+        # Crear los datos del barco explícitamente
+        boat_data = {
+            "name": "Boaty McBoatface",
+            "slug": "boaty-mcboatface",  # Proporcionamos el slug explícitamente
+            "capacity": 30,
+            "provider_name": "Ocean Adventures",
+            "provider_location": "Marina Bay",
+            "provider_address": "123 Harbor St, Marina Bay, FL",
+            "jurisdiction_id": jurisdiction.id,
+            "map_link": "https://goo.gl/maps/fictional-boat-location",
+        }
+
+        # Crear el objeto BoatCreate
+        try:
+            boat_in = BoatCreate(**boat_data)
+            boat = crud.create_boat(session=session, boat_in=boat_in)
+        except Exception as e:
+            print(f"ERROR: Creating boat failed: {str(e)}")
+            # Imprimir los detalles del error
+            import traceback
+
+            traceback.print_exc()
+            raise
+    print(f"Boat created: {boat}")

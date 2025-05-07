@@ -4,6 +4,18 @@ import type { CancelablePromise } from "./core/CancelablePromise"
 import { OpenAPI } from "./core/OpenAPI"
 import { request as __request } from "./core/request"
 import type {
+  BoatsReadBoatsData,
+  BoatsReadBoatsResponse,
+  BoatsCreateBoatData,
+  BoatsCreateBoatResponse,
+  BoatsReadBoatData,
+  BoatsReadBoatResponse,
+  BoatsUpdateBoatData,
+  BoatsUpdateBoatResponse,
+  BoatsDeleteBoatData,
+  BoatsDeleteBoatResponse,
+  BoatsReadBoatsByJurisdictionData,
+  BoatsReadBoatsByJurisdictionResponse,
   ItemsReadItemsData,
   ItemsReadItemsResponse,
   ItemsCreateItemData,
@@ -96,6 +108,156 @@ import type {
   UtilsHealthCheckResponse,
   UtilsGetUsStatesResponse,
 } from "./types.gen"
+
+export class BoatsService {
+  /**
+   * Read Boats
+   * Retrieve boats.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns BoatsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readBoats(
+    data: BoatsReadBoatsData = {},
+  ): CancelablePromise<BoatsReadBoatsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/boats/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Boat
+   * Create new boat.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BoatPublic Successful Response
+   * @throws ApiError
+   */
+  public static createBoat(
+    data: BoatsCreateBoatData,
+  ): CancelablePromise<BoatsCreateBoatResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/boats/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Boat
+   * Get boat by ID.
+   * @param data The data for the request.
+   * @param data.boatId
+   * @returns BoatPublic Successful Response
+   * @throws ApiError
+   */
+  public static readBoat(
+    data: BoatsReadBoatData,
+  ): CancelablePromise<BoatsReadBoatResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/boats/{boat_id}",
+      path: {
+        boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Boat
+   * Update a boat.
+   * @param data The data for the request.
+   * @param data.boatId
+   * @param data.requestBody
+   * @returns BoatPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateBoat(
+    data: BoatsUpdateBoatData,
+  ): CancelablePromise<BoatsUpdateBoatResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/boats/{boat_id}",
+      path: {
+        boat_id: data.boatId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Boat
+   * Delete a boat.
+   * @param data The data for the request.
+   * @param data.boatId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteBoat(
+    data: BoatsDeleteBoatData,
+  ): CancelablePromise<BoatsDeleteBoatResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/boats/{boat_id}",
+      path: {
+        boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Boats By Jurisdiction
+   * Retrieve boats for a specific jurisdiction.
+   * @param data The data for the request.
+   * @param data.jurisdictionId
+   * @param data.skip
+   * @param data.limit
+   * @returns BoatsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readBoatsByJurisdiction(
+    data: BoatsReadBoatsByJurisdictionData,
+  ): CancelablePromise<BoatsReadBoatsByJurisdictionResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/boats/jurisdiction/{jurisdiction_id}",
+      path: {
+        jurisdiction_id: data.jurisdictionId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
 
 export class ItemsService {
   /**

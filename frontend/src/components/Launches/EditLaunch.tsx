@@ -31,7 +31,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-import { LocationDropdown } from "./LocationDropdown"
+import { LocationDropdown } from "../Common/LocationDropdown"
 
 interface EditLaunchProps {
   launch: LaunchPublic

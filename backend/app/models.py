@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from pydantic import EmailStr, validator
+from pydantic import EmailStr, field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.constants import VALID_US_STATES
@@ -121,7 +121,7 @@ class LocationBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     state: str = Field(min_length=2, max_length=2)
 
-    @validator("state")
+    @field_validator("state")
     def validate_state(cls, v):
         if v.upper() not in VALID_US_STATES:
             raise ValueError(
@@ -166,7 +166,7 @@ class JurisdictionBase(SQLModel):
     sales_tax_rate: float = Field(ge=0.0, le=1.0)
     location_id: uuid.UUID = Field(foreign_key="location.id")
 
-    @validator("state")
+    @field_validator("state")
     def validate_state(cls, v):
         if v.upper() not in VALID_US_STATES:
             raise ValueError(
@@ -291,4 +291,54 @@ class MissionPublic(MissionBase):
 
 class MissionsPublic(SQLModel):
     data: list[MissionPublic]
+    count: int
+
+
+# Boat models
+class BoatBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    # Definimos slug como opcional con un valor predeterminado vacío
+    slug: str = Field(default="", max_length=255, index=True)
+    capacity: int = Field(ge=1)
+    provider_name: str = Field(max_length=255)
+    provider_location: str = Field(max_length=255)
+    provider_address: str = Field(max_length=500)
+    jurisdiction_id: uuid.UUID = Field(foreign_key="jurisdiction.id")
+    map_link: str | None = Field(default=None, max_length=2000)
+
+
+class BoatCreate(BoatBase):
+    pass  # El slug se generará en crud.create_boat
+
+
+class BoatUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    # El slug se generará automáticamente en crud.update_boat si el nombre cambia
+    capacity: int | None = Field(default=None, ge=1)
+    provider_name: str | None = Field(default=None, max_length=255)
+    provider_location: str | None = Field(default=None, max_length=255)
+    provider_address: str | None = Field(default=None, max_length=500)
+    jurisdiction_id: uuid.UUID | None = None
+    map_link: str | None = Field(default=None, max_length=2000)
+
+
+class Boat(BoatBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - boat knows its jurisdiction but jurisdiction doesn't track boats
+    jurisdiction: "Jurisdiction" = Relationship()
+
+
+class BoatPublic(BoatBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class BoatsPublic(SQLModel):
+    data: list[BoatPublic]
     count: int

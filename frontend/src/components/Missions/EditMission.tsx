@@ -183,7 +183,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                   />
                 </Field>
 
-                <Field label="Active">
+                <Field>
                   <Controller
                     name="active"
                     control={control}
@@ -200,7 +200,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                   />
                 </Field>
 
-                <Field label="Public">
+                <Field>
                   <Controller
                     name="public"
                     control={control}

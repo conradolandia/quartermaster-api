@@ -8,7 +8,7 @@ import {
   Portal,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import React, { useState, useRef } from "react"
+import { useState, useRef } from "react"
 import { type SubmitHandler, useForm, Controller } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
@@ -32,7 +32,7 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 import StateDropdown from "../Locations/StateDropdown"
-import LocationDropdown from "./LocationDropdown"
+import LocationDropdown from "../Common/LocationDropdown"
 
 interface EditJurisdictionProps {
   jurisdiction: JurisdictionPublic
@@ -109,10 +109,13 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                   invalid={!!errors.name}
                   errorText={errors.name?.message}
                   label="Name"
+                  required
                 >
                   <Input
                     id="name"
-                    {...register("name")}
+                    {...register("name", {
+                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                    })}
                     placeholder="Name"
                     type="text"
                   />
@@ -122,10 +125,14 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                   invalid={!!errors.state}
                   errorText={errors.state?.message}
                   label="State"
+                  required
                 >
                   <Controller
                     name="state"
                     control={control}
+                    rules={{
+                      maxLength: { value: 100, message: "State cannot exceed 100 characters" }
+                    }}
                     render={({ field }) => (
                       <StateDropdown
                         id="state"
@@ -141,22 +148,27 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                 <Field
                   invalid={!!errors.sales_tax_rate}
                   errorText={errors.sales_tax_rate?.message}
-                  label="Sales Tax Rate (%)"
+                  label="Sales Tax Rate"
+                  required
                 >
                   <Controller
                     name="sales_tax_rate"
                     control={control}
+                    rules={{
+                      min: { value: 0, message: "Sales tax rate must be between 0 and 1" },
+                      max: { value: 1, message: "Sales tax rate must be between 0 and 1" }
+                    }}
                     render={({ field }) => (
                       <Input
                         id="sales_tax_rate"
                         type="number"
-                        value={field.value}
+                        value={field.value ?? ""}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         min={0}
-                        max={100}
-                        step={0.1}
+                        max={1}
+                        step={0.01}
                         disabled={isSubmitting}
-                        placeholder="Sales tax rate"
+                        placeholder="Sales tax rate (decimal format, e.g. 0.07)"
                       />
                     )}
                   />
@@ -166,6 +178,7 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                   invalid={!!errors.location_id}
                   errorText={errors.location_id?.message}
                   label="Location"
+                  required
                 >
                   <Controller
                     name="location_id"

@@ -15,7 +15,7 @@ import {
 import { Field } from "../ui/field"
 import { LaunchesService, type LaunchCreate } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { LocationDropdown } from "./LocationDropdown"
+import { LocationDropdown } from "../Common/LocationDropdown"
 
 // Props interface
 interface AddLaunchProps {

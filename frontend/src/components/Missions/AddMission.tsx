@@ -129,7 +129,7 @@ export const AddMission = ({
                   max={72}
                 />
               </Field>
-              <Field label="Active">
+              <Field>
                 <Flex alignItems="center" justifyContent="space-between" width="100%">
                   <Text>Active</Text>
                   <Switch
@@ -139,7 +139,7 @@ export const AddMission = ({
                   />
                 </Flex>
               </Field>
-              <Field label="Public">
+              <Field>
                 <Flex alignItems="center" justifyContent="space-between" width="100%">
                   <Text>Public</Text>
                   <Switch

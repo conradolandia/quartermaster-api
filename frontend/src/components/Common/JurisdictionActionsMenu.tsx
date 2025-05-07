@@ -1,18 +1,10 @@
-import { Box } from "@chakra-ui/react"
-import { FaEllipsisH } from "react-icons/fa"
-import React from "react"
+import { IconButton } from "@chakra-ui/react"
+import { BsThreeDotsVertical } from "react-icons/bs"
 
 import { type JurisdictionPublic } from "@/client"
 import DeleteJurisdiction from "../Jurisdictions/DeleteJurisdiction"
 import EditJurisdiction from "../Jurisdictions/EditJurisdiction"
-import {
-  MenuRoot as Menu,
-  MenuTrigger,
-  MenuContent,
-  MenuItem,
-  MenuSeparator,
-  MenuItemText,
-} from "../ui/menu"
+import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 
 interface JurisdictionActionsMenuProps {
   jurisdiction: JurisdictionPublic
@@ -22,36 +14,17 @@ export const JurisdictionActionsMenu = ({
   jurisdiction,
 }: JurisdictionActionsMenuProps) => {
   return (
-    <Menu>
+    <MenuRoot>
       <MenuTrigger asChild>
-        <button
-          style={{
-            cursor: "pointer",
-            background: "none",
-            border: "none",
-            padding: "8px",
-            borderRadius: "50%"
-          }}
-          aria-label="More actions"
-        >
-          <FaEllipsisH />
-        </button>
+        <IconButton aria-label="Jurisdiction actions" variant="ghost" color="ui.main">
+          <BsThreeDotsVertical />
+        </IconButton>
       </MenuTrigger>
-      <MenuContent minW="240px">
-        <MenuItemText fontWeight="bold" px="3" py="2">Actions</MenuItemText>
-        <MenuSeparator />
-        <MenuItem value="edit">
-          <Box w="full">
-            <EditJurisdiction jurisdiction={jurisdiction} />
-          </Box>
-        </MenuItem>
-        <MenuItem value="delete">
-          <Box w="full">
-            <DeleteJurisdiction jurisdiction={jurisdiction} />
-          </Box>
-        </MenuItem>
+      <MenuContent>
+        <EditJurisdiction jurisdiction={jurisdiction} />
+        <DeleteJurisdiction jurisdiction={jurisdiction} />
       </MenuContent>
-    </Menu>
+    </MenuRoot>
   )
 }
 

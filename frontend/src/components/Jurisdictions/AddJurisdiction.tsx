@@ -1,6 +1,6 @@
 import useCustomToast from "@/hooks/useCustomToast";
-import { Button, Input, VStack, Portal, NumberInput } from "@chakra-ui/react";
-import React, { useState, useRef } from "react";
+import { Button, Input, VStack, Portal, ButtonGroup } from "@chakra-ui/react";
+import { useRef } from "react";
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -9,14 +9,16 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
+  DialogActionTrigger,
 } from "../ui/dialog";
 
 import { Field } from "../ui/field";
 import { JurisdictionsService, type JurisdictionCreate } from "@/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
+import { type SubmitHandler, useForm, Controller } from "react-hook-form";
 import StateDropdown from "../Locations/StateDropdown";
-import LocationDropdown from "./LocationDropdown";
+import LocationDropdown from "../Common/LocationDropdown";
+import { handleError } from "@/utils";
 
 // Props interface
 interface AddJurisdictionProps {
@@ -30,13 +32,26 @@ export const AddJurisdiction = ({
   onClose,
   onSuccess,
 }: AddJurisdictionProps) => {
-  const [name, setName] = useState("");
-  const [state, setState] = useState("");
-  const [salesTaxRate, setSalesTaxRate] = useState(0);
-  const [locationId, setLocationId] = useState("");
-  const { showSuccessToast, showErrorToast } = useCustomToast();
+  const { showSuccessToast } = useCustomToast();
   const queryClient = useQueryClient();
   const contentRef = useRef(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<JurisdictionCreate>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      name: "",
+      state: "",
+      sales_tax_rate: 0,
+      location_id: "",
+    },
+  });
 
   // Use mutation for creating jurisdiction
   const mutation = useMutation({
@@ -44,32 +59,18 @@ export const AddJurisdiction = ({
       JurisdictionsService.createJurisdiction({ requestBody: data }),
     onSuccess: () => {
       showSuccessToast("Jurisdiction was successfully added");
-      setName("");
-      setState("");
-      setSalesTaxRate(0);
-      setLocationId("");
+      reset();
       queryClient.invalidateQueries({ queryKey: ["jurisdictions"] });
       onSuccess();
       onClose();
     },
     onError: (error: any) => {
-      console.error("Error adding jurisdiction:", error);
-      showErrorToast(
-        error.response?.data?.detail ||
-          "An error occurred while adding the jurisdiction"
-      );
+      handleError(error);
     },
   });
 
-  const handleSubmit = async () => {
-    if (!name || !state || !locationId) return;
-
-    mutation.mutate({
-      name,
-      state,
-      sales_tax_rate: salesTaxRate,
-      location_id: locationId
-    });
+  const onSubmit: SubmitHandler<JurisdictionCreate> = (data) => {
+    mutation.mutate(data);
   };
 
   return (
@@ -81,70 +82,120 @@ export const AddJurisdiction = ({
     >
       <Portal>
         <DialogContent ref={contentRef}>
-          <DialogHeader>
-            <DialogTitle>Add Jurisdiction</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <VStack gap={4}>
-              <Field label="Name" required>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jurisdiction name"
-                />
-              </Field>
-              <Field label="State" required>
-                <StateDropdown
-                  value={state}
-                  onChange={setState}
-                  id="state"
-                  isDisabled={mutation.isPending}
-                  portalRef={contentRef}
-                />
-              </Field>
-              <Field label="Sales Tax Rate (%)" required>
-                <Input
-                  id="salesTaxRate"
-                  type="number"
-                  value={salesTaxRate}
-                  onChange={(e) => setSalesTaxRate(parseFloat(e.target.value) || 0)}
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  disabled={mutation.isPending}
-                  placeholder="Sales tax rate"
-                />
-              </Field>
-              <Field label="Location" required>
-                <LocationDropdown
-                  value={locationId}
-                  onChange={setLocationId}
-                  id="locationId"
-                  isDisabled={mutation.isPending}
-                  portalRef={contentRef}
-                />
-              </Field>
-            </VStack>
-          </DialogBody>
-          <DialogFooter gap={2}>
-            <Button
-              variant="subtle"
-              colorPalette="gray"
-              onClick={onClose}
-              disabled={mutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              onClick={handleSubmit}
-              loading={mutation.isPending}
-              disabled={!name || !state || !locationId || mutation.isPending}
-            >
-              Add
-            </Button>
-          </DialogFooter>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Add Jurisdiction</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <VStack gap={4}>
+                <Field
+                  label="Name"
+                  required
+                  invalid={!!errors.name}
+                  errorText={errors.name?.message}
+                >
+                  <Input
+                    id="name"
+                    {...register("name", {
+                      required: "Name is required",
+                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                    })}
+                    placeholder="Jurisdiction name"
+                  />
+                </Field>
+                <Field
+                  label="State"
+                  required
+                  invalid={!!errors.state}
+                  errorText={errors.state?.message}
+                >
+                  <Controller
+                    name="state"
+                    control={control}
+                    rules={{
+                      required: "State is required",
+                      maxLength: { value: 100, message: "State cannot exceed 100 characters" }
+                    }}
+                    render={({ field }) => (
+                      <StateDropdown
+                        value={field.value}
+                        onChange={field.onChange}
+                        id="state"
+                        isDisabled={isSubmitting}
+                        portalRef={contentRef}
+                      />
+                    )}
+                  />
+                </Field>
+                <Field
+                  label="Sales Tax Rate"
+                  required
+                  invalid={!!errors.sales_tax_rate}
+                  errorText={errors.sales_tax_rate?.message}
+                >
+                  <Controller
+                    name="sales_tax_rate"
+                    control={control}
+                    rules={{
+                      required: "Sales tax rate is required",
+                      min: { value: 0, message: "Sales tax rate must be between 0 and 1" },
+                      max: { value: 1, message: "Sales tax rate must be between 0 and 1" }
+                    }}
+                    render={({ field }) => (
+                      <Input
+                        id="sales_tax_rate"
+                        type="number"
+                        value={field.value}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        disabled={isSubmitting}
+                        placeholder="Sales tax rate (decimal format, e.g. 0.07)"
+                      />
+                    )}
+                  />
+                </Field>
+                <Field
+                  label="Location"
+                  required
+                  invalid={!!errors.location_id}
+                  errorText={errors.location_id?.message}
+                >
+                  <Controller
+                    name="location_id"
+                    control={control}
+                    rules={{ required: "Location is required" }}
+                    render={({ field }) => (
+                      <LocationDropdown
+                        value={field.value}
+                        onChange={field.onChange}
+                        id="location_id"
+                        isDisabled={isSubmitting}
+                        portalRef={contentRef}
+                      />
+                    )}
+                  />
+                </Field>
+              </VStack>
+            </DialogBody>
+            <DialogFooter gap={2}>
+              <ButtonGroup>
+                <DialogActionTrigger asChild>
+                  <Button
+                    variant="subtle"
+                    colorPalette="gray"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </DialogActionTrigger>
+                <Button variant="solid" type="submit" loading={isSubmitting}>
+                  Add
+                </Button>
+              </ButtonGroup>
+            </DialogFooter>
+          </form>
           <DialogCloseTrigger />
         </DialogContent>
       </Portal>

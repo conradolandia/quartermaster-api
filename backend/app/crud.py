@@ -1,3 +1,4 @@
+import re
 import uuid
 from typing import Any
 
@@ -5,6 +6,9 @@ from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import (
+    Boat,
+    BoatCreate,
+    BoatUpdate,
     Item,
     ItemCreate,
     Jurisdiction,
@@ -381,5 +385,107 @@ def update_mission(
 
 def delete_mission(*, session: Session, db_obj: Mission) -> None:
     """Delete a mission."""
+    session.delete(db_obj)
+    session.commit()
+
+
+# Boat CRUD operations
+def create_boat(*, session: Session, boat_in: BoatCreate) -> Boat:
+    """Create a new boat with UUID as ID."""
+    # Convertir a diccionario para manipular antes de crear
+    boat_data = boat_in.model_dump()
+
+    # Generar slug automáticamente a partir del nombre si no se proporcionó
+    if "slug" not in boat_data or not boat_data["slug"]:
+        boat_data["slug"] = re.sub(r"[^a-z0-9]+", "-", boat_data["name"].lower()).strip(
+            "-"
+        )
+
+    # Crear el objeto con los datos modificados
+    db_obj = Boat.model_validate(boat_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def get_boat(*, session: Session, boat_id: uuid.UUID) -> Boat | None:
+    """Get a boat by ID."""
+    return session.get(Boat, boat_id)
+
+
+def get_boats(*, session: Session, skip: int = 0, limit: int = 100) -> list[Boat]:
+    """Get a list of boats with pagination."""
+    statement = select(Boat).offset(skip).limit(limit)
+    return session.exec(statement).all()
+
+
+def get_boats_by_jurisdiction(
+    *, session: Session, jurisdiction_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[Boat]:
+    """Get boats for a specific jurisdiction."""
+    statement = (
+        select(Boat)
+        .where(Boat.jurisdiction_id == jurisdiction_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_boats_no_relationships(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get a list of boats without loading related entities to avoid recursion.
+    Returns dictionaries instead of ORM objects to break relationship chains.
+    """
+    statement = select(Boat).offset(skip).limit(limit)
+    boats = session.exec(statement).all()
+
+    # Convert to dictionaries to break the ORM relationship chain
+    return [
+        {
+            "id": boat.id,
+            "name": boat.name,
+            "slug": boat.slug,
+            "capacity": boat.capacity,
+            "provider_name": boat.provider_name,
+            "provider_location": boat.provider_location,
+            "provider_address": boat.provider_address,
+            "jurisdiction_id": boat.jurisdiction_id,
+            "map_link": boat.map_link,
+            "created_at": boat.created_at,
+            "updated_at": boat.updated_at,
+        }
+        for boat in boats
+    ]
+
+
+def get_boats_count(*, session: Session) -> int:
+    """Get the total count of boats."""
+    statement = select(Boat)
+    return len(session.exec(statement).all())
+
+
+def update_boat(*, session: Session, db_obj: Boat, obj_in: BoatUpdate) -> Boat:
+    """Update a boat."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+
+    # Si se actualiza el nombre, regeneramos el slug automáticamente
+    if "name" in update_data:
+        update_data["slug"] = re.sub(
+            r"[^a-z0-9]+", "-", update_data["name"].lower()
+        ).strip("-")
+
+    db_obj.sqlmodel_update(update_data)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_boat(*, session: Session, db_obj: Boat) -> None:
+    """Delete a boat."""
     session.delete(db_obj)
     session.commit()
