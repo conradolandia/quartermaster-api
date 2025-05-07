@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
 import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import { TripsService, BoatsService } from "@/client"
-import { Switch } from "../ui/switch"
+import { Switch } from "@/components/ui/switch"
 
 import {
   DialogBody,
@@ -14,12 +14,12 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-} from "../ui/dialog"
+} from "@/components/ui/dialog"
 
-import { Field } from "../ui/field"
+import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { MissionDropdown } from "../Common/MissionDropdown"
+import { MissionDropdown } from "@/components/Common/MissionDropdown"
 
 // Props interface
 interface AddTripProps {

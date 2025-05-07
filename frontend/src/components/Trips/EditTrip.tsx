@@ -30,7 +30,7 @@ import { Switch } from "@/components/ui/switch"
 import { type ApiError, type TripUpdate, type TripPublic, TripsService, BoatsService, TripBoatsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { MissionDropdown } from "../Common/MissionDropdown"
+import { MissionDropdown } from "@/components/Common/MissionDropdown"
 
 interface EditTripProps {
   trip: TripPublic
