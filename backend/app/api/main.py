@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     boats,
+    bookings,
     items,
     jurisdictions,
     launches,
@@ -28,6 +29,7 @@ api_router.include_router(missions.router)
 api_router.include_router(boats.router)
 api_router.include_router(trips.router)
 api_router.include_router(trip_boats.router)
+api_router.include_router(bookings.router)
 
 
 if settings.ENVIRONMENT == "local":

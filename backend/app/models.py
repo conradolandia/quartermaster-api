@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime, timezone
 
@@ -420,3 +421,113 @@ class TripBoat(TripBoatBase, table=True):
     # Relationships
     trip: "Trip" = Relationship(back_populates="trip_boats")
     boat: "Boat" = Relationship()
+
+
+# --- Booking models ---
+class BookingStatus(str, enum.Enum):
+    pending_payment = "pending_payment"
+    confirmed = "confirmed"
+    checked_in = "checked_in"
+    completed = "completed"
+    cancelled = "cancelled"
+    refunded = "refunded"
+
+
+class BookingItemStatus(str, enum.Enum):
+    active = "active"
+    refunded = "refunded"
+    fulfilled = "fulfilled"
+
+
+class BookingBase(SQLModel):
+    confirmation_code: str = Field(index=True, unique=True, max_length=32)
+    mission_id: uuid.UUID = Field(foreign_key="mission.id")
+    user_name: str = Field(max_length=255)
+    user_email: str = Field(max_length=255)
+    user_phone: str = Field(max_length=40)
+    billing_address: str = Field(max_length=1000)
+    subtotal: float = Field(ge=0)
+    discount_amount: float = Field(ge=0)
+    tax_amount: float = Field(ge=0)
+    tip_amount: float = Field(ge=0)
+    total_amount: float = Field(ge=0)
+    payment_intent_id: str = Field(max_length=255)
+    special_requests: str | None = Field(default=None, max_length=1000)
+    status: BookingStatus = Field(default=BookingStatus.pending_payment)
+    launch_updates_pref: bool = Field(default=False)
+
+
+class BookingCreate(BookingBase):
+    items: list["BookingItemCreate"]
+
+
+class BookingUpdate(SQLModel):
+    status: BookingStatus | None = None
+    special_requests: str | None = None
+    tip_amount: float | None = None
+    discount_amount: float | None = None
+    tax_amount: float | None = None
+    total_amount: float | None = None
+    launch_updates_pref: bool | None = None
+
+
+class Booking(BookingBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    mission: "Mission" = Relationship()
+    items: list["BookingItem"] = Relationship(
+        back_populates="booking",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class BookingPublic(BookingBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    items: list["BookingItemPublic"]
+
+
+# --- BookingItem models ---
+class BookingItemBase(SQLModel):
+    booking_id: uuid.UUID = Field(foreign_key="booking.id")
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
+    quantity: int = Field(ge=1)
+    price_per_unit: float = Field(ge=0)
+    status: BookingItemStatus = Field(default=BookingItemStatus.active)
+    refund_reason: str | None = Field(default=None, max_length=255)
+    refund_notes: str | None = Field(default=None, max_length=1000)
+
+
+class BookingItemCreate(BookingItemBase):
+    pass
+
+
+class BookingItemUpdate(SQLModel):
+    status: BookingItemStatus | None = None
+    refund_reason: str | None = None
+    refund_notes: str | None = None
+
+
+class BookingItem(BookingItemBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    booking: "Booking" = Relationship(back_populates="items")
+    trip: "Trip" = Relationship()
+    boat: "Boat" = Relationship()
+
+
+class BookingItemPublic(BookingItemBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
