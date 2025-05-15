@@ -66,6 +66,141 @@ def generate_test_email(email_to: str) -> EmailData:
     return EmailData(html_content=html_content, subject=subject)
 
 
+def generate_booking_confirmation_email(
+    *,
+    email_to: str,
+    user_name: str,
+    confirmation_code: str,
+    mission_name: str,
+    booking_items: list[dict],
+    total_amount: float,
+) -> EmailData:
+    """
+    Generate booking confirmation email with booking details and tickets.
+
+    Args:
+        email_to: Recipient's email address
+        user_name: Customer's name
+        confirmation_code: Unique booking confirmation code
+        mission_name: Name of the mission/launch
+        booking_items: List of booked items with details
+        total_amount: Total amount paid
+
+    Returns:
+        EmailData containing the subject and HTML content
+    """
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Booking Confirmation #{confirmation_code}"
+
+    # Create the confirmation link
+    confirmation_link = f"{settings.FRONTEND_HOST}/booking/{confirmation_code}"
+
+    # Render the email template
+    html_content = render_email_template(
+        template_name="booking_confirmation.html",
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "user_name": user_name,
+            "confirmation_code": confirmation_code,
+            "mission_name": mission_name,
+            "booking_items": booking_items,
+            "total_amount": total_amount,
+            "confirmation_link": confirmation_link,
+            "email": email_to,
+        },
+    )
+
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_booking_cancelled_email(
+    *,
+    email_to: str,
+    user_name: str,
+    confirmation_code: str,
+    mission_name: str,
+) -> EmailData:
+    """
+    Generate booking cancellation email.
+
+    Args:
+        email_to: Recipient's email address
+        user_name: Customer's name
+        confirmation_code: Unique booking confirmation code
+        mission_name: Name of the mission/launch
+
+    Returns:
+        EmailData containing the subject and HTML content
+    """
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Booking Cancellation #{confirmation_code}"
+
+    # Use the confirmation template for now, with a custom message
+    # A dedicated cancellation template could be created later
+    html_content = render_email_template(
+        template_name="booking_confirmation.html",  # Reuse existing template as a base
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "user_name": user_name,
+            "confirmation_code": confirmation_code,
+            "mission_name": mission_name,
+            "booking_items": [],
+            "total_amount": 0.0,
+            "confirmation_link": settings.FRONTEND_HOST,
+            "is_cancellation": True,  # Flag for template conditional
+            "cancellation_message": f"Your booking #{confirmation_code} for {mission_name} has been cancelled.",
+            "email": email_to,
+        },
+    )
+
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_booking_refunded_email(
+    *,
+    email_to: str,
+    user_name: str,
+    confirmation_code: str,
+    mission_name: str,
+    refund_amount: float,
+) -> EmailData:
+    """
+    Generate booking refund email.
+
+    Args:
+        email_to: Recipient's email address
+        user_name: Customer's name
+        confirmation_code: Unique booking confirmation code
+        mission_name: Name of the mission/launch
+        refund_amount: Total amount refunded
+
+    Returns:
+        EmailData containing the subject and HTML content
+    """
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Refund Processed for Booking #{confirmation_code}"
+
+    # Use the confirmation template for now, with a custom message
+    # A dedicated refund template could be created later
+    html_content = render_email_template(
+        template_name="booking_confirmation.html",  # Reuse existing template as a base
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "user_name": user_name,
+            "confirmation_code": confirmation_code,
+            "mission_name": mission_name,
+            "booking_items": [],
+            "total_amount": refund_amount,
+            "confirmation_link": settings.FRONTEND_HOST,
+            "is_refund": True,  # Flag for template conditional
+            "refund_message": f"Your refund of ${refund_amount:.2f} for booking #{confirmation_code} has been processed.",
+            "email": email_to,
+        },
+    )
+
+    return EmailData(html_content=html_content, subject=subject)
+
+
 def generate_reset_password_email(email_to: str, email: str, token: str) -> EmailData:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Password recovery for user {email}"

@@ -7,6 +7,7 @@ import uuid
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.api import deps
@@ -23,6 +24,12 @@ from app.models import (
     Trip,
     TripBoat,
 )
+from app.utils import (
+    generate_booking_cancelled_email,
+    generate_booking_confirmation_email,
+    generate_booking_refunded_email,
+    send_email,
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -30,9 +37,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
+@router.get(
+    "/qr/{confirmation_code}",
+    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+)
+def qr_code_redirect(confirmation_code: str):
+    """
+    Redirects QR code scans to the actual check-in endpoint.
+
+    This provides a stable URL for QR codes that won't break if the admin dashboard URL changes.
+    """
+    target_url = f"{settings.QR_CODE_BASE_URL}/check-in?booking={confirmation_code}"
+    logger.info(f"Redirecting QR scan for {confirmation_code} to {target_url}")
+    return target_url
+
+
 def generate_qr_code(confirmation_code: str) -> str:
     """Generate a QR code for a booking confirmation code and return as base64 string."""
-    qr_url = f"{settings.QR_CODE_BASE_URL}/check-in?booking={confirmation_code}"
+    # Use stable internal URL that won't change even if admin URL changes
+    qr_url = f"{settings.FRONTEND_HOST}/api/v1/bookings/qr/{confirmation_code}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
     qr.make(fit=True)
@@ -195,6 +219,7 @@ def create_booking(
         booking_data["confirmation_code"] = confirmation_code
         booking = Booking(**booking_data)
 
+        booking_items = []
         try:
             session.add(booking)
             session.commit()
@@ -206,6 +231,7 @@ def create_booking(
                 item_data["booking_id"] = booking.id
                 booking_item = BookingItem(**item_data)
                 session.add(booking_item)
+                booking_items.append(booking_item)
 
             # Generate and store QR code
             qr_code = generate_qr_code(booking.confirmation_code)
@@ -257,7 +283,53 @@ def create_booking(
                     detail="An unexpected error occurred while creating the booking",
                 )
 
-        # 8. TODO: Integrate payment, email
+        # 8. Send booking confirmation email
+        try:
+            if settings.emails_enabled:
+                # Prepare items for email template
+                email_items = []
+                for item in booking_items:
+                    trip = session.get(Trip, item.trip_id)
+                    boat = session.get(Boat, item.boat_id)
+                    trip_type = (
+                        "Launch Viewing"
+                        if trip.type == "launch_viewing"
+                        else "Pre-Launch Viewing"
+                    )
+                    item_type = f"{trip_type} - {boat.name}"
+
+                    email_items.append(
+                        {
+                            "quantity": item.quantity,
+                            "type": item_type,
+                            "price_per_unit": item.price_per_unit,
+                        }
+                    )
+
+                # Generate and send email
+                email_data = generate_booking_confirmation_email(
+                    email_to=booking.user_email,
+                    user_name=booking.user_name,
+                    confirmation_code=booking.confirmation_code,
+                    mission_name=mission.name,
+                    booking_items=email_items,
+                    total_amount=booking.total_amount,
+                )
+
+                send_email(
+                    email_to=booking.user_email,
+                    subject=email_data.subject,
+                    html_content=email_data.html_content,
+                )
+
+                logger.info(f"Booking confirmation email sent to {booking.user_email}")
+            else:
+                logger.warning(
+                    "Email sending is disabled. Confirmation email not sent."
+                )
+        except Exception as e:
+            # Don't fail the booking if email sending fails
+            logger.error(f"Failed to send booking confirmation email: {str(e)}")
 
         # Query items for response
         items = session.exec(
@@ -592,9 +664,14 @@ def update_booking(
             )
 
         # Validate status transitions
+        status_changed = False
+        new_status = None
+        old_status = booking.status
+
         if "status" in update_data:
             new_status = update_data["status"]
-            current_status = booking.status
+            if new_status != old_status:
+                status_changed = True
 
             # Define valid status transitions
             valid_transitions = {
@@ -606,14 +683,14 @@ def update_booking(
                 "refunded": [],  # Terminal state
             }
 
-            if new_status not in valid_transitions.get(current_status, []):
+            if new_status not in valid_transitions.get(old_status, []):
                 logger.warning(
                     f"Invalid status transition for booking {booking_id}: "
-                    f"{current_status} -> {new_status}"
+                    f"{old_status} -> {new_status}"
                 )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Cannot transition from '{current_status}' to '{new_status}'",
+                    detail=f"Cannot transition from '{old_status}' to '{new_status}'",
                 )
 
         # Tip must be non-negative
@@ -690,6 +767,62 @@ def update_booking(
             session.commit()
             session.refresh(booking)
             logger.info(f"Successfully updated booking {booking_id}")
+
+            # Send email notifications if status changed to cancelled or refunded
+            if (
+                status_changed
+                and settings.emails_enabled
+                and new_status in ("cancelled", "refunded")
+            ):
+                try:
+                    # Get mission name
+                    mission = session.get(Mission, booking.mission_id)
+                    mission_name = mission.name if mission else "Unknown Mission"
+
+                    if new_status == "cancelled":
+                        # Send cancellation email
+                        email_data = generate_booking_cancelled_email(
+                            email_to=booking.user_email,
+                            user_name=booking.user_name,
+                            confirmation_code=booking.confirmation_code,
+                            mission_name=mission_name,
+                        )
+
+                        send_email(
+                            email_to=booking.user_email,
+                            subject=email_data.subject,
+                            html_content=email_data.html_content,
+                        )
+
+                        logger.info(
+                            f"Booking cancellation email sent to {booking.user_email}"
+                        )
+
+                    elif new_status == "refunded":
+                        # Send refund confirmation email
+                        email_data = generate_booking_refunded_email(
+                            email_to=booking.user_email,
+                            user_name=booking.user_name,
+                            confirmation_code=booking.confirmation_code,
+                            mission_name=mission_name,
+                            refund_amount=booking.total_amount,
+                        )
+
+                        send_email(
+                            email_to=booking.user_email,
+                            subject=email_data.subject,
+                            html_content=email_data.html_content,
+                        )
+
+                        logger.info(
+                            f"Booking refund email sent to {booking.user_email}"
+                        )
+
+                except Exception as e:
+                    # Don't fail the booking update if email sending fails
+                    logger.error(
+                        f"Failed to send booking status update email: {str(e)}"
+                    )
 
             items = session.exec(
                 select(BookingItem).where(BookingItem.booking_id == booking.id)

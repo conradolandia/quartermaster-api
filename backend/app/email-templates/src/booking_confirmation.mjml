@@ -31,7 +31,13 @@
           Star✦Fleet Tours
         </mj-text>
         <mj-text color="#17CBC4" align="center" font-size="13px" padding-top="0" font-weight="bold">
-          BOOKING CONFIRMATION
+          {% if is_cancellation %}
+            BOOKING CANCELLATION
+          {% elif is_refund %}
+            REFUND CONFIRMATION
+          {% else %}
+            BOOKING CONFIRMATION
+          {% endif %}
         </mj-text>
       </mj-column>
     </mj-section>
@@ -39,18 +45,40 @@
     <mj-wrapper padding-top="0" padding-bottom="0" css-class="body-section">
       <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px">
         <mj-column width="100%">
-          <mj-text color="#212b35" font-weight="bold" font-size="20px">
-            Thank you for your booking!
-          </mj-text>
+          {% if is_cancellation %}
+            <mj-text color="#212b35" font-weight="bold" font-size="20px">
+              Your booking has been cancelled
+            </mj-text>
+          {% elif is_refund %}
+            <mj-text color="#212b35" font-weight="bold" font-size="20px">
+              Your refund has been processed
+            </mj-text>
+          {% else %}
+            <mj-text color="#212b35" font-weight="bold" font-size="20px">
+              Thank you for your booking!
+            </mj-text>
+          {% endif %}
+
           <mj-text color="#637381" font-size="16px">
             Hi {{ user_name }},
           </mj-text>
-          <mj-text color="#637381" font-size="16px">
-            Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
-          </mj-text>
-          <mj-text color="#637381" font-size="16px">
-            Please save this email for your records. You'll need your confirmation code to access your digital tickets.
-          </mj-text>
+
+          {% if is_cancellation %}
+            <mj-text color="#637381" font-size="16px">
+              {{ cancellation_message }}
+            </mj-text>
+          {% elif is_refund %}
+            <mj-text color="#637381" font-size="16px">
+              {{ refund_message }}
+            </mj-text>
+          {% else %}
+            <mj-text color="#637381" font-size="16px">
+              Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
+            </mj-text>
+            <mj-text color="#637381" font-size="16px">
+              Please save this email for your records. You'll need your confirmation code to access your digital tickets.
+            </mj-text>
+          {% endif %}
         </mj-column>
       </mj-section>
 
@@ -60,19 +88,30 @@
         </mj-column>
       </mj-section>
 
+      {% if not is_cancellation and (booking_items|length > 0 or is_refund) %}
       <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
         <mj-column width="100%">
           <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
-            Booking Summary
+            {% if is_refund %}
+              Refund Summary
+            {% else %}
+              Booking Summary
+            {% endif %}
           </mj-text>
-          {% for item in booking_items %}
-          <mj-text color="#637381" font-size="16px" padding-top="10px" padding-bottom="0">
-            {{ item.quantity }}x {{ item.type }} - ${{ "%.2f"|format(item.price_per_unit) }} each
-          </mj-text>
-          {% endfor %}
-          <mj-text color="#212b35" font-weight="bold" font-size="16px" padding-top="20px">
-            Total: ${{ "%.2f"|format(total_amount) }}
-          </mj-text>
+          {% if is_refund %}
+            <mj-text color="#212b35" font-weight="bold" font-size="16px" padding-top="20px">
+              Refund Amount: ${{ "%.2f"|format(total_amount) }}
+            </mj-text>
+          {% else %}
+            {% for item in booking_items %}
+            <mj-text color="#637381" font-size="16px" padding-top="10px" padding-bottom="0">
+              {{ item.quantity }}x {{ item.type }} - ${{ "%.2f"|format(item.price_per_unit) }} each
+            </mj-text>
+            {% endfor %}
+            <mj-text color="#212b35" font-weight="bold" font-size="16px" padding-top="20px">
+              Total: ${{ "%.2f"|format(total_amount) }}
+            </mj-text>
+          {% endif %}
         </mj-column>
       </mj-section>
 
@@ -81,7 +120,9 @@
           <mj-divider border-color="#DFE3E8" border-width="1px" />
         </mj-column>
       </mj-section>
+      {% endif %}
 
+      {% if not is_cancellation and not is_refund %}
       <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
         <mj-column width="100%">
           <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
@@ -101,6 +142,7 @@
           <mj-divider border-color="#DFE3E8" border-width="1px" />
         </mj-column>
       </mj-section>
+      {% endif %}
 
       <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
         <mj-column width="100%">
@@ -108,7 +150,7 @@
             Need Help?
           </mj-text>
           <mj-text color="#637381" font-size="16px">
-            If you have any questions or need to make changes to your booking, please contact us at support@star-fleet.tours.
+            If you have any questions or need assistance, please contact us at support@star-fleet.tours.
           </mj-text>
         </mj-column>
       </mj-section>
