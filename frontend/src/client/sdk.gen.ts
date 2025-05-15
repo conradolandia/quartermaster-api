@@ -16,6 +16,16 @@ import type {
   BoatsDeleteBoatResponse,
   BoatsReadBoatsByJurisdictionData,
   BoatsReadBoatsByJurisdictionResponse,
+  BookingsCreateBookingData,
+  BookingsCreateBookingResponse,
+  BookingsListBookingsData,
+  BookingsListBookingsResponse,
+  BookingsGetBookingByConfirmationCodeData,
+  BookingsGetBookingByConfirmationCodeResponse,
+  BookingsGetBookingByIdData,
+  BookingsGetBookingByIdResponse,
+  BookingsUpdateBookingData,
+  BookingsUpdateBookingResponse,
   ItemsReadItemsData,
   ItemsReadItemsResponse,
   ItemsCreateItemData,
@@ -274,6 +284,127 @@ export class BoatsService {
         skip: data.skip,
         limit: data.limit,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class BookingsService {
+  /**
+   * Create Booking
+   * Create a new booking (public endpoint).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static createBooking(
+    data: BookingsCreateBookingData,
+  ): CancelablePromise<BookingsCreateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Bookings
+   * List/search bookings (admin only).
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static listBookings(
+    data: BookingsListBookingsData = {},
+  ): CancelablePromise<BookingsListBookingsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Booking By Confirmation Code
+   * Retrieve a booking by confirmation code (public endpoint).
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static getBookingByConfirmationCode(
+    data: BookingsGetBookingByConfirmationCodeData,
+  ): CancelablePromise<BookingsGetBookingByConfirmationCodeResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Booking By Id
+   * Retrieve booking details by ID (admin only).
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static getBookingById(
+    data: BookingsGetBookingByIdData,
+  ): CancelablePromise<BookingsGetBookingByIdResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/id/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Booking
+   * Update booking status or details (admin only).
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateBooking(
+    data: BookingsUpdateBookingData,
+  ): CancelablePromise<BookingsUpdateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/id/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

@@ -49,6 +49,94 @@ export type Body_login_login_access_token = {
   client_secret?: string | null
 }
 
+export type BookingCreate = {
+  confirmation_code: string
+  mission_id: string
+  user_name: string
+  user_email: string
+  user_phone: string
+  billing_address: string
+  subtotal: number
+  discount_amount: number
+  tax_amount: number
+  tip_amount: number
+  total_amount: number
+  payment_intent_id: string
+  special_requests?: string | null
+  status?: BookingStatus
+  launch_updates_pref?: boolean
+  items: Array<BookingItemCreate>
+}
+
+export type BookingItemCreate = {
+  trip_id: string
+  boat_id: string
+  item_type: string
+  quantity: number
+  price_per_unit: number
+  status?: BookingItemStatus
+  refund_reason?: string | null
+  refund_notes?: string | null
+}
+
+export type BookingItemPublic = {
+  booking_id: string
+  trip_id: string
+  boat_id: string
+  item_type: string
+  quantity: number
+  price_per_unit: number
+  status?: BookingItemStatus
+  refund_reason?: string | null
+  refund_notes?: string | null
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type BookingItemStatus = "active" | "refunded" | "fulfilled"
+
+export type BookingPublic = {
+  confirmation_code: string
+  mission_id: string
+  user_name: string
+  user_email: string
+  user_phone: string
+  billing_address: string
+  subtotal: number
+  discount_amount: number
+  tax_amount: number
+  tip_amount: number
+  total_amount: number
+  payment_intent_id: string
+  special_requests?: string | null
+  status?: BookingStatus
+  launch_updates_pref?: boolean
+  id: string
+  created_at: string
+  updated_at: string
+  items: Array<BookingItemPublic>
+  qr_code_base64?: string | null
+}
+
+export type BookingStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "checked_in"
+  | "completed"
+  | "cancelled"
+  | "refunded"
+
+export type BookingUpdate = {
+  status?: BookingStatus | null
+  special_requests?: string | null
+  tip_amount?: number | null
+  discount_amount?: number | null
+  tax_amount?: number | null
+  total_amount?: number | null
+  launch_updates_pref?: boolean | null
+}
+
 export type HTTPValidationError = {
   detail?: Array<ValidationError>
 }
@@ -349,6 +437,38 @@ export type BoatsReadBoatsByJurisdictionData = {
 }
 
 export type BoatsReadBoatsByJurisdictionResponse = BoatsPublic
+
+export type BookingsCreateBookingData = {
+  requestBody: BookingCreate
+}
+
+export type BookingsCreateBookingResponse = BookingPublic
+
+export type BookingsListBookingsData = {
+  limit?: number
+  skip?: number
+}
+
+export type BookingsListBookingsResponse = Array<BookingPublic>
+
+export type BookingsGetBookingByConfirmationCodeData = {
+  confirmationCode: string
+}
+
+export type BookingsGetBookingByConfirmationCodeResponse = BookingPublic
+
+export type BookingsGetBookingByIdData = {
+  bookingId: string
+}
+
+export type BookingsGetBookingByIdResponse = BookingPublic
+
+export type BookingsUpdateBookingData = {
+  bookingId: string
+  requestBody: BookingUpdate
+}
+
+export type BookingsUpdateBookingResponse = BookingPublic
 
 export type ItemsReadItemsData = {
   limit?: number
