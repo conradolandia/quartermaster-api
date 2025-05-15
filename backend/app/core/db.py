@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import crud
@@ -34,6 +35,17 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 def init_db(session: Session) -> None:
     # Create tables directly
     SQLModel.metadata.create_all(engine)
+
+    # Add qr_code_base64 column to booking table if it doesn't exist
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("ALTER TABLE booking ADD COLUMN IF NOT EXISTS qr_code_base64 TEXT")
+            )
+            conn.commit()
+            print("Added qr_code_base64 column to booking table if it didn't exist")
+    except Exception as e:
+        print(f"Error adding qr_code_base64 column: {e}")
 
     # This function also creates initial data if it doesn't exist
     # Create user if it doesn't exist

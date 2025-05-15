@@ -526,6 +526,7 @@ class Booking(BookingBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
     )
+    qr_code_base64: str | None = Field(default=None)
     mission: "Mission" = Relationship()
     items: list["BookingItem"] = Relationship(
         back_populates="booking",

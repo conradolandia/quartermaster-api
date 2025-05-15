@@ -133,6 +133,12 @@ def create_booking(
             item_data["booking_id"] = booking.id
             booking_item = BookingItem(**item_data)
             session.add(booking_item)
+
+        # Generate and store QR code
+        qr_code = generate_qr_code(booking.confirmation_code)
+        booking.qr_code_base64 = qr_code
+        session.add(booking)
+
         session.commit()
     except Exception as e:
         session.rollback()
@@ -170,8 +176,6 @@ def create_booking(
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
 
-    # Generate QR code
-    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     return booking_public
 
 
@@ -195,8 +199,12 @@ def get_booking_by_confirmation_code(
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
 
-    # Generate QR code
-    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+    # Generate QR code only if it doesn't exist in the database
+    if not booking.qr_code_base64:
+        booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+        session.add(booking)
+        session.commit()
+
     return booking_public
 
 
@@ -228,9 +236,15 @@ def list_bookings(
             BookingItemPublic.model_validate(item) for item in items
         ]
 
-        # Generate QR code
-        booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+        # Generate QR code if it doesn't exist
+        if not booking.qr_code_base64:
+            booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+            session.add(booking)
+
         result.append(booking_public)
+
+    # Commit any QR code updates
+    session.commit()
     return result
 
 
@@ -256,8 +270,12 @@ def get_booking_by_id(
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
 
-    # Generate QR code
-    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+    # Generate QR code if it doesn't exist
+    if not booking.qr_code_base64:
+        booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+        session.add(booking)
+        session.commit()
+
     return booking_public
 
 
@@ -332,6 +350,10 @@ def update_booking(
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
 
-    # Generate QR code
-    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+    # Generate QR code if it doesn't exist
+    if not booking.qr_code_base64:
+        booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+        session.add(booking)
+        session.commit()
+
     return booking_public
