@@ -423,6 +423,60 @@ class TripBoat(TripBoatBase, table=True):
     boat: "Boat" = Relationship()
 
 
+# --- BookingItem models ---
+class BookingItemStatus(str, enum.Enum):
+    active = "active"
+    refunded = "refunded"
+    fulfilled = "fulfilled"
+
+
+class BookingItemBase(SQLModel):
+    booking_id: uuid.UUID = Field(foreign_key="booking.id")
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
+    quantity: int = Field(ge=1)
+    price_per_unit: float = Field(ge=0)
+    status: BookingItemStatus = Field(default=BookingItemStatus.active)
+    refund_reason: str | None = Field(default=None, max_length=255)
+    refund_notes: str | None = Field(default=None, max_length=1000)
+
+
+class BookingItemCreate(SQLModel):
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
+    quantity: int = Field(ge=1)
+    price_per_unit: float = Field(ge=0)
+    status: BookingItemStatus = Field(default=BookingItemStatus.active)
+    refund_reason: str | None = Field(default=None, max_length=255)
+    refund_notes: str | None = Field(default=None, max_length=1000)
+
+
+class BookingItemUpdate(SQLModel):
+    status: BookingItemStatus | None = None
+    refund_reason: str | None = None
+    refund_notes: str | None = None
+
+
+class BookingItem(BookingItemBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    booking: "Booking" = Relationship(back_populates="items")
+    trip: "Trip" = Relationship()
+    boat: "Boat" = Relationship()
+
+
+class BookingItemPublic(BookingItemBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
 # --- Booking models ---
 class BookingStatus(str, enum.Enum):
     pending_payment = "pending_payment"
@@ -431,12 +485,6 @@ class BookingStatus(str, enum.Enum):
     completed = "completed"
     cancelled = "cancelled"
     refunded = "refunded"
-
-
-class BookingItemStatus(str, enum.Enum):
-    active = "active"
-    refunded = "refunded"
-    fulfilled = "fulfilled"
 
 
 class BookingBase(SQLModel):
@@ -458,7 +506,7 @@ class BookingBase(SQLModel):
 
 
 class BookingCreate(BookingBase):
-    items: list["BookingItemCreate"]
+    items: list[BookingItemCreate]
 
 
 class BookingUpdate(SQLModel):
@@ -490,44 +538,4 @@ class BookingPublic(BookingBase):
     created_at: datetime
     updated_at: datetime
     items: list["BookingItemPublic"]
-
-
-# --- BookingItem models ---
-class BookingItemBase(SQLModel):
-    booking_id: uuid.UUID = Field(foreign_key="booking.id")
-    trip_id: uuid.UUID = Field(foreign_key="trip.id")
-    boat_id: uuid.UUID = Field(foreign_key="boat.id")
-    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
-    quantity: int = Field(ge=1)
-    price_per_unit: float = Field(ge=0)
-    status: BookingItemStatus = Field(default=BookingItemStatus.active)
-    refund_reason: str | None = Field(default=None, max_length=255)
-    refund_notes: str | None = Field(default=None, max_length=1000)
-
-
-class BookingItemCreate(BookingItemBase):
-    pass
-
-
-class BookingItemUpdate(SQLModel):
-    status: BookingItemStatus | None = None
-    refund_reason: str | None = None
-    refund_notes: str | None = None
-
-
-class BookingItem(BookingItemBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
-    )
-    booking: "Booking" = Relationship(back_populates="items")
-    trip: "Trip" = Relationship()
-    boat: "Boat" = Relationship()
-
-
-class BookingItemPublic(BookingItemBase):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
+    qr_code_base64: str | None = None

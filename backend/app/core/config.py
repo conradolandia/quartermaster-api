@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     EMAILS_FROM_EMAIL: EmailStr | None = None
     EMAILS_FROM_NAME: EmailStr | None = None
+    QR_CODE_BASE_URL: str | None = None
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:

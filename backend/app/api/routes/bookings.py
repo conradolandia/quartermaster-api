@@ -1,11 +1,15 @@
+import base64
+import io
 import random
 import string
 import uuid
 
+import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
+from app.core.config import settings
 from app.models import (
     Boat,
     Booking,
@@ -14,10 +18,24 @@ from app.models import (
     BookingItemPublic,
     BookingPublic,
     BookingUpdate,
+    Mission,
     Trip,
 )
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
+
+
+def generate_qr_code(confirmation_code: str) -> str:
+    """Generate a QR code for a booking confirmation code and return as base64 string."""
+    qr_url = f"{settings.QR_CODE_BASE_URL}/check-in?booking={confirmation_code}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
 
 # --- Public Endpoints ---
 
@@ -31,11 +49,19 @@ def create_booking(
     """
     Create a new booking (public endpoint).
     """
-    # 1. Validate tip is non-negative
+    # 1. Validate mission exists
+    mission = session.get(Mission, booking_in.mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Mission with ID {booking_in.mission_id} does not exist",
+        )
+
+    # 2. Validate tip is non-negative
     if booking_in.tip_amount < 0:
         raise HTTPException(status_code=400, detail="Tip amount cannot be negative")
 
-    # 2. Validate all referenced trips and boats exist and are active
+    # 3. Validate all referenced trips and boats exist and are active
     for item in booking_in.items:
         trip = session.get(Trip, item.trip_id)
         if not trip or not trip.active:
@@ -49,7 +75,7 @@ def create_booking(
                 status_code=400, detail=f"Boat {item.boat_id} does not exist"
             )
 
-    # 3. Capacity check (simplified: sum all tickets for each trip/boat, compare to capacity)
+    # 4. Capacity check (simplified: sum all tickets for each trip/boat, compare to capacity)
     # For MVP, assume no concurrent bookings and no overrides
     for item in booking_in.items:
         # Get max capacity (from trip_boat if exists, else boat)
@@ -80,7 +106,7 @@ def create_booking(
                 detail=f"Not enough capacity for trip {item.trip_id} and boat {item.boat_id}",
             )
 
-    # 4. Generate a unique confirmation code
+    # 5. Generate a unique confirmation code
     def generate_confirmation_code(length=8):
         return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
@@ -90,23 +116,52 @@ def create_booking(
     ).first():
         confirmation_code = generate_confirmation_code()
 
-    # 5. Create Booking instance
-    booking = Booking.model_validate(
-        booking_in, update={"confirmation_code": confirmation_code}
-    )
-    session.add(booking)
-    session.commit()
-    session.refresh(booking)
+    # 6. Create Booking instance
+    # We need to exclude items to avoid the SQLAlchemy relationship error
+    booking_data = booking_in.model_dump(exclude={"items"})
+    booking_data["confirmation_code"] = confirmation_code
+    booking = Booking(**booking_data)
 
-    # 6. Create BookingItems
-    for item_in in booking_in.items:
-        booking_item = BookingItem.model_validate(
-            item_in, update={"booking_id": booking.id}
-        )
-        session.add(booking_item)
-    session.commit()
+    try:
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
 
-    # 7. TODO: Integrate payment, email, QR code logic
+        # 7. Create BookingItems
+        for item_in in booking_in.items:
+            item_data = item_in.model_dump()
+            item_data["booking_id"] = booking.id
+            booking_item = BookingItem(**item_data)
+            session.add(booking_item)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        error_message = str(e)
+        # Extract more user-friendly error message if possible
+        if "foreign key constraint" in error_message.lower():
+            if "booking_mission_id_fkey" in error_message:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Mission with ID {booking_in.mission_id} does not exist",
+                )
+            elif "booking_item_trip_id_fkey" in error_message:
+                raise HTTPException(
+                    status_code=400, detail="One or more referenced trips do not exist"
+                )
+            elif "booking_item_boat_id_fkey" in error_message:
+                raise HTTPException(
+                    status_code=400, detail="One or more referenced boats do not exist"
+                )
+            else:
+                raise HTTPException(
+                    status_code=400, detail="Invalid reference to a non-existent entity"
+                )
+        else:
+            raise HTTPException(
+                status_code=500, detail="An error occurred while creating the booking"
+            )
+
+    # 8. TODO: Integrate payment, email
 
     # Query items for response
     items = session.exec(
@@ -114,6 +169,9 @@ def create_booking(
     ).all()
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
+
+    # Generate QR code
+    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     return booking_public
 
 
@@ -136,6 +194,9 @@ def get_booking_by_confirmation_code(
     ).all()
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
+
+    # Generate QR code
+    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     return booking_public
 
 
@@ -166,6 +227,9 @@ def list_bookings(
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in items
         ]
+
+        # Generate QR code
+        booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
         result.append(booking_public)
     return result
 
@@ -191,6 +255,9 @@ def get_booking_by_id(
     ).all()
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
+
+    # Generate QR code
+    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     return booking_public
 
 
@@ -264,4 +331,7 @@ def update_booking(
     ).all()
     booking_public = BookingPublic.model_validate(booking)
     booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
+
+    # Generate QR code
+    booking_public.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     return booking_public
