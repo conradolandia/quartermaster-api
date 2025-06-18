@@ -27,6 +27,14 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
     template_str = (
         Path(__file__).parent / "email-templates" / "build" / template_name
     ).read_text()
+
+    # Pre-process booking items to a static HTML format if they exist in the context
+    if "booking_items" in context and context["booking_items"]:
+        items_html = ""
+        for item in context["booking_items"]:
+            items_html += f"{item['quantity']}x {item['type']} - ${item['price_per_unit']:.2f} each<br>"
+        context["booking_items_html"] = items_html
+
     html_content = Template(template_str).render(context)
     return html_content
 
@@ -52,8 +60,11 @@ def send_email(
         smtp_options["user"] = settings.SMTP_USER
     if settings.SMTP_PASSWORD:
         smtp_options["password"] = settings.SMTP_PASSWORD
+
+    logger.info(f"Sending email to {email_to} with SMTP options: {smtp_options}")
     response = message.send(to=email_to, smtp=smtp_options)
-    logger.info(f"send email result: {response}")
+    logger.info(f"Send email result: {response}")
+    logger.info(f"Response dict: {response.__dict__}")
 
 
 def generate_test_email(email_to: str) -> EmailData:
@@ -107,6 +118,8 @@ def generate_booking_confirmation_email(
             "total_amount": total_amount,
             "confirmation_link": confirmation_link,
             "email": email_to,
+            "is_cancellation": False,  # Explicitly set to False for regular bookings
+            "is_refund": False,  # Explicitly set to False for regular bookings
         },
     )
 

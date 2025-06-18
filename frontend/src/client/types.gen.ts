@@ -438,6 +438,10 @@ export type BoatsReadBoatsByJurisdictionData = {
 
 export type BoatsReadBoatsByJurisdictionResponse = BoatsPublic
 
+export type BookingsQrCodeRedirectData = {
+  confirmationCode: string
+}
+
 export type BookingsCreateBookingData = {
   requestBody: BookingCreate
 }

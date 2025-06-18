@@ -103,11 +103,9 @@
               Refund Amount: ${{ "%.2f"|format(total_amount) }}
             </mj-text>
           {% else %}
-            {% for item in booking_items %}
             <mj-text color="#637381" font-size="16px" padding-top="10px" padding-bottom="0">
-              {{ item.quantity }}x {{ item.type }} - ${{ "%.2f"|format(item.price_per_unit) }} each
+              {{ booking_items_html | safe }}
             </mj-text>
-            {% endfor %}
             <mj-text color="#212b35" font-weight="bold" font-size="16px" padding-top="20px">
               Total: ${{ "%.2f"|format(total_amount) }}
             </mj-text>

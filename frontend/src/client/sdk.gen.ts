@@ -16,6 +16,7 @@ import type {
   BoatsDeleteBoatResponse,
   BoatsReadBoatsByJurisdictionData,
   BoatsReadBoatsByJurisdictionResponse,
+  BookingsQrCodeRedirectData,
   BookingsCreateBookingData,
   BookingsCreateBookingResponse,
   BookingsListBookingsData,
@@ -292,6 +293,31 @@ export class BoatsService {
 }
 
 export class BookingsService {
+  /**
+   * Qr Code Redirect
+   * Redirects QR code scans to the actual check-in endpoint.
+   *
+   * This provides a stable URL for QR codes that won't break if the admin dashboard URL changes.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @throws ApiError
+   */
+  public static qrCodeRedirect(
+    data: BookingsQrCodeRedirectData,
+  ): CancelablePromise<void> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/qr/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        307: "Successful Response",
+        422: "Validation Error",
+      },
+    })
+  }
+
   /**
    * Create Booking
    * Create a new booking (public endpoint).
