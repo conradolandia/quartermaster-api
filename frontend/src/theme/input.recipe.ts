@@ -1,0 +1,69 @@
+import { defineRecipe } from "@chakra-ui/react"
+
+export const inputRecipe = defineRecipe({
+  base: {
+    bg: "dark.bg.secondary",
+    border: "1px solid",
+    borderColor: "dark.border.default",
+    borderRadius: "md",
+    color: "text.primary",
+    px: 3,
+    py: 2,
+    fontSize: "sm",
+    transition: "all 0.2s",
+    _placeholder: {
+      color: "text.muted",
+    },
+    _hover: {
+      borderColor: "dark.border.accent",
+    },
+    _focus: {
+      borderColor: "accent.default",
+      boxShadow: "0 0 0 1px var(--chakra-colors-accent-default)",
+      outline: "none",
+    },
+    _invalid: {
+      borderColor: "status.error",
+      boxShadow: "0 0 0 1px var(--chakra-colors-status-error)",
+    },
+    _disabled: {
+      bg: "dark.bg.accent",
+      color: "text.disabled",
+      borderColor: "dark.border.default",
+      cursor: "not-allowed",
+    },
+    _readOnly: {
+      bg: "dark.bg.accent",
+      color: "text.muted",
+      borderColor: "dark.border.default",
+      cursor: "default",
+    },
+  },
+  variants: {
+    size: {
+      xs: {
+        px: 2,
+        py: 1,
+        fontSize: "xs",
+      },
+      sm: {
+        px: 3,
+        py: 2,
+        fontSize: "sm",
+      },
+      md: {
+        px: 3,
+        py: 2,
+        fontSize: "md",
+      },
+      lg: {
+        px: 4,
+        py: 3,
+        fontSize: "lg",
+      },
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+})

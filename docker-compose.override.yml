@@ -80,6 +80,7 @@ services:
     # TODO: remove once coverage is done locally
     volumes:
       - ./backend/htmlcov:/app/htmlcov
+      - ./backend/app/alembic:/app/app/alembic
     environment:
       SMTP_HOST: "mailcatcher"
       SMTP_PORT: "1025"

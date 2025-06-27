@@ -5,7 +5,7 @@ import { FiHome, FiSettings, FiUsers } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
-import { FaBalanceScale, FaMapMarked, FaRocket, FaShip, FaSpaceShuttle, FaRoute } from "react-icons/fa"
+import { FaBalanceScale, FaMapMarked, FaRocket, FaShip, FaSpaceShuttle, FaRoute, FaTicketAlt } from "react-icons/fa"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
@@ -15,6 +15,7 @@ const items = [
   { icon: FaMapMarked, title: "Locations", path: "/locations" },
   { icon: FaShip, title: "Boats", path: "/boats" },
   { icon: FaRoute, title: "Trips", path: "/trips" },
+  { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]
 
@@ -44,22 +45,27 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     return (
       <RouterLink key={title} to={path} onClick={onClose}>
         <Flex
-          gap={4}
-          px={4}
-          py={2}
+          gap={3}
+          px={3}
+          py={3}
+          mx={1}
+          borderRadius="md"
+          transition="all 0.2s"
           _hover={{
-            background: isActive ? "ui.main" : "gray.subtle",
+            bg: isActive ? "dark.accent.hover" : "dark.bg.hover",
+            color: isActive ? "dark.bg.primary" : "text.primary",
           }}
           alignItems="center"
           fontSize="sm"
-          color="inherit"
+          color={isActive ? "dark.bg.primary" : "text.secondary"}
           borderLeft="3px solid"
-          bg={isActive ? "ui.main" : "transparent"}
+          bg={isActive ? "dark.accent.primary" : "transparent"}
           fontWeight={isActive ? "bold" : "normal"}
-          borderColor={isActive ? "ui.accent" : "transparent"}
+          borderColor={isActive ? "dark.accent.primary" : "transparent"}
+          cursor="pointer"
         >
-          <Icon as={icon} alignSelf="center" />
-          <Text ml={2}>{title}</Text>
+          <Icon as={icon} alignSelf="center" boxSize={4} />
+          <Text>{title}</Text>
         </Flex>
       </RouterLink>
     )
@@ -67,10 +73,18 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
 
   return (
     <>
-      <Text fontSize="xs" px={4} py={2} fontWeight="bold">
+      <Text
+        fontSize="xs"
+        px={4}
+        py={3}
+        fontWeight="bold"
+        color="text.muted"
+        textTransform="uppercase"
+        letterSpacing="wider"
+      >
         Menu
       </Text>
-      <Box>{listItems}</Box>
+      <Box mt={2}>{listItems}</Box>
     </>
   )
 }

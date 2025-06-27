@@ -285,7 +285,7 @@ function Launches() {
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Launches Management</Heading>
-        <Button onClick={() => setIsAddModalOpen(true)} colorScheme="blue">
+        <Button onClick={() => setIsAddModalOpen(true)}>
           <Flex align="center" gap={2}>
             <FiPlus />
             <span>Add Launch</span>

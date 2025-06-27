@@ -24,6 +24,7 @@ import { Route as LayoutLocationsImport } from './routes/_layout/locations'
 import { Route as LayoutLaunchesImport } from './routes/_layout/launches'
 import { Route as LayoutJurisdictionsImport } from './routes/_layout/jurisdictions'
 import { Route as LayoutItemsImport } from './routes/_layout/items'
+import { Route as LayoutBookingsImport } from './routes/_layout/bookings'
 import { Route as LayoutBoatsImport } from './routes/_layout/boats'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
 
@@ -94,6 +95,11 @@ const LayoutItemsRoute = LayoutItemsImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
+const LayoutBookingsRoute = LayoutBookingsImport.update({
+  path: '/bookings',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
 const LayoutBoatsRoute = LayoutBoatsImport.update({
   path: '/boats',
   getParentRoute: () => LayoutRoute,
@@ -134,6 +140,10 @@ declare module '@tanstack/react-router' {
     }
     '/_layout/boats': {
       preLoaderRoute: typeof LayoutBoatsImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/bookings': {
+      preLoaderRoute: typeof LayoutBookingsImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/items': {
@@ -177,6 +187,7 @@ export const routeTree = rootRoute.addChildren([
   LayoutRoute.addChildren([
     LayoutAdminRoute,
     LayoutBoatsRoute,
+    LayoutBookingsRoute,
     LayoutItemsRoute,
     LayoutJurisdictionsRoute,
     LayoutLaunchesRoute,

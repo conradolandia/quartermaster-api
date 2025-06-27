@@ -7,11 +7,12 @@ import uuid
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import Response
 from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.config import settings
+from app.core.stripe import create_payment_intent
 from app.models import (
     Boat,
     Booking,
@@ -19,14 +20,13 @@ from app.models import (
     BookingItem,
     BookingItemPublic,
     BookingPublic,
+    BookingStatus,
     BookingUpdate,
     Mission,
     Trip,
-    TripBoat,
 )
 from app.utils import (
     generate_booking_cancelled_email,
-    generate_booking_confirmation_email,
     generate_booking_refunded_email,
     send_email,
 )
@@ -37,26 +37,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-@router.get(
-    "/qr/{confirmation_code}",
-    response_class=RedirectResponse,
-    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-)
-def qr_code_redirect(confirmation_code: str):
-    """
-    Redirects QR code scans to the actual check-in endpoint.
-
-    This provides a stable URL for QR codes that won't break if the admin dashboard URL changes.
-    """
-    target_url = f"{settings.QR_CODE_BASE_URL}/check-in?booking={confirmation_code}"
-    logger.info(f"Redirecting QR scan for {confirmation_code} to {target_url}")
-    return target_url
-
-
 def generate_qr_code(confirmation_code: str) -> str:
     """Generate a QR code for a booking confirmation code and return as base64 string."""
-    # Use stable internal URL that won't change even if admin URL changes
-    qr_url = f"{settings.FRONTEND_HOST}/api/v1/bookings/qr/{confirmation_code}"
+    # Use direct frontend URL for better performance (no redirect needed)
+    qr_url = f"{settings.FRONTEND_HOST}/bookings?code={confirmation_code}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
     qr.make(fit=True)
@@ -76,281 +60,269 @@ def create_booking(
     booking_in: BookingCreate,
 ) -> BookingPublic:
     """
-    Create a new booking (public endpoint).
+    Create new booking.
     """
-    try:
-        # 1. Validate mission exists and is active
-        mission = session.get(Mission, booking_in.mission_id)
-        if not mission:
-            logger.warning(
-                f"Booking attempt for non-existent mission ID: {booking_in.mission_id}"
-            )
+    # Validate that booking has items
+    if not booking_in.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking must have at least one item",
+        )
+
+    # Validate all trips exist and are active, and ensure they all belong to the same mission
+    mission_id = None
+    for item in booking_in.items:
+        trip = session.get(Trip, item.trip_id)
+        if not trip:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Mission with ID {booking_in.mission_id} does not exist",
+                detail=f"Trip {item.trip_id} not found",
             )
-
-        if not mission.active:
-            logger.info(f"Booking attempt for inactive mission: {mission.id}")
+        if not trip.active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Mission {mission.name} is not currently accepting bookings",
+                detail=f"Trip {item.trip_id} is not active",
             )
 
-        # 2. Validate tip is non-negative
-        if booking_in.tip_amount < 0:
-            logger.warning(f"Negative tip amount attempted: {booking_in.tip_amount}")
+        # Ensure all trips belong to the same mission
+        if mission_id is None:
+            mission_id = trip.mission_id
+        elif trip.mission_id != mission_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tip amount cannot be negative",
+                detail="All booking items must belong to trips from the same mission",
             )
 
-        # 3. Validate all referenced trips and boats exist and are active
-        if not booking_in.items:
-            logger.warning("Booking creation attempted with no items")
+    # Validate the derived mission exists and is active
+    mission = session.get(Mission, mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mission not found",
+        )
+    if not mission.active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mission is not active",
+        )
+
+    # Validate all boats exist
+    for item in booking_in.items:
+        boat = session.get(Boat, item.boat_id)
+        if not boat:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="At least one booking item is required",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Boat {item.boat_id} not found",
             )
 
-        for item in booking_in.items:
-            trip = session.get(Trip, item.trip_id)
-            if not trip:
-                logger.warning(
-                    f"Booking references non-existent trip ID: {item.trip_id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Trip with ID {item.trip_id} does not exist",
-                )
+    # Don't create PaymentIntent yet - booking starts as draft
 
-            if not trip.active:
-                logger.info(f"Booking attempt for inactive trip: {trip.id}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Trip with ID {item.trip_id} is not currently accepting bookings",
-                )
+    # Generate confirmation code
+    def generate_confirmation_code(length=8):
+        """Generate a random confirmation code."""
 
-            boat = session.get(Boat, item.boat_id)
-            if not boat:
-                logger.warning(
-                    f"Booking references non-existent boat ID: {item.boat_id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Boat with ID {item.boat_id} does not exist",
-                )
+        # Use uppercase letters and numbers, excluding similar-looking characters
+        chars = string.ascii_uppercase.replace("I", "").replace(
+            "O", ""
+        ) + string.digits.replace("0", "").replace("1", "")
+        return "".join(random.choice(chars) for _ in range(length))
 
-            # Verify trip and mission match
-            if trip.mission_id != mission.id:
-                logger.warning(
-                    f"Trip {trip.id} does not belong to mission {mission.id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Trip {trip.id} does not belong to the selected mission",
-                )
-
-        # 4. Capacity check (simplified: sum all tickets for each trip/boat, compare to capacity)
-        # For MVP, assume no concurrent bookings and no overrides
-        for item in booking_in.items:
-            # Get max capacity (from trip_boat if exists, else boat)
-            trip_boat = session.exec(
-                select(TripBoat).where(
-                    TripBoat.trip_id == item.trip_id, TripBoat.boat_id == item.boat_id
-                )
-            ).first()
-
-            if not trip_boat:
-                logger.warning(
-                    f"Trip {item.trip_id} is not associated with boat {item.boat_id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Trip {item.trip_id} is not associated with boat {item.boat_id}",
-                )
-
-            boat = session.get(Boat, item.boat_id)
-            max_capacity = (
-                trip_boat.max_capacity
-                if trip_boat and trip_boat.max_capacity
-                else boat.capacity
-            )
-
-            # Count already booked tickets for this trip/boat
-            booked = session.exec(
-                select(BookingItem).where(
-                    BookingItem.trip_id == item.trip_id,
-                    BookingItem.boat_id == item.boat_id,
-                    BookingItem.status == "active",
-                )
-            ).all()
-            already_booked = sum(b.quantity for b in booked)
-
-            if already_booked + item.quantity > max_capacity:
-                available = max_capacity - already_booked
-                logger.info(
-                    f"Capacity exceeded for trip {item.trip_id}, boat {item.boat_id}: "
-                    f"requested {item.quantity}, available {available}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=(
-                        f"Not enough capacity for trip {item.trip_id} and boat {item.boat_id}. "
-                        f"Requested: {item.quantity}, Available: {available}"
-                    ),
-                )
-
-        # 5. Generate a unique confirmation code
-        def generate_confirmation_code(length=8):
-            return "".join(
-                random.choices(string.ascii_uppercase + string.digits, k=length)
-            )
-
+    # Keep generating until we get a unique code
+    while True:
         confirmation_code = generate_confirmation_code()
-        while session.exec(
+        existing = (
+            session.query(Booking)
+            .filter(Booking.confirmation_code == confirmation_code)
+            .first()
+        )
+        if not existing:
+            break
+
+    # Create booking as draft (no PaymentIntent yet)
+    booking = Booking(
+        confirmation_code=confirmation_code,
+        user_name=booking_in.user_name,
+        user_email=booking_in.user_email,
+        user_phone=booking_in.user_phone,
+        billing_address=booking_in.billing_address,
+        subtotal=booking_in.subtotal,
+        discount_amount=booking_in.discount_amount,
+        tax_amount=booking_in.tax_amount,
+        tip_amount=booking_in.tip_amount,
+        total_amount=booking_in.total_amount,
+        payment_intent_id=None,  # No PaymentIntent yet
+        special_requests=booking_in.special_requests,
+        status=BookingStatus.draft,  # Start as draft
+        launch_updates_pref=booking_in.launch_updates_pref,
+    )
+
+    # Create booking items
+    booking_items = []
+    for item in booking_in.items:
+        booking_item = BookingItem(
+            booking=booking,
+            trip_id=item.trip_id,
+            boat_id=item.boat_id,
+            item_type=item.item_type,
+            quantity=item.quantity,
+            price_per_unit=item.price_per_unit,
+            status=item.status,
+            refund_reason=item.refund_reason,
+            refund_notes=item.refund_notes,
+        )
+        booking_items.append(booking_item)
+
+    # Add all items to session
+    session.add(booking)
+    for item in booking_items:
+        session.add(item)
+
+    # Commit to get IDs
+    session.commit()
+    session.refresh(booking)
+
+    # Generate QR code
+    booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
+
+    # Update booking with QR code
+    session.add(booking)
+    session.commit()
+    session.refresh(booking)
+
+    return booking
+
+
+@router.post("/{confirmation_code}/initialize-payment")
+def initialize_payment(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> dict:
+    """
+    Initialize payment for a draft booking.
+    Creates a PaymentIntent and updates booking status to pending_payment.
+    """
+    try:
+        # Get booking
+        booking = session.exec(
             select(Booking).where(Booking.confirmation_code == confirmation_code)
-        ).first():
-            confirmation_code = generate_confirmation_code()
+        ).first()
 
-        # 6. Create Booking instance
-        # We need to exclude items to avoid the SQLAlchemy relationship error
-        booking_data = booking_in.model_dump(exclude={"items"})
-        booking_data["confirmation_code"] = confirmation_code
-        booking = Booking(**booking_data)
+        if not booking:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found",
+            )
 
-        booking_items = []
-        try:
-            session.add(booking)
-            session.commit()
-            session.refresh(booking)
+        # Check if booking is in draft status
+        if booking.status != BookingStatus.draft:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot initialize payment for booking with status '{booking.status}'",
+            )
 
-            # 7. Create BookingItems
-            for item_in in booking_in.items:
-                item_data = item_in.model_dump()
-                item_data["booking_id"] = booking.id
-                booking_item = BookingItem(**item_data)
-                session.add(booking_item)
-                booking_items.append(booking_item)
+        # Check if PaymentIntent already exists
+        if booking.payment_intent_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment already initialized for this booking",
+            )
 
-            # Generate and store QR code
-            qr_code = generate_qr_code(booking.confirmation_code)
-            booking.qr_code_base64 = qr_code
-            session.add(booking)
+        # Calculate total amount in cents for Stripe
+        total_amount_cents = int(booking.total_amount * 100)
 
-            session.commit()
-            logger.info(f"Booking created successfully: {booking.confirmation_code}")
-        except Exception as e:
-            session.rollback()
-            logger.error(f"Database error during booking creation: {str(e)}")
+        # Create PaymentIntent
+        payment_intent = create_payment_intent(total_amount_cents)
 
-            # Extract more user-friendly error message if possible
-            error_message = str(e).lower()
-            if "foreign key constraint" in error_message:
-                if "booking_mission_id_fkey" in error_message:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Mission with ID {booking_in.mission_id} does not exist",
-                    )
-                elif "booking_item_trip_id_fkey" in error_message:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="One or more referenced trips do not exist",
-                    )
-                elif "booking_item_boat_id_fkey" in error_message:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="One or more referenced boats do not exist",
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Invalid reference to a non-existent entity",
-                    )
-            elif "unique constraint" in error_message:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="A booking with this confirmation code already exists",
-                )
-            elif "not null constraint" in error_message:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Missing required field in booking data",
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="An unexpected error occurred while creating the booking",
-                )
+        # Update booking with PaymentIntent ID and status
+        booking.payment_intent_id = payment_intent.id
+        booking.status = BookingStatus.pending_payment
 
-        # 8. Send booking confirmation email
-        try:
-            if settings.emails_enabled:
-                # Prepare items for email template
-                email_items = []
-                for item in booking_items:
-                    trip = session.get(Trip, item.trip_id)
-                    boat = session.get(Boat, item.boat_id)
-                    trip_type = (
-                        "Launch Viewing"
-                        if trip.type == "launch_viewing"
-                        else "Pre-Launch Viewing"
-                    )
-                    item_type = f"{trip_type} - {boat.name}"
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
 
-                    email_items.append(
-                        {
-                            "quantity": item.quantity,
-                            "type": item_type,
-                            "price_per_unit": item.price_per_unit,
-                        }
-                    )
+        return {
+            "payment_intent_id": payment_intent.id,
+            "client_secret": payment_intent.client_secret,
+            "status": "pending_payment",
+        }
 
-                # Generate and send email
-                email_data = generate_booking_confirmation_email(
-                    email_to=booking.user_email,
-                    user_name=booking.user_name,
-                    confirmation_code=booking.confirmation_code,
-                    mission_name=mission.name,
-                    booking_items=email_items,
-                    total_amount=booking.total_amount,
-                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Error initializing payment for booking {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initialize payment",
+        )
 
-                send_email(
-                    email_to=booking.user_email,
-                    subject=email_data.subject,
-                    html_content=email_data.html_content,
-                )
 
-                logger.info(f"Booking confirmation email sent to {booking.user_email}")
-            else:
-                logger.warning(
-                    "Email sending is disabled. Confirmation email not sent."
-                )
-        except Exception as e:
-            # Don't fail the booking if email sending fails
-            logger.error(f"Failed to send booking confirmation email: {str(e)}")
+@router.get("/qr/{confirmation_code}")
+def get_booking_qr_code(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> Response:
+    """
+    Get QR code image for a booking confirmation code.
+    """
+    try:
+        # Validate confirmation code
+        if not confirmation_code or len(confirmation_code) < 3:
+            logger.warning(
+                f"Invalid booking confirmation code format: {confirmation_code}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid booking confirmation code format",
+            )
 
-        # Query items for response
-        items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
-        booking_public = BookingPublic.model_validate(booking)
-        booking_public.items = [
-            BookingItemPublic.model_validate(item) for item in items
-        ]
+        # Fetch booking
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
 
-        return booking_public
+        if not booking:
+            logger.info(f"Booking not found for confirmation code: {confirmation_code}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found with the provided confirmation code",
+            )
+
+        # Generate QR code image
+        qr_url = f"{settings.FRONTEND_HOST}/bookings?code={confirmation_code}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(qr_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Convert to bytes
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        return Response(
+            content=buf.getvalue(),
+            media_type="image/png",
+            headers={
+                "Content-Disposition": f"inline; filename=booking_{confirmation_code}_qr.png"
+            },
+        )
 
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
         # Catch any unexpected exceptions
-        logger.exception(f"Unexpected error in create_booking: {str(e)}")
+        logger.exception(
+            f"Unexpected error generating QR code for booking {confirmation_code}: {str(e)}"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later.",
+            detail="An unexpected error occurred generating QR code.",
         )
 
 

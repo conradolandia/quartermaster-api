@@ -479,6 +479,7 @@ class BookingItemPublic(BookingItemBase):
 
 # --- Booking models ---
 class BookingStatus(str, enum.Enum):
+    draft = "draft"
     pending_payment = "pending_payment"
     confirmed = "confirmed"
     checked_in = "checked_in"
@@ -489,7 +490,6 @@ class BookingStatus(str, enum.Enum):
 
 class BookingBase(SQLModel):
     confirmation_code: str = Field(index=True, unique=True, max_length=32)
-    mission_id: uuid.UUID = Field(foreign_key="mission.id")
     user_name: str = Field(max_length=255)
     user_email: str = Field(max_length=255)
     user_phone: str = Field(max_length=40)
@@ -499,13 +499,25 @@ class BookingBase(SQLModel):
     tax_amount: float = Field(ge=0)
     tip_amount: float = Field(ge=0)
     total_amount: float = Field(ge=0)
-    payment_intent_id: str = Field(max_length=255)
+    payment_intent_id: str | None = Field(default=None, max_length=255)
     special_requests: str | None = Field(default=None, max_length=1000)
-    status: BookingStatus = Field(default=BookingStatus.pending_payment)
+    status: BookingStatus = Field(default=BookingStatus.draft)
     launch_updates_pref: bool = Field(default=False)
 
 
-class BookingCreate(BookingBase):
+class BookingCreate(SQLModel):
+    confirmation_code: str = Field(index=True, unique=True, max_length=32)
+    user_name: str = Field(max_length=255)
+    user_email: str = Field(max_length=255)
+    user_phone: str = Field(max_length=40)
+    billing_address: str = Field(max_length=1000)
+    subtotal: float = Field(ge=0)
+    discount_amount: float = Field(ge=0)
+    tax_amount: float = Field(ge=0)
+    tip_amount: float = Field(ge=0)
+    total_amount: float = Field(ge=0)
+    special_requests: str | None = Field(default=None, max_length=1000)
+    launch_updates_pref: bool = Field(default=False)
     items: list[BookingItemCreate]
 
 
@@ -527,11 +539,24 @@ class Booking(BookingBase, table=True):
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
     )
     qr_code_base64: str | None = Field(default=None)
-    mission: "Mission" = Relationship()
     items: list["BookingItem"] = Relationship(
         back_populates="booking",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+
+    @property
+    def mission_id(self) -> uuid.UUID | None:
+        """Get the mission ID from the first booking item's trip."""
+        if self.items and len(self.items) > 0:
+            return self.items[0].trip.mission_id
+        return None
+
+    @property
+    def mission(self) -> "Mission | None":
+        """Get the mission from the first booking item's trip."""
+        if self.items and len(self.items) > 0:
+            return self.items[0].trip.mission
+        return None
 
 
 class BookingPublic(BookingBase):

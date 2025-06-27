@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-Script to update all QR codes in the database to use the new stable URL format.
+Script to update all QR codes in the database to use direct frontend URLs.
 
-Run this script after deploying the new QR code redirection endpoint.
+This updates existing QR codes from the old redirect approach to the new direct approach.
 """
 
 import logging
@@ -20,14 +20,16 @@ logger = logging.getLogger(__name__)
 
 def update_all_qr_codes():
     """
-    Updates all existing QR codes in the database to use the new stable URL format.
+    Updates all existing QR codes in the database to use direct frontend URLs.
     """
     try:
         with Session(engine) as session:
             # Get count of bookings
             bookings_count = session.exec(select(Booking)).all()
             total = len(bookings_count)
-            logger.info(f"Updating QR codes for {total} bookings...")
+            logger.info(
+                f"Updating QR codes for {total} bookings to use direct frontend URLs..."
+            )
 
             # Process in batches to avoid memory issues with large databases
             batch_size = 100
@@ -39,7 +41,7 @@ def update_all_qr_codes():
                 ).all()
 
                 for booking in bookings_batch:
-                    # Regenerate the QR code with the new stable URL
+                    # Regenerate the QR code with direct frontend URL
                     booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
                     session.add(booking)
                     updated += 1
@@ -49,7 +51,7 @@ def update_all_qr_codes():
                 logger.info(f"Updated {updated} of {total} bookings")
 
             logger.info(
-                f"Successfully updated all {updated} QR codes to use the new stable URL format"
+                f"Successfully updated all {updated} QR codes to use direct frontend URLs"
             )
 
     except Exception as e:
@@ -58,6 +60,4 @@ def update_all_qr_codes():
 
 
 if __name__ == "__main__":
-    logger.info("Starting QR code update process...")
     update_all_qr_codes()
-    logger.info("QR code update process completed")
