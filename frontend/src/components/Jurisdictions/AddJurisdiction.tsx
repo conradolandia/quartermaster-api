@@ -1,7 +1,8 @@
-import useCustomToast from "@/hooks/useCustomToast";
-import { Button, Input, VStack, Portal, ButtonGroup } from "@chakra-ui/react";
-import { useRef } from "react";
+import useCustomToast from "@/hooks/useCustomToast"
+import { Button, ButtonGroup, Input, Portal, VStack } from "@chakra-ui/react"
+import { useRef } from "react"
 import {
+  DialogActionTrigger,
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -9,22 +10,21 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-  DialogActionTrigger,
-} from "../ui/dialog";
+} from "../ui/dialog"
 
-import { Field } from "../ui/field";
-import { JurisdictionsService, type JurisdictionCreate } from "@/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type SubmitHandler, useForm, Controller } from "react-hook-form";
-import StateDropdown from "../Locations/StateDropdown";
-import LocationDropdown from "../Common/LocationDropdown";
-import { handleError } from "@/utils";
+import { type JurisdictionCreate, JurisdictionsService } from "@/client"
+import { handleError } from "@/utils"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import LocationDropdown from "../Common/LocationDropdown"
+import StateDropdown from "../Locations/StateDropdown"
+import { Field } from "../ui/field"
 
 // Props interface
 interface AddJurisdictionProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
 }
 
 export const AddJurisdiction = ({
@@ -32,9 +32,9 @@ export const AddJurisdiction = ({
   onClose,
   onSuccess,
 }: AddJurisdictionProps) => {
-  const { showSuccessToast } = useCustomToast();
-  const queryClient = useQueryClient();
-  const contentRef = useRef(null);
+  const { showSuccessToast } = useCustomToast()
+  const queryClient = useQueryClient()
+  const contentRef = useRef(null)
 
   const {
     register,
@@ -51,27 +51,27 @@ export const AddJurisdiction = ({
       sales_tax_rate: 0,
       location_id: "",
     },
-  });
+  })
 
   // Use mutation for creating jurisdiction
   const mutation = useMutation({
     mutationFn: (data: JurisdictionCreate) =>
       JurisdictionsService.createJurisdiction({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("Jurisdiction was successfully added");
-      reset();
-      queryClient.invalidateQueries({ queryKey: ["jurisdictions"] });
-      onSuccess();
-      onClose();
+      showSuccessToast("Jurisdiction was successfully added")
+      reset()
+      queryClient.invalidateQueries({ queryKey: ["jurisdictions"] })
+      onSuccess()
+      onClose()
     },
     onError: (error: any) => {
-      handleError(error);
+      handleError(error)
     },
-  });
+  })
 
   const onSubmit: SubmitHandler<JurisdictionCreate> = (data) => {
-    mutation.mutate(data);
-  };
+    mutation.mutate(data)
+  }
 
   return (
     <DialogRoot
@@ -98,7 +98,10 @@ export const AddJurisdiction = ({
                     id="name"
                     {...register("name", {
                       required: "Name is required",
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Jurisdiction name"
                   />
@@ -114,7 +117,10 @@ export const AddJurisdiction = ({
                     control={control}
                     rules={{
                       required: "State is required",
-                      maxLength: { value: 100, message: "State cannot exceed 100 characters" }
+                      maxLength: {
+                        value: 100,
+                        message: "State cannot exceed 100 characters",
+                      },
                     }}
                     render={({ field }) => (
                       <StateDropdown
@@ -138,15 +144,23 @@ export const AddJurisdiction = ({
                     control={control}
                     rules={{
                       required: "Sales tax rate is required",
-                      min: { value: 0, message: "Sales tax rate must be between 0 and 1" },
-                      max: { value: 1, message: "Sales tax rate must be between 0 and 1" }
+                      min: {
+                        value: 0,
+                        message: "Sales tax rate must be between 0 and 1",
+                      },
+                      max: {
+                        value: 1,
+                        message: "Sales tax rate must be between 0 and 1",
+                      },
                     }}
                     render={({ field }) => (
                       <Input
                         id="sales_tax_rate"
                         type="number"
                         value={field.value}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(Number.parseFloat(e.target.value) || 0)
+                        }
                         min={0}
                         max={1}
                         step={0.01}
@@ -200,7 +214,7 @@ export const AddJurisdiction = ({
         </DialogContent>
       </Portal>
     </DialogRoot>
-  );
-};
+  )
+}
 
-export default AddJurisdiction;
+export default AddJurisdiction

@@ -1,7 +1,4 @@
-import { useState } from "react"
-import { Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
-import { FiTrash2 } from "react-icons/fi"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type ApiError, TripsService } from "@/client"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -13,9 +10,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { type ApiError, TripsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
+import { FiTrash2 } from "react-icons/fi"
 
 interface DeleteTripProps {
   id: string
@@ -48,7 +48,8 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
     mutation.mutate()
   }
 
-  const tripTypeText = type === "launch_viewing" ? "Launch Viewing" : "Pre-Launch"
+  const tripTypeText =
+    type === "launch_viewing" ? "Launch Viewing" : "Pre-Launch"
 
   return (
     <DialogRoot

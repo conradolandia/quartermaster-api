@@ -1,13 +1,3 @@
-import { useState } from "react"
-import {
-  Button,
-  Table,
-  Text,
-  VStack,
-  Portal,
-  Flex,
-  Input,
-} from "@chakra-ui/react"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -16,14 +6,24 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import { FiTrash2, FiAnchor } from "react-icons/fi"
+import {
+  Button,
+  Flex,
+  Input,
+  Portal,
+  Table,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import { FiAnchor, FiTrash2 } from "react-icons/fi"
 
-import { BoatsService, TripBoatsService, TripPublic } from "@/client"
+import { BoatsService, TripBoatsService, type TripPublic } from "@/client"
 import { toaster } from "@/components/ui/toaster"
 
 interface ManageTripBoatsProps {
@@ -61,7 +61,9 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
   const { data, refetch: refetchTripBoats } = useQuery({
     queryKey: ["trip-boats", trip.id],
     queryFn: async () => {
-      const response = await TripBoatsService.readTripBoatsByTrip({ tripId: trip.id })
+      const response = await TripBoatsService.readTripBoatsByTrip({
+        tripId: trip.id,
+      })
       return response as unknown as TripBoat[]
     },
     enabled: isOpen,
@@ -84,7 +86,7 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
     setIsSubmitting(true)
     try {
       // Check if this boat is already associated with this trip
-      const exists = tripBoatsData.some(tb => tb.boat_id === selectedBoatId)
+      const exists = tripBoatsData.some((tb) => tb.boat_id === selectedBoatId)
       if (exists) {
         toaster.create({
           title: "Warning",
@@ -180,13 +182,17 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
             <VStack gap={4}>
               {/* Current boats associated with this trip */}
               <Flex direction="column" width="100%">
-                <Text fontWeight="bold" mb={2}>Current Boats ({tripBoatsData.length || 0})</Text>
+                <Text fontWeight="bold" mb={2}>
+                  Current Boats ({tripBoatsData.length || 0})
+                </Text>
                 {tripBoatsData.length > 0 ? (
-                  <Table.Root size={{ base: "sm", md: "md" }} variant="outline">
+                  <Table.Root size={{ base: "sm" }} variant="outline">
                     <Table.Header>
                       <Table.Row>
                         <Table.ColumnHeader>Boat Name</Table.ColumnHeader>
-                        <Table.ColumnHeader>Standard Capacity</Table.ColumnHeader>
+                        <Table.ColumnHeader>
+                          Standard Capacity
+                        </Table.ColumnHeader>
                         <Table.ColumnHeader>Custom Capacity</Table.ColumnHeader>
                         <Table.ColumnHeader>Actions</Table.ColumnHeader>
                       </Table.Row>
@@ -197,8 +203,12 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                         return (
                           <Table.Row key={tripBoat.id}>
                             <Table.Cell>{boat?.name || "Unknown"}</Table.Cell>
-                            <Table.Cell>{boat?.capacity || "Unknown"}</Table.Cell>
-                            <Table.Cell>{tripBoat.max_capacity || "Default"}</Table.Cell>
+                            <Table.Cell>
+                              {boat?.capacity || "Unknown"}
+                            </Table.Cell>
+                            <Table.Cell>
+                              {tripBoat.max_capacity || "Default"}
+                            </Table.Cell>
                             <Table.Cell>
                               <Button
                                 aria-label="Remove boat"
@@ -222,27 +232,28 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
 
               {/* Add new boat */}
               <Flex direction="column" width="100%" mt={4}>
-                <Text fontWeight="bold" mb={2}>Add New Boat</Text>
+                <Text fontWeight="bold" mb={2}>
+                  Add New Boat
+                </Text>
                 <VStack align="stretch" gap={4}>
-                  <Field
-                    label="Select Boat"
-                    required
-                  >
+                  <Field label="Select Boat" required>
                     <select
                       id="boat_id"
                       value={selectedBoatId}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedBoatId(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setSelectedBoatId(e.target.value)
+                      }
                       disabled={isSubmitting}
                       style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        borderRadius: '0.375rem',
-                        border: '1px solid',
-                        borderColor: 'inherit'
+                        width: "100%",
+                        padding: "0.5rem",
+                        borderRadius: "0.375rem",
+                        border: "1px solid",
+                        borderColor: "inherit",
                       }}
                     >
                       <option value="">Select a boat</option>
-                      {boatsData?.data && boatsData.data.map((boat: any) => (
+                      {boatsData?.data?.map((boat: any) => (
                         <option key={boat.id} value={boat.id}>
                           {boat.name} (Capacity: {boat.capacity})
                         </option>
@@ -250,13 +261,17 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                     </select>
                   </Field>
 
-                  <Field
-                    label="Custom Max Capacity (Optional)"
-                  >
+                  <Field label="Custom Max Capacity (Optional)">
                     <Input
                       type="number"
                       value={maxCapacity || ""}
-                      onChange={(e) => setMaxCapacity(e.target.value ? parseInt(e.target.value) : undefined)}
+                      onChange={(e) =>
+                        setMaxCapacity(
+                          e.target.value
+                            ? Number.parseInt(e.target.value)
+                            : undefined,
+                        )
+                      }
                       min={1}
                     />
                   </Field>

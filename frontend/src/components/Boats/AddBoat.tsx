@@ -1,15 +1,5 @@
-import { useRef } from "react"
-import {
-  Button,
-  ButtonGroup,
-  DialogActionTrigger,
-  Input,
-  Text,
-  VStack,
-  Portal,
-} from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { type ApiError, type BoatCreate, BoatsService } from "@/client"
+import JurisdictionDropdown from "@/components/Common/JurisdictionDropdown"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -20,10 +10,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import JurisdictionDropdown from "@/components/Common/JurisdictionDropdown"
-import { type ApiError, type BoatCreate, BoatsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import {
+  Button,
+  ButtonGroup,
+  DialogActionTrigger,
+  Input,
+  Portal,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRef } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 
 interface AddBoatProps {
   isOpen: boolean
@@ -106,7 +106,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                     {...register("name", {
                       required: "Name is required",
                       minLength: { value: 1, message: "Name is required" },
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Name"
                     type="text"
@@ -124,14 +127,16 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                     control={control}
                     rules={{
                       required: "Capacity is required",
-                      min: { value: 1, message: "Capacity must be at least 1" }
+                      min: { value: 1, message: "Capacity must be at least 1" },
                     }}
                     render={({ field }) => (
                       <Input
                         id="capacity"
                         type="number"
                         value={field.value ?? ""}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          field.onChange(Number.parseInt(e.target.value) || 1)
+                        }
                         min={1}
                         disabled={isSubmitting}
                         placeholder="Capacity"
@@ -150,7 +155,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                     id="provider_name"
                     {...register("provider_name", {
                       required: "Provider name is required",
-                      maxLength: { value: 255, message: "Provider name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Provider name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Provider Name"
                     type="text"
@@ -167,7 +175,11 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                     id="provider_location"
                     {...register("provider_location", {
                       required: "Provider location is required",
-                      maxLength: { value: 255, message: "Provider location cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message:
+                          "Provider location cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Provider Location"
                     type="text"
@@ -184,7 +196,11 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                     id="provider_address"
                     {...register("provider_address", {
                       required: "Provider address is required",
-                      maxLength: { value: 500, message: "Provider address cannot exceed 500 characters" }
+                      maxLength: {
+                        value: 500,
+                        message:
+                          "Provider address cannot exceed 500 characters",
+                      },
                     })}
                     placeholder="Provider Address"
                     type="text"
@@ -221,7 +237,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   <Input
                     id="map_link"
                     {...register("map_link", {
-                      maxLength: { value: 2000, message: "Map link cannot exceed 2000 characters" }
+                      maxLength: {
+                        value: 2000,
+                        message: "Map link cannot exceed 2000 characters",
+                      },
                     })}
                     placeholder="Map Link"
                     type="text"
@@ -233,7 +252,11 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
             <DialogFooter gap={2}>
               <ButtonGroup>
                 <DialogActionTrigger asChild>
-                  <Button variant="subtle" colorPalette="gray" disabled={isSubmitting}>
+                  <Button
+                    variant="subtle"
+                    colorPalette="gray"
+                    disabled={isSubmitting}
+                  >
                     Cancel
                   </Button>
                 </DialogActionTrigger>

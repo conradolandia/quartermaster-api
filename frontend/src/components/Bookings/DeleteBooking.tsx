@@ -1,11 +1,4 @@
-import {
-  Button,
-  ButtonGroup,
-  DialogActionTrigger,
-  Text,
-  Portal,
-} from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type ApiError, type BookingPublic, BookingsService } from "@/client"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -15,9 +8,16 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { type ApiError, type BookingPublic, BookingsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import {
+  Button,
+  ButtonGroup,
+  DialogActionTrigger,
+  Portal,
+  Text,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 interface DeleteBookingProps {
   booking: BookingPublic
@@ -26,7 +26,12 @@ interface DeleteBookingProps {
   onSuccess: () => void
 }
 
-const DeleteBooking = ({ booking, isOpen, onClose, onSuccess }: DeleteBookingProps) => {
+const DeleteBooking = ({
+  booking,
+  isOpen,
+  onClose,
+  onSuccess,
+}: DeleteBookingProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 

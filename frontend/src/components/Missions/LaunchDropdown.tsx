@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query"
-import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { LaunchesService } from "@/client"
-import { RefObject } from "react"
+import { Portal, Select, createListCollection } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import type { RefObject } from "react"
 
 interface LaunchDropdownProps {
   value: string
@@ -21,10 +21,7 @@ export const LaunchDropdown = ({
   ...props
 }: LaunchDropdownProps) => {
   // Use React Query to fetch launches
-  const {
-    data: launchesResponse,
-    isLoading,
-  } = useQuery({
+  const { data: launchesResponse, isLoading } = useQuery({
     queryKey: ["launches-dropdown"],
     queryFn: () => {
       try {
@@ -35,15 +32,16 @@ export const LaunchDropdown = ({
       }
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1
+    retry: 1,
   })
 
   // Create a collection from the API response
   const launchesCollection = createListCollection({
-    items: launchesResponse?.data?.map(launch => ({
-      label: launch.name,
-      value: launch.id
-    })) || []
+    items:
+      launchesResponse?.data?.map((launch) => ({
+        label: launch.name,
+        value: launch.id,
+      })) || [],
   })
 
   return (

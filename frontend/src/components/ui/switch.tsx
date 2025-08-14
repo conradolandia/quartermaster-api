@@ -17,7 +17,7 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
       if (onChange) {
         // Create a synthetic event to match the expected interface
         const event = {
-          target: { checked: details.checked }
+          target: { checked: details.checked },
         } as React.ChangeEvent<HTMLInputElement>
         onChange(event)
       }
@@ -35,5 +35,5 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
         </SwitchNamespace.Control>
       </SwitchNamespace.Root>
     )
-  }
+  },
 )

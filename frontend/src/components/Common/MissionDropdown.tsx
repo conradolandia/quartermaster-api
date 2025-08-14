@@ -1,7 +1,7 @@
-import { RefObject } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { MissionsService } from "@/client"
+import { Portal, Select, createListCollection } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import type { RefObject } from "react"
 
 interface MissionDropdownProps {
   value: string
@@ -21,10 +21,7 @@ export const MissionDropdown = ({
   ...props
 }: MissionDropdownProps) => {
   // Use React Query to fetch missions
-  const {
-    data: missionsResponse,
-    isLoading,
-  } = useQuery({
+  const { data: missionsResponse, isLoading } = useQuery({
     queryKey: ["missions-dropdown"],
     queryFn: () => {
       try {
@@ -35,15 +32,16 @@ export const MissionDropdown = ({
       }
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1
+    retry: 1,
   })
 
   // Create a collection from the API response
   const missionsCollection = createListCollection({
-    items: missionsResponse?.data?.map(mission => ({
-      label: mission.name,
-      value: mission.id
-    })) || []
+    items:
+      missionsResponse?.data?.map((mission) => ({
+        label: mission.name,
+        value: mission.id,
+      })) || [],
   })
 
   return (

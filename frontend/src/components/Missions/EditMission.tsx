@@ -1,19 +1,19 @@
-import { useRef, useState } from "react"
+import { MissionsService } from "@/client"
 import {
   Button,
   ButtonGroup,
   DialogActionTrigger,
+  Flex,
   Input,
+  Portal,
   Text,
   VStack,
-  Portal,
-  Flex,
 } from "@chakra-ui/react"
-import { MissionsService } from "@/client"
-import { Switch } from "../ui/switch"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
+import { Switch } from "../ui/switch"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -65,7 +65,9 @@ const EditMission = ({ mission }: EditMissionProps) => {
       launch_id: mission.launch_id,
       active: mission.active,
       public: mission.public,
-      sales_open_at: mission.sales_open_at ? new Date(mission.sales_open_at).toISOString().slice(0, 16) : "",
+      sales_open_at: mission.sales_open_at
+        ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
+        : "",
       refund_cutoff_hours: mission.refund_cutoff_hours,
     },
   })
@@ -74,7 +76,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
     mutationFn: (data: any) =>
       MissionsService.updateMission({
         missionId: mission.id,
-        requestBody: data
+        requestBody: data,
       }),
     onSuccess: () => {
       showSuccessToast("Mission updated successfully.")
@@ -93,7 +95,9 @@ const EditMission = ({ mission }: EditMissionProps) => {
     // Format the data before sending
     const formattedData = {
       ...data,
-      sales_open_at: data.sales_open_at ? new Date(data.sales_open_at).toISOString() : null,
+      sales_open_at: data.sales_open_at
+        ? new Date(data.sales_open_at).toISOString()
+        : null,
     }
     mutation.mutate(formattedData)
   }
@@ -188,12 +192,18 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     name="active"
                     control={control}
                     render={({ field }) => (
-                      <Flex alignItems="center" justifyContent="space-between" width="100%">
+                      <Flex
+                        alignItems="center"
+                        justifyContent="space-between"
+                        width="100%"
+                      >
                         <Text>Active</Text>
                         <Switch
                           id="active"
                           isChecked={field.value}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(e.target.checked)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            field.onChange(e.target.checked)
+                          }
                         />
                       </Flex>
                     )}
@@ -205,12 +215,18 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     name="public"
                     control={control}
                     render={({ field }) => (
-                      <Flex alignItems="center" justifyContent="space-between" width="100%">
+                      <Flex
+                        alignItems="center"
+                        justifyContent="space-between"
+                        width="100%"
+                      >
                         <Text>Public</Text>
                         <Switch
                           id="public"
                           isChecked={field.value}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(e.target.checked)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            field.onChange(e.target.checked)
+                          }
                         />
                       </Flex>
                     )}

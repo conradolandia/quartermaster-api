@@ -1,6 +1,6 @@
-import { useRef, useState } from "react"
-import { Button, Input, VStack, Portal } from "@chakra-ui/react"
+import { Button, Input, Portal, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRef, useState } from "react"
 
 import {
   DialogBody,
@@ -12,10 +12,10 @@ import {
   DialogTitle,
 } from "../ui/dialog"
 
-import { Field } from "../ui/field"
-import { LaunchesService, type LaunchCreate } from "@/client"
+import { type LaunchCreate, LaunchesService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { LocationDropdown } from "../Common/LocationDropdown"
+import { Field } from "../ui/field"
 
 // Props interface
 interface AddLaunchProps {
@@ -24,11 +24,7 @@ interface AddLaunchProps {
   onSuccess: () => void
 }
 
-export const AddLaunch = ({
-  isOpen,
-  onClose,
-  onSuccess,
-}: AddLaunchProps) => {
+export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
   const [name, setName] = useState("")
   const [launchTimestamp, setLaunchTimestamp] = useState("")
   const [summary, setSummary] = useState("")
@@ -55,7 +51,7 @@ export const AddLaunch = ({
       console.error("Error adding launch:", error)
       showErrorToast(
         error.response?.data?.detail ||
-          "An error occurred while adding the launch"
+          "An error occurred while adding the launch",
       )
     },
   })
@@ -134,7 +130,13 @@ export const AddLaunch = ({
               variant="solid"
               onClick={handleSubmit}
               loading={mutation.isPending}
-              disabled={!name || !launchTimestamp || !summary || !locationId || mutation.isPending}
+              disabled={
+                !name ||
+                !launchTimestamp ||
+                !summary ||
+                !locationId ||
+                mutation.isPending
+              }
             >
               Add
             </Button>

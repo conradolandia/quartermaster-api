@@ -2,9 +2,9 @@ import { IconButton } from "@chakra-ui/react"
 import { BsThreeDotsVertical } from "react-icons/bs"
 import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 
-import EditBoat from "../Boats/EditBoat"
+import type { Boat } from "../../types/boat"
 import DeleteBoat from "../Boats/DeleteBoat"
-import { Boat } from "../../types/boat"
+import EditBoat from "../Boats/EditBoat"
 
 interface BoatActionsMenuProps {
   boat: Boat
@@ -23,7 +23,7 @@ export const BoatActionsMenu = ({ boat }: BoatActionsMenuProps) => {
         <DeleteBoat id={boat.id} name={boat.name} />
       </MenuContent>
     </MenuRoot>
-  );
-};
+  )
+}
 
-export default BoatActionsMenu;
+export default BoatActionsMenu

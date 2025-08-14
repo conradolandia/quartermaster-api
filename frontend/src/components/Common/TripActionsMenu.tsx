@@ -1,10 +1,10 @@
+import type { TripPublic } from "@/client"
 import { IconButton } from "@chakra-ui/react"
 import { BsThreeDotsVertical } from "react-icons/bs"
-import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
-import { TripPublic } from "@/client"
-import EditTrip from "../Trips/EditTrip"
 import DeleteTrip from "../Trips/DeleteTrip"
+import EditTrip from "../Trips/EditTrip"
 import ManageTripBoats from "../Trips/ManageTripBoats"
+import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 
 interface TripActionsMenuProps {
   trip: TripPublic

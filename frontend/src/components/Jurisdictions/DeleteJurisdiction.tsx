@@ -9,7 +9,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaTrash } from "react-icons/fa"
 
-import { type ApiError, type JurisdictionPublic, JurisdictionsService } from "@/client"
+import {
+  type ApiError,
+  type JurisdictionPublic,
+  JurisdictionsService,
+} from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -72,9 +76,7 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
         </DialogHeader>
         <DialogBody>
           <VStack gap={4} align="flex-start">
-            <Text>
-              Are you sure you want to delete {jurisdiction.name}?
-            </Text>
+            <Text>Are you sure you want to delete {jurisdiction.name}?</Text>
             <Text>This action cannot be undone.</Text>
           </VStack>
         </DialogBody>

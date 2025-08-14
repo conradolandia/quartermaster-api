@@ -1,15 +1,15 @@
-import { useRef, useState } from "react"
 import {
   Button,
   ButtonGroup,
   DialogActionTrigger,
   Input,
+  Portal,
   Text,
   VStack,
-  Portal,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { LocationDropdown } from "../Common/LocationDropdown"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -31,7 +32,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-import { LocationDropdown } from "../Common/LocationDropdown"
 
 interface EditLaunchProps {
   launch: LaunchPublic
@@ -53,7 +53,9 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
     criteriaMode: "all",
     defaultValues: {
       name: launch.name,
-      launch_timestamp: new Date(launch.launch_timestamp).toISOString().slice(0, 16),
+      launch_timestamp: new Date(launch.launch_timestamp)
+        .toISOString()
+        .slice(0, 16),
       summary: launch.summary,
       location_id: launch.location_id,
     },

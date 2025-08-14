@@ -3,13 +3,13 @@ import {
   ButtonGroup,
   DialogActionTrigger,
   Input,
+  Portal,
   Text,
   VStack,
-  Portal,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState, useRef } from "react"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -112,7 +112,10 @@ const EditLocation = ({ location }: EditLocationProps) => {
                     id="name"
                     {...register("name", {
                       minLength: { value: 1, message: "Name cannot be empty" },
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Name"
                     type="text"
@@ -129,8 +132,14 @@ const EditLocation = ({ location }: EditLocationProps) => {
                     name="state"
                     control={control}
                     rules={{
-                      minLength: { value: 2, message: "State code must be 2 characters" },
-                      maxLength: { value: 2, message: "State code must be 2 characters" }
+                      minLength: {
+                        value: 2,
+                        message: "State code must be 2 characters",
+                      },
+                      maxLength: {
+                        value: 2,
+                        message: "State code must be 2 characters",
+                      },
                     }}
                     render={({ field }) => (
                       <StateDropdown

@@ -1,7 +1,7 @@
-import { RefObject } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { LocationsService } from "@/client"
+import { Portal, Select, createListCollection } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import type { RefObject } from "react"
 
 interface LocationDropdownProps {
   value: string
@@ -21,10 +21,7 @@ export const LocationDropdown = ({
   ...props
 }: LocationDropdownProps) => {
   // Use React Query to fetch locations
-  const {
-    data: locationsResponse,
-    isLoading,
-  } = useQuery({
+  const { data: locationsResponse, isLoading } = useQuery({
     queryKey: ["locations-dropdown"],
     queryFn: () => {
       try {
@@ -35,15 +32,16 @@ export const LocationDropdown = ({
       }
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1
+    retry: 1,
   })
 
   // Create a collection from the API response
   const locationsCollection = createListCollection({
-    items: locationsResponse?.data?.map(location => ({
-      label: `${location.name} (${location.state})`,
-      value: location.id
-    })) || []
+    items:
+      locationsResponse?.data?.map((location) => ({
+        label: `${location.name} (${location.state})`,
+        value: location.id,
+      })) || [],
   })
 
   return (
@@ -70,7 +68,10 @@ export const LocationDropdown = ({
             {locationsResponse?.data?.map((location) => (
               <Select.Item
                 key={location.id}
-                item={{ value: location.id, label: `${location.name} (${location.state})` }}
+                item={{
+                  value: location.id,
+                  label: `${location.name} (${location.state})`,
+                }}
               >
                 {location.name} ({location.state})
                 <Select.ItemIndicator />

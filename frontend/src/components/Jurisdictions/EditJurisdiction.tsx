@@ -3,13 +3,13 @@ import {
   ButtonGroup,
   DialogActionTrigger,
   Input,
+  Portal,
   Text,
   VStack,
-  Portal,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState, useRef } from "react"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
 import {
@@ -20,6 +20,8 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import LocationDropdown from "../Common/LocationDropdown"
+import StateDropdown from "../Locations/StateDropdown"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -31,8 +33,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-import StateDropdown from "../Locations/StateDropdown"
-import LocationDropdown from "../Common/LocationDropdown"
 
 interface EditJurisdictionProps {
   jurisdiction: JurisdictionPublic
@@ -114,7 +114,10 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                   <Input
                     id="name"
                     {...register("name", {
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Name"
                     type="text"
@@ -131,7 +134,10 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                     name="state"
                     control={control}
                     rules={{
-                      maxLength: { value: 100, message: "State cannot exceed 100 characters" }
+                      maxLength: {
+                        value: 100,
+                        message: "State cannot exceed 100 characters",
+                      },
                     }}
                     render={({ field }) => (
                       <StateDropdown
@@ -155,15 +161,23 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                     name="sales_tax_rate"
                     control={control}
                     rules={{
-                      min: { value: 0, message: "Sales tax rate must be between 0 and 1" },
-                      max: { value: 1, message: "Sales tax rate must be between 0 and 1" }
+                      min: {
+                        value: 0,
+                        message: "Sales tax rate must be between 0 and 1",
+                      },
+                      max: {
+                        value: 1,
+                        message: "Sales tax rate must be between 0 and 1",
+                      },
                     }}
                     render={({ field }) => (
                       <Input
                         id="sales_tax_rate"
                         type="number"
                         value={field.value ?? ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(Number.parseFloat(e.target.value) || 0)
+                        }
                         min={0}
                         max={1}
                         step={0.01}

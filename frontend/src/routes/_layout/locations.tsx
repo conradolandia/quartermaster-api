@@ -4,64 +4,66 @@ import {
   EmptyState,
   Flex,
   Heading,
+  Icon,
   Table,
   VStack,
-  Icon,
-} from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FiSearch, FiPlus, FiArrowUp, FiArrowDown } from "react-icons/fi";
-import { useState } from "react";
-import { z } from "zod";
+} from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
+import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
+import { z } from "zod"
 
-import { LocationsService, type LocationPublic } from "@/client";
-import { LocationActionsMenu } from "@/components/Common/LocationActionsMenu";
-import AddLocation from "@/components/Locations/AddLocation";
-import PendingLocations from "@/components/Pending/PendingLocations";
+import { type LocationPublic, LocationsService } from "@/client"
+import { LocationActionsMenu } from "@/components/Common/LocationActionsMenu"
+import AddLocation from "@/components/Locations/AddLocation"
+import PendingLocations from "@/components/Pending/PendingLocations"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination.tsx";
+} from "@/components/ui/pagination.tsx"
 
 // Define sortable columns
-type SortableColumn = "name" | "state" | "id";
-type SortDirection = "asc" | "desc";
+type SortableColumn = "name" | "state" | "id"
+type SortDirection = "asc" | "desc"
 
 const locationsSearchSchema = z.object({
   page: z.number().catch(1),
   sortBy: z.enum(["name", "state", "id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
-});
+})
 
-const PER_PAGE = 5;
+const PER_PAGE = 5
 
 // Helper function to sort locations
-const sortLocations = (locations: LocationPublic[], sortBy: SortableColumn | undefined, sortDirection: SortDirection | undefined) => {
-  if (!sortBy || !sortDirection) return locations;
+const sortLocations = (
+  locations: LocationPublic[],
+  sortBy: SortableColumn | undefined,
+  sortDirection: SortDirection | undefined,
+) => {
+  if (!sortBy || !sortDirection) return locations
 
   return [...locations].sort((a, b) => {
-    let aValue: any = a[sortBy];
-    let bValue: any = b[sortBy];
+    const aValue: any = a[sortBy]
+    const bValue: any = b[sortBy]
 
     // Handle string sorting
     if (typeof aValue === "string" && typeof bValue === "string") {
       return sortDirection === "asc"
         ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+        : bValue.localeCompare(aValue)
     }
 
     // Handle numeric sorting
     if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc"
-        ? aValue - bValue
-        : bValue - aValue;
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue
     }
 
-    return 0;
-  });
-};
+    return 0
+  })
+}
 
 function getLocationsQueryOptions({ page }: { page: number }) {
   return {
@@ -71,21 +73,21 @@ function getLocationsQueryOptions({ page }: { page: number }) {
         limit: PER_PAGE,
       }),
     queryKey: ["locations", { page }],
-  };
+  }
 }
 
 export const Route = createFileRoute("/_layout/locations")({
   component: Locations,
   validateSearch: (search) => locationsSearchSchema.parse(search),
-});
+})
 
 function LocationsTable() {
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { page, sortBy, sortDirection } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath })
+  const { page, sortBy, sortDirection } = Route.useSearch()
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
-      sortBy === column && sortDirection === "asc" ? "desc" : "asc";
+      sortBy === column && sortDirection === "asc" ? "desc" : "asc"
 
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
@@ -93,30 +95,30 @@ function LocationsTable() {
         sortBy: column,
         sortDirection: newDirection,
       }),
-    });
-  };
+    })
+  }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getLocationsQueryOptions({ page }),
     placeholderData: (prevData) => prevData,
     queryKey: ["locations", { page, sortBy, sortDirection }],
-  });
+  })
 
   const setPage = (page: number) =>
     navigate({
       search: (prev: { [key: string]: string }) => ({ ...prev, page }),
-    });
+    })
 
   // Apply sorting to locations
   const locations = sortLocations(
     data?.data.slice(0, PER_PAGE) ?? [],
     sortBy as SortableColumn | undefined,
-    sortDirection as SortDirection | undefined
-  );
-  const count = data?.count ?? 0;
+    sortDirection as SortDirection | undefined,
+  )
+  const count = data?.count ?? 0
 
   if (isLoading) {
-    return <PendingLocations />;
+    return <PendingLocations />
   }
 
   if (locations.length === 0) {
@@ -136,19 +138,19 @@ function LocationsTable() {
           </VStack>
         </EmptyState.Content>
       </EmptyState.Root>
-    );
+    )
   }
 
   const SortIcon = ({ column }: { column: SortableColumn }) => {
-    if (sortBy !== column) return null;
+    if (sortBy !== column) return null
     return (
       <Icon
         as={sortDirection === "asc" ? FiArrowUp : FiArrowDown}
         ml={2}
         boxSize={4}
       />
-    );
-  };
+    )
+  }
 
   return (
     <>
@@ -226,11 +228,11 @@ function LocationsTable() {
         </PaginationRoot>
       </Flex>
     </>
-  );
+  )
 }
 
 function Locations() {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   return (
     <Container maxW="full">
@@ -250,5 +252,5 @@ function Locations() {
       />
       <LocationsTable />
     </Container>
-  );
+  )
 }

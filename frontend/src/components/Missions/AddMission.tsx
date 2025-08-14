@@ -1,6 +1,6 @@
-import { useRef, useState } from "react"
-import { Button, Input, VStack, Portal, Flex, Text } from "@chakra-ui/react"
+import { Button, Flex, Input, Portal, Text, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRef, useState } from "react"
 
 import { MissionsService } from "@/client"
 import { Switch } from "../ui/switch"
@@ -15,9 +15,9 @@ import {
   DialogTitle,
 } from "../ui/dialog"
 
-import { Field } from "../ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
 // Props interface
@@ -27,11 +27,7 @@ interface AddMissionProps {
   onSuccess: () => void
 }
 
-export const AddMission = ({
-  isOpen,
-  onClose,
-  onSuccess,
-}: AddMissionProps) => {
+export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const [name, setName] = useState("")
   const [launchId, setLaunchId] = useState("")
   const [active, setActive] = useState(true)
@@ -46,7 +42,7 @@ export const AddMission = ({
   const mutation = useMutation({
     mutationFn: (data: any) =>
       MissionsService.createMission({
-        requestBody: data
+        requestBody: data,
       }),
     onSuccess: () => {
       showSuccessToast("Mission was successfully added")
@@ -123,29 +119,43 @@ export const AddMission = ({
                   id="refund_cutoff_hours"
                   type="number"
                   value={refundCutoffHours}
-                  onChange={(e) => setRefundCutoffHours(parseInt(e.target.value))}
+                  onChange={(e) =>
+                    setRefundCutoffHours(Number.parseInt(e.target.value))
+                  }
                   placeholder="Refund cutoff hours"
                   min={0}
                   max={72}
                 />
               </Field>
               <Field>
-                <Flex alignItems="center" justifyContent="space-between" width="100%">
+                <Flex
+                  alignItems="center"
+                  justifyContent="space-between"
+                  width="100%"
+                >
                   <Text>Active</Text>
                   <Switch
                     id="active"
                     isChecked={active}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActive(e.target.checked)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setActive(e.target.checked)
+                    }
                   />
                 </Flex>
               </Field>
               <Field>
-                <Flex alignItems="center" justifyContent="space-between" width="100%">
+                <Flex
+                  alignItems="center"
+                  justifyContent="space-between"
+                  width="100%"
+                >
                   <Text>Public</Text>
                   <Switch
                     id="public"
                     isChecked={isPublic}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIsPublic(e.target.checked)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setIsPublic(e.target.checked)
+                    }
                   />
                 </Flex>
               </Field>

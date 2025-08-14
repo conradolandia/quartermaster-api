@@ -1,15 +1,5 @@
-import { useState, useRef } from "react"
-import {
-  Button,
-  ButtonGroup,
-  Input,
-  Text,
-  VStack,
-  Portal,
-} from "@chakra-ui/react"
-import { FiEdit } from "react-icons/fi"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { type SubmitHandler, useForm, Controller } from "react-hook-form"
+import { type ApiError, type BoatUpdate, BoatsService } from "@/client"
+import JurisdictionDropdown from "@/components/Common/JurisdictionDropdown"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -22,11 +12,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import { Boat } from "@/types/boat"
-import JurisdictionDropdown from "@/components/Common/JurisdictionDropdown"
-import { type ApiError, type BoatUpdate, BoatsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import type { Boat } from "@/types/boat"
 import { handleError } from "@/utils"
+import {
+  Button,
+  ButtonGroup,
+  Input,
+  Portal,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import { FiEdit } from "react-icons/fi"
 
 // Este es un componente simplificado que imita la estructura del proyecto
 // En un proyecto real, incluiría formularios completos y llamadas a la API
@@ -117,7 +117,10 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                     id="name"
                     {...register("name", {
                       minLength: { value: 1, message: "Name cannot be empty" },
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Name"
                     type="text"
@@ -134,14 +137,16 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                     name="capacity"
                     control={control}
                     rules={{
-                      min: { value: 1, message: "Capacity must be at least 1" }
+                      min: { value: 1, message: "Capacity must be at least 1" },
                     }}
                     render={({ field }) => (
                       <Input
                         id="capacity"
                         type="number"
                         value={field.value ?? ""}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          field.onChange(Number.parseInt(e.target.value) || 1)
+                        }
                         min={1}
                         disabled={isSubmitting}
                         placeholder="Capacity"
@@ -159,7 +164,10 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   <Input
                     id="provider_name"
                     {...register("provider_name", {
-                      maxLength: { value: 255, message: "Provider name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Provider name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Provider Name"
                     type="text"
@@ -175,7 +183,11 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   <Input
                     id="provider_location"
                     {...register("provider_location", {
-                      maxLength: { value: 255, message: "Provider location cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message:
+                          "Provider location cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Provider Location"
                     type="text"
@@ -191,7 +203,11 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   <Input
                     id="provider_address"
                     {...register("provider_address", {
-                      maxLength: { value: 500, message: "Provider address cannot exceed 500 characters" }
+                      maxLength: {
+                        value: 500,
+                        message:
+                          "Provider address cannot exceed 500 characters",
+                      },
                     })}
                     placeholder="Provider Address"
                     type="text"
@@ -227,7 +243,10 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   <Input
                     id="map_link"
                     {...register("map_link", {
-                      maxLength: { value: 2000, message: "Map link cannot exceed 2000 characters" }
+                      maxLength: {
+                        value: 2000,
+                        message: "Map link cannot exceed 2000 characters",
+                      },
                     })}
                     placeholder="Map Link"
                     type="text"

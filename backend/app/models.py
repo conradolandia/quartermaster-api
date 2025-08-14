@@ -381,6 +381,14 @@ class Trip(TripBase, table=True):
     trip_boats: list["TripBoat"] = Relationship(
         back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
     )
+    # Relationship to TripPricing
+    pricing: list["TripPricing"] = Relationship(
+        back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
+    )
+    # Relationship to TripMerchandise
+    merchandise: list["TripMerchandise"] = Relationship(
+        back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
+    )
 
 
 class TripPublic(TripBase):
@@ -423,6 +431,76 @@ class TripBoat(TripBoatBase, table=True):
     boat: "Boat" = Relationship()
 
 
+# TripPricing models
+class TripPricingBase(SQLModel):
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    ticket_type: str = Field(max_length=32)  # adult_ticket, child_ticket, infant_ticket
+    price: float = Field(ge=0)
+
+
+class TripPricingCreate(TripPricingBase):
+    pass
+
+
+class TripPricingUpdate(SQLModel):
+    ticket_type: str | None = Field(default=None, max_length=32)
+    price: float | None = Field(default=None, ge=0)
+
+
+class TripPricing(TripPricingBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Relationships
+    trip: "Trip" = Relationship(back_populates="pricing")
+
+
+class TripPricingPublic(TripPricingBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+# TripMerchandise models
+class TripMerchandiseBase(SQLModel):
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    name: str = Field(max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    price: float = Field(ge=0)
+    quantity_available: int = Field(ge=0)
+
+
+class TripMerchandiseCreate(TripMerchandiseBase):
+    pass
+
+
+class TripMerchandiseUpdate(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    price: float | None = Field(default=None, ge=0)
+    quantity_available: int | None = Field(default=None, ge=0)
+
+
+class TripMerchandise(TripMerchandiseBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Relationships
+    trip: "Trip" = Relationship(back_populates="merchandise")
+
+
+class TripMerchandisePublic(TripMerchandiseBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
 # --- BookingItem models ---
 class BookingItemStatus(str, enum.Enum):
     active = "active"
@@ -434,6 +512,10 @@ class BookingItemBase(SQLModel):
     booking_id: uuid.UUID = Field(foreign_key="booking.id")
     trip_id: uuid.UUID = Field(foreign_key="trip.id")
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    # Optional link to a specific trip merchandise item when item_type is merchandise
+    trip_merchandise_id: uuid.UUID | None = Field(
+        default=None, foreign_key="tripmerchandise.id"
+    )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
     price_per_unit: float = Field(ge=0)
@@ -445,6 +527,9 @@ class BookingItemBase(SQLModel):
 class BookingItemCreate(SQLModel):
     trip_id: uuid.UUID = Field(foreign_key="trip.id")
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    trip_merchandise_id: uuid.UUID | None = Field(
+        default=None, foreign_key="tripmerchandise.id"
+    )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
     price_per_unit: float = Field(ge=0)

@@ -24,6 +24,9 @@ from app.models import (
     BookingUpdate,
     Mission,
     Trip,
+    TripBoat,
+    TripMerchandise,
+    TripPricing,
 )
 from app.utils import (
     generate_booking_cancelled_email,
@@ -106,7 +109,7 @@ def create_booking(
             detail="Mission is not active",
         )
 
-    # Validate all boats exist
+    # Validate all boats exist and are associated with the corresponding trip
     for item in booking_in.items:
         boat = session.get(Boat, item.boat_id)
         if not boat:
@@ -114,6 +117,62 @@ def create_booking(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Boat {item.boat_id} not found",
             )
+
+        # Ensure boat is associated with trip
+        association = session.exec(
+            select(TripBoat).where(
+                (TripBoat.trip_id == item.trip_id) & (TripBoat.boat_id == item.boat_id)
+            )
+        ).first()
+        if association is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Boat {item.boat_id} is not associated with trip {item.trip_id}",
+            )
+
+    # Validate pricing and inventory server-side
+    for item in booking_in.items:
+        if item.item_type in ("adult_ticket", "child_ticket", "infant_ticket"):
+            # Ticket pricing must match TripPricing
+            pricing = session.exec(
+                select(TripPricing).where(
+                    (TripPricing.trip_id == item.trip_id)
+                    & (TripPricing.ticket_type == item.item_type.replace("_ticket", ""))
+                )
+            ).first()
+            if not pricing:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"No pricing configured for {item.item_type}",
+                )
+            if abs(pricing.price - item.price_per_unit) > 0.0001:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Ticket price mismatch",
+                )
+        elif item.item_type == "swag":
+            # Merchandise must reference a valid TripMerchandise row and have inventory
+            if item.trip_merchandise_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Merchandise item is missing reference",
+                )
+            merch = session.get(TripMerchandise, item.trip_merchandise_id)
+            if not merch or merch.trip_id != item.trip_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid merchandise reference",
+                )
+            if merch.quantity_available < item.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Insufficient merchandise inventory",
+                )
+            if abs(merch.price - item.price_per_unit) > 0.0001:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Merchandise price mismatch",
+                )
 
     # Don't create PaymentIntent yet - booking starts as draft
 
@@ -163,6 +222,7 @@ def create_booking(
             booking=booking,
             trip_id=item.trip_id,
             boat_id=item.boat_id,
+            trip_merchandise_id=item.trip_merchandise_id,
             item_type=item.item_type,
             quantity=item.quantity,
             price_per_unit=item.price_per_unit,
@@ -177,9 +237,24 @@ def create_booking(
     for item in booking_items:
         session.add(item)
 
-    # Commit to get IDs
+    # Commit to get IDs and atomically decrement inventory
     session.commit()
     session.refresh(booking)
+
+    # Decrement inventory for merchandise items
+    try:
+        for item in booking_items:
+            if item.item_type == "swag" and item.trip_merchandise_id:
+                merch = session.get(TripMerchandise, item.trip_merchandise_id)
+                if merch:
+                    merch.quantity_available = max(
+                        0, merch.quantity_available - item.quantity
+                    )
+                    session.add(merch)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
 
     # Generate QR code
     booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)

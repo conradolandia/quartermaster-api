@@ -1,20 +1,12 @@
-import { useRef, useEffect } from "react";
 import {
-  Button,
-  ButtonGroup,
-  DialogActionTrigger,
-  Input,
-  Text,
-  VStack,
-  Portal,
-  Textarea,
-  HStack,
-  Box,
-  Badge,
-  Table,
-} from "@chakra-ui/react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { type SubmitHandler, useForm, Controller } from "react-hook-form";
+  type ApiError,
+  BoatsService,
+  type BookingPublic,
+  type BookingUpdate,
+  BookingsService,
+  TripsService,
+} from "@/client"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
   DialogContent,
@@ -22,25 +14,33 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Field } from "@/components/ui/field";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "@/components/ui/dialog"
+import { Field } from "@/components/ui/field"
+import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 import {
-  type ApiError,
-  type BookingPublic,
-  type BookingUpdate,
-  BookingsService,
-  TripsService,
-  BoatsService,
-} from "@/client";
-import useCustomToast from "@/hooks/useCustomToast";
-import { handleError } from "@/utils";
+  Badge,
+  Box,
+  Button,
+  ButtonGroup,
+  DialogActionTrigger,
+  HStack,
+  Input,
+  Portal,
+  Table,
+  Text,
+  Textarea,
+  VStack,
+} from "@chakra-ui/react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useRef } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 
 interface EditBookingProps {
-  booking: BookingPublic;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  booking: BookingPublic
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
 }
 
 const EditBooking = ({
@@ -49,21 +49,21 @@ const EditBooking = ({
   onClose,
   onSuccess,
 }: EditBookingProps) => {
-  const contentRef = useRef(null);
-  const queryClient = useQueryClient();
-  const { showSuccessToast } = useCustomToast();
+  const contentRef = useRef(null)
+  const queryClient = useQueryClient()
+  const { showSuccessToast } = useCustomToast()
 
   // Get trips for display
   const { data: tripsData } = useQuery({
     queryKey: ["trips"],
     queryFn: () => TripsService.readTrips({ limit: 100 }),
-  });
+  })
 
   // Get boats for display
   const { data: boatsData } = useQuery({
     queryKey: ["boats"],
     queryFn: () => BoatsService.readBoats({ limit: 100 }),
-  });
+  })
 
   const {
     register,
@@ -85,12 +85,12 @@ const EditBooking = ({
       total_amount: booking.total_amount,
       launch_updates_pref: booking.launch_updates_pref,
     },
-  });
+  })
 
   // Watch form values for auto-calculation
-  const watchedDiscountAmount = watch("discount_amount");
-  const watchedTaxAmount = watch("tax_amount");
-  const watchedTipAmount = watch("tip_amount");
+  const watchedDiscountAmount = watch("discount_amount")
+  const watchedTaxAmount = watch("tax_amount")
+  const watchedTipAmount = watch("tip_amount")
 
   // Auto-calculate total based on original subtotal and updated values
   useEffect(() => {
@@ -99,16 +99,16 @@ const EditBooking = ({
       booking.subtotal +
       (watchedTaxAmount || 0) +
       (watchedTipAmount || 0) -
-      (watchedDiscountAmount || 0);
+      (watchedDiscountAmount || 0)
 
-    setValue("total_amount", Math.max(0, calculatedTotal)); // Ensure total is not negative
+    setValue("total_amount", Math.max(0, calculatedTotal)) // Ensure total is not negative
   }, [
     watchedDiscountAmount,
     watchedTaxAmount,
     watchedTipAmount,
     setValue,
     booking.subtotal,
-  ]);
+  ])
 
   const mutation = useMutation({
     mutationFn: (data: BookingUpdate) =>
@@ -117,22 +117,22 @@ const EditBooking = ({
         requestBody: data,
       }),
     onSuccess: () => {
-      showSuccessToast("Booking updated successfully.");
-      reset();
-      onSuccess();
-      onClose();
+      showSuccessToast("Booking updated successfully.")
+      reset()
+      onSuccess()
+      onClose()
     },
     onError: (err: ApiError) => {
-      handleError(err);
+      handleError(err)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
-  });
+  })
 
   const onSubmit: SubmitHandler<BookingUpdate> = async (data) => {
-    mutation.mutate(data);
-  };
+    mutation.mutate(data)
+  }
 
   const statusOptions = [
     { value: "draft", label: "Draft" },
@@ -142,7 +142,7 @@ const EditBooking = ({
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
     { value: "refunded", label: "Refunded" },
-  ];
+  ]
 
   const getItemTypeLabel = (itemType: string) => {
     const typeMap: Record<string, string> = {
@@ -150,21 +150,21 @@ const EditBooking = ({
       child_ticket: "Child Ticket",
       infant_ticket: "Infant Ticket",
       swag: "Merchandise",
-    };
-    return typeMap[itemType] || itemType;
-  };
+    }
+    return typeMap[itemType] || itemType
+  }
 
   const getTripName = (tripId: string) => {
-    const trip = tripsData?.data.find((t) => t.id === tripId);
+    const trip = tripsData?.data.find((t) => t.id === tripId)
     return trip
       ? `${trip.type} - ${new Date(trip.departure_time).toLocaleDateString()}`
-      : tripId;
-  };
+      : tripId
+  }
 
   const getBoatName = (boatId: string) => {
-    const boat = boatsData?.data.find((b) => b.id === boatId);
-    return boat ? `${boat.name} (Capacity: ${boat.capacity})` : boatId;
-  };
+    const boat = boatsData?.data.find((b) => b.id === boatId)
+    return boat ? `${boat.name} (Capacity: ${boat.capacity})` : boatId
+  }
 
   return (
     <DialogRoot
@@ -297,7 +297,7 @@ const EditBooking = ({
                               <Text fontWeight="medium">
                                 $
                                 {(item.quantity * item.price_per_unit).toFixed(
-                                  2
+                                  2,
                                 )}
                               </Text>
                             </Table.Cell>
@@ -326,44 +326,43 @@ const EditBooking = ({
                   )}
 
                   {/* Show refund information if any items have refund details */}
-                  {booking.items &&
-                    booking.items.some(
-                      (item) => item.refund_reason || item.refund_notes
-                    ) && (
-                      <Box
-                        mt={3}
-                        p={3}
-                        bg="status.error"
-                        borderRadius="md"
-                        opacity={0.1}
+                  {booking.items?.some(
+                    (item) => item.refund_reason || item.refund_notes,
+                  ) && (
+                    <Box
+                      mt={3}
+                      p={3}
+                      bg="status.error"
+                      borderRadius="md"
+                      opacity={0.1}
+                    >
+                      <Text
+                        fontSize="sm"
+                        fontWeight="semibold"
+                        color="status.error"
+                        mb={2}
                       >
-                        <Text
-                          fontSize="sm"
-                          fontWeight="semibold"
-                          color="status.error"
-                          mb={2}
-                        >
-                          Refund Information:
-                        </Text>
-                        {booking.items
-                          .filter(
-                            (item) => item.refund_reason || item.refund_notes
-                          )
-                          .map((item) => (
-                            <Box key={item.id} mb={2}>
-                              <Text fontSize="sm" color="status.error">
-                                <strong>
-                                  {getItemTypeLabel(item.item_type)}:
-                                </strong>
-                                {item.refund_reason &&
-                                  ` Reason: ${item.refund_reason}`}
-                                {item.refund_notes &&
-                                  ` Notes: ${item.refund_notes}`}
-                              </Text>
-                            </Box>
-                          ))}
-                      </Box>
-                    )}
+                        Refund Information:
+                      </Text>
+                      {booking.items
+                        .filter(
+                          (item) => item.refund_reason || item.refund_notes,
+                        )
+                        .map((item) => (
+                          <Box key={item.id} mb={2}>
+                            <Text fontSize="sm" color="status.error">
+                              <strong>
+                                {getItemTypeLabel(item.item_type)}:
+                              </strong>
+                              {item.refund_reason &&
+                                ` Reason: ${item.refund_reason}`}
+                              {item.refund_notes &&
+                                ` Notes: ${item.refund_notes}`}
+                            </Text>
+                          </Box>
+                        ))}
+                    </Box>
+                  )}
                 </Box>
 
                 <Field
@@ -453,7 +452,9 @@ const EditBooking = ({
                           min="0"
                           value={field.value ?? ""}
                           onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value) || 0)
+                            field.onChange(
+                              Number.parseFloat(e.target.value) || 0,
+                            )
                           }
                           placeholder="0.00"
                         />
@@ -483,7 +484,9 @@ const EditBooking = ({
                           min="0"
                           value={field.value ?? ""}
                           onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value) || 0)
+                            field.onChange(
+                              Number.parseFloat(e.target.value) || 0,
+                            )
                           }
                           placeholder="0.00"
                         />
@@ -515,7 +518,9 @@ const EditBooking = ({
                           min="0"
                           value={field.value ?? ""}
                           onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value) || 0)
+                            field.onChange(
+                              Number.parseFloat(e.target.value) || 0,
+                            )
                           }
                           placeholder="0.00"
                         />
@@ -551,7 +556,9 @@ const EditBooking = ({
                     render={({ field }) => (
                       <Checkbox
                         checked={field.value || false}
-                        onCheckedChange={(details) => field.onChange(details.checked)}
+                        onCheckedChange={(details) =>
+                          field.onChange(details.checked)
+                        }
                       >
                         Receive launch updates
                       </Checkbox>
@@ -579,7 +586,7 @@ const EditBooking = ({
         </DialogContent>
       </Portal>
     </DialogRoot>
-  );
-};
+  )
+}
 
-export default EditBooking;
+export default EditBooking

@@ -9,8 +9,8 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu"
 import { IconButton } from "@chakra-ui/react"
-import EditBooking from "../Bookings/EditBooking"
 import DeleteBooking from "../Bookings/DeleteBooking"
+import EditBooking from "../Bookings/EditBooking"
 
 interface BookingActionsMenuProps {
   booking: BookingPublic

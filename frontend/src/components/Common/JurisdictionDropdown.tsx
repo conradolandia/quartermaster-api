@@ -1,8 +1,8 @@
-import { RefObject } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Portal, Select, createListCollection } from "@chakra-ui/react"
 // @ts-ignore
 import { JurisdictionsService } from "@/client"
+import { Portal, Select, createListCollection } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import type { RefObject } from "react"
 
 interface JurisdictionDropdownProps {
   value: string
@@ -24,16 +24,13 @@ export const JurisdictionDropdown = ({
   ...props
 }: JurisdictionDropdownProps) => {
   // Use React Query to fetch jurisdictions
-  const {
-    data: jurisdictionsResponse,
-    isLoading,
-  } = useQuery({
+  const { data: jurisdictionsResponse, isLoading } = useQuery({
     queryKey: ["jurisdictions-dropdown", locationId],
     queryFn: () => {
       try {
         return JurisdictionsService.readJurisdictions({
           limit: 100,
-          locationId
+          locationId,
         })
       } catch (error) {
         console.error("Error fetching jurisdictions:", error)
@@ -41,15 +38,16 @@ export const JurisdictionDropdown = ({
       }
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    retry: 1
+    retry: 1,
   })
 
   // Create a collection from the API response
   const jurisdictionsCollection = createListCollection({
-    items: jurisdictionsResponse?.data?.map(jurisdiction => ({
-      label: `${jurisdiction.name} (${jurisdiction.state})`,
-      value: jurisdiction.id
-    })) || []
+    items:
+      jurisdictionsResponse?.data?.map((jurisdiction) => ({
+        label: `${jurisdiction.name} (${jurisdiction.state})`,
+        value: jurisdiction.id,
+      })) || [],
   })
 
   return (
@@ -76,7 +74,10 @@ export const JurisdictionDropdown = ({
             {jurisdictionsResponse?.data?.map((jurisdiction) => (
               <Select.Item
                 key={jurisdiction.id}
-                item={{ value: jurisdiction.id, label: `${jurisdiction.name} (${jurisdiction.state})` }}
+                item={{
+                  value: jurisdiction.id,
+                  label: `${jurisdiction.name} (${jurisdiction.state})`,
+                }}
               >
                 {jurisdiction.name} ({jurisdiction.state})
                 <Select.ItemIndicator />

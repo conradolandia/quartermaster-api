@@ -1,7 +1,8 @@
-import useCustomToast from "@/hooks/useCustomToast";
-import { Button, Input, VStack, Portal, ButtonGroup } from "@chakra-ui/react";
-import { useRef } from "react";
+import useCustomToast from "@/hooks/useCustomToast"
+import { Button, ButtonGroup, Input, Portal, VStack } from "@chakra-ui/react"
+import { useRef } from "react"
 import {
+  DialogActionTrigger,
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -9,21 +10,20 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-  DialogActionTrigger,
-} from "../ui/dialog";
+} from "../ui/dialog"
 
-import { Field } from "../ui/field";
-import { LocationsService, type LocationCreate } from "@/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type SubmitHandler, useForm, Controller } from "react-hook-form";
-import StateDropdown from "./StateDropdown";
-import { handleError } from "@/utils";
+import { type LocationCreate, LocationsService } from "@/client"
+import { handleError } from "@/utils"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import { Field } from "../ui/field"
+import StateDropdown from "./StateDropdown"
 
 // Props interface
 interface AddLocationProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
 }
 
 export const AddLocation = ({
@@ -31,9 +31,9 @@ export const AddLocation = ({
   onClose,
   onSuccess,
 }: AddLocationProps) => {
-  const { showSuccessToast } = useCustomToast();
-  const queryClient = useQueryClient();
-  const contentRef = useRef(null);
+  const { showSuccessToast } = useCustomToast()
+  const queryClient = useQueryClient()
+  const contentRef = useRef(null)
 
   const {
     register,
@@ -48,27 +48,27 @@ export const AddLocation = ({
       name: "",
       state: "",
     },
-  });
+  })
 
   // Use mutation for creating location
   const mutation = useMutation({
     mutationFn: (data: LocationCreate) =>
       LocationsService.createLocation({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("Location was successfully added");
-      reset();
-      queryClient.invalidateQueries({ queryKey: ["locations"] });
-      onSuccess();
-      onClose();
+      showSuccessToast("Location was successfully added")
+      reset()
+      queryClient.invalidateQueries({ queryKey: ["locations"] })
+      onSuccess()
+      onClose()
     },
     onError: (error: any) => {
-      handleError(error);
+      handleError(error)
     },
-  });
+  })
 
   const onSubmit: SubmitHandler<LocationCreate> = (data) => {
-    mutation.mutate(data);
-  };
+    mutation.mutate(data)
+  }
 
   return (
     <DialogRoot
@@ -96,7 +96,10 @@ export const AddLocation = ({
                     {...register("name", {
                       required: "Name is required",
                       minLength: { value: 1, message: "Name is required" },
-                      maxLength: { value: 255, message: "Name cannot exceed 255 characters" }
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
                     })}
                     placeholder="Location name"
                   />
@@ -111,7 +114,7 @@ export const AddLocation = ({
                     name="state"
                     control={control}
                     rules={{
-                      required: "State is required"
+                      required: "State is required",
                     }}
                     render={({ field }) => (
                       <StateDropdown
@@ -147,7 +150,7 @@ export const AddLocation = ({
         </DialogContent>
       </Portal>
     </DialogRoot>
-  );
-};
+  )
+}
 
-export default AddLocation;
+export default AddLocation

@@ -1,39 +1,51 @@
 import {
+  Badge,
   Button,
   Container,
+  EmptyState,
   Flex,
   Heading,
-  Table,
-  Badge,
   Icon,
-  EmptyState,
+  Table,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { FiArrowUp, FiArrowDown, FiSearch, FiPlus } from "react-icons/fi"
-import { z } from "zod"
 import { format } from "date-fns"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
+import { z } from "zod"
 
-import { TripsService, type TripPublic, MissionsService, TripBoatsService } from "@/client"
+import {
+  MissionsService,
+  TripBoatsService,
+  type TripPublic,
+  TripsService,
+} from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
 import PendingTrips from "@/components/Pending/PendingTrips"
+import AddTrip from "@/components/Trips/AddTrip"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import AddTrip from "@/components/Trips/AddTrip"
 
 // Define sortable columns
-type SortableColumn = "type" | "mission_id" | "check_in_time" | "departure_time" | "active"
+type SortableColumn =
+  | "type"
+  | "mission_id"
+  | "check_in_time"
+  | "departure_time"
+  | "active"
 type SortDirection = "asc" | "desc"
 
 const tripsSearchSchema = z.object({
   page: z.number().catch(1),
-  sortBy: z.enum(["type", "mission_id", "check_in_time", "departure_time", "active"]).optional(),
+  sortBy: z
+    .enum(["type", "mission_id", "check_in_time", "departure_time", "active"])
+    .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
@@ -91,7 +103,9 @@ function TripsTable() {
   }
 
   // Store trip boat counts
-  const [tripBoatCounts, setTripBoatCounts] = useState<Record<string, number>>({})
+  const [tripBoatCounts, setTripBoatCounts] = useState<Record<string, number>>(
+    {},
+  )
 
   // Get trips from data
   const tripsData = data?.data ?? []
@@ -101,12 +115,12 @@ function TripsTable() {
     tripsData.forEach((trip) => {
       TripBoatsService.readTripBoatsByTrip({ tripId: trip.id })
         .then((response: any) => {
-          setTripBoatCounts(prev => ({
+          setTripBoatCounts((prev) => ({
             ...prev,
             [trip.id]: response.length,
           }))
         })
-        .catch(error => {
+        .catch((error) => {
           console.error(`Error fetching boats for trip ${trip.id}:`, error)
         })
     })
@@ -152,9 +166,7 @@ function TripsTable() {
 
       // Handle numeric sorting
       if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc"
-          ? aValue - bValue
-          : bValue - aValue
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
       }
 
       return 0
@@ -270,7 +282,9 @@ function TripsTable() {
             return (
               <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                 <Table.Cell truncate maxW="sm">
-                  {trip.type === "launch_viewing" ? "Launch Viewing" : "Pre-Launch"}
+                  {trip.type === "launch_viewing"
+                    ? "Launch Viewing"
+                    : "Pre-Launch"}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
                   {mission?.name || "Unknown"}
@@ -282,7 +296,7 @@ function TripsTable() {
                   {format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
-                  {boatCount} boat{boatCount !== 1 ? 's' : ''}
+                  {boatCount} boat{boatCount !== 1 ? "s" : ""}
                 </Table.Cell>
                 <Table.Cell>
                   <Badge colorScheme={trip.active ? "green" : "red"}>

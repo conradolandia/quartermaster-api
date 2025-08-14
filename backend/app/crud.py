@@ -515,7 +515,8 @@ def get_trips_no_relationships(
 ) -> list[Trip]:
     """Get all trips without loading relationships."""
     # Add unique() to handle the eagerly loaded collection
-    statement = select(Trip).offset(skip).limit(limit)
+    # Sort by created_at descending to show newest trips first
+    statement = select(Trip).order_by(Trip.created_at.desc()).offset(skip).limit(limit)
     trips = session.exec(statement).unique().all()
     # Convert to dictionaries to break the ORM relationship chain
     trip_dicts = [
@@ -546,7 +547,11 @@ def get_trips_by_mission(
 ) -> list[Trip]:
     """Get trips for a specific mission."""
     statement = (
-        select(Trip).where(Trip.mission_id == mission_id).offset(skip).limit(limit)
+        select(Trip)
+        .where(Trip.mission_id == mission_id)
+        .order_by(Trip.created_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     return session.exec(statement).unique().all()
 

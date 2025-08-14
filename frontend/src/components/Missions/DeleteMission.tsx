@@ -69,8 +69,8 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              Mission "{name}" will be permanently deleted. Are you sure? You will
-              not be able to undo this action.
+              Mission "{name}" will be permanently deleted. Are you sure? You
+              will not be able to undo this action.
             </Text>
           </DialogBody>
 

@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query"
-import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { UtilsService } from "@/client"
-import { RefObject } from "react"
+import { Portal, Select, createListCollection } from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import type { RefObject } from "react"
 
 interface StateDropdownProps {
   value: string
@@ -21,10 +21,7 @@ export const StateDropdown = ({
   ...props
 }: StateDropdownProps) => {
   // Use React Query to fetch states
-  const {
-    data: statesResponse,
-    isLoading,
-  } = useQuery({
+  const { data: statesResponse, isLoading } = useQuery({
     queryKey: ["us-states"],
     queryFn: () => {
       try {
@@ -35,15 +32,16 @@ export const StateDropdown = ({
       }
     },
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
-    retry: 1
+    retry: 1,
   })
 
   // Create a collection from the API response
   const statesCollection = createListCollection({
-    items: statesResponse?.data?.map(state => ({
-      label: `${state.name} (${state.code})`,
-      value: state.code
-    })) || []
+    items:
+      statesResponse?.data?.map((state) => ({
+        label: `${state.name} (${state.code})`,
+        value: state.code,
+      })) || [],
   })
 
   return (
@@ -70,7 +68,10 @@ export const StateDropdown = ({
             {statesResponse?.data?.map((state) => (
               <Select.Item
                 key={state.code}
-                item={{ value: state.code, label: `${state.name} (${state.code})` }}
+                item={{
+                  value: state.code,
+                  label: `${state.name} (${state.code})`,
+                }}
               >
                 {state.name} ({state.code})
                 <Select.ItemIndicator />
@@ -83,4 +84,4 @@ export const StateDropdown = ({
   )
 }
 
-export default StateDropdown;
+export default StateDropdown

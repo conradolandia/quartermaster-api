@@ -1,15 +1,16 @@
-import { createSystem, defaultConfig } from "@chakra-ui/react";
-import { buttonRecipe } from "./theme/button.recipe";
-import { tableRecipe } from "./theme/table.recipe";
-import { dialogRecipe } from "./theme/dialog.recipe";
-import { inputRecipe } from "./theme/input.recipe";
-import { textareaRecipe } from "./theme/textarea.recipe";
+import { createSystem, defaultConfig } from "@chakra-ui/react"
+import { buttonRecipe } from "./theme/button.recipe"
+import { dialogRecipe } from "./theme/dialog.recipe"
+import { inputRecipe } from "./theme/input.recipe"
+import { tableRecipe } from "./theme/table.recipe"
+import { textareaRecipe } from "./theme/textarea.recipe"
 
 export const system = createSystem(defaultConfig, {
   globalCss: {
     html: {
       fontSize: "16px",
-      fontFamily: "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+      fontFamily:
+        "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
     },
     body: {
       fontSize: "0.875rem",
@@ -17,7 +18,8 @@ export const system = createSystem(defaultConfig, {
       padding: 0,
       bg: "dark.bg.primary",
       color: "dark.text.primary",
-      fontFamily: "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+      fontFamily:
+        "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
     },
     ".main-link": {
       color: "dark.accent.primary",
@@ -27,9 +29,17 @@ export const system = createSystem(defaultConfig, {
   theme: {
     tokens: {
       fonts: {
-        heading: { value: "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" },
-        body: { value: "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" },
-        mono: { value: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace" },
+        heading: {
+          value:
+            "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+        },
+        body: {
+          value:
+            "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+        },
+        mono: {
+          value: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+        },
       },
       fontSizes: {
         "2xs": { value: "0.6rem" },
@@ -148,4 +158,4 @@ export const system = createSystem(defaultConfig, {
       dialog: dialogRecipe,
     },
   },
-});
+})

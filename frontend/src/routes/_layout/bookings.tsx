@@ -1,109 +1,126 @@
 import {
+  Badge,
+  Box,
   Button,
   Container,
   EmptyState,
   Flex,
   Heading,
-  Table,
-  VStack,
-  Text,
-  Badge,
-  Box,
   Icon,
-} from "@chakra-ui/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
-import { FiPlus, FiSearch, FiX, FiArrowUp, FiArrowDown } from "react-icons/fi";
+  Table,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { useQuery } from "@tanstack/react-query"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
+import { FiArrowDown, FiArrowUp, FiPlus, FiSearch, FiX } from "react-icons/fi"
+import { z } from "zod"
 
-import { BookingsService } from "@/client";
-import AddBooking from "@/components/Bookings/AddBooking";
-import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
-import PendingBookings from "@/components/Pending/PendingBookings";
+import { BookingsService } from "@/client"
+import AddBooking from "@/components/Bookings/AddBooking"
+import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
+import PendingBookings from "@/components/Pending/PendingBookings"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
 
 // Define sortable columns
-type SortableColumn = "confirmation_code" | "user_name" | "user_email" | "status" | "total_amount" | "created_at";
-type SortDirection = "asc" | "desc";
+type SortableColumn =
+  | "confirmation_code"
+  | "user_name"
+  | "user_email"
+  | "status"
+  | "total_amount"
+  | "created_at"
+type SortDirection = "asc" | "desc"
 
 const bookingsSearchSchema = z.object({
   page: z.number().catch(1),
   code: z.string().optional(),
-  sortBy: z.enum(["confirmation_code", "user_name", "user_email", "status", "total_amount", "created_at"]).catch("created_at"),
+  sortBy: z
+    .enum([
+      "confirmation_code",
+      "user_name",
+      "user_email",
+      "status",
+      "total_amount",
+      "created_at",
+    ])
+    .catch("created_at"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
-});
+})
 
-const PER_PAGE = 10;
+const PER_PAGE = 10
 
 // Helper function to sort bookings
-const sortBookings = (bookings: any[], sortBy: SortableColumn | undefined, sortDirection: SortDirection | undefined) => {
-  if (!sortBy || !sortDirection) return bookings;
+const sortBookings = (
+  bookings: any[],
+  sortBy: SortableColumn | undefined,
+  sortDirection: SortDirection | undefined,
+) => {
+  if (!sortBy || !sortDirection) return bookings
 
   return [...bookings].sort((a, b) => {
-    let aValue = a[sortBy];
-    let bValue = b[sortBy];
+    let aValue = a[sortBy]
+    let bValue = b[sortBy]
 
     // Handle date sorting
     if (sortBy === "created_at") {
-      aValue = new Date(aValue).getTime();
-      bValue = new Date(bValue).getTime();
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
     }
 
     // Handle numeric sorting (total_amount)
     if (sortBy === "total_amount") {
-      aValue = Number(aValue) || 0;
-      bValue = Number(bValue) || 0;
+      aValue = Number(aValue) || 0
+      bValue = Number(bValue) || 0
     }
 
     // Handle string sorting
     if (typeof aValue === "string" && typeof bValue === "string") {
       return sortDirection === "asc"
         ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+        : bValue.localeCompare(aValue)
     }
 
     // Handle numeric/date sorting
     if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc"
-        ? aValue - bValue
-        : bValue - aValue;
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue
     }
 
-    return 0;
-  });
-};
+    return 0
+  })
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "confirmed":
-      return "green";
+      return "green"
     case "pending_payment":
-      return "yellow";
+      return "yellow"
     case "cancelled":
-      return "red";
+      return "red"
     case "refunded":
-      return "gray";
+      return "gray"
     case "completed":
-      return "blue";
+      return "blue"
     case "checked_in":
-      return "teal";
+      return "teal"
     default:
-      return "gray";
+      return "gray"
   }
-};
+}
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(amount);
-};
+  }).format(amount)
+}
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -112,8 +129,8 @@ const formatDate = (dateString: string) => {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
-};
+  })
+}
 
 const itemTypes = [
   { value: "adult_ticket", label: "Adult Ticket" },
@@ -123,16 +140,16 @@ const itemTypes = [
 ]
 
 const getItemTypeLabel = (itemType: string) => {
-  return itemTypes.find(type => type.value === itemType)?.label || itemType;
-};
+  return itemTypes.find((type) => type.value === itemType)?.label || itemType
+}
 
 export const Route = createFileRoute("/_layout/bookings")({
   component: Bookings,
   validateSearch: (search) => bookingsSearchSchema.parse(search),
-});
+})
 
 function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
-  const navigate = useNavigate({ from: Route.fullPath });
+  const navigate = useNavigate({ from: Route.fullPath })
 
   const {
     data: booking,
@@ -144,7 +161,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
       BookingsService.getBookingByConfirmationCode({
         confirmationCode,
       }),
-  });
+  })
 
   if (isLoading) {
     return (
@@ -153,7 +170,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
           <Text>Loading booking details...</Text>
         </VStack>
       </Container>
-    );
+    )
   }
 
   if (error || !booking) {
@@ -172,17 +189,24 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
           </Button>
         </VStack>
       </Container>
-    );
+    )
   }
 
   return (
     <Container maxW="full">
       <Flex alignItems="baseline" mb={6} gap={4} justifyContent="space-between">
-        <Button variant="outline" size="sm" onClick={() => navigate({ search: {} })}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate({ search: {} })}
+        >
           Back to Bookings
         </Button>
         <Heading size="2xl">
-          Booking Details: <Text as="span" fontFamily="mono" color="dark.text.highlight">{booking.confirmation_code}</Text>
+          Booking Details:{" "}
+          <Text as="span" fontFamily="mono" color="dark.text.highlight">
+            {booking.confirmation_code}
+          </Text>
         </Heading>
       </Flex>
 
@@ -201,32 +225,28 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
               bg="dark.bg.secondary"
             >
               <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Status:
-                </Text>
+                <Text fontWeight="bold">Status:</Text>
                 <Badge colorScheme={getStatusColor(booking.status || "")}>
                   {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
                 </Badge>
               </Flex>
               <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Confirmation Code:
-                </Text>
-                <Text fontFamily="mono" color="dark.text.highlight" fontWeight="bold">
+                <Text fontWeight="bold">Confirmation Code:</Text>
+                <Text
+                  fontFamily="mono"
+                  color="dark.text.highlight"
+                  fontWeight="bold"
+                >
                   {booking.confirmation_code}
                 </Text>
               </Flex>
               <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Created:
-                </Text>
+                <Text fontWeight="bold">Created:</Text>
                 <Text>{formatDate(booking.created_at)}</Text>
               </Flex>
               {booking.updated_at && (
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold">
-                    Last Updated:
-                  </Text>
+                  <Text fontWeight="bold">Last Updated:</Text>
                   <Text>{formatDate(booking.updated_at)}</Text>
                 </Flex>
               )}
@@ -246,22 +266,16 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
               color="dark.text.primary"
             >
               <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Name:
-                </Text>
+                <Text fontWeight="bold">Name:</Text>
                 <Text>{booking.user_name}</Text>
               </Flex>
               <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Email:
-                </Text>
+                <Text fontWeight="bold">Email:</Text>
                 <Text>{booking.user_email}</Text>
               </Flex>
               {booking.user_phone && (
                 <Flex gap={4} mb={2} alignItems="baseline">
-                  <Text fontWeight="bold">
-                    Phone:
-                  </Text>
+                  <Text fontWeight="bold">Phone:</Text>
                   <Text>{booking.user_phone}</Text>
                 </Flex>
               )}
@@ -306,16 +320,12 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
               )}
               <Flex justify="space-between" mb={2}>
                 <Text>Tax:</Text>
-                <Text>
-                  {formatCurrency(booking.tax_amount)}
-                </Text>
+                <Text>{formatCurrency(booking.tax_amount)}</Text>
               </Flex>
               {booking.tip_amount > 0 && (
                 <Flex justify="space-between" mb={2}>
                   <Text>Tip:</Text>
-                  <Text>
-                    {formatCurrency(booking.tip_amount)}
-                  </Text>
+                  <Text>{formatCurrency(booking.tip_amount)}</Text>
                 </Flex>
               )}
               <Flex
@@ -327,9 +337,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
                 borderColor="dark.border.secondary"
               >
                 <Text>Total:</Text>
-                <Text>
-                  {formatCurrency(booking.total_amount)}
-                </Text>
+                <Text>{formatCurrency(booking.total_amount)}</Text>
               </Flex>
               {booking.payment_intent_id && (
                 <Flex
@@ -339,9 +347,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
                   borderTop="1px"
                   borderColor="dark.border.secondary"
                 >
-                  <Text fontWeight="bold">
-                    Payment ID:
-                  </Text>
+                  <Text fontWeight="bold">Payment ID:</Text>
                   <Text fontFamily="mono" fontSize="sm">
                     {booking.payment_intent_id}
                   </Text>
@@ -373,9 +379,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
                 </Box>
               )}
               <Flex gap={4} mb={4} alignItems="baseline">
-                <Text fontWeight="bold">
-                  Launch Updates:
-                </Text>
+                <Text fontWeight="bold">Launch Updates:</Text>
                 <Badge
                   colorScheme={booking.launch_updates_pref ? "green" : "gray"}
                 >
@@ -402,20 +406,18 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
                           <Table.Cell fontWeight="medium">
                             {getItemTypeLabel(item.item_type)}
                           </Table.Cell>
-                          <Table.Cell>
-                            {item.quantity}
-                          </Table.Cell>
+                          <Table.Cell>{item.quantity}</Table.Cell>
                           <Table.Cell fontWeight="medium">
                             {formatCurrency(item.price_per_unit)}
                           </Table.Cell>
-                                                     <Table.Cell>
-                             <Badge
-                               size="sm"
-                               colorScheme={getStatusColor(item.status || "")}
-                             >
-                               {item.status || "UNKNOWN"}
-                             </Badge>
-                           </Table.Cell>
+                          <Table.Cell>
+                            <Badge
+                              size="sm"
+                              colorScheme={getStatusColor(item.status || "")}
+                            >
+                              {item.status || "UNKNOWN"}
+                            </Badge>
+                          </Table.Cell>
                         </Table.Row>
                       ))}
                     </Table.Body>
@@ -453,16 +455,16 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
         )}
       </VStack>
     </Container>
-  );
+  )
 }
 
 function BookingsTable() {
-  const { page, sortBy, sortDirection } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
+  const { page, sortBy, sortDirection } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
-      sortBy === column && sortDirection === "asc" ? "desc" : "asc";
+      sortBy === column && sortDirection === "asc" ? "desc" : "asc"
 
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
@@ -470,8 +472,8 @@ function BookingsTable() {
         sortBy: column,
         sortDirection: newDirection,
       }),
-    });
-  };
+    })
+  }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["bookings", { page }],
@@ -481,23 +483,23 @@ function BookingsTable() {
         limit: PER_PAGE,
       }),
     placeholderData: (prevData) => prevData,
-  });
+  })
 
   const setPage = (newPage: number) =>
     navigate({
       search: (prev: { [key: string]: string }) => ({ ...prev, page: newPage }),
-    });
+    })
 
   // Sort bookings
   const bookings = sortBookings(
     data?.slice(0, PER_PAGE) ?? [],
     sortBy,
-    sortDirection
-  );
-  const count = data?.length ?? 0;
+    sortDirection,
+  )
+  const count = data?.length ?? 0
 
   if (isLoading) {
-    return <PendingBookings />;
+    return <PendingBookings />
   }
 
   if (bookings.length === 0) {
@@ -515,34 +517,34 @@ function BookingsTable() {
           </VStack>
         </EmptyState.Content>
       </EmptyState.Root>
-    );
+    )
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
-        return "green";
+        return "green"
       case "pending_payment":
-        return "yellow";
+        return "yellow"
       case "cancelled":
-        return "red";
+        return "red"
       case "refunded":
-        return "gray";
+        return "gray"
       case "completed":
-        return "blue";
+        return "blue"
       case "checked_in":
-        return "teal";
+        return "teal"
       default:
-        return "gray";
+        return "gray"
     }
-  };
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(amount);
-  };
+    }).format(amount)
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -551,19 +553,19 @@ function BookingsTable() {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    });
-  };
+    })
+  }
 
   const SortIcon = ({ column }: { column: SortableColumn }) => {
-    if (sortBy !== column) return null;
+    if (sortBy !== column) return null
     return (
       <Icon
         as={sortDirection === "asc" ? FiArrowUp : FiArrowDown}
         ml={2}
         boxSize={4}
       />
-    );
-  };
+    )
+  }
 
   return (
     <>
@@ -655,7 +657,9 @@ function BookingsTable() {
                   h="auto"
                   minH="unset"
                   _hover={{ color: "dark.accent.primary" }}
-                  onClick={() => navigate({ search: { code: booking.confirmation_code } })}
+                  onClick={() =>
+                    navigate({ search: { code: booking.confirmation_code } })
+                  }
                 >
                   {booking.confirmation_code}
                 </Button>
@@ -672,9 +676,7 @@ function BookingsTable() {
               <Table.Cell fontWeight="medium">
                 {formatCurrency(booking.total_amount)}
               </Table.Cell>
-              <Table.Cell>
-                {formatDate(booking.created_at)}
-              </Table.Cell>
+              <Table.Cell>{formatDate(booking.created_at)}</Table.Cell>
               <Table.Cell>
                 <BookingActionsMenu booking={booking} />
               </Table.Cell>
@@ -696,20 +698,20 @@ function BookingsTable() {
         </PaginationRoot>
       </Flex>
     </>
-  );
+  )
 }
 
 function Bookings() {
-  const [isAddBookingOpen, setIsAddBookingOpen] = useState(false);
-  const { code } = Route.useSearch();
+  const [isAddBookingOpen, setIsAddBookingOpen] = useState(false)
+  const { code } = Route.useSearch()
 
   const handleAddBookingSuccess = () => {
     // This will trigger a refetch via the mutation's onSettled
-  };
+  }
 
   // If a confirmation code is provided, show the booking details
   if (code) {
-    return <BookingDetails confirmationCode={code} />;
+    return <BookingDetails confirmationCode={code} />
   }
 
   // Otherwise, show the normal bookings table
@@ -733,5 +735,5 @@ function Bookings() {
         onSuccess={handleAddBookingSuccess}
       />
     </Container>
-  );
+  )
 }
