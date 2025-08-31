@@ -1,29 +1,45 @@
-import { Button, HStack, IconButton, Input, Portal, Text, Textarea, VStack } from "@chakra-ui/react"
+import {
+  Button,
+  HStack,
+  IconButton,
+  Input,
+  Portal,
+  Text,
+  Textarea,
+  VStack,
+} from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useRef, useEffect, useState } from "react"
-import { Controller, useForm, type SubmitHandler } from "react-hook-form"
+import { useEffect, useRef, useState } from "react"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
-  BookingsService,
+  type ApiError,
+  BoatsService,
   type BookingCreate,
   type BookingItemCreate,
+  BookingsService,
+  TripBoatsService,
+  TripMerchandiseService,
+  TripPricingService,
   type TripPublic,
   TripsService,
-  TripBoatsService,
-  BoatsService,
-  TripPricingService,
-  TripMerchandiseService,
-  type ApiError,
 } from "@/client"
 
 // Custom type for form with optional items
-type BookingFormData = Omit<BookingCreate, 'items'> & {
+type BookingFormData = Omit<BookingCreate, "items"> & {
   items?: BookingItemCreate[]
 }
-import useCustomToast from "@/hooks/useCustomToast"
+import {
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import { DialogBody, DialogContent, DialogFooter, DialogHeader, DialogRoot, DialogTitle } from "@/components/ui/dialog"
+import useCustomToast from "@/hooks/useCustomToast"
 
 // In-memory cache to avoid re-fetching boat names we already resolved
 const boatNameCache: Map<string, string> = new Map()
@@ -67,7 +83,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   // State for trip-based pricing
   const [selectedTripId, setSelectedTripId] = useState<string>("")
   const [tripPricing, setTripPricing] = useState<TripPricingData[]>([])
-  const [tripMerchandise, setTripMerchandise] = useState<TripMerchandiseData[]>([])
+  const [tripMerchandise, setTripMerchandise] = useState<TripMerchandiseData[]>(
+    [],
+  )
   const [selectedItems, setSelectedItems] = useState<SelectedBookingItem[]>([])
   const [tripBoats, setTripBoats] = useState<{ boat_id: string }[]>([])
   const [boatNames, setBoatNames] = useState<Record<string, string>>({})
@@ -85,14 +103,16 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   // Get trip pricing when trip is selected
   const { data: pricingData } = useQuery({
     queryKey: ["trip-pricing", selectedTripId],
-    queryFn: () => TripPricingService.listTripPricing({ tripId: selectedTripId }),
+    queryFn: () =>
+      TripPricingService.listTripPricing({ tripId: selectedTripId }),
     enabled: !!selectedTripId,
   })
 
   // Get trip merchandise when trip is selected
   const { data: merchandiseData } = useQuery({
     queryKey: ["trip-merchandise", selectedTripId],
-    queryFn: () => TripMerchandiseService.listTripMerchandise({ tripId: selectedTripId }),
+    queryFn: () =>
+      TripMerchandiseService.listTripMerchandise({ tripId: selectedTripId }),
     enabled: !!selectedTripId,
   })
 
@@ -108,13 +128,17 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       .then((res: any) => {
         const rows = Array.isArray(res) ? res : []
         // Normalize to array of { boat_id }
-        const normalized: { boat_id: string }[] = rows.map((r: any) => ({
-          boat_id: r.boat_id || r.boatId || r.boat?.id || "",
-        })).filter((r: { boat_id: string }) => !!r.boat_id)
+        const normalized: { boat_id: string }[] = rows
+          .map((r: any) => ({
+            boat_id: r.boat_id || r.boatId || r.boat?.id || "",
+          }))
+          .filter((r: { boat_id: string }) => !!r.boat_id)
         setTripBoats(normalized)
 
         // Resolve boat names using a simple cache to minimize requests
-        const uniqueBoatIds = Array.from(new Set(normalized.map((b) => b.boat_id)))
+        const uniqueBoatIds = Array.from(
+          new Set(normalized.map((b) => b.boat_id)),
+        )
         const cachedPairs: { id: string; name: string }[] = []
         const idsToFetch: string[] = []
         uniqueBoatIds.forEach((id) => {
@@ -131,7 +155,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
             const name = boat.name
             boatNameCache.set(id, name)
             return { id, name }
-          })
+          }),
         )
 
         Promise.all(fetchPromises)
@@ -213,15 +237,26 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
     // Compute discount in dollars from input (supports % mode)
     const discount = isDiscountPercent
-      ? Math.max(0, Number(((calculatedSubtotal * (discountInput || 0)) / 100).toFixed(2)))
-      : (discountInput || 0)
+      ? Math.max(
+          0,
+          Number(
+            ((calculatedSubtotal * (discountInput || 0)) / 100).toFixed(2),
+          ),
+        )
+      : discountInput || 0
     // Sync computed discount dollars to the form field expected by backend
     setValue("discount_amount", discount)
 
     // Apply discount BEFORE tax; tax calculated as percentage of (subtotal - discount)
     const subtotalAfterDiscount = Math.max(0, calculatedSubtotal - discount)
-    const taxAmount = Math.max(0, Number(((subtotalAfterDiscount * (taxRatePercent || 0)) / 100).toFixed(2)))
-    const calculatedTotal = subtotalAfterDiscount + taxAmount + (watchedTipAmount || 0)
+    const taxAmount = Math.max(
+      0,
+      Number(
+        ((subtotalAfterDiscount * (taxRatePercent || 0)) / 100).toFixed(2),
+      ),
+    )
+    const calculatedTotal =
+      subtotalAfterDiscount + taxAmount + (watchedTipAmount || 0)
 
     setValue("subtotal", calculatedSubtotal)
     setValue("tax_amount", taxAmount)
@@ -247,7 +282,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       }),
     onSuccess: async () => {
       // Backend decrements inventory and validates pricing atomically
-      queryClient.invalidateQueries({ queryKey: ["trip-merchandise", selectedTripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-merchandise", selectedTripId],
+      })
       showSuccessToast("Booking created successfully.")
       reset()
       setSelectedTripId("")
@@ -342,7 +379,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   // Get display name for item type
   const getItemDisplayName = (item: SelectedBookingItem) => {
     if (item.item_type === "swag" && item.merchandise_id) {
-      const merchandise = tripMerchandise.find((m) => m.id === item.merchandise_id)
+      const merchandise = tripMerchandise.find(
+        (m) => m.id === item.merchandise_id,
+      )
       return merchandise?.name || "Merchandise"
     }
 
@@ -380,7 +419,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     >
       <Portal>
         <DialogContent ref={contentRef}>
-                      <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Add Booking</DialogTitle>
             </DialogHeader>
@@ -391,10 +430,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
               </Text>
               <VStack gap={4}>
                 {/* Trip Selection */}
-                <Field
-                  label="Select Trip"
-                  required
-                >
+                <Field label="Select Trip" required>
                   <select
                     value={selectedTripId}
                     onChange={(e) => {
@@ -404,7 +440,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       width: "100%",
                       padding: "8px",
                       borderRadius: "6px",
-                      border: "1px solid var(--chakra-colors-dark-border-default)",
+                      border:
+                        "1px solid var(--chakra-colors-dark-border-default)",
                       backgroundColor: "var(--chakra-colors-dark-bg-primary)",
                       color: "var(--chakra-colors-dark-text-primary)",
                     }}
@@ -412,7 +449,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     <option value="">Select a trip...</option>
                     {tripsData?.data?.map((trip: TripPublic) => (
                       <option key={trip.id} value={trip.id}>
-                        {trip.type} - {new Date(trip.departure_time).toLocaleDateString()}
+                        {trip.type} -{" "}
+                        {new Date(trip.departure_time).toLocaleDateString()}
                       </option>
                     ))}
                   </select>
@@ -427,7 +465,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                         width: "100%",
                         padding: "8px",
                         borderRadius: "6px",
-                        border: "1px solid var(--chakra-colors-dark-border-default)",
+                        border:
+                          "1px solid var(--chakra-colors-dark-border-default)",
                         backgroundColor: "var(--chakra-colors-dark-bg-primary)",
                         color: "var(--chakra-colors-dark-text-primary)",
                       }}
@@ -518,7 +557,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       required: "Billing address is required",
                       maxLength: {
                         value: 1000,
-                        message: "Billing address cannot exceed 1000 characters",
+                        message:
+                          "Billing address cannot exceed 1000 characters",
                       },
                     })}
                     placeholder="Billing Address"
@@ -533,7 +573,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
                     {/* Tickets */}
                     {tripPricing.length > 0 && (
-                      <VStack gap={2} width="100%" p={3} border="1px solid" borderColor="gray.200" borderRadius="md">
+                      <VStack
+                        gap={2}
+                        width="100%"
+                        p={3}
+                        border="1px solid"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                      >
                         <Text fontWeight="medium">Tickets</Text>
                         <HStack gap={2} flexWrap="wrap">
                           {tripPricing.map((pricing) => (
@@ -544,7 +591,10 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                               onClick={() => addTicketItem(pricing.ticket_type)}
                             >
                               <FiPlus style={{ marginRight: "4px" }} />
-                              {pricing.ticket_type.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())} - ${pricing.price}
+                              {pricing.ticket_type
+                                .replace("_", " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
+                              - ${pricing.price}
                             </Button>
                           ))}
                         </HStack>
@@ -553,7 +603,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
                     {/* Merchandise */}
                     {tripMerchandise.length > 0 && (
-                      <VStack gap={2} width="100%" p={3} border="1px solid" borderColor="gray.200" borderRadius="md">
+                      <VStack
+                        gap={2}
+                        width="100%"
+                        p={3}
+                        border="1px solid"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                      >
                         <Text fontWeight="medium">Merchandise</Text>
                         <HStack gap={2} flexWrap="wrap">
                           {tripMerchandise.map((merchandise) => (
@@ -565,7 +622,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                               disabled={merchandise.quantity_available <= 0}
                             >
                               <FiPlus style={{ marginRight: "4px" }} />
-                              {merchandise.name} - ${merchandise.price} ({merchandise.quantity_available} available)
+                              {merchandise.name} - ${merchandise.price} (
+                              {merchandise.quantity_available} available)
                             </Button>
                           ))}
                         </HStack>
@@ -574,10 +632,21 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
                     {/* Selected Items */}
                     {selectedItems.length > 0 && (
-                      <VStack gap={2} width="100%" p={3} border="1px solid" borderColor="gray.200" borderRadius="md">
+                      <VStack
+                        gap={2}
+                        width="100%"
+                        p={3}
+                        border="1px solid"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                      >
                         <Text fontWeight="medium">Selected Items</Text>
                         {selectedItems.map((item, index) => (
-                          <HStack key={index} width="100%" justify="space-between">
+                          <HStack
+                            key={index}
+                            width="100%"
+                            justify="space-between"
+                          >
                             <VStack align="start" gap={0}>
                               <Text fontSize="sm" fontWeight="medium">
                                 {getItemDisplayName(item)}
@@ -591,11 +660,19 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                                 type="number"
                                 min="1"
                                 value={item.quantity}
-                                onChange={(e) => updateItemQuantity(index, Number.parseInt(e.target.value) || 1)}
+                                onChange={(e) =>
+                                  updateItemQuantity(
+                                    index,
+                                    Number.parseInt(e.target.value) || 1,
+                                  )
+                                }
                                 style={{ width: "60px" }}
                               />
                               <Text fontSize="sm" fontWeight="medium">
-                                ${(item.quantity * item.price_per_unit).toFixed(2)}
+                                $
+                                {(item.quantity * item.price_per_unit).toFixed(
+                                  2,
+                                )}
                               </Text>
                               <IconButton
                                 size="sm"
@@ -613,7 +690,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                 )}
 
                 {/* Pricing Summary */}
-                <VStack gap={3} width="100%" p={4} border="1px solid" borderColor="gray.200" borderRadius="md">
+                <VStack
+                  gap={3}
+                  width="100%"
+                  p={4}
+                  border="1px solid"
+                  borderColor="gray.200"
+                  borderRadius="md"
+                >
                   <Text fontWeight="bold">Pricing Summary</Text>
                   <HStack justify="space-between" width="100%">
                     <Text>Subtotal:</Text>
@@ -627,14 +711,26 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                         step="0.01"
                         min="0"
                         value={discountInput}
-                        onChange={(e) => setDiscountInput(Number.parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          setDiscountInput(
+                            Number.parseFloat(e.target.value) || 0,
+                          )
+                        }
                         style={{ width: "100px" }}
                       />
-                      <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={isDiscountPercent}
-                          onChange={(e) => setIsDiscountPercent(e.target.checked)}
+                          onChange={(e) =>
+                            setIsDiscountPercent(e.target.checked)
+                          }
                         />
                         <Text fontSize="sm">Use %</Text>
                       </label>
@@ -651,7 +747,11 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       step="0.01"
                       min="0"
                       value={taxRatePercent}
-                      onChange={(e) => setTaxRatePercent(Number.parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setTaxRatePercent(
+                          Number.parseFloat(e.target.value) || 0,
+                        )
+                      }
                       style={{ width: "100px" }}
                     />
                   </HStack>
@@ -666,7 +766,12 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       step="0.01"
                       min="0"
                       value={watch("tip_amount")}
-                      onChange={(e) => setValue("tip_amount", Number.parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setValue(
+                          "tip_amount",
+                          Number.parseFloat(e.target.value) || 0,
+                        )
+                      }
                       style={{ width: "100px" }}
                     />
                   </HStack>
@@ -677,11 +782,20 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       step="0.01"
                       min="0"
                       value={watch("discount_amount")}
-                      onChange={(e) => setValue("discount_amount", Number.parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setValue(
+                          "discount_amount",
+                          Number.parseFloat(e.target.value) || 0,
+                        )
+                      }
                       style={{ width: "100px" }}
                     />
                   </HStack>
-                  <HStack justify="space-between" width="100%" fontWeight="bold">
+                  <HStack
+                    justify="space-between"
+                    width="100%"
+                    fontWeight="bold"
+                  >
                     <Text>Total:</Text>
                     <Text>${watch("total_amount").toFixed(2)}</Text>
                   </HStack>
@@ -698,7 +812,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     {...register("special_requests", {
                       maxLength: {
                         value: 1000,
-                        message: "Special requests cannot exceed 1000 characters",
+                        message:
+                          "Special requests cannot exceed 1000 characters",
                       },
                     })}
                     placeholder="Any special requests or notes"
@@ -733,7 +848,11 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                 type="submit"
                 colorScheme="blue"
                 loading={isSubmitting}
-                disabled={selectedItems.length === 0 || !selectedTripId || !selectedBoatId}
+                disabled={
+                  selectedItems.length === 0 ||
+                  !selectedTripId ||
+                  !selectedBoatId
+                }
               >
                 Create Booking
               </Button>

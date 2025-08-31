@@ -15,6 +15,8 @@ import { Route as SignupImport } from './routes/signup'
 import { Route as ResetPasswordImport } from './routes/reset-password'
 import { Route as RecoverPasswordImport } from './routes/recover-password'
 import { Route as LoginImport } from './routes/login'
+import { Route as BookConfirmImport } from './routes/book-confirm'
+import { Route as BookImport } from './routes/book'
 import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as LayoutTripsImport } from './routes/_layout/trips'
@@ -47,6 +49,16 @@ const RecoverPasswordRoute = RecoverPasswordImport.update({
 
 const LoginRoute = LoginImport.update({
   path: '/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const BookConfirmRoute = BookConfirmImport.update({
+  path: '/book-confirm',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const BookRoute = BookImport.update({
+  path: '/book',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -116,6 +128,14 @@ declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/_layout': {
       preLoaderRoute: typeof LayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/book': {
+      preLoaderRoute: typeof BookImport
+      parentRoute: typeof rootRoute
+    }
+    '/book-confirm': {
+      preLoaderRoute: typeof BookConfirmImport
       parentRoute: typeof rootRoute
     }
     '/login': {
@@ -197,6 +217,8 @@ export const routeTree = rootRoute.addChildren([
     LayoutTripsRoute,
     LayoutIndexRoute,
   ]),
+  BookRoute,
+  BookConfirmRoute,
   LoginRoute,
   RecoverPasswordRoute,
   ResetPasswordRoute,

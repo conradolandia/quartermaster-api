@@ -1,14 +1,72 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session
 
 from app.api import deps
+from app.core.config import settings
 from app.core.stripe import (
     create_payment_intent,
     retrieve_payment_intent,
 )
-from app.models import Booking, BookingStatus
+from app.models import Booking, BookingStatus, Mission, Trip
+from app.utils import generate_booking_confirmation_email, send_email
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
+    """Send booking confirmation email to the customer."""
+    if not settings.emails_enabled:
+        return
+
+    try:
+        # Get mission name from the first booking item's trip
+        if not booking.items:
+            return
+
+        first_trip = session.get(Trip, booking.items[0].trip_id)
+        if not first_trip:
+            return
+
+        mission = session.get(Mission, first_trip.mission_id)
+        mission_name = mission.name if mission else "Space Mission"
+
+        # Prepare booking items for email
+        booking_items = []
+        for item in booking.items:
+            booking_items.append(
+                {
+                    "type": item.item_type.replace("_", " ").title(),
+                    "quantity": item.quantity,
+                    "price_per_unit": item.price_per_unit,
+                }
+            )
+
+        # Generate and send the email
+        email_data = generate_booking_confirmation_email(
+            email_to=booking.user_email,
+            user_name=booking.user_name,
+            confirmation_code=booking.confirmation_code,
+            mission_name=mission_name,
+            booking_items=booking_items,
+            total_amount=booking.total_amount,
+        )
+
+        send_email(
+            email_to=booking.user_email,
+            subject=email_data.subject,
+            html_content=email_data.html_content,
+        )
+
+    except Exception as e:
+        # Log error but don't fail the booking process
+        logger.error(
+            f"Failed to send booking confirmation email for booking {booking.id}: {str(e)}"
+        )
 
 
 @router.post("/create-payment-intent")
@@ -65,9 +123,21 @@ def verify_payment(
 
     # Update booking status based on payment intent status
     if payment_intent.status == "succeeded":
+        # Check if booking is already confirmed to prevent duplicate processing
+        if booking.status == BookingStatus.confirmed:
+            logger.info(
+                f"Booking {booking.confirmation_code} already confirmed, skipping duplicate processing"
+            )
+            return {"status": "succeeded", "booking_status": "confirmed"}
+
         booking.status = BookingStatus.confirmed
         session.add(booking)
         session.commit()
+        session.refresh(booking)
+
+        # Send booking confirmation email
+        send_booking_confirmation_email(session, booking)
+
         return {"status": "succeeded", "booking_status": "confirmed"}
     elif payment_intent.status == "requires_payment_method":
         return {"status": "requires_payment_method"}
@@ -80,6 +150,13 @@ def verify_payment(
     elif payment_intent.status == "requires_capture":
         return {"status": "requires_capture"}
     elif payment_intent.status == "canceled":
+        # Check if booking is already cancelled to prevent duplicate processing
+        if booking.status == BookingStatus.cancelled:
+            logger.info(
+                f"Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
+            )
+            return {"status": "canceled", "booking_status": "cancelled"}
+
         booking.status = BookingStatus.cancelled
         session.add(booking)
         session.commit()
@@ -104,8 +181,6 @@ async def stripe_webhook(
     """
 
     import stripe
-
-    from app.core.config import settings
 
     # Get the webhook secret from settings
     webhook_secret = settings.STRIPE_WEBHOOK_SECRET
@@ -143,9 +218,20 @@ async def stripe_webhook(
         )
 
         if booking:
+            # Check if booking is already confirmed to prevent duplicate processing
+            if booking.status == BookingStatus.confirmed:
+                logger.info(
+                    f"Webhook: Booking {booking.confirmation_code} already confirmed, skipping duplicate processing"
+                )
+                return {"status": "success"}
+
             booking.status = BookingStatus.confirmed
             session.add(booking)
             session.commit()
+            session.refresh(booking)
+
+            # Send booking confirmation email
+            send_booking_confirmation_email(session, booking)
 
     elif event.type == "payment_intent.payment_failed":
         payment_intent = event.data.object
@@ -156,6 +242,13 @@ async def stripe_webhook(
         )
 
         if booking:
+            # Check if booking is already cancelled to prevent duplicate processing
+            if booking.status == BookingStatus.cancelled:
+                logger.info(
+                    f"Webhook: Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
+                )
+                return {"status": "success"}
+
             booking.status = BookingStatus.cancelled
             session.add(booking)
             session.commit()

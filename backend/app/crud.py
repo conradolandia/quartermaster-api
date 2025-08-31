@@ -10,6 +10,9 @@ from app.models import (
     Boat,
     BoatCreate,
     BoatUpdate,
+    BookingItem,
+    BookingItemCreate,
+    BookingItemUpdate,
     Item,
     ItemCreate,
     Jurisdiction,
@@ -29,6 +32,12 @@ from app.models import (
     TripBoatCreate,
     TripBoatUpdate,
     TripCreate,
+    TripMerchandise,
+    TripMerchandiseCreate,
+    TripMerchandiseUpdate,
+    TripPricing,
+    TripPricingCreate,
+    TripPricingUpdate,
     TripUpdate,
     User,
     UserCreate,
@@ -293,7 +302,44 @@ def update_launch(*, session: Session, db_obj: Launch, obj_in: LaunchUpdate) -> 
 
 
 def delete_launch(*, session: Session, db_obj: Launch) -> None:
-    """Delete a launch."""
+    """Delete a launch and all associated missions and trips."""
+    # First, get all missions associated with this launch
+    missions = get_missions_by_launch(session=session, launch_id=db_obj.id, limit=1000)
+
+    # Delete all trips associated with these missions
+    for mission in missions:
+        trips = get_trips_by_mission(session=session, mission_id=mission.id, limit=1000)
+        for trip in trips:
+            # Delete booking items first
+            booking_items = get_booking_items_by_trip(
+                session=session, trip_id=trip.id, limit=1000
+            )
+            for booking_item in booking_items:
+                session.delete(booking_item)
+            # Delete trip pricing
+            trip_pricing = get_trip_pricing_by_trip(
+                session=session, trip_id=trip.id, limit=1000
+            )
+            for pricing in trip_pricing:
+                session.delete(pricing)
+            # Delete trip merchandise
+            trip_merchandise = get_trip_merchandise_by_trip(
+                session=session, trip_id=trip.id, limit=1000
+            )
+            for merch in trip_merchandise:
+                session.delete(merch)
+            # Delete trip boats
+            trip_boats = get_trip_boats_by_trip(
+                session=session, trip_id=trip.id, limit=1000
+            )
+            for trip_boat in trip_boats:
+                session.delete(trip_boat)
+            # Delete the trip
+            session.delete(trip)
+        # Delete the mission
+        session.delete(mission)
+
+    # Finally delete the launch
     session.delete(db_obj)
     session.commit()
 
@@ -391,7 +437,40 @@ def update_mission(
 
 
 def delete_mission(*, session: Session, db_obj: Mission) -> None:
-    """Delete a mission."""
+    """Delete a mission and all associated trips."""
+    # Get all trips associated with this mission
+    trips = get_trips_by_mission(session=session, mission_id=db_obj.id, limit=1000)
+
+    # Delete all trips and their associated trip boats, merchandise, pricing, and booking items
+    for trip in trips:
+        # Delete booking items first
+        booking_items = get_booking_items_by_trip(
+            session=session, trip_id=trip.id, limit=1000
+        )
+        for booking_item in booking_items:
+            session.delete(booking_item)
+        # Delete trip pricing
+        trip_pricing = get_trip_pricing_by_trip(
+            session=session, trip_id=trip.id, limit=1000
+        )
+        for pricing in trip_pricing:
+            session.delete(pricing)
+        # Delete trip merchandise
+        trip_merchandise = get_trip_merchandise_by_trip(
+            session=session, trip_id=trip.id, limit=1000
+        )
+        for merch in trip_merchandise:
+            session.delete(merch)
+        # Delete trip boats
+        trip_boats = get_trip_boats_by_trip(
+            session=session, trip_id=trip.id, limit=1000
+        )
+        for trip_boat in trip_boats:
+            session.delete(trip_boat)
+        # Delete the trip
+        session.delete(trip)
+
+    # Finally delete the mission
     session.delete(db_obj)
     session.commit()
 
@@ -578,10 +657,38 @@ def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate) -> Trip:
 
 
 def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
-    """Delete a trip."""
+    """Delete a trip and all associated trip boats, merchandise, pricing, and booking items."""
     trip = get_trip(session=session, trip_id=trip_id)
     if not trip:
         return None
+
+    # Delete all booking items associated with this trip first
+    booking_items = get_booking_items_by_trip(
+        session=session, trip_id=trip_id, limit=1000
+    )
+    for booking_item in booking_items:
+        session.delete(booking_item)
+
+    # Delete all trip pricing associated with this trip
+    trip_pricing = get_trip_pricing_by_trip(
+        session=session, trip_id=trip_id, limit=1000
+    )
+    for pricing in trip_pricing:
+        session.delete(pricing)
+
+    # Delete all trip merchandise associated with this trip
+    trip_merchandise = get_trip_merchandise_by_trip(
+        session=session, trip_id=trip_id, limit=1000
+    )
+    for merch in trip_merchandise:
+        session.delete(merch)
+
+    # Delete all trip boats associated with this trip
+    trip_boats = get_trip_boats_by_trip(session=session, trip_id=trip_id, limit=1000)
+    for trip_boat in trip_boats:
+        session.delete(trip_boat)
+
+    # Then delete the trip
     session.delete(trip)
     session.commit()
     return trip
@@ -644,3 +751,172 @@ def delete_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat:
     session.delete(trip_boat)
     session.commit()
     return trip_boat
+
+
+# TripMerchandise CRUD operations
+def get_trip_merchandise(
+    *, session: Session, trip_merchandise_id: uuid.UUID
+) -> TripMerchandise | None:
+    """Get trip merchandise by ID."""
+    return session.get(TripMerchandise, trip_merchandise_id)
+
+
+def get_trip_merchandise_by_trip(
+    *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[TripMerchandise]:
+    """Get trip merchandise for a specific trip."""
+    statement = (
+        select(TripMerchandise)
+        .where(TripMerchandise.trip_id == trip_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def create_trip_merchandise(
+    *, session: Session, trip_merchandise_in: TripMerchandiseCreate
+) -> TripMerchandise:
+    """Create a new trip merchandise."""
+    trip_merchandise = TripMerchandise.model_validate(trip_merchandise_in)
+    session.add(trip_merchandise)
+    session.commit()
+    session.refresh(trip_merchandise)
+    return trip_merchandise
+
+
+def update_trip_merchandise(
+    *, session: Session, db_obj: TripMerchandise, obj_in: TripMerchandiseUpdate
+) -> TripMerchandise:
+    """Update a trip merchandise."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_trip_merchandise(
+    *, session: Session, trip_merchandise_id: uuid.UUID
+) -> TripMerchandise:
+    """Delete a trip merchandise."""
+    trip_merchandise = get_trip_merchandise(
+        session=session, trip_merchandise_id=trip_merchandise_id
+    )
+    if not trip_merchandise:
+        return None
+    session.delete(trip_merchandise)
+    session.commit()
+    return trip_merchandise
+
+
+# TripPricing CRUD operations
+def get_trip_pricing(
+    *, session: Session, trip_pricing_id: uuid.UUID
+) -> TripPricing | None:
+    """Get trip pricing by ID."""
+    return session.get(TripPricing, trip_pricing_id)
+
+
+def get_trip_pricing_by_trip(
+    *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[TripPricing]:
+    """Get trip pricing for a specific trip."""
+    statement = (
+        select(TripPricing)
+        .where(TripPricing.trip_id == trip_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def create_trip_pricing(
+    *, session: Session, trip_pricing_in: TripPricingCreate
+) -> TripPricing:
+    """Create a new trip pricing."""
+    trip_pricing = TripPricing.model_validate(trip_pricing_in)
+    session.add(trip_pricing)
+    session.commit()
+    session.refresh(trip_pricing)
+    return trip_pricing
+
+
+def update_trip_pricing(
+    *, session: Session, db_obj: TripPricing, obj_in: TripPricingUpdate
+) -> TripPricing:
+    """Update a trip pricing."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_trip_pricing(*, session: Session, trip_pricing_id: uuid.UUID) -> TripPricing:
+    """Delete a trip pricing."""
+    trip_pricing = get_trip_pricing(session=session, trip_pricing_id=trip_pricing_id)
+    if not trip_pricing:
+        return None
+    session.delete(trip_pricing)
+    session.commit()
+    return trip_pricing
+
+
+# BookingItem CRUD operations
+def get_booking_item(
+    *, session: Session, booking_item_id: uuid.UUID
+) -> BookingItem | None:
+    """Get booking item by ID."""
+    return session.get(BookingItem, booking_item_id)
+
+
+def get_booking_items_by_trip(
+    *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[BookingItem]:
+    """Get booking items for a specific trip."""
+    statement = (
+        select(BookingItem)
+        .where(BookingItem.trip_id == trip_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def create_booking_item(
+    *, session: Session, booking_item_in: BookingItemCreate
+) -> BookingItem:
+    """Create a new booking item."""
+    booking_item = BookingItem.model_validate(booking_item_in)
+    session.add(booking_item)
+    session.commit()
+    session.refresh(booking_item)
+    return booking_item
+
+
+def update_booking_item(
+    *, session: Session, db_obj: BookingItem, obj_in: BookingItemUpdate
+) -> BookingItem:
+    """Update a booking item."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def delete_booking_item(*, session: Session, booking_item_id: uuid.UUID) -> BookingItem:
+    """Delete a booking item."""
+    booking_item = get_booking_item(session=session, booking_item_id=booking_item_id)
+    if not booking_item:
+        return None
+    session.delete(booking_item)
+    session.commit()
+    return booking_item

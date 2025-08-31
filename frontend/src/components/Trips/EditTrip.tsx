@@ -298,14 +298,18 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         width="100%"
                       >
                         <Text>Active</Text>
-                        <Switch
-                          id="active"
-                          isChecked={active}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setActive(e.target.checked)
-                          }
-                          isDisabled={mutation.isPending}
-                        />
+                        <Box
+                          onClick={() => {
+                            setActive(!active)
+                          }}
+                          cursor="pointer"
+                        >
+                          <Switch
+                            checked={active}
+                            disabled={mutation.isPending}
+                            inputProps={{ id: "active" }}
+                          />
+                        </Box>
                       </Flex>
                     </Field>
                   </VStack>

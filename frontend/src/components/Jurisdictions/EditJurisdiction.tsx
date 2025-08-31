@@ -154,7 +154,7 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                 <Field
                   invalid={!!errors.sales_tax_rate}
                   errorText={errors.sales_tax_rate?.message}
-                  label="Sales Tax Rate"
+                  label="Sales Tax Rate (%)"
                   required
                 >
                   <Controller
@@ -163,26 +163,30 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                     rules={{
                       min: {
                         value: 0,
-                        message: "Sales tax rate must be between 0 and 1",
+                        message: "Sales tax rate must be between 0 and 100%",
                       },
                       max: {
                         value: 1,
-                        message: "Sales tax rate must be between 0 and 1",
+                        message: "Sales tax rate must be between 0 and 100%",
                       },
                     }}
                     render={({ field }) => (
                       <Input
                         id="sales_tax_rate"
                         type="number"
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(Number.parseFloat(e.target.value) || 0)
+                        value={
+                          field.value ? (field.value * 100).toString() : ""
                         }
+                        onChange={(e) => {
+                          const percentValue =
+                            Number.parseFloat(e.target.value) || 0
+                          field.onChange(percentValue / 100) // Convert percentage to decimal for storage
+                        }}
                         min={0}
-                        max={1}
+                        max={100}
                         step={0.01}
                         disabled={isSubmitting}
-                        placeholder="Sales tax rate (decimal format, e.g. 0.07)"
+                        placeholder="Sales tax rate (e.g. 6.5 for 6.5%)"
                       />
                     )}
                   />

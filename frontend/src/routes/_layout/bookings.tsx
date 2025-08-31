@@ -475,7 +475,11 @@ function BookingsTable() {
     })
   }
 
-  const { data, isLoading, isPlaceholderData } = useQuery({
+  const {
+    data: response,
+    isLoading,
+    isPlaceholderData,
+  } = useQuery({
     queryKey: ["bookings", { page }],
     queryFn: () =>
       BookingsService.listBookings({
@@ -490,13 +494,12 @@ function BookingsTable() {
       search: (prev: { [key: string]: string }) => ({ ...prev, page: newPage }),
     })
 
-  // Sort bookings
-  const bookings = sortBookings(
-    data?.slice(0, PER_PAGE) ?? [],
-    sortBy,
-    sortDirection,
-  )
-  const count = data?.length ?? 0
+  // Extract data and total from paginated response
+  const data = response?.data ?? []
+  const totalCount = response?.total ?? 0
+
+  // Sort bookings (data is already paginated by backend)
+  const bookings = sortBookings(data, sortBy, sortDirection)
 
   if (isLoading) {
     return <PendingBookings />
@@ -686,7 +689,7 @@ function BookingsTable() {
       </Table.Root>
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
-          count={count}
+          count={totalCount}
           pageSize={PER_PAGE}
           onPageChange={({ page }) => setPage(page)}
         >

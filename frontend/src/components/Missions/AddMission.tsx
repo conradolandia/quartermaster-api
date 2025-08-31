@@ -101,7 +101,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   id="launch_id"
                   value={launchId}
                   onChange={setLaunchId}
-                  isDisabled={mutation.isPending}
+                  disabled={mutation.isPending}
                   portalRef={contentRef}
                 />
               </Field>
@@ -135,11 +135,9 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                 >
                   <Text>Active</Text>
                   <Switch
-                    id="active"
-                    isChecked={active}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setActive(e.target.checked)
-                    }
+                    checked={active}
+                    onCheckedChange={(details) => setActive(details.checked)}
+                    inputProps={{ id: "active" }}
                   />
                 </Flex>
               </Field>
@@ -151,11 +149,9 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                 >
                   <Text>Public</Text>
                   <Switch
-                    id="public"
-                    isChecked={isPublic}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setIsPublic(e.target.checked)
-                    }
+                    checked={isPublic}
+                    onCheckedChange={(details) => setIsPublic(details.checked)}
+                    inputProps={{ id: "public" }}
                   />
                 </Flex>
               </Field>

@@ -117,6 +117,14 @@ export type BookingPublic = {
   qr_code_base64?: string | null
 }
 
+export type BookingsPaginatedResponse = {
+  data: Array<BookingPublic>
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
+}
+
 export type BookingStatus =
   | "draft"
   | "pending_payment"
@@ -494,7 +502,7 @@ export type BookingsListBookingsData = {
   skip?: number
 }
 
-export type BookingsListBookingsResponse = Array<BookingPublic>
+export type BookingsListBookingsResponse = BookingsPaginatedResponse
 
 export type BookingsInitializePaymentData = {
   confirmationCode: string

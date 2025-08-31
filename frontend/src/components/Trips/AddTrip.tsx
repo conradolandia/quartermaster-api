@@ -335,7 +335,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     }
     // Require at least one ticket price
     if (selectedPricing.length === 0) {
-      showSuccessToast("Please configure at least one ticket price (e.g., Adult)")
+      showSuccessToast(
+        "Please configure at least one ticket price (e.g., Adult)",
+      )
       return
     }
 
@@ -436,11 +438,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     >
                       <Text>Active</Text>
                       <Switch
-                        id="active"
-                        isChecked={active}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          setActive(e.target.checked)
+                        checked={active}
+                        onCheckedChange={(details) =>
+                          setActive(details.checked)
                         }
+                        inputProps={{ id: "active" }}
                       />
                     </Flex>
                   </Field>

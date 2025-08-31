@@ -7,7 +7,7 @@ interface LaunchDropdownProps {
   value: string
   onChange: (value: string) => void
   id?: string
-  isDisabled?: boolean
+  disabled?: boolean
   portalRef?: RefObject<HTMLElement>
   [key: string]: any // For other props
 }
@@ -16,7 +16,7 @@ export const LaunchDropdown = ({
   value,
   onChange,
   id,
-  isDisabled,
+  disabled,
   portalRef,
   ...props
 }: LaunchDropdownProps) => {
@@ -50,7 +50,7 @@ export const LaunchDropdown = ({
       size="md"
       value={value ? [value] : []}
       onValueChange={(e) => onChange(e.value[0] || "")}
-      disabled={isDisabled || isLoading}
+      disabled={disabled || isLoading}
       {...props}
     >
       <Select.HiddenSelect id={id} />

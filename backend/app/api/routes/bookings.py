@@ -1,18 +1,12 @@
-import base64
-import io
 import logging
-import random
-import string
 import uuid
 
-import qrcode
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import Response
-from sqlmodel import Session, select
+from pydantic import BaseModel
+from sqlmodel import Session, func, select
 
 from app.api import deps
 from app.core.config import settings
-from app.core.stripe import create_payment_intent
 from app.models import (
     Boat,
     Booking,
@@ -34,23 +28,22 @@ from app.utils import (
     send_email,
 )
 
+from .booking_utils import generate_qr_code
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
+
+# Paginated response model
+class BookingsPaginatedResponse(BaseModel):
+    data: list[BookingPublic]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 router = APIRouter(prefix="/bookings", tags=["bookings"])
-
-
-def generate_qr_code(confirmation_code: str) -> str:
-    """Generate a QR code for a booking confirmation code and return as base64 string."""
-    # Use direct frontend URL for better performance (no redirect needed)
-    qr_url = f"{settings.FRONTEND_HOST}/bookings?code={confirmation_code}"
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(qr_url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
 # --- Public Endpoints ---
@@ -176,26 +169,20 @@ def create_booking(
 
     # Don't create PaymentIntent yet - booking starts as draft
 
-    # Generate confirmation code
-    def generate_confirmation_code(length=8):
-        """Generate a random confirmation code."""
+    # Use the confirmation code provided by the frontend
+    confirmation_code = booking_in.confirmation_code
 
-        # Use uppercase letters and numbers, excluding similar-looking characters
-        chars = string.ascii_uppercase.replace("I", "").replace(
-            "O", ""
-        ) + string.digits.replace("0", "").replace("1", "")
-        return "".join(random.choice(chars) for _ in range(length))
-
-    # Keep generating until we get a unique code
-    while True:
-        confirmation_code = generate_confirmation_code()
-        existing = (
-            session.query(Booking)
-            .filter(Booking.confirmation_code == confirmation_code)
-            .first()
+    # Verify the confirmation code is unique
+    existing = (
+        session.query(Booking)
+        .filter(Booking.confirmation_code == confirmation_code)
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Confirmation code already exists. Please try again.",
         )
-        if not existing:
-            break
 
     # Create booking as draft (no PaymentIntent yet)
     booking = Booking(
@@ -267,227 +254,12 @@ def create_booking(
     return booking
 
 
-@router.post("/{confirmation_code}/initialize-payment")
-def initialize_payment(
-    *,
-    session: Session = Depends(deps.get_db),
-    confirmation_code: str,
-) -> dict:
-    """
-    Initialize payment for a draft booking.
-    Creates a PaymentIntent and updates booking status to pending_payment.
-    """
-    try:
-        # Get booking
-        booking = session.exec(
-            select(Booking).where(Booking.confirmation_code == confirmation_code)
-        ).first()
-
-        if not booking:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Booking not found",
-            )
-
-        # Check if booking is in draft status
-        if booking.status != BookingStatus.draft:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot initialize payment for booking with status '{booking.status}'",
-            )
-
-        # Check if PaymentIntent already exists
-        if booking.payment_intent_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Payment already initialized for this booking",
-            )
-
-        # Calculate total amount in cents for Stripe
-        total_amount_cents = int(booking.total_amount * 100)
-
-        # Create PaymentIntent
-        payment_intent = create_payment_intent(total_amount_cents)
-
-        # Update booking with PaymentIntent ID and status
-        booking.payment_intent_id = payment_intent.id
-        booking.status = BookingStatus.pending_payment
-
-        session.add(booking)
-        session.commit()
-        session.refresh(booking)
-
-        return {
-            "payment_intent_id": payment_intent.id,
-            "client_secret": payment_intent.client_secret,
-            "status": "pending_payment",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(
-            f"Error initializing payment for booking {confirmation_code}: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initialize payment",
-        )
-
-
-@router.get("/qr/{confirmation_code}")
-def get_booking_qr_code(
-    *,
-    session: Session = Depends(deps.get_db),
-    confirmation_code: str,
-) -> Response:
-    """
-    Get QR code image for a booking confirmation code.
-    """
-    try:
-        # Validate confirmation code
-        if not confirmation_code or len(confirmation_code) < 3:
-            logger.warning(
-                f"Invalid booking confirmation code format: {confirmation_code}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid booking confirmation code format",
-            )
-
-        # Fetch booking
-        booking = session.exec(
-            select(Booking).where(Booking.confirmation_code == confirmation_code)
-        ).first()
-
-        if not booking:
-            logger.info(f"Booking not found for confirmation code: {confirmation_code}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Booking not found with the provided confirmation code",
-            )
-
-        # Generate QR code image
-        qr_url = f"{settings.FRONTEND_HOST}/bookings?code={confirmation_code}"
-        qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(qr_url)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-
-        # Convert to bytes
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        buf.seek(0)
-
-        return Response(
-            content=buf.getvalue(),
-            media_type="image/png",
-            headers={
-                "Content-Disposition": f"inline; filename=booking_{confirmation_code}_qr.png"
-            },
-        )
-
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
-    except Exception as e:
-        # Catch any unexpected exceptions
-        logger.exception(
-            f"Unexpected error generating QR code for booking {confirmation_code}: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred generating QR code.",
-        )
-
-
-@router.get("/{confirmation_code}", response_model=BookingPublic)
-def get_booking_by_confirmation_code(
-    *,
-    session: Session = Depends(deps.get_db),
-    confirmation_code: str,
-) -> BookingPublic:
-    """
-    Retrieve a booking by confirmation code (public endpoint).
-    """
-    try:
-        # Validate confirmation code
-        if not confirmation_code or len(confirmation_code) < 3:
-            logger.warning(
-                f"Invalid booking confirmation code format: {confirmation_code}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid booking confirmation code format",
-            )
-
-        # Fetch booking
-        booking = session.exec(
-            select(Booking).where(Booking.confirmation_code == confirmation_code)
-        ).first()
-
-        if not booking:
-            logger.info(f"Booking not found for confirmation code: {confirmation_code}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Booking not found with the provided confirmation code",
-            )
-
-        # Fetch items
-        items = []
-        try:
-            items = session.exec(
-                select(BookingItem).where(BookingItem.booking_id == booking.id)
-            ).all()
-
-            if not items:
-                logger.warning(f"Booking found but has no items: {booking.id}")
-        except Exception as e:
-            logger.error(f"Error retrieving items for booking {booking.id}: {str(e)}")
-            # Continue without items rather than failing completely
-
-        # Prepare response
-        booking_public = BookingPublic.model_validate(booking)
-        booking_public.items = [
-            BookingItemPublic.model_validate(item) for item in items
-        ]
-
-        # Handle QR code generation
-        if not booking.qr_code_base64:
-            logger.info(f"Generating missing QR code for booking: {booking.id}")
-            try:
-                booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
-                session.add(booking)
-                session.commit()
-            except Exception as e:
-                logger.error(
-                    f"Failed to generate QR code for booking {booking.id}: {str(e)}"
-                )
-                # Continue even if QR code generation fails
-                session.rollback()
-
-        return booking_public
-
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
-    except Exception as e:
-        # Catch any unexpected exceptions
-        logger.exception(
-            f"Unexpected error retrieving booking {confirmation_code}: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later.",
-        )
-
-
 # --- Admin-Restricted Endpoints (use dependency for access control) ---
 
 
 @router.get(
     "/",
-    response_model=list[BookingPublic],
+    response_model=BookingsPaginatedResponse,
     dependencies=[Depends(deps.get_current_active_superuser)],
 )
 def list_bookings(
@@ -495,7 +267,7 @@ def list_bookings(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-) -> list[BookingPublic]:
+) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
     """
@@ -519,10 +291,27 @@ def list_bookings(
             logger.info(f"Limit parameter reduced from {limit} to 500")
             limit = 500  # Cap at 500 to prevent excessive queries
 
-        # Fetch bookings
+        # Get total count first
+        total_count = 0
+        try:
+            total_count = session.exec(select(func.count(Booking.id))).first()
+            logger.info(f"Total bookings count: {total_count}")
+        except Exception as e:
+            logger.error(f"Error counting bookings: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error counting bookings",
+            )
+
+        # Fetch bookings (ordered by creation date, newest first)
         bookings = []
         try:
-            bookings = session.exec(select(Booking).offset(skip).limit(limit)).all()
+            bookings = session.exec(
+                select(Booking)
+                .order_by(Booking.created_at.desc())
+                .offset(skip)
+                .limit(limit)
+            ).all()
             logger.info(
                 f"Retrieved {len(bookings)} bookings (skip={skip}, limit={limit})"
             )
@@ -575,7 +364,14 @@ def list_bookings(
                 # Continue even if QR code generation fails
                 session.rollback()
 
-        return result
+        # Return both data and total count for pagination
+        return BookingsPaginatedResponse(
+            data=result,
+            total=total_count,
+            page=(skip // limit) + 1,
+            per_page=limit,
+            total_pages=(total_count + limit - 1) // limit,  # Ceiling division
+        )
 
     except HTTPException:
         # Re-raise HTTP exceptions

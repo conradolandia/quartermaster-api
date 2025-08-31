@@ -150,7 +150,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                         id="launch_id"
                         value={field.value || ""}
                         onChange={field.onChange}
-                        isDisabled={isSubmitting}
+                        disabled={isSubmitting}
                         portalRef={contentRef}
                       />
                     )}
@@ -199,11 +199,11 @@ const EditMission = ({ mission }: EditMissionProps) => {
                       >
                         <Text>Active</Text>
                         <Switch
-                          id="active"
-                          isChecked={field.value}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            field.onChange(e.target.checked)
+                          checked={field.value}
+                          onCheckedChange={(details) =>
+                            field.onChange(details.checked)
                           }
+                          inputProps={{ id: "active" }}
                         />
                       </Flex>
                     )}
@@ -222,11 +222,11 @@ const EditMission = ({ mission }: EditMissionProps) => {
                       >
                         <Text>Public</Text>
                         <Switch
-                          id="public"
-                          isChecked={field.value}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            field.onChange(e.target.checked)
+                          checked={field.value}
+                          onCheckedChange={(details) =>
+                            field.onChange(details.checked)
                           }
+                          inputProps={{ id: "public" }}
                         />
                       </Flex>
                     )}

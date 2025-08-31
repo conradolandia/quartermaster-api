@@ -264,7 +264,7 @@ function JurisdictionsTable() {
                 {jurisdiction.state}
               </Table.Cell>
               <Table.Cell truncate maxW="sm">
-                {jurisdiction.sales_tax_rate}%
+                {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
               </Table.Cell>
               <Table.Cell truncate maxW="sm">
                 {locationsMap.get(jurisdiction.location_id)?.name ||

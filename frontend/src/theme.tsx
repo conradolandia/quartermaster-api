@@ -79,8 +79,8 @@ export const system = createSystem(defaultConfig, {
           },
           // Border colors
           border: {
-            default: { value: "#333A3F" }, // Subtle borders
-            accent: { value: "#32414b" }, // More prominent borders
+            default: { value: "#4a5a67" }, // Lighter borders for better visibility
+            accent: { value: "#5a6a77" }, // More prominent borders
             focus: { value: "#fda801" }, // Focus states
           },
           // Status colors for dark theme
@@ -116,36 +116,38 @@ export const system = createSystem(defaultConfig, {
     },
     semanticTokens: {
       colors: {
-        // Background semantic tokens
-        "bg.canvas": { value: "{colors.dark.bg.primary}" },
-        "bg.surface": { value: "{colors.dark.bg.secondary}" },
-        "bg.light": { value: "{colors.dark.bg.light}" },
-        "bg.accent": { value: "{colors.dark.bg.accent}" },
-        "bg.accent.hover": { value: "{colors.dark.bg.hover}" },
-        "bg.accent.active": { value: "{colors.dark.bg.active}" },
-
-        // Text semantic tokens
-        "text.primary": { value: "{colors.dark.text.primary}" },
-        "text.secondary": { value: "{colors.dark.text.secondary}" },
-        "text.muted": { value: "{colors.dark.text.muted}" },
-        "text.disabled": { value: "{colors.dark.text.disabled}" },
-
-        // Border semantic tokens
-        "border.default": { value: "{colors.dark.border.default}" },
-        "border.accent": { value: "{colors.dark.border.accent}" },
-        "border.focus": { value: "{colors.dark.border.focus}" },
-
-        // Accent semantic tokens
-        "accent.default": { value: "{colors.dark.accent.primary}" },
-        "accent.hover": { value: "{colors.dark.accent.hover}" },
-        "accent.active": { value: "{colors.dark.accent.active}" },
-        "accent.light": { value: "{colors.dark.accent.light}" },
-
-        // Status semantic tokens
-        "status.success": { value: "{colors.dark.status.success}" },
-        "status.warning": { value: "{colors.dark.status.warning}" },
-        "status.error": { value: "{colors.dark.status.error}" },
-        "status.info": { value: "{colors.dark.status.info}" },
+        bg: {
+          canvas: { value: "{colors.dark.bg.primary}" },
+          surface: { value: "{colors.dark.bg.secondary}" },
+          panel: { value: "{colors.dark.bg.secondary}" },
+          light: { value: "{colors.dark.bg.light}" },
+          accent: { value: "{colors.dark.bg.accent}" },
+          "accent.hover": { value: "{colors.dark.bg.hover}" },
+          "accent.active": { value: "{colors.dark.bg.active}" },
+        },
+        text: {
+          primary: { value: "{colors.dark.text.primary}" },
+          secondary: { value: "{colors.dark.text.secondary}" },
+          muted: { value: "{colors.dark.text.muted}" },
+          disabled: { value: "{colors.dark.text.disabled}" },
+        },
+        border: {
+          default: { value: "{colors.dark.border.default}" },
+          accent: { value: "{colors.dark.border.accent}" },
+          focus: { value: "{colors.dark.border.focus}" },
+        },
+        accent: {
+          default: { value: "{colors.dark.accent.primary}" },
+          hover: { value: "{colors.dark.accent.hover}" },
+          active: { value: "{colors.dark.accent.active}" },
+          light: { value: "{colors.dark.accent.light}" },
+        },
+        status: {
+          success: { value: "{colors.dark.status.success}" },
+          warning: { value: "{colors.dark.status.warning}" },
+          error: { value: "{colors.dark.status.error}" },
+          info: { value: "{colors.dark.status.info}" },
+        },
       },
     },
     recipes: {

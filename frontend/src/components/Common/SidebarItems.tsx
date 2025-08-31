@@ -17,10 +17,10 @@ import {
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
+  { icon: FaMapMarked, title: "Locations", path: "/locations" },
+  { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FaRocket, title: "Launches", path: "/launches" },
   { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
-  { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
-  { icon: FaMapMarked, title: "Locations", path: "/locations" },
   { icon: FaShip, title: "Boats", path: "/boats" },
   { icon: FaRoute, title: "Trips", path: "/trips" },
   { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
