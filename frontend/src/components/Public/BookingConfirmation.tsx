@@ -162,35 +162,23 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
 
           <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
             <Heading size="sm" mb={4}>
-              Your QR Code Tickets
+              Your QR Code Ticket
             </Heading>
             <VStack gap={4} align="stretch">
-              {booking.items?.map((item: any, index: number) => (
-                <Box
-                  key={index}
-                  textAlign="center"
-                  p={4}
-                  border="1px"
-                  borderColor="gray.200"
-                  borderRadius="md"
-                >
-                  <Text fontWeight="medium" mb={2}>
-                    {item.item_type
-                      .replace("_", " ")
-                      .replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                    {item.quantity > 1 && ` (${item.quantity})`}
+              <Box textAlign="center" p={4}>
+                {booking.qr_code_base64 ? (
+                  <img
+                    src={`data:image/png;base64,${booking.qr_code_base64}`}
+                    alt={`QR Code for booking ${booking.confirmation_code}`}
+                    style={{ width: "100%", height: "auto" }}
+                  />
+                ) : (
+                  <Text fontSize="sm" color="gray.500">
+                    QR code is not available yet. Please refresh this page in a
+                    moment.
                   </Text>
-                  {item.qr_code_url && (
-                    <Box>
-                      <img
-                        src={item.qr_code_url}
-                        alt={`QR Code for ${item.item_type}`}
-                        style={{ maxWidth: "200px", height: "auto" }}
-                      />
-                    </Box>
-                  )}
-                </Box>
-              ))}
+                )}
+              </Box>
             </VStack>
           </Box>
 

@@ -103,8 +103,9 @@ def generate_booking_confirmation_email(
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Booking Confirmation #{confirmation_code}"
 
-    # Create the confirmation link
-    confirmation_link = f"{settings.FRONTEND_HOST}/booking/{confirmation_code}"
+    # Create the confirmation link (unified public route)
+    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+    confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
     # Render the email template
     html_content = render_email_template(

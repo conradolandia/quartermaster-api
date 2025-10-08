@@ -62,8 +62,9 @@ def get_booking_qr_code(
                 detail="Booking not found with the provided confirmation code",
             )
 
-        # Generate QR code image
-        qr_url = f"{settings.FRONTEND_HOST}/bookings?code={confirmation_code}"
+        # Generate QR code image (prefer QR_CODE_BASE_URL if configured)
+        base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+        qr_url = f"{base_url}/bookings?code={confirmation_code}"
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
         qr.add_data(qr_url)
         qr.make(fit=True)
