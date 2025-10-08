@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Container,
   EmptyState,
@@ -154,36 +155,39 @@ function LocationsTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("name")}
-            >
-              <Flex align="center">
-                Name
-                <SortIcon column="name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("state")}
-            >
-              <Flex align="center">
-                State
-                <SortIcon column="state" />
-              </Flex>
-            </Table.ColumnHeader>
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("name")}
+              >
+                <Flex align="center">
+                  Name
+                  <SortIcon column="name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("state")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  State
+                  <SortIcon column="state" />
+                </Flex>
+              </Table.ColumnHeader>
             <Table.ColumnHeader
               w="sm"
               fontWeight="bold"
               cursor="pointer"
               onClick={() => handleSort("id")}
+              display={{ base: "none", lg: "table-cell" }}
             >
               <Flex align="center">
                 ID
@@ -201,10 +205,10 @@ function LocationsTable() {
               <Table.Cell truncate maxW="sm">
                 {location.name}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {location.state}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {location.id}
               </Table.Cell>
               <Table.Cell>
@@ -213,7 +217,8 @@ function LocationsTable() {
             </Table.Row>
           ))}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
           count={count}

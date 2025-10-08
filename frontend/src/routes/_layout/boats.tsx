@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Container,
   EmptyState,
@@ -45,6 +46,9 @@ const PER_PAGE = 5
 // Helper function to convert BoatPublic to Boat
 const convertToBoat = (boatPublic: BoatPublic): Boat => ({
   ...boatPublic,
+  provider_name: boatPublic.provider_name ?? "",
+  provider_location: boatPublic.provider_location ?? "",
+  provider_address: boatPublic.provider_address ?? "",
   map_link: boatPublic.map_link ?? null,
 })
 
@@ -192,58 +196,62 @@ function BoatsTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("name")}
-            >
-              <Flex align="center">
-                Name
-                <SortIcon column="name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("capacity")}
-            >
-              <Flex align="center">
-                Capacity
-                <SortIcon column="capacity" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("provider_name")}
-            >
-              <Flex align="center">
-                Provider
-                <SortIcon column="provider_name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("jurisdiction_id")}
-            >
-              <Flex align="center">
-                Jurisdiction
-                <SortIcon column="jurisdiction_id" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("name")}
+              >
+                <Flex align="center">
+                  Name
+                  <SortIcon column="name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("capacity")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  Capacity
+                  <SortIcon column="capacity" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("provider_name")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Provider
+                  <SortIcon column="provider_name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("jurisdiction_id")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Jurisdiction
+                  <SortIcon column="jurisdiction_id" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold">
+                Actions
+              </Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
         <Table.Body>
           {boats.map((boat) => {
             const jurisdiction = jurisdictionsMap.get(boat.jurisdiction_id)
@@ -253,13 +261,13 @@ function BoatsTable() {
                 <Table.Cell truncate maxW="sm">
                   {boat.name}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                   {boat.capacity}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {boat.provider_name}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {jurisdiction ? (
                     <Flex direction="column">
                       <Text fontWeight="medium">{jurisdiction.name}</Text>
@@ -278,7 +286,8 @@ function BoatsTable() {
             )
           })}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
           count={count}

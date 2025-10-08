@@ -1,5 +1,6 @@
 import {
   Badge,
+  Box,
   Button,
   Container,
   Flex,
@@ -167,59 +168,62 @@ function Missions() {
       ) : isError ? (
         <Text>Error loading missions</Text>
       ) : (
-        <Table.Root size={{ base: "sm", md: "md" }}>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("name")}
-              >
-                <Flex align="center">
-                  Name
-                  <SortIcon column="name" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("launch_id")}
-              >
-                <Flex align="center">
-                  Launch
-                  <SortIcon column="launch_id" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("sales_open_at")}
-              >
-                <Flex align="center">
-                  Sales Open
-                  <SortIcon column="sales_open_at" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
-                <Flex>Status</Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
-                Actions
-              </Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
+        <Box overflowX="auto">
+          <Table.Root size={{ base: "sm", md: "md" }}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("name")}
+                >
+                  <Flex align="center">
+                    Name
+                    <SortIcon column="name" />
+                  </Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("launch_id")}
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  <Flex align="center">
+                    Launch
+                    <SortIcon column="launch_id" />
+                  </Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("sales_open_at")}
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  <Flex align="center">
+                    Sales Open
+                    <SortIcon column="sales_open_at" />
+                  </Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader w="sm" fontWeight="bold">
+                  <Flex>Status</Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader w="sm" fontWeight="bold">
+                  Actions
+                </Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
           <Table.Body>
             {missions.map((mission) => (
               <Table.Row key={mission.id}>
                 <Table.Cell>{mission.name}</Table.Cell>
-                <Table.Cell>
+                <Table.Cell display={{ base: "none", md: "table-cell" }}>
                   {launchesMap.get(mission.launch_id)?.name ||
                     mission.launch_id}
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {mission.sales_open_at
                     ? new Date(mission.sales_open_at).toLocaleString()
                     : "Not set"}
@@ -248,7 +252,8 @@ function Missions() {
               </Table.Row>
             ))}
           </Table.Body>
-        </Table.Root>
+          </Table.Root>
+        </Box>
       )}
 
       <AddMission

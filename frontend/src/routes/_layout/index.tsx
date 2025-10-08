@@ -1,6 +1,7 @@
 import { Box, Container, Text } from "@chakra-ui/react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Navigate } from "@tanstack/react-router"
 
+import { DEFAULT_HOME_PATH } from "@/components/Common/SidebarItems"
 import useAuth from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout/")({
@@ -9,6 +10,11 @@ export const Route = createFileRoute("/_layout/")({
 
 function Dashboard() {
   const { user: currentUser } = useAuth()
+
+  // Redirect to the configured default home page if it's not "/"
+  if (DEFAULT_HOME_PATH !== "/") {
+    return <Navigate to={DEFAULT_HOME_PATH} />
+  }
 
   return (
     <>

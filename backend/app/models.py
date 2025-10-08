@@ -301,9 +301,9 @@ class BoatBase(SQLModel):
     # Definimos slug como opcional con un valor predeterminado vacío
     slug: str = Field(default="", max_length=255, index=True)
     capacity: int = Field(ge=1)
-    provider_name: str = Field(max_length=255)
-    provider_location: str = Field(max_length=255)
-    provider_address: str = Field(max_length=500)
+    provider_name: str | None = Field(default=None, max_length=255)
+    provider_location: str | None = Field(default=None, max_length=255)
+    provider_address: str | None = Field(default=None, max_length=500)
     jurisdiction_id: uuid.UUID = Field(foreign_key="jurisdiction.id")
     map_link: str | None = Field(default=None, max_length=2000)
 
@@ -650,3 +650,5 @@ class BookingPublic(BookingBase):
     updated_at: datetime
     items: list["BookingItemPublic"]
     qr_code_base64: str | None = None
+    mission_id: uuid.UUID | None = None
+    mission_name: str | None = None

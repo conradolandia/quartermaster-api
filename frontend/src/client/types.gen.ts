@@ -4,9 +4,9 @@ export type BoatCreate = {
     name: string;
     slug?: string;
     capacity: number;
-    provider_name: string;
-    provider_location: string;
-    provider_address: string;
+    provider_name?: (string | null);
+    provider_location?: (string | null);
+    provider_address?: (string | null);
     jurisdiction_id: string;
     map_link?: (string | null);
 };
@@ -15,9 +15,9 @@ export type BoatPublic = {
     name: string;
     slug?: string;
     capacity: number;
-    provider_name: string;
-    provider_location: string;
-    provider_address: string;
+    provider_name?: (string | null);
+    provider_location?: (string | null);
+    provider_address?: (string | null);
     jurisdiction_id: string;
     map_link?: (string | null);
     id: string;
@@ -115,6 +115,16 @@ export type BookingPublic = {
     updated_at: string;
     items: Array<BookingItemPublic>;
     qr_code_base64?: (string | null);
+    mission_id?: (string | null);
+    mission_name?: (string | null);
+};
+
+export type BookingsPaginatedResponse = {
+    data: Array<BookingPublic>;
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
 };
 
 export type BookingStatus = 'draft' | 'pending_payment' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'refunded';
@@ -484,30 +494,11 @@ export type BookingsCreateBookingResponse = (BookingPublic);
 
 export type BookingsListBookingsData = {
     limit?: number;
+    missionId?: (string | null);
     skip?: number;
 };
 
-export type BookingsListBookingsResponse = (Array<BookingPublic>);
-
-export type BookingsInitializePaymentData = {
-    confirmationCode: string;
-};
-
-export type BookingsInitializePaymentResponse = ({
-    [key: string]: unknown;
-});
-
-export type BookingsGetBookingQrCodeData = {
-    confirmationCode: string;
-};
-
-export type BookingsGetBookingQrCodeResponse = (unknown);
-
-export type BookingsGetBookingByConfirmationCodeData = {
-    confirmationCode: string;
-};
-
-export type BookingsGetBookingByConfirmationCodeResponse = (BookingPublic);
+export type BookingsListBookingsResponse = (BookingsPaginatedResponse);
 
 export type BookingsGetBookingByIdData = {
     bookingId: string;
@@ -521,6 +512,34 @@ export type BookingsUpdateBookingData = {
 };
 
 export type BookingsUpdateBookingResponse = (BookingPublic);
+
+export type BookingsGetBookingQrCodeData = {
+    confirmationCode: string;
+};
+
+export type BookingsGetBookingQrCodeResponse = (unknown);
+
+export type BookingsGetBookingByConfirmationCodeData = {
+    confirmationCode: string;
+};
+
+export type BookingsGetBookingByConfirmationCodeResponse = (BookingPublic);
+
+export type BookingsResendBookingConfirmationEmailData = {
+    confirmationCode: string;
+};
+
+export type BookingsResendBookingConfirmationEmailResponse = ({
+    [key: string]: unknown;
+});
+
+export type BookingsInitializePaymentData = {
+    confirmationCode: string;
+};
+
+export type BookingsInitializePaymentResponse = ({
+    [key: string]: unknown;
+});
 
 export type ItemsReadItemsData = {
     limit?: number;

@@ -1,5 +1,6 @@
 import {
   Badge,
+  Box,
   Button,
   Container,
   EmptyState,
@@ -208,72 +209,76 @@ function TripsTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("type")}
-            >
-              <Flex align="center">
-                Trip Type
-                <SortIcon column="type" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("mission_id")}
-            >
-              <Flex align="center">
-                Mission
-                <SortIcon column="mission_id" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("check_in_time")}
-            >
-              <Flex align="center">
-                Check-in Time
-                <SortIcon column="check_in_time" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("departure_time")}
-            >
-              <Flex align="center">
-                Departure Time
-                <SortIcon column="departure_time" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Boats
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("active")}
-            >
-              <Flex align="center">
-                Status
-                <SortIcon column="active" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("type")}
+              >
+                <Flex align="center">
+                  Trip Type
+                  <SortIcon column="type" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("mission_id")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  Mission
+                  <SortIcon column="mission_id" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("check_in_time")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Check-in Time
+                  <SortIcon column="check_in_time" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("departure_time")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Departure Time
+                  <SortIcon column="departure_time" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold">
+                Boats
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("active")}
+              >
+                <Flex align="center">
+                  Status
+                  <SortIcon column="active" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold">
+                Actions
+              </Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
         <Table.Body>
           {tripsToShow.map((trip) => {
             const mission = missionsMap.get(trip.mission_id)
@@ -286,13 +291,13 @@ function TripsTable() {
                     ? "Launch Viewing"
                     : "Pre-Launch"}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                   {mission?.name || "Unknown"}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {format(new Date(trip.check_in_time), "MMM d, yyyy h:mm a")}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
@@ -310,7 +315,8 @@ function TripsTable() {
             )
           })}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
 
       {count > PER_PAGE && (
         <PaginationRoot

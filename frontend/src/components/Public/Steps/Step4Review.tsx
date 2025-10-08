@@ -107,9 +107,9 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
             bookingWithPayment.booking.confirmation_code
           );
           navigate({
-            to: "/book-confirm",
+            to: "/bookings",
             search: {
-              confirmationCode: bookingWithPayment.booking.confirmation_code,
+              code: bookingWithPayment.booking.confirmation_code,
             },
           });
         }

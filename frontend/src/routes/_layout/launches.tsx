@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Container,
   EmptyState,
@@ -190,71 +191,75 @@ function LaunchesTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }} interactive>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("name")}
-            >
-              <Flex align="center">
-                Name
-                <SortIcon column="name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("launch_timestamp")}
-            >
-              <Flex align="center">
-                Launch Date
-                <SortIcon column="launch_timestamp" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("summary")}
-            >
-              <Flex align="center">
-                Summary
-                <SortIcon column="summary" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("location_id")}
-            >
-              <Flex align="center">
-                Location
-                <SortIcon column="location_id" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }} interactive>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("name")}
+              >
+                <Flex align="center">
+                  Name
+                  <SortIcon column="name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("launch_timestamp")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  Launch Date
+                  <SortIcon column="launch_timestamp" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("summary")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Summary
+                  <SortIcon column="summary" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("location_id")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  Location
+                  <SortIcon column="location_id" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold">
+                Actions
+              </Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
         <Table.Body>
           {launches?.map((launch) => (
             <Table.Row key={launch.id} opacity={isPlaceholderData ? 0.5 : 1}>
               <Table.Cell truncate maxW="sm">
                 {launch.name}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {formatDate(launch.launch_timestamp)}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {launch.summary}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {locationsMap.get(launch.location_id)?.name ||
                   launch.location_id}
               </Table.Cell>
@@ -264,7 +269,8 @@ function LaunchesTable() {
             </Table.Row>
           ))}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
           count={count}

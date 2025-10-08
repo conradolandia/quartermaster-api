@@ -149,12 +149,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   invalid={!!errors.provider_name}
                   errorText={errors.provider_name?.message}
                   label="Provider Name"
-                  required
                 >
                   <Input
                     id="provider_name"
                     {...register("provider_name", {
-                      required: "Provider name is required",
                       maxLength: {
                         value: 255,
                         message: "Provider name cannot exceed 255 characters",
@@ -169,12 +167,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   invalid={!!errors.provider_location}
                   errorText={errors.provider_location?.message}
                   label="Provider Location"
-                  required
                 >
                   <Input
                     id="provider_location"
                     {...register("provider_location", {
-                      required: "Provider location is required",
                       maxLength: {
                         value: 255,
                         message:
@@ -190,12 +186,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   invalid={!!errors.provider_address}
                   errorText={errors.provider_address?.message}
                   label="Provider Address"
-                  required
                 >
                   <Input
                     id="provider_address"
                     {...register("provider_address", {
-                      required: "Provider address is required",
                       maxLength: {
                         value: 500,
                         message:

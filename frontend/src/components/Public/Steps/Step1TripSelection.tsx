@@ -146,19 +146,6 @@ const Step1TripSelection = ({
   const activeTrips = React.useMemo(() => {
     if (!allTrips?.data || !allMissions?.data) return []
 
-    // Add debugging to see what's happening
-    //console.log("Filtering trips:", allTrips.data.map(t => ({
-    //  id: t.id,
-    //  active: t.active,
-    //  mission_id: t.mission_id
-    //})));
-    //console.log("Available missions:", allMissions.data.map(m => ({
-    //  id: m.id,
-    //  name: m.name,
-    //  active: m.active,
-    //  public: m.public
-    //})));
-
     return allTrips.data.filter((trip: TripPublic) => {
       // Trip must be active
       if (trip.active !== true) return false
@@ -170,8 +157,6 @@ const Step1TripSelection = ({
       if (!mission) return false
 
       const isValid = mission.public === true
-
-      //console.log(`Trip: ${trip.id}, Trip active: ${trip.active}, Mission: ${mission.name}, Mission active: ${mission.active}, Mission public: ${mission.public}, isValid: ${isValid}`);
 
       return isValid
     })
@@ -209,7 +194,7 @@ const Step1TripSelection = ({
       {/* Trip Selection */}
       <Card.Root bg="bg.panel">
         <Card.Body>
-          <Heading size="sm" mb={4}>
+          <Heading size="lg" mb={4}>
             Select Experience
           </Heading>
           <Text color="text.muted" mb={6}>

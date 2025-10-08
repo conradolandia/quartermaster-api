@@ -2,6 +2,7 @@ import { Flex, Image, useBreakpointValue } from "@chakra-ui/react"
 import { Link } from "@tanstack/react-router"
 
 import Logo from "/assets/images/qm-logo.svg"
+import { DEFAULT_HOME_PATH } from "./SidebarItems"
 import UserMenu from "./UserMenu"
 
 function Navbar() {
@@ -19,7 +20,7 @@ function Navbar() {
       top={0}
       p={4}
     >
-      <Link to="/">
+      <Link to={DEFAULT_HOME_PATH}>
         <Image src={Logo} alt="Logo" maxW="320px" p={2} />
       </Link>
       <Flex gap={2} alignItems="center">

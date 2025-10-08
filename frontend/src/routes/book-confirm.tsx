@@ -1,19 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
-
-import BookingConfirmation from "@/components/Public/BookingConfirmation"
 
 const confirmationSearchSchema = z.object({
   confirmationCode: z.string().optional(),
 })
 
 export const Route = createFileRoute("/book-confirm")({
-  component: BookingConfirmationPage,
+  component: BookingConfirmationRedirect,
   validateSearch: (search) => confirmationSearchSchema.parse(search),
+  beforeLoad: ({ search }) => {
+    // Redirect to the new unified endpoint
+    if (search.confirmationCode) {
+      throw redirect({
+        to: "/bookings",
+        search: { code: search.confirmationCode },
+      })
+    }
+  },
 })
 
-function BookingConfirmationPage() {
-  return <BookingConfirmation />
+function BookingConfirmationRedirect() {
+  // This component should never render due to the redirect in beforeLoad
+  return null
 }
 
-export default BookingConfirmationPage
+export default BookingConfirmationRedirect

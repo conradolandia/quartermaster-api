@@ -2,6 +2,7 @@ import { createSystem, defaultConfig } from "@chakra-ui/react"
 import { buttonRecipe } from "./theme/button.recipe"
 import { dialogRecipe } from "./theme/dialog.recipe"
 import { inputRecipe } from "./theme/input.recipe"
+import { selectRecipe } from "./theme/select.recipe"
 import { tableRecipe } from "./theme/table.recipe"
 import { textareaRecipe } from "./theme/textarea.recipe"
 
@@ -132,6 +133,7 @@ export const system = createSystem(defaultConfig, {
           disabled: { value: "{colors.dark.text.disabled}" },
         },
         border: {
+          DEFAULT: { value: "{colors.dark.border.accent}" },
           default: { value: "{colors.dark.border.default}" },
           accent: { value: "{colors.dark.border.accent}" },
           focus: { value: "{colors.dark.border.focus}" },
@@ -158,6 +160,7 @@ export const system = createSystem(defaultConfig, {
     slotRecipes: {
       table: tableRecipe,
       dialog: dialogRecipe,
+      select: selectRecipe,
     },
   },
 })

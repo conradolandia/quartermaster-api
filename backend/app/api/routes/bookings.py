@@ -267,9 +267,11 @@ def list_bookings(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    mission_id: uuid.UUID | None = None,
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
+    Optionally filter by mission_id.
     """
     try:
         # Parameter validation
@@ -291,10 +293,32 @@ def list_bookings(
             logger.info(f"Limit parameter reduced from {limit} to 500")
             limit = 500  # Cap at 500 to prevent excessive queries
 
+        # Build base query
+        base_query = select(Booking)
+
+        # Apply mission filter if provided
+        if mission_id:
+            # Filter bookings by mission through BookingItem -> Trip -> Mission
+            base_query = (
+                base_query.join(BookingItem, BookingItem.booking_id == Booking.id)
+                .join(Trip, Trip.id == BookingItem.trip_id)
+                .where(Trip.mission_id == mission_id)
+                .distinct()
+            )
+            logger.info(f"Filtering bookings by mission_id: {mission_id}")
+
         # Get total count first
         total_count = 0
         try:
-            total_count = session.exec(select(func.count(Booking.id))).first()
+            count_query = select(func.count(Booking.id.distinct()))
+            if mission_id:
+                count_query = (
+                    count_query.select_from(Booking)
+                    .join(BookingItem, BookingItem.booking_id == Booking.id)
+                    .join(Trip, Trip.id == BookingItem.trip_id)
+                    .where(Trip.mission_id == mission_id)
+                )
+            total_count = session.exec(count_query).first()
             logger.info(f"Total bookings count: {total_count}")
         except Exception as e:
             logger.error(f"Error counting bookings: {str(e)}")
@@ -307,10 +331,7 @@ def list_bookings(
         bookings = []
         try:
             bookings = session.exec(
-                select(Booking)
-                .order_by(Booking.created_at.desc())
-                .offset(skip)
-                .limit(limit)
+                base_query.order_by(Booking.created_at.desc()).offset(skip).limit(limit)
             ).all()
             logger.info(
                 f"Retrieved {len(bookings)} bookings (skip={skip}, limit={limit})"
@@ -337,6 +358,15 @@ def list_bookings(
                 booking_public.items = [
                     BookingItemPublic.model_validate(item) for item in items
                 ]
+
+                # Get mission information from first booking item
+                if items and len(items) > 0:
+                    trip = session.get(Trip, items[0].trip_id)
+                    if trip:
+                        booking_public.mission_id = trip.mission_id
+                        mission = session.get(Mission, trip.mission_id)
+                        if mission:
+                            booking_public.mission_name = mission.name
 
                 # Flag bookings missing QR codes for batch update
                 if not booking.qr_code_base64:

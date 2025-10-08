@@ -3,10 +3,12 @@ import {
   Box,
   Button,
   Container,
+  createListCollection,
   EmptyState,
   Flex,
   Heading,
   Icon,
+  Select,
   Table,
   Text,
   VStack,
@@ -17,10 +19,12 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch, FiX } from "react-icons/fi"
 import { z } from "zod"
 
-import { BookingsService } from "@/client"
+import { BookingsService, MissionsService } from "@/client"
 import AddBooking from "@/components/Bookings/AddBooking"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import PendingBookings from "@/components/Pending/PendingBookings"
+import BookingConfirmation from "@/components/Public/BookingConfirmation"
+import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -33,22 +37,27 @@ type SortableColumn =
   | "confirmation_code"
   | "user_name"
   | "user_email"
+  | "user_phone"
   | "status"
   | "total_amount"
   | "created_at"
+  | "mission_name"
 type SortDirection = "asc" | "desc"
 
 const bookingsSearchSchema = z.object({
   page: z.number().catch(1),
   code: z.string().optional(),
+  missionId: z.string().optional(),
   sortBy: z
     .enum([
       "confirmation_code",
       "user_name",
       "user_email",
+      "user_phone",
       "status",
       "total_amount",
       "created_at",
+      "mission_name",
     ])
     .catch("created_at"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
@@ -78,6 +87,12 @@ const sortBookings = (
     if (sortBy === "total_amount") {
       aValue = Number(aValue) || 0
       bValue = Number(bValue) || 0
+    }
+
+    // Handle null/undefined values for mission_name
+    if (sortBy === "mission_name") {
+      aValue = aValue || ""
+      bValue = bValue || ""
     }
 
     // Handle string sorting
@@ -459,7 +474,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
 }
 
 function BookingsTable() {
-  const { page, sortBy, sortDirection } = Route.useSearch()
+  const { page, sortBy, sortDirection, missionId } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
 
   const handleSort = (column: SortableColumn) => {
@@ -475,16 +490,43 @@ function BookingsTable() {
     })
   }
 
+  // Fetch all bookings to get unique mission IDs for filter
+  const { data: allBookingsResponse } = useQuery({
+    queryKey: ["bookings-all"],
+    queryFn: () =>
+      BookingsService.listBookings({
+        skip: 0,
+        limit: 1000, // Get all bookings
+      }),
+  })
+
+  // Fetch missions for the filter dropdown
+  const { data: missionsResponse } = useQuery({
+    queryKey: ["missions"],
+    queryFn: () => MissionsService.readMissions(),
+  })
+
+  // Filter missions to only show those with bookings
+  const allBookings = allBookingsResponse?.data ?? []
+  const allMissions = missionsResponse?.data ?? []
+  const uniqueMissionIds = new Set(
+    allBookings.map((booking) => booking.mission_id).filter(Boolean)
+  )
+  const missions = allMissions.filter((mission) =>
+    uniqueMissionIds.has(mission.id)
+  )
+
   const {
     data: response,
     isLoading,
     isPlaceholderData,
   } = useQuery({
-    queryKey: ["bookings", { page }],
+    queryKey: ["bookings", { page, missionId }],
     queryFn: () =>
       BookingsService.listBookings({
         skip: (page - 1) * PER_PAGE,
         limit: PER_PAGE,
+        missionId: missionId || undefined,
       }),
     placeholderData: (prevData) => prevData,
   })
@@ -570,44 +612,128 @@ function BookingsTable() {
     )
   }
 
+  const handleMissionFilter = (missionId: string | undefined) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        missionId: missionId || undefined,
+        page: 1, // Reset to first page when filtering
+      }),
+    })
+  }
+
+  // Create mission collection for the dropdown
+  const missionsCollection = createListCollection({
+    items: [
+      { label: "All Missions", value: "" },
+      ...missions.map((mission) => ({
+        label: mission.name,
+        value: mission.id,
+      })),
+    ],
+  })
+
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("confirmation_code")}
-            >
-              <Flex align="center">
-                Confirmation code
-                <SortIcon column="confirmation_code" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("user_name")}
-            >
-              <Flex align="center">
-                Customer
-                <SortIcon column="user_name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("user_email")}
-            >
-              <Flex align="center">
-                Email
-                <SortIcon column="user_email" />
-              </Flex>
-            </Table.ColumnHeader>
+      <Flex mb={4} gap={3} align="center">
+        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+          Filter by Mission:
+        </Text>
+        <Select.Root
+          collection={missionsCollection}
+          size="xs"
+          width="250px"
+          borderColor="white"
+          value={missionId ? [missionId] : [""]}
+          onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
+        >
+          <Select.Trigger>
+            <Select.ValueText placeholder="All Missions" />
+          </Select.Trigger>
+          <Select.Content>
+            {missionsCollection.items.map((item) => (
+              <Select.Item key={item.value} item={item}>
+                {item.label}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+        {missionId && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleMissionFilter(undefined)}
+          >
+            <Flex align="center" gap={1}>
+              <FiX />
+              Clear filter
+            </Flex>
+          </Button>
+        )}
+      </Flex>
+
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("confirmation_code")}
+              >
+                <Flex align="center">
+                  Confirmation code
+                  <SortIcon column="confirmation_code" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("user_name")}
+              >
+                <Flex align="center">
+                  Customer
+                  <SortIcon column="user_name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("user_email")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  Email
+                  <SortIcon column="user_email" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("user_phone")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Phone
+                  <SortIcon column="user_phone" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("mission_name")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Mission
+                  <SortIcon column="mission_name" />
+                </Flex>
+              </Table.ColumnHeader>
             <Table.ColumnHeader
               w="sm"
               fontWeight="bold"
@@ -667,26 +793,32 @@ function BookingsTable() {
                   {booking.confirmation_code}
                 </Button>
               </Table.Cell>
-              <Table.Cell>{booking.user_name}</Table.Cell>
-              <Table.Cell truncate maxW="200px">
+              <Table.Cell truncate maxW="200px">{booking.user_name}</Table.Cell>
+              <Table.Cell truncate maxW="200px" display={{ base: "none", md: "table-cell" }}>
                 {booking.user_email}
+              </Table.Cell>
+              <Table.Cell display={{ base: "none", lg: "table-cell" }}>{booking.user_phone}</Table.Cell>
+              <Table.Cell truncate maxW="200px" display={{ base: "none", lg: "table-cell" }}>
+                {booking.mission_name || "N/A"}
               </Table.Cell>
               <Table.Cell>
                 <Badge colorScheme={getStatusColor(booking.status || "")}>
                   {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
                 </Badge>
               </Table.Cell>
-              <Table.Cell fontWeight="medium">
+              <Table.Cell fontWeight="bold">
                 {formatCurrency(booking.total_amount)}
               </Table.Cell>
-              <Table.Cell>{formatDate(booking.created_at)}</Table.Cell>
+              <Table.Cell truncate maxW="200px" fontSize="xs">{formatDate(booking.created_at)}</Table.Cell>
               <Table.Cell>
                 <BookingActionsMenu booking={booking} />
               </Table.Cell>
             </Table.Row>
           ))}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
+
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
           count={totalCount}
@@ -707,17 +839,41 @@ function BookingsTable() {
 function Bookings() {
   const [isAddBookingOpen, setIsAddBookingOpen] = useState(false)
   const { code } = Route.useSearch()
+  const { user } = useAuth()
 
   const handleAddBookingSuccess = () => {
     // This will trigger a refetch via the mutation's onSettled
   }
 
-  // If a confirmation code is provided, show the booking details
+  // If a confirmation code is provided, show the appropriate view based on authentication
   if (code) {
-    return <BookingDetails confirmationCode={code} />
+    // If user is authenticated and has user data, show the internal admin view
+    if (isLoggedIn() && user !== undefined && user !== null) {
+      return <BookingDetails confirmationCode={code} />
+    }
+    // If user is not authenticated, show the public confirmation view
+    else {
+      return <BookingConfirmation confirmationCode={code} />
+    }
   }
 
-  // Otherwise, show the normal bookings table
+  // If no confirmation code, require authentication for bookings management
+  if (!isLoggedIn() || !user) {
+    return (
+      <Container maxW="full">
+        <VStack align="center" justify="center" minH="400px">
+          <Text fontSize="lg" fontWeight="bold">
+            Authentication Required
+          </Text>
+          <Text color="gray.600">
+            Please log in to access the bookings management system.
+          </Text>
+        </VStack>
+      </Container>
+    )
+  }
+
+  // Otherwise, show the normal bookings table for authenticated users
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>

@@ -159,7 +159,6 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   invalid={!!errors.provider_name}
                   errorText={errors.provider_name?.message}
                   label="Provider Name"
-                  required
                 >
                   <Input
                     id="provider_name"
@@ -178,7 +177,6 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   invalid={!!errors.provider_location}
                   errorText={errors.provider_location?.message}
                   label="Provider Location"
-                  required
                 >
                   <Input
                     id="provider_location"
@@ -198,7 +196,6 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   invalid={!!errors.provider_address}
                   errorText={errors.provider_address?.message}
                   label="Provider Address"
-                  required
                 >
                   <Input
                     id="provider_address"

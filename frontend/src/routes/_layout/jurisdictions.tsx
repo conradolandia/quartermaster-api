@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Container,
   EmptyState,
@@ -199,47 +200,51 @@ function JurisdictionsTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("name")}
-            >
-              <Flex align="center">
-                Name
-                <SortIcon column="name" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("state")}
-            >
-              <Flex align="center">
-                State
-                <SortIcon column="state" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("sales_tax_rate")}
-            >
-              <Flex align="center">
-                Sales Tax Rate
-                <SortIcon column="sales_tax_rate" />
-              </Flex>
-            </Table.ColumnHeader>
+      <Box overflowX="auto">
+        <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("name")}
+              >
+                <Flex align="center">
+                  Name
+                  <SortIcon column="name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("state")}
+                display={{ base: "none", md: "table-cell" }}
+              >
+                <Flex align="center">
+                  State
+                  <SortIcon column="state" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("sales_tax_rate")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Sales Tax Rate
+                  <SortIcon column="sales_tax_rate" />
+                </Flex>
+              </Table.ColumnHeader>
             <Table.ColumnHeader
               w="sm"
               fontWeight="bold"
               cursor="pointer"
               onClick={() => handleSort("location_id")}
+              display={{ base: "none", md: "table-cell" }}
             >
               <Flex align="center">
                 Location
@@ -260,13 +265,13 @@ function JurisdictionsTable() {
               <Table.Cell truncate maxW="sm">
                 {jurisdiction.name}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {jurisdiction.state}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
               </Table.Cell>
-              <Table.Cell truncate maxW="sm">
+              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {locationsMap.get(jurisdiction.location_id)?.name ||
                   jurisdiction.location_id}
               </Table.Cell>
@@ -276,7 +281,8 @@ function JurisdictionsTable() {
             </Table.Row>
           ))}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </Box>
       <Flex justifyContent="flex-end" mt={4}>
         <PaginationRoot
           count={count}
