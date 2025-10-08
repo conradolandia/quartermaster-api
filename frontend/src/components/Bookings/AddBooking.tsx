@@ -19,6 +19,9 @@ import {
   type BookingCreate,
   type BookingItemCreate,
   BookingsService,
+  JurisdictionsService,
+  LaunchesService,
+  MissionsService,
   TripBoatsService,
   TripMerchandiseService,
   TripPricingService,
@@ -90,7 +93,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [tripBoats, setTripBoats] = useState<{ boat_id: string }[]>([])
   const [boatNames, setBoatNames] = useState<Record<string, string>>({})
   const [selectedBoatId, setSelectedBoatId] = useState<string>("")
-  const [taxRatePercent, setTaxRatePercent] = useState<number>(0)
   const [isDiscountPercent, setIsDiscountPercent] = useState<boolean>(false)
   const [discountInput, setDiscountInput] = useState<number>(0)
 
@@ -98,6 +100,38 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const { data: tripsData } = useQuery({
     queryKey: ["trips"],
     queryFn: () => TripsService.readTrips({ limit: 100 }),
+  })
+
+  // Get trip details when trip is selected
+  const { data: tripData } = useQuery({
+    queryKey: ["trip-details", selectedTripId],
+    queryFn: () => TripsService.readTrip({ tripId: selectedTripId }),
+    enabled: !!selectedTripId,
+  })
+
+  // Get mission details
+  const { data: missionData } = useQuery({
+    queryKey: ["mission-details", tripData?.mission_id],
+    queryFn: () => MissionsService.readMission({ missionId: tripData!.mission_id }),
+    enabled: !!tripData?.mission_id,
+  })
+
+  // Get launch details
+  const { data: launchData } = useQuery({
+    queryKey: ["launch-details", missionData?.launch_id],
+    queryFn: () => LaunchesService.readLaunch({ launchId: missionData!.launch_id }),
+    enabled: !!missionData?.launch_id,
+  })
+
+  // Get jurisdiction for tax rate
+  const { data: jurisdictionsData } = useQuery({
+    queryKey: ["jurisdictions-by-location", launchData?.location_id],
+    queryFn: () =>
+      JurisdictionsService.readJurisdictions({
+        locationId: launchData!.location_id,
+        limit: 100,
+      }),
+    enabled: !!launchData?.location_id,
   })
 
   // Get trip pricing when trip is selected
@@ -225,6 +259,11 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       launch_updates_pref: false,
     },
   })
+
+  // Get tax rate from jurisdiction (convert from decimal to percentage)
+  const taxRatePercent = jurisdictionsData?.data?.[0]?.sales_tax_rate
+    ? jurisdictionsData.data[0].sales_tax_rate * 100
+    : 0
 
   // Watch form values for auto-calculation
   const watchedTipAmount = watch("tip_amount")
@@ -741,19 +780,12 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     <Text>-${(watch("discount_amount") || 0).toFixed(2)}</Text>
                   </HStack>
                   <HStack justify="space-between" width="100%">
-                    <Text>Tax Rate (%):</Text>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={taxRatePercent}
-                      onChange={(e) =>
-                        setTaxRatePercent(
-                          Number.parseFloat(e.target.value) || 0,
-                        )
-                      }
-                      style={{ width: "100px" }}
-                    />
+                    <Text>Tax Rate:</Text>
+                    <Text>
+                      {taxRatePercent > 0
+                        ? `${taxRatePercent.toFixed(2)}%`
+                        : "N/A - No jurisdiction set"}
+                    </Text>
                   </HStack>
                   <HStack justify="space-between" width="100%">
                     <Text>Tax Amount:</Text>

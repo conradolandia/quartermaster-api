@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { FiTrash2 } from "react-icons/fi"
+import { FiAlertCircle, FiTrash2 } from "react-icons/fi"
 
 import {
   JurisdictionsService,
@@ -82,7 +82,10 @@ const Step2ItemSelection = ({
   // Get tax rate from jurisdiction (convert from decimal to percentage)
   const taxRatePercent = jurisdictionsData?.data?.[0]?.sales_tax_rate
     ? jurisdictionsData.data[0].sales_tax_rate * 100
-    : 8.5 // Default fallback
+    : 0
+
+  // Check if jurisdiction is missing when we have location data
+  const jurisdictionMissing = !!launchData?.location_id && (!jurisdictionsData?.data || jurisdictionsData.data.length === 0)
 
   // Fetch trip pricing
   const { data: tripPricing } = useQuery({
@@ -211,6 +214,25 @@ const Step2ItemSelection = ({
           Choose your tickets and any merchandise you'd like to purchase.
         </Text>
       </Box>
+
+      {/* Error message if jurisdiction is missing */}
+      {jurisdictionMissing && (
+        <Card.Root bg="status.error" borderColor="red.500" borderWidth="1px">
+          <Card.Body>
+            <HStack gap={3}>
+              <FiAlertCircle size={24} />
+              <Box>
+                <Text fontWeight="semibold" mb={1}>
+                  Tax Configuration Error
+                </Text>
+                <Text fontSize="sm">
+                  No tax jurisdiction is configured for this location. Please contact support to complete your booking.
+                </Text>
+              </Box>
+            </HStack>
+          </Card.Body>
+        </Card.Root>
+      )}
 
       <HStack align="start" gap={6}>
         {/* Left Column - Selection */}
@@ -460,7 +482,11 @@ const Step2ItemSelection = ({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button colorPalette="blue" onClick={onNext} disabled={!canProceed}>
+        <Button
+          colorPalette="blue"
+          onClick={onNext}
+          disabled={!canProceed || jurisdictionMissing}
+        >
           Continue to Information
         </Button>
       </HStack>

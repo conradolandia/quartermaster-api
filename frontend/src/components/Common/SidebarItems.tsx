@@ -17,13 +17,13 @@ import {
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
+  { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
+  { icon: FaRoute, title: "Trips", path: "/trips" },
+  { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
+  { icon: FaRocket, title: "Launches", path: "/launches" },
   { icon: FaMapMarked, title: "Locations", path: "/locations" },
   { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
-  { icon: FaRocket, title: "Launches", path: "/launches" },
-  { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
   { icon: FaShip, title: "Boats", path: "/boats" },
-  { icon: FaRoute, title: "Trips", path: "/trips" },
-  { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]
 
