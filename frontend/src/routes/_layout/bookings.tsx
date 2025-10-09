@@ -208,7 +208,7 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
   }
 
   return (
-    <Container maxW="full">
+    <Container maxW="full" mt={12}>
       <Flex alignItems="baseline" mb={6} gap={4} justifyContent="space-between">
         <Button
           variant="outline"
@@ -239,32 +239,45 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
               color="dark.text.primary"
               bg="dark.bg.secondary"
             >
-              <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">Status:</Text>
-                <Badge colorScheme={getStatusColor(booking.status || "")}>
-                  {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
-                </Badge>
+              <Flex gap={6} justify="space-between">
+                <Box flex="1">
+                  <Flex gap={4} mb={2} alignItems="baseline">
+                    <Text fontWeight="bold">Status:</Text>
+                    <Badge colorScheme={getStatusColor(booking.status || "")}>
+                      {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
+                    </Badge>
+                  </Flex>
+                  <Flex gap={4} mb={2} alignItems="baseline">
+                    <Text fontWeight="bold">Confirmation Code:</Text>
+                    <Text
+                      fontFamily="mono"
+                      color="dark.text.highlight"
+                      fontWeight="bold"
+                    >
+                      {booking.confirmation_code}
+                    </Text>
+                  </Flex>
+                  <Flex gap={4} mb={2} alignItems="baseline">
+                    <Text fontWeight="bold">Created:</Text>
+                    <Text>{formatDate(booking.created_at)}</Text>
+                  </Flex>
+                  {booking.updated_at && (
+                    <Flex gap={4} alignItems="baseline">
+                      <Text fontWeight="bold">Last Updated:</Text>
+                      <Text>{formatDate(booking.updated_at)}</Text>
+                    </Flex>
+                  )}
+                </Box>
+                {booking.qr_code_base64 && (
+                  <Box>
+                    <img
+                      src={`data:image/png;base64,${booking.qr_code_base64}`}
+                      alt="Booking QR Code"
+                      style={{ maxWidth: "150px", height: "auto" }}
+                    />
+                  </Box>
+                )}
               </Flex>
-              <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">Confirmation Code:</Text>
-                <Text
-                  fontFamily="mono"
-                  color="dark.text.highlight"
-                  fontWeight="bold"
-                >
-                  {booking.confirmation_code}
-                </Text>
-              </Flex>
-              <Flex gap={4} mb={2} alignItems="baseline">
-                <Text fontWeight="bold">Created:</Text>
-                <Text>{formatDate(booking.created_at)}</Text>
-              </Flex>
-              {booking.updated_at && (
-                <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold">Last Updated:</Text>
-                  <Text>{formatDate(booking.updated_at)}</Text>
-                </Flex>
-              )}
             </Box>
           </Box>
 
@@ -442,32 +455,6 @@ function BookingDetails({ confirmationCode }: { confirmationCode: string }) {
             </Box>
           </Box>
         </Flex>
-
-        {booking.qr_code_base64 && (
-          <Box>
-            <Heading size="md" mb={4}>
-              QR Code
-            </Heading>
-            <Box
-              bg="dark.bg.secondary"
-              p={6}
-              borderRadius="md"
-              border="1px"
-              borderColor="dark.border.secondary"
-              color="dark.text.primary"
-              textAlign="center"
-            >
-              <img
-                src={`data:image/png;base64,${booking.qr_code_base64}`}
-                alt="Booking QR Code"
-                style={{ maxWidth: "250px", margin: "0 auto" }}
-              />
-              <Text fontSize="sm" mt={2}>
-                Scan this QR code for quick access to booking details
-              </Text>
-            </Box>
-          </Box>
-        )}
       </VStack>
     </Container>
   )
