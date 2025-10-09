@@ -393,7 +393,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
     const newItem: SelectedBookingItem = {
       trip_id: selectedTripId,
-      item_type: "swag",
+      item_type: merchandise.name,
       quantity: 1,
       price_per_unit: merchandise.price,
       merchandise_id: merchandiseId,
@@ -417,7 +417,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
   // Get display name for item type
   const getItemDisplayName = (item: SelectedBookingItem) => {
-    if (item.item_type === "swag" && item.merchandise_id) {
+    if (item.merchandise_id) {
       const merchandise = tripMerchandise.find(
         (m) => m.id === item.merchandise_id,
       )
@@ -446,7 +446,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
   const handleError = (error: ApiError) => {
     console.error("Booking creation error:", error)
-    // Handle error display
   }
 
   return (
@@ -774,10 +773,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                         <Text fontSize="sm">Use %</Text>
                       </label>
                     </HStack>
-                  </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Discount Amount:</Text>
-                    <Text>-${(watch("discount_amount") || 0).toFixed(2)}</Text>
                   </HStack>
                   <HStack justify="space-between" width="100%">
                     <Text>Tax Rate:</Text>

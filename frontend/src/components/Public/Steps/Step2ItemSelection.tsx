@@ -170,7 +170,7 @@ const Step2ItemSelection = ({
       // Add new item
       const newItem = {
         trip_id: bookingData.selectedTripId,
-        item_type: "swag",
+        item_type: merchandise.name,
         quantity: 1,
         price_per_unit: merchandise.price,
         trip_merchandise_id: merchandise.id,

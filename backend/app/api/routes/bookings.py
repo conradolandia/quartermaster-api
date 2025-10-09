@@ -231,7 +231,7 @@ def create_booking(
     # Decrement inventory for merchandise items
     try:
         for item in booking_items:
-            if item.item_type == "swag" and item.trip_merchandise_id:
+            if item.trip_merchandise_id:
                 merch = session.get(TripMerchandise, item.trip_merchandise_id)
                 if merch:
                     merch.quantity_available = max(
