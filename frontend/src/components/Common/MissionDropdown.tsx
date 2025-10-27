@@ -54,7 +54,7 @@ export const MissionDropdown = ({
       {...props}
     >
       <Select.HiddenSelect id={id} />
-      <Select.Control>
+      <Select.Control width="100%">
         <Select.Trigger>
           <Select.ValueText placeholder="Select mission" />
         </Select.Trigger>
@@ -64,7 +64,7 @@ export const MissionDropdown = ({
       </Select.Control>
       <Portal container={portalRef}>
         <Select.Positioner>
-          <Select.Content>
+          <Select.Content minWidth="300px">
             {missionsResponse?.data?.map((mission) => (
               <Select.Item
                 key={mission.id}

@@ -54,7 +54,7 @@ export const LaunchDropdown = ({
       {...props}
     >
       <Select.HiddenSelect id={id} />
-      <Select.Control>
+      <Select.Control width="100%">
         <Select.Trigger>
           <Select.ValueText placeholder="Select launch" />
         </Select.Trigger>
@@ -64,7 +64,7 @@ export const LaunchDropdown = ({
       </Select.Control>
       <Portal container={portalRef}>
         <Select.Positioner>
-          <Select.Content>
+          <Select.Content minWidth="300px">
             {launchesResponse?.data?.map((launch) => (
               <Select.Item
                 key={launch.id}

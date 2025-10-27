@@ -54,7 +54,7 @@ export const StateDropdown = ({
       {...props}
     >
       <Select.HiddenSelect id={id} />
-      <Select.Control>
+      <Select.Control width="100%">
         <Select.Trigger>
           <Select.ValueText placeholder="Select state" />
         </Select.Trigger>
@@ -64,7 +64,7 @@ export const StateDropdown = ({
       </Select.Control>
       <Portal container={portalRef}>
         <Select.Positioner>
-          <Select.Content>
+          <Select.Content minWidth="300px">
             {statesResponse?.data?.map((state) => (
               <Select.Item
                 key={state.code}

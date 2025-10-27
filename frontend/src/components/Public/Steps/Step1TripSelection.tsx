@@ -211,7 +211,7 @@ const Step1TripSelection = ({
                   }
                   onValueChange={handleTripChange}
                 >
-                  <Select.Control>
+                  <Select.Control width="100%">
                     <Select.Trigger>
                       <Select.ValueText placeholder="Select your rocket viewing experience" />
                     </Select.Trigger>
@@ -220,7 +220,7 @@ const Step1TripSelection = ({
                     </Select.IndicatorGroup>
                   </Select.Control>
                   <Select.Positioner>
-                    <Select.Content>
+                    <Select.Content minWidth="400px">
                       {activeTrips.map((trip: TripPublic) => {
                         const mission = getTripMission(trip.id)
                         const launch = getTripLaunch(trip.id)
@@ -326,7 +326,7 @@ const Step1TripSelection = ({
                         }
                         onValueChange={handleBoatChange}
                       >
-                        <Select.Control>
+                        <Select.Control width="100%">
                           <Select.Trigger>
                             <Select.ValueText placeholder="Select a boat" />
                           </Select.Trigger>
@@ -335,7 +335,7 @@ const Step1TripSelection = ({
                           </Select.IndicatorGroup>
                         </Select.Control>
                         <Select.Positioner>
-                          <Select.Content>
+                          <Select.Content minWidth="300px">
                             {tripBoats.map((tripBoat: { boat_id: string }) => (
                               <Select.Item
                                 key={tripBoat.boat_id}

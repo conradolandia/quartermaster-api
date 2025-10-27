@@ -54,7 +54,7 @@ export const LocationDropdown = ({
       {...props}
     >
       <Select.HiddenSelect id={id} />
-      <Select.Control>
+      <Select.Control width="100%">
         <Select.Trigger>
           <Select.ValueText placeholder="Select location" />
         </Select.Trigger>
@@ -64,7 +64,7 @@ export const LocationDropdown = ({
       </Select.Control>
       <Portal container={portalRef}>
         <Select.Positioner>
-          <Select.Content>
+          <Select.Content minWidth="300px">
             {locationsResponse?.data?.map((location) => (
               <Select.Item
                 key={location.id}

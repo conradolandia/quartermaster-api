@@ -158,16 +158,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           value={missionId ? [missionId] : [""]}
           onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
         >
-          <Select.Trigger>
-            <Select.ValueText placeholder="All Missions" />
-          </Select.Trigger>
-          <Select.Content>
-            {missionsCollection.items.map((item) => (
-              <Select.Item key={item.value} item={item}>
-                {item.label}
-              </Select.Item>
-            ))}
-          </Select.Content>
+          <Select.Control width="100%">
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Missions" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content minWidth="300px">
+              {missionsCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
         </Select.Root>
         {missionId && (
           <Button

@@ -60,7 +60,7 @@ export const JurisdictionDropdown = ({
       {...props}
     >
       <Select.HiddenSelect id={id} />
-      <Select.Control>
+      <Select.Control width="100%">
         <Select.Trigger>
           <Select.ValueText placeholder="Select jurisdiction" />
         </Select.Trigger>
@@ -70,7 +70,7 @@ export const JurisdictionDropdown = ({
       </Select.Control>
       <Portal container={portalRef}>
         <Select.Positioner>
-          <Select.Content>
+          <Select.Content minWidth="300px">
             {jurisdictionsResponse?.data?.map((jurisdiction) => (
               <Select.Item
                 key={jurisdiction.id}
