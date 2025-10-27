@@ -48,8 +48,7 @@ def get_locations_no_relationships(
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
         """
-        ),
-        {"limit": limit, "skip": skip},
+        ).params(limit=limit, skip=skip)
     ).all()
 
     locations_data = []

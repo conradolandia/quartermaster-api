@@ -80,8 +80,7 @@ def get_missions_no_relationships(
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
         """
-        ),
-        {"limit": limit, "skip": skip},
+        ).params(limit=limit, skip=skip)
     ).all()
 
     missions_data = []
@@ -127,7 +126,7 @@ def get_missions_with_stats(
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
         """
-        ).bindparams(limit=limit, skip=skip)
+        ).params(limit=limit, skip=skip)
     ).all()
 
     result = []

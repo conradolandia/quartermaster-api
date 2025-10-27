@@ -58,8 +58,7 @@ def get_launches_no_relationships(
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
         """
-        ),
-        {"limit": limit, "skip": skip},
+        ).params(limit=limit, skip=skip)
     ).all()
 
     launches_data = []
