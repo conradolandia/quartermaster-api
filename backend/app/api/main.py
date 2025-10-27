@@ -5,6 +5,7 @@ from app.api.routes import (
     booking_payments,
     booking_public,
     bookings,
+    discount_codes,
     items,
     jurisdictions,
     launches,
@@ -36,6 +37,7 @@ api_router.include_router(trips.router)
 api_router.include_router(trip_boats.router)
 api_router.include_router(trip_pricing.router)
 api_router.include_router(trip_merchandise.router)
+api_router.include_router(discount_codes.router)
 api_router.include_router(bookings.router)
 api_router.include_router(booking_public.router)
 api_router.include_router(booking_payments.router)

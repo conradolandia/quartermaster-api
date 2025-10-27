@@ -62,6 +62,7 @@ export type BookingCreate = {
     total_amount: number;
     special_requests?: (string | null);
     launch_updates_pref?: boolean;
+    discount_code_id?: (string | null);
     items: Array<BookingItemCreate>;
 };
 
@@ -110,6 +111,7 @@ export type BookingPublic = {
     special_requests?: (string | null);
     status?: BookingStatus;
     launch_updates_pref?: boolean;
+    discount_code_id?: (string | null);
     id: string;
     created_at: string;
     updated_at: string;
@@ -117,6 +119,7 @@ export type BookingPublic = {
     qr_code_base64?: (string | null);
     mission_id?: (string | null);
     mission_name?: (string | null);
+    discount_code?: (DiscountCodePublic | null);
 };
 
 export type BookingsPaginatedResponse = {
@@ -137,6 +140,52 @@ export type BookingUpdate = {
     tax_amount?: (number | null);
     total_amount?: (number | null);
     launch_updates_pref?: (boolean | null);
+    discount_code_id?: (string | null);
+};
+
+export type DiscountCodeCreate = {
+    code: string;
+    description?: (string | null);
+    discount_type: DiscountCodeType;
+    discount_value: number;
+    max_uses?: (number | null);
+    is_active?: boolean;
+    valid_from?: (string | null);
+    valid_until?: (string | null);
+    min_order_amount?: (number | null);
+    max_discount_amount?: (number | null);
+};
+
+export type DiscountCodePublic = {
+    code: string;
+    description?: (string | null);
+    discount_type: DiscountCodeType;
+    discount_value: number;
+    max_uses?: (number | null);
+    used_count?: number;
+    is_active?: boolean;
+    valid_from?: (string | null);
+    valid_until?: (string | null);
+    min_order_amount?: (number | null);
+    max_discount_amount?: (number | null);
+    id: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type DiscountCodeType = 'percentage' | 'fixed_amount';
+
+export type DiscountCodeUpdate = {
+    code?: (string | null);
+    description?: (string | null);
+    discount_type?: (DiscountCodeType | null);
+    discount_value?: (number | null);
+    max_uses?: (number | null);
+    is_active?: (boolean | null);
+    valid_from?: (string | null);
+    valid_until?: (string | null);
+    min_order_amount?: (number | null);
+    max_discount_amount?: (number | null);
 };
 
 export type HTTPValidationError = {
@@ -540,6 +589,48 @@ export type BookingsInitializePaymentData = {
 export type BookingsInitializePaymentResponse = ({
     [key: string]: unknown;
 });
+
+export type DiscountCodesCreateDiscountCodeData = {
+    requestBody: DiscountCodeCreate;
+};
+
+export type DiscountCodesCreateDiscountCodeResponse = (DiscountCodePublic);
+
+export type DiscountCodesListDiscountCodesData = {
+    isActive?: (boolean | null);
+    limit?: number;
+    skip?: number;
+};
+
+export type DiscountCodesListDiscountCodesResponse = (Array<DiscountCodePublic>);
+
+export type DiscountCodesGetDiscountCodeData = {
+    discountCodeId: string;
+};
+
+export type DiscountCodesGetDiscountCodeResponse = (DiscountCodePublic);
+
+export type DiscountCodesUpdateDiscountCodeData = {
+    discountCodeId: string;
+    requestBody: DiscountCodeUpdate;
+};
+
+export type DiscountCodesUpdateDiscountCodeResponse = (DiscountCodePublic);
+
+export type DiscountCodesDeleteDiscountCodeData = {
+    discountCodeId: string;
+};
+
+export type DiscountCodesDeleteDiscountCodeResponse = ({
+    [key: string]: (string);
+});
+
+export type DiscountCodesValidateDiscountCodeData = {
+    code: string;
+    subtotal?: number;
+};
+
+export type DiscountCodesValidateDiscountCodeResponse = (DiscountCodePublic);
 
 export type ItemsReadItemsData = {
     limit?: number;

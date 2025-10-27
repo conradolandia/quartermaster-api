@@ -6,6 +6,7 @@ import {
   HStack,
   Heading,
   IconButton,
+  Input,
   NumberInput,
   Separator,
   Text,
@@ -16,6 +17,7 @@ import { useEffect, useState } from "react"
 import { FiAlertCircle, FiTrash2 } from "react-icons/fi"
 
 import {
+  DiscountCodesService,
   JurisdictionsService,
   LaunchesService,
   MissionsService,
@@ -43,6 +45,9 @@ const Step2ItemSelection = ({
 }: Step2ItemSelectionProps) => {
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [tip, setTip] = useState<number>(0)
+  const [discountCode, setDiscountCode] = useState<string>(bookingData.discount_code || "")
+  const [discountCodeError, setDiscountCodeError] = useState<string>("")
+  const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
 
   // Fetch trip details to get jurisdiction for tax rate
   const { data: tripData } = useQuery({
@@ -87,6 +92,55 @@ const Step2ItemSelection = ({
   // Check if jurisdiction is missing when we have location data
   const jurisdictionMissing = !!launchData?.location_id && (!jurisdictionsData?.data || jurisdictionsData.data.length === 0)
 
+  // Auto-validate discount code if it was pre-filled from URL
+  useEffect(() => {
+    if (bookingData.discount_code && bookingData.discount_code !== discountCode) {
+      setDiscountCode(bookingData.discount_code)
+      validateDiscountCode(bookingData.discount_code)
+    }
+  }, [bookingData.discount_code])
+
+  // Validate discount code
+  const validateDiscountCode = async (code: string) => {
+    if (!code.trim()) {
+      setDiscountCodeError("")
+      setAppliedDiscountCode(null)
+      setDiscountAmount(0)
+      return
+    }
+
+    try {
+      const subtotal = bookingData.selectedItems.reduce((sum, item) => {
+        return sum + item.quantity * item.price_per_unit
+      }, 0)
+
+      const discountCodeData = await DiscountCodesService.validateDiscountCode({
+        code: code.trim(),
+        subtotal: subtotal,
+      })
+
+      setAppliedDiscountCode(discountCodeData)
+      setDiscountCodeError("")
+
+      // Calculate discount amount based on code type
+      let calculatedDiscount = 0
+      if (discountCodeData.discount_type === "percentage") {
+        calculatedDiscount = (subtotal * discountCodeData.discount_value) / 100
+        if (discountCodeData.max_discount_amount) {
+          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+        }
+      } else {
+        calculatedDiscount = discountCodeData.discount_value
+      }
+
+      setDiscountAmount(calculatedDiscount)
+    } catch (error: any) {
+      setDiscountCodeError(error.response?.data?.detail || "Invalid discount code")
+      setAppliedDiscountCode(null)
+      setDiscountAmount(0)
+    }
+  }
+
   // Fetch trip pricing
   const { data: tripPricing } = useQuery({
     queryKey: ["trip-pricing", bookingData.selectedTripId],
@@ -123,8 +177,9 @@ const Step2ItemSelection = ({
       tax_amount: taxAmount,
       tip,
       total,
+      discount_code_id: appliedDiscountCode?.id || null,
     })
-  }, [bookingData.selectedItems, discountAmount, taxRatePercent, tip])
+  }, [bookingData.selectedItems, discountAmount, taxRatePercent, tip, appliedDiscountCode])
 
   const addTicket = (ticketType: string, price: number) => {
     const existingItem = bookingData.selectedItems.find(
@@ -418,21 +473,44 @@ const Step2ItemSelection = ({
                   </Text>
                 </HStack>
 
-                <HStack justify="space-between">
-                  <Text>Discount:</Text>
-                  <NumberInput.Root
-                    size="sm"
-                    min={0}
-                    max={bookingData.subtotal}
-                    value={discountAmount.toString()}
-                    onValueChange={(details) =>
-                      setDiscountAmount(Number.parseFloat(details.value) || 0)
-                    }
-                    w="120px"
-                  >
-                    <NumberInput.Input />
-                  </NumberInput.Root>
-                </HStack>
+                <VStack align="stretch" gap={2}>
+                  <HStack justify="space-between">
+                    <Text>Discount Code:</Text>
+                    <HStack gap={2}>
+                      <Input
+                        size="sm"
+                        placeholder="Enter code"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        onBlur={() => validateDiscountCode(discountCode)}
+                        w="120px"
+                        borderColor={discountCodeError ? "red.500" : undefined}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => validateDiscountCode(discountCode)}
+                        disabled={!discountCode.trim()}
+                      >
+                        Apply
+                      </Button>
+                    </HStack>
+                  </HStack>
+                  {discountCodeError && (
+                    <Text fontSize="sm" color="red.500">
+                      {discountCodeError}
+                    </Text>
+                  )}
+                  {appliedDiscountCode && (
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color="green.500">
+                        {appliedDiscountCode.code} applied
+                      </Text>
+                      <Text fontSize="sm" color="green.500">
+                        -${discountAmount.toFixed(2)}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
 
                 <HStack justify="space-between">
                   <Text>Tax Rate (%):</Text>

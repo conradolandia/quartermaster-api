@@ -58,6 +58,7 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
         total_amount: bookingData.total,
         special_requests: bookingData.customerInfo.special_requests || "",
         launch_updates_pref: false,
+        discount_code_id: bookingData.discount_code_id,
       };
 
       // Step 1: Create the booking as draft

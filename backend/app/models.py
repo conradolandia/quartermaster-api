@@ -1,6 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from pydantic import EmailStr, field_validator
 from sqlmodel import Field, Relationship, SQLModel
@@ -588,6 +589,9 @@ class BookingBase(SQLModel):
     special_requests: str | None = Field(default=None, max_length=1000)
     status: BookingStatus = Field(default=BookingStatus.draft)
     launch_updates_pref: bool = Field(default=False)
+    discount_code_id: uuid.UUID | None = Field(
+        default=None, foreign_key="discountcode.id"
+    )
 
 
 class BookingCreate(SQLModel):
@@ -603,6 +607,7 @@ class BookingCreate(SQLModel):
     total_amount: float = Field(ge=0)
     special_requests: str | None = Field(default=None, max_length=1000)
     launch_updates_pref: bool = Field(default=False)
+    discount_code_id: uuid.UUID | None = Field(default=None)
     items: list[BookingItemCreate]
 
 
@@ -614,6 +619,7 @@ class BookingUpdate(SQLModel):
     tax_amount: float | None = None
     total_amount: float | None = None
     launch_updates_pref: bool | None = None
+    discount_code_id: uuid.UUID | None = None
 
 
 class Booking(BookingBase, table=True):
@@ -628,6 +634,7 @@ class Booking(BookingBase, table=True):
         back_populates="booking",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    discount_code: Optional["DiscountCode"] = Relationship(back_populates="bookings")
 
     @property
     def mission_id(self) -> uuid.UUID | None:
@@ -652,3 +659,66 @@ class BookingPublic(BookingBase):
     qr_code_base64: str | None = None
     mission_id: uuid.UUID | None = None
     mission_name: str | None = None
+    discount_code: "DiscountCodePublic | None" = None
+
+
+# Discount Code Models
+class DiscountCodeType(str, enum.Enum):
+    percentage = "percentage"
+    fixed_amount = "fixed_amount"
+
+
+class DiscountCodeBase(SQLModel):
+    code: str = Field(unique=True, index=True, max_length=50)
+    description: str | None = Field(default=None, max_length=255)
+    discount_type: DiscountCodeType
+    discount_value: float = Field(ge=0)
+    max_uses: int | None = Field(default=None, ge=1)
+    used_count: int = Field(default=0, ge=0)
+    is_active: bool = Field(default=True)
+    valid_from: datetime | None = Field(default=None)
+    valid_until: datetime | None = Field(default=None)
+    min_order_amount: float | None = Field(default=None, ge=0)
+    max_discount_amount: float | None = Field(default=None, ge=0)
+
+
+class DiscountCodeCreate(SQLModel):
+    code: str = Field(max_length=50)
+    description: str | None = Field(default=None, max_length=255)
+    discount_type: DiscountCodeType
+    discount_value: float = Field(ge=0)
+    max_uses: int | None = Field(default=None, ge=1)
+    is_active: bool = Field(default=True)
+    valid_from: datetime | None = Field(default=None)
+    valid_until: datetime | None = Field(default=None)
+    min_order_amount: float | None = Field(default=None, ge=0)
+    max_discount_amount: float | None = Field(default=None, ge=0)
+
+
+class DiscountCodeUpdate(SQLModel):
+    code: str | None = Field(default=None, max_length=50)
+    description: str | None = Field(default=None, max_length=255)
+    discount_type: DiscountCodeType | None = None
+    discount_value: float | None = Field(default=None, ge=0)
+    max_uses: int | None = Field(default=None, ge=1)
+    is_active: bool | None = None
+    valid_from: datetime | None = Field(default=None)
+    valid_until: datetime | None = Field(default=None)
+    min_order_amount: float | None = Field(default=None, ge=0)
+    max_discount_amount: float | None = Field(default=None, ge=0)
+
+
+class DiscountCode(DiscountCodeBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    bookings: list["Booking"] = Relationship(back_populates="discount_code")
+
+
+class DiscountCodePublic(DiscountCodeBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime

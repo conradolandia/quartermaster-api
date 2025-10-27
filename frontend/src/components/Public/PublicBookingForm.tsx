@@ -1,5 +1,6 @@
 import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSearch } from "@tanstack/react-router"
 
 // Types for the booking flow
 export interface BookingStepData {
@@ -35,6 +36,8 @@ export interface BookingStepData {
   tax_amount: number
   tip: number
   total: number
+  discount_code_id: string | null
+  discount_code?: string
 }
 
 const STEPS = [
@@ -56,6 +59,7 @@ import Step4Review from "./Steps/Step4Review"
 
 const PublicBookingForm = () => {
   const [currentStep, setCurrentStep] = useState(1)
+  const search = useSearch({ from: "/book" })
   const [bookingData, setBookingData] = useState<BookingStepData>({
     // Step 1: Trip Selection
     selectedTripId: "",
@@ -83,6 +87,7 @@ const PublicBookingForm = () => {
     tax_amount: 0,
     tip: 0,
     total: 0,
+    discount_code_id: null,
   })
 
   const updateBookingData = (updates: Partial<BookingStepData>) => {
@@ -91,6 +96,17 @@ const PublicBookingForm = () => {
       ...updates,
     }))
   }
+
+  // Handle URL parameters
+  useEffect(() => {
+    if (search.discount) {
+      // Pre-fill discount code from URL parameter
+      setBookingData((prev) => ({
+        ...prev,
+        discount_code: search.discount,
+      }))
+    }
+  }, [search.discount])
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {

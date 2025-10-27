@@ -3,7 +3,7 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { BoatsReadBoatsData, BoatsReadBoatsResponse, BoatsCreateBoatData, BoatsCreateBoatResponse, BoatsReadBoatData, BoatsReadBoatResponse, BoatsUpdateBoatData, BoatsUpdateBoatResponse, BoatsDeleteBoatData, BoatsDeleteBoatResponse, BoatsReadBoatsByJurisdictionData, BoatsReadBoatsByJurisdictionResponse, BookingsCreateBookingData, BookingsCreateBookingResponse, BookingsListBookingsData, BookingsListBookingsResponse, BookingsGetBookingByIdData, BookingsGetBookingByIdResponse, BookingsUpdateBookingData, BookingsUpdateBookingResponse, BookingsGetBookingQrCodeData, BookingsGetBookingQrCodeResponse, BookingsGetBookingByConfirmationCodeData, BookingsGetBookingByConfirmationCodeResponse, BookingsResendBookingConfirmationEmailData, BookingsResendBookingConfirmationEmailResponse, BookingsInitializePaymentData, BookingsInitializePaymentResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, JurisdictionsReadJurisdictionsData, JurisdictionsReadJurisdictionsResponse, JurisdictionsCreateJurisdictionData, JurisdictionsCreateJurisdictionResponse, JurisdictionsReadJurisdictionData, JurisdictionsReadJurisdictionResponse, JurisdictionsUpdateJurisdictionData, JurisdictionsUpdateJurisdictionResponse, JurisdictionsDeleteJurisdictionData, JurisdictionsDeleteJurisdictionResponse, LaunchesReadLaunchesData, LaunchesReadLaunchesResponse, LaunchesCreateLaunchData, LaunchesCreateLaunchResponse, LaunchesReadLaunchData, LaunchesReadLaunchResponse, LaunchesUpdateLaunchData, LaunchesUpdateLaunchResponse, LaunchesDeleteLaunchData, LaunchesDeleteLaunchResponse, LaunchesReadLaunchesByLocationData, LaunchesReadLaunchesByLocationResponse, LocationsReadLocationsData, LocationsReadLocationsResponse, LocationsCreateLocationData, LocationsCreateLocationResponse, LocationsReadLocationData, LocationsReadLocationResponse, LocationsUpdateLocationData, LocationsUpdateLocationResponse, LocationsDeleteLocationData, LocationsDeleteLocationResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, MissionsReadMissionsData, MissionsReadMissionsResponse, MissionsCreateMissionData, MissionsCreateMissionResponse, MissionsReadMissionData, MissionsReadMissionResponse, MissionsUpdateMissionData, MissionsUpdateMissionResponse, MissionsDeleteMissionData, MissionsDeleteMissionResponse, MissionsReadMissionsByLaunchData, MissionsReadMissionsByLaunchResponse, MissionsReadActiveMissionsData, MissionsReadActiveMissionsResponse, MissionsReadPublicMissionsData, MissionsReadPublicMissionsResponse, PaymentsCreatePaymentIntentEndpointData, PaymentsCreatePaymentIntentEndpointResponse, PaymentsVerifyPaymentData, PaymentsVerifyPaymentResponse, PaymentsStripeWebhookResponse, PrivateCreateUserData, PrivateCreateUserResponse, TripBoatsCreateTripBoatData, TripBoatsCreateTripBoatResponse, TripBoatsReadTripBoatsByTripData, TripBoatsReadTripBoatsByTripResponse, TripBoatsReadTripBoatsByBoatData, TripBoatsReadTripBoatsByBoatResponse, TripBoatsUpdateTripBoatData, TripBoatsUpdateTripBoatResponse, TripBoatsDeleteTripBoatData, TripBoatsDeleteTripBoatResponse, TripMerchandiseCreateTripMerchandiseData, TripMerchandiseCreateTripMerchandiseResponse, TripMerchandiseListTripMerchandiseData, TripMerchandiseListTripMerchandiseResponse, TripMerchandiseGetTripMerchandiseData, TripMerchandiseGetTripMerchandiseResponse, TripMerchandiseUpdateTripMerchandiseData, TripMerchandiseUpdateTripMerchandiseResponse, TripMerchandiseDeleteTripMerchandiseData, TripMerchandiseDeleteTripMerchandiseResponse, TripPricingCreateTripPricingData, TripPricingCreateTripPricingResponse, TripPricingListTripPricingData, TripPricingListTripPricingResponse, TripPricingGetTripPricingData, TripPricingGetTripPricingResponse, TripPricingUpdateTripPricingData, TripPricingUpdateTripPricingResponse, TripPricingDeleteTripPricingData, TripPricingDeleteTripPricingResponse, TripsReadTripsData, TripsReadTripsResponse, TripsCreateTripData, TripsCreateTripResponse, TripsReadTripData, TripsReadTripResponse, TripsUpdateTripData, TripsUpdateTripResponse, TripsDeleteTripData, TripsDeleteTripResponse, TripsReadTripsByMissionData, TripsReadTripsByMissionResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, UtilsGetUsStatesResponse } from './types.gen';
+import type { BoatsReadBoatsData, BoatsReadBoatsResponse, BoatsCreateBoatData, BoatsCreateBoatResponse, BoatsReadBoatData, BoatsReadBoatResponse, BoatsUpdateBoatData, BoatsUpdateBoatResponse, BoatsDeleteBoatData, BoatsDeleteBoatResponse, BoatsReadBoatsByJurisdictionData, BoatsReadBoatsByJurisdictionResponse, BookingsCreateBookingData, BookingsCreateBookingResponse, BookingsListBookingsData, BookingsListBookingsResponse, BookingsGetBookingByIdData, BookingsGetBookingByIdResponse, BookingsUpdateBookingData, BookingsUpdateBookingResponse, BookingsGetBookingQrCodeData, BookingsGetBookingQrCodeResponse, BookingsGetBookingByConfirmationCodeData, BookingsGetBookingByConfirmationCodeResponse, BookingsResendBookingConfirmationEmailData, BookingsResendBookingConfirmationEmailResponse, BookingsInitializePaymentData, BookingsInitializePaymentResponse, DiscountCodesCreateDiscountCodeData, DiscountCodesCreateDiscountCodeResponse, DiscountCodesListDiscountCodesData, DiscountCodesListDiscountCodesResponse, DiscountCodesGetDiscountCodeData, DiscountCodesGetDiscountCodeResponse, DiscountCodesUpdateDiscountCodeData, DiscountCodesUpdateDiscountCodeResponse, DiscountCodesDeleteDiscountCodeData, DiscountCodesDeleteDiscountCodeResponse, DiscountCodesValidateDiscountCodeData, DiscountCodesValidateDiscountCodeResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, JurisdictionsReadJurisdictionsData, JurisdictionsReadJurisdictionsResponse, JurisdictionsCreateJurisdictionData, JurisdictionsCreateJurisdictionResponse, JurisdictionsReadJurisdictionData, JurisdictionsReadJurisdictionResponse, JurisdictionsUpdateJurisdictionData, JurisdictionsUpdateJurisdictionResponse, JurisdictionsDeleteJurisdictionData, JurisdictionsDeleteJurisdictionResponse, LaunchesReadLaunchesData, LaunchesReadLaunchesResponse, LaunchesCreateLaunchData, LaunchesCreateLaunchResponse, LaunchesReadLaunchData, LaunchesReadLaunchResponse, LaunchesUpdateLaunchData, LaunchesUpdateLaunchResponse, LaunchesDeleteLaunchData, LaunchesDeleteLaunchResponse, LaunchesReadLaunchesByLocationData, LaunchesReadLaunchesByLocationResponse, LocationsReadLocationsData, LocationsReadLocationsResponse, LocationsCreateLocationData, LocationsCreateLocationResponse, LocationsReadLocationData, LocationsReadLocationResponse, LocationsUpdateLocationData, LocationsUpdateLocationResponse, LocationsDeleteLocationData, LocationsDeleteLocationResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, MissionsReadMissionsData, MissionsReadMissionsResponse, MissionsCreateMissionData, MissionsCreateMissionResponse, MissionsReadMissionData, MissionsReadMissionResponse, MissionsUpdateMissionData, MissionsUpdateMissionResponse, MissionsDeleteMissionData, MissionsDeleteMissionResponse, MissionsReadMissionsByLaunchData, MissionsReadMissionsByLaunchResponse, MissionsReadActiveMissionsData, MissionsReadActiveMissionsResponse, MissionsReadPublicMissionsData, MissionsReadPublicMissionsResponse, PaymentsCreatePaymentIntentEndpointData, PaymentsCreatePaymentIntentEndpointResponse, PaymentsVerifyPaymentData, PaymentsVerifyPaymentResponse, PaymentsStripeWebhookResponse, PrivateCreateUserData, PrivateCreateUserResponse, TripBoatsCreateTripBoatData, TripBoatsCreateTripBoatResponse, TripBoatsReadTripBoatsByTripData, TripBoatsReadTripBoatsByTripResponse, TripBoatsReadTripBoatsByBoatData, TripBoatsReadTripBoatsByBoatResponse, TripBoatsUpdateTripBoatData, TripBoatsUpdateTripBoatResponse, TripBoatsDeleteTripBoatData, TripBoatsDeleteTripBoatResponse, TripMerchandiseCreateTripMerchandiseData, TripMerchandiseCreateTripMerchandiseResponse, TripMerchandiseListTripMerchandiseData, TripMerchandiseListTripMerchandiseResponse, TripMerchandiseGetTripMerchandiseData, TripMerchandiseGetTripMerchandiseResponse, TripMerchandiseUpdateTripMerchandiseData, TripMerchandiseUpdateTripMerchandiseResponse, TripMerchandiseDeleteTripMerchandiseData, TripMerchandiseDeleteTripMerchandiseResponse, TripPricingCreateTripPricingData, TripPricingCreateTripPricingResponse, TripPricingListTripPricingData, TripPricingListTripPricingResponse, TripPricingGetTripPricingData, TripPricingGetTripPricingResponse, TripPricingUpdateTripPricingData, TripPricingUpdateTripPricingResponse, TripPricingDeleteTripPricingData, TripPricingDeleteTripPricingResponse, TripsReadTripsData, TripsReadTripsResponse, TripsCreateTripData, TripsCreateTripResponse, TripsReadTripData, TripsReadTripResponse, TripsUpdateTripData, TripsUpdateTripResponse, TripsDeleteTripData, TripsDeleteTripResponse, TripsReadTripsByMissionData, TripsReadTripsByMissionResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse, UtilsGetUsStatesResponse } from './types.gen';
 
 export class BoatsService {
     /**
@@ -320,6 +320,145 @@ export class BookingsService {
             url: '/api/v1/bookings/{confirmation_code}/initialize-payment',
             path: {
                 confirmation_code: data.confirmationCode
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+}
+
+export class DiscountCodesService {
+    /**
+     * Create Discount Code
+     * Create new discount code.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns DiscountCodePublic Successful Response
+     * @throws ApiError
+     */
+    public static createDiscountCode(data: DiscountCodesCreateDiscountCodeData): CancelablePromise<DiscountCodesCreateDiscountCodeResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/discount-codes/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * List Discount Codes
+     * Retrieve discount codes.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @param data.isActive
+     * @returns DiscountCodePublic Successful Response
+     * @throws ApiError
+     */
+    public static listDiscountCodes(data: DiscountCodesListDiscountCodesData = {}): CancelablePromise<DiscountCodesListDiscountCodesResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/discount-codes/',
+            query: {
+                skip: data.skip,
+                limit: data.limit,
+                is_active: data.isActive
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Discount Code
+     * Get discount code by ID.
+     * @param data The data for the request.
+     * @param data.discountCodeId
+     * @returns DiscountCodePublic Successful Response
+     * @throws ApiError
+     */
+    public static getDiscountCode(data: DiscountCodesGetDiscountCodeData): CancelablePromise<DiscountCodesGetDiscountCodeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/discount-codes/{discount_code_id}',
+            path: {
+                discount_code_id: data.discountCodeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Discount Code
+     * Update discount code.
+     * @param data The data for the request.
+     * @param data.discountCodeId
+     * @param data.requestBody
+     * @returns DiscountCodePublic Successful Response
+     * @throws ApiError
+     */
+    public static updateDiscountCode(data: DiscountCodesUpdateDiscountCodeData): CancelablePromise<DiscountCodesUpdateDiscountCodeResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/discount-codes/{discount_code_id}',
+            path: {
+                discount_code_id: data.discountCodeId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Discount Code
+     * Delete discount code.
+     * @param data The data for the request.
+     * @param data.discountCodeId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static deleteDiscountCode(data: DiscountCodesDeleteDiscountCodeData): CancelablePromise<DiscountCodesDeleteDiscountCodeResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/discount-codes/{discount_code_id}',
+            path: {
+                discount_code_id: data.discountCodeId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Validate Discount Code
+     * Validate discount code and return details if valid.
+     * @param data The data for the request.
+     * @param data.code
+     * @param data.subtotal
+     * @returns DiscountCodePublic Successful Response
+     * @throws ApiError
+     */
+    public static validateDiscountCode(data: DiscountCodesValidateDiscountCodeData): CancelablePromise<DiscountCodesValidateDiscountCodeResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/discount-codes/validate/{code}',
+            path: {
+                code: data.code
+            },
+            query: {
+                subtotal: data.subtotal
             },
             errors: {
                 422: 'Validation Error'

@@ -19,6 +19,7 @@ import {
   type BookingCreate,
   type BookingItemCreate,
   BookingsService,
+  DiscountCodesService,
   JurisdictionsService,
   LaunchesService,
   MissionsService,
@@ -95,6 +96,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [selectedBoatId, setSelectedBoatId] = useState<string>("")
   const [isDiscountPercent, setIsDiscountPercent] = useState<boolean>(false)
   const [discountInput, setDiscountInput] = useState<number>(0)
+  const [discountCode, setDiscountCode] = useState<string>("")
+  const [discountCodeError, setDiscountCodeError] = useState<string>("")
+  const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
 
   // Get trips for dropdown
   const { data: tripsData } = useQuery({
@@ -268,6 +272,47 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   // Watch form values for auto-calculation
   const watchedTipAmount = watch("tip_amount")
 
+  // Validate discount code
+  const validateDiscountCode = async (code: string) => {
+    if (!code.trim()) {
+      setDiscountCodeError("")
+      setAppliedDiscountCode(null)
+      setDiscountInput(0)
+      return
+    }
+
+    try {
+      const subtotal = selectedItems.reduce((sum, item) => {
+        return sum + item.quantity * item.price_per_unit
+      }, 0)
+
+      const discountCodeData = await DiscountCodesService.validateDiscountCode({
+        code: code.trim(),
+        subtotal: subtotal,
+      })
+
+      setAppliedDiscountCode(discountCodeData)
+      setDiscountCodeError("")
+
+      // Calculate discount amount based on code type
+      let calculatedDiscount = 0
+      if (discountCodeData.discount_type === "percentage") {
+        calculatedDiscount = (subtotal * discountCodeData.discount_value) / 100
+        if (discountCodeData.max_discount_amount) {
+          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+        }
+      } else {
+        calculatedDiscount = discountCodeData.discount_value
+      }
+
+      setDiscountInput(calculatedDiscount)
+    } catch (error: any) {
+      setDiscountCodeError(error.response?.data?.detail || "Invalid discount code")
+      setAppliedDiscountCode(null)
+      setDiscountInput(0)
+    }
+  }
+
   // Auto-calculate subtotal, discount, tax_amount (from tax rate), and total based on selected items
   useEffect(() => {
     const calculatedSubtotal = selectedItems.reduce((sum, item) => {
@@ -307,6 +352,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     watchedTipAmount,
     taxRatePercent,
     setValue,
+    appliedDiscountCode,
   ])
 
   // Generate confirmation code
@@ -360,6 +406,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       ...data,
       confirmation_code: generateConfirmationCode(),
       items: bookingItems,
+      discount_code_id: appliedDiscountCode?.id || null,
     }
     mutation.mutate(bookingData)
   }
@@ -741,39 +788,76 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     <Text>Subtotal:</Text>
                     <Text>${watch("subtotal").toFixed(2)}</Text>
                   </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Discount ({isDiscountPercent ? "%" : "$"}):</Text>
-                    <HStack gap={2}>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={discountInput}
-                        onChange={(e) =>
-                          setDiscountInput(
-                            Number.parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        style={{ width: "100px" }}
-                      />
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isDiscountPercent}
-                          onChange={(e) =>
-                            setIsDiscountPercent(e.target.checked)
-                          }
+                  <VStack align="stretch" gap={2} width="100%">
+                    <HStack justify="space-between">
+                      <Text>Discount Code:</Text>
+                      <HStack gap={2}>
+                        <Input
+                          placeholder="Enter code"
+                          value={discountCode}
+                          onChange={(e) => setDiscountCode(e.target.value)}
+                          onBlur={() => validateDiscountCode(discountCode)}
+                          style={{ width: "120px" }}
+                          borderColor={discountCodeError ? "red.500" : undefined}
                         />
-                        <Text fontSize="sm">Use %</Text>
-                      </label>
+                        <Button
+                          size="sm"
+                          onClick={() => validateDiscountCode(discountCode)}
+                          disabled={!discountCode.trim()}
+                        >
+                          Apply
+                        </Button>
+                      </HStack>
                     </HStack>
-                  </HStack>
+                    {discountCodeError && (
+                      <Text fontSize="sm" color="red.500">
+                        {discountCodeError}
+                      </Text>
+                    )}
+                    {appliedDiscountCode && (
+                      <HStack justify="space-between">
+                        <Text fontSize="sm" color="green.500">
+                          {appliedDiscountCode.code} applied
+                        </Text>
+                        <Text fontSize="sm" color="green.500">
+                          -${discountInput.toFixed(2)}
+                        </Text>
+                      </HStack>
+                    )}
+                    <HStack justify="space-between">
+                      <Text>Manual Discount ({isDiscountPercent ? "%" : "$"}):</Text>
+                      <HStack gap={2}>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={discountInput}
+                          onChange={(e) =>
+                            setDiscountInput(
+                              Number.parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          style={{ width: "100px" }}
+                        />
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isDiscountPercent}
+                            onChange={(e) =>
+                              setIsDiscountPercent(e.target.checked)
+                            }
+                          />
+                          <Text fontSize="sm">Use %</Text>
+                        </label>
+                      </HStack>
+                    </HStack>
+                  </VStack>
                   <HStack justify="space-between" width="100%">
                     <Text>Tax Rate:</Text>
                     <Text>

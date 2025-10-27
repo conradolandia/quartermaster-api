@@ -229,6 +229,8 @@ export default function TripPricingManager({
   const cancelEdit = () => {
     setEditingPricingId(null)
     setEditingMerchandiseId(null)
+    setIsAddingPricing(false)
+    setIsAddingMerchandise(false)
     setPricingForm({ ticket_type: "adult", price: "" })
     setMerchandiseForm({
       name: "",
@@ -336,14 +338,13 @@ export default function TripPricingManager({
               p={3}
               borderWidth="1px"
               borderRadius="md"
-              bg={editingPricingId === pricing.id ? "blue.50" : "transparent"}
             >
               <HStack>
-                <Text fontWeight="medium">
+                <Text fontWeight="medium" color={editingPricingId === pricing.id ? "white" : "inherit"}>
                   {TICKET_TYPES.find((t) => t.value === pricing.ticket_type)
                     ?.label || pricing.ticket_type}
                 </Text>
-                <Text>${pricing.price.toFixed(2)}</Text>
+                <Text color={editingPricingId === pricing.id ? "white" : "inherit"}>${pricing.price.toFixed(2)}</Text>
               </HStack>
               <HStack>
                 {editingPricingId !== pricing.id && (
@@ -352,6 +353,7 @@ export default function TripPricingManager({
                     children={<FiEdit />}
                     size="sm"
                     variant="ghost"
+                    color={editingPricingId === pricing.id ? "white" : "inherit"}
                     onClick={() => startEditPricing(pricing)}
                   />
                 )}
@@ -360,7 +362,7 @@ export default function TripPricingManager({
                   children={<FiTrash2 />}
                   size="sm"
                   variant="ghost"
-                  colorScheme="red"
+                  colorScheme={editingPricingId === pricing.id ? "white" : "red"}
                   onClick={() => deletePricingMutation.mutate(pricing.id)}
                   loading={deletePricingMutation.isPending}
                 />
@@ -500,20 +502,20 @@ export default function TripPricingManager({
               borderRadius="md"
               bg={
                 editingMerchandiseId === merchandise.id
-                  ? "blue.50"
+                  ? "blue.500"
                   : "transparent"
               }
             >
               <VStack align="start" flex={1}>
-                <Text fontWeight="medium">{merchandise.name}</Text>
+                <Text fontWeight="medium" color={editingMerchandiseId === merchandise.id ? "white" : "inherit"}>{merchandise.name}</Text>
                 {merchandise.description && (
-                  <Text fontSize="sm" color="gray.600">
+                  <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "gray.200" : "gray.600"}>
                     {merchandise.description}
                   </Text>
                 )}
                 <HStack>
-                  <Text fontSize="sm">${merchandise.price.toFixed(2)}</Text>
-                  <Text fontSize="sm" color="gray.500">
+                  <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "white" : "inherit"}>${merchandise.price.toFixed(2)}</Text>
+                  <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "gray.200" : "gray.500"}>
                     ({merchandise.quantity_available} available)
                   </Text>
                 </HStack>
@@ -525,6 +527,7 @@ export default function TripPricingManager({
                     children={<FiEdit />}
                     size="sm"
                     variant="ghost"
+                    color={editingMerchandiseId === merchandise.id ? "white" : "inherit"}
                     onClick={() => startEditMerchandise(merchandise)}
                   />
                 )}
@@ -533,7 +536,7 @@ export default function TripPricingManager({
                   children={<FiTrash2 />}
                   size="sm"
                   variant="ghost"
-                  colorScheme="red"
+                  colorScheme={editingMerchandiseId === merchandise.id ? "white" : "red"}
                   onClick={() =>
                     deleteMerchandiseMutation.mutate(merchandise.id)
                   }
