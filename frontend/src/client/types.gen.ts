@@ -376,6 +376,16 @@ export type TripBoatCreate = {
     max_capacity?: (number | null);
 };
 
+export type TripBoatPublic = {
+    trip_id: string;
+    boat_id: string;
+    max_capacity?: (number | null);
+    id: string;
+    created_at: string;
+    updated_at: string;
+    boat: BoatPublic;
+};
+
 export type TripBoatUpdate = {
     trip_id?: (string | null);
     boat_id?: (string | null);
@@ -447,6 +457,7 @@ export type TripPublic = {
     id: string;
     created_at: string;
     updated_at: string;
+    trip_boats?: Array<TripBoatPublic>;
 };
 
 export type TripsPublic = {
@@ -580,6 +591,31 @@ export type BookingsUpdateBookingData = {
 };
 
 export type BookingsUpdateBookingResponse = (BookingPublic);
+
+export type BookingsCheckInBookingData = {
+    boatId?: (string | null);
+    confirmationCode: string;
+    tripId?: (string | null);
+};
+
+export type BookingsCheckInBookingResponse = (BookingPublic);
+
+export type BookingsProcessRefundData = {
+    confirmationCode: string;
+    refundAmount?: (number | null);
+    refundNotes?: (string | null);
+    refundReason: string;
+};
+
+export type BookingsProcessRefundResponse = (BookingPublic);
+
+export type BookingsExportBookingsCsvData = {
+    bookingStatus?: (string | null);
+    missionId?: (string | null);
+    tripId?: (string | null);
+};
+
+export type BookingsExportBookingsCsvResponse = (unknown);
 
 export type BookingsGetBookingQrCodeData = {
     confirmationCode: string;
@@ -755,6 +791,19 @@ export type LaunchesReadLaunchesByLocationData = {
 };
 
 export type LaunchesReadLaunchesByLocationResponse = (LaunchesPublic);
+
+export type LaunchesReadPublicLaunchesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type LaunchesReadPublicLaunchesResponse = (LaunchesPublic);
+
+export type LaunchesReadPublicLaunchData = {
+    launchId: string;
+};
+
+export type LaunchesReadPublicLaunchResponse = (LaunchPublic);
 
 export type LocationsReadLocationsData = {
     limit?: number;
@@ -1032,6 +1081,19 @@ export type TripsReadTripsByMissionData = {
 };
 
 export type TripsReadTripsByMissionResponse = (TripsPublic);
+
+export type TripsReadPublicTripsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type TripsReadPublicTripsResponse = (TripsPublic);
+
+export type TripsReadPublicTripData = {
+    tripId: string;
+};
+
+export type TripsReadPublicTripResponse = (TripPublic);
 
 export type UsersReadUsersData = {
     limit?: number;

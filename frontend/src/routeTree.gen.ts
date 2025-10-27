@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as SignupImport } from './routes/signup'
 import { Route as ResetPasswordImport } from './routes/reset-password'
 import { Route as RecoverPasswordImport } from './routes/recover-password'
+import { Route as LookupImport } from './routes/lookup'
 import { Route as LoginImport } from './routes/login'
 import { Route as BookConfirmImport } from './routes/book-confirm'
 import { Route as BookImport } from './routes/book'
@@ -21,12 +22,15 @@ import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as LayoutTripsImport } from './routes/_layout/trips'
 import { Route as LayoutSettingsImport } from './routes/_layout/settings'
+import { Route as LayoutRefundsImport } from './routes/_layout/refunds'
 import { Route as LayoutMissionsImport } from './routes/_layout/missions'
 import { Route as LayoutLocationsImport } from './routes/_layout/locations'
 import { Route as LayoutLaunchesImport } from './routes/_layout/launches'
 import { Route as LayoutJurisdictionsImport } from './routes/_layout/jurisdictions'
 import { Route as LayoutItemsImport } from './routes/_layout/items'
+import { Route as LayoutExportImport } from './routes/_layout/export'
 import { Route as LayoutDiscountCodesImport } from './routes/_layout/discount-codes'
+import { Route as LayoutCheckInImport } from './routes/_layout/check-in'
 import { Route as LayoutBookingsImport } from './routes/_layout/bookings'
 import { Route as LayoutBoatsImport } from './routes/_layout/boats'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
@@ -45,6 +49,11 @@ const ResetPasswordRoute = ResetPasswordImport.update({
 
 const RecoverPasswordRoute = RecoverPasswordImport.update({
   path: '/recover-password',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LookupRoute = LookupImport.update({
+  path: '/lookup',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -83,6 +92,11 @@ const LayoutSettingsRoute = LayoutSettingsImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
+const LayoutRefundsRoute = LayoutRefundsImport.update({
+  path: '/refunds',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
 const LayoutMissionsRoute = LayoutMissionsImport.update({
   path: '/missions',
   getParentRoute: () => LayoutRoute,
@@ -108,8 +122,18 @@ const LayoutItemsRoute = LayoutItemsImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
+const LayoutExportRoute = LayoutExportImport.update({
+  path: '/export',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
 const LayoutDiscountCodesRoute = LayoutDiscountCodesImport.update({
   path: '/discount-codes',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutCheckInRoute = LayoutCheckInImport.update({
+  path: '/check-in',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -148,6 +172,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/lookup': {
+      preLoaderRoute: typeof LookupImport
+      parentRoute: typeof rootRoute
+    }
     '/recover-password': {
       preLoaderRoute: typeof RecoverPasswordImport
       parentRoute: typeof rootRoute
@@ -172,8 +200,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutBookingsImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/check-in': {
+      preLoaderRoute: typeof LayoutCheckInImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/discount-codes': {
       preLoaderRoute: typeof LayoutDiscountCodesImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/export': {
+      preLoaderRoute: typeof LayoutExportImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/items': {
@@ -194,6 +230,10 @@ declare module '@tanstack/react-router' {
     }
     '/_layout/missions': {
       preLoaderRoute: typeof LayoutMissionsImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/refunds': {
+      preLoaderRoute: typeof LayoutRefundsImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/settings': {
@@ -218,12 +258,15 @@ export const routeTree = rootRoute.addChildren([
     LayoutAdminRoute,
     LayoutBoatsRoute,
     LayoutBookingsRoute,
+    LayoutCheckInRoute,
     LayoutDiscountCodesRoute,
+    LayoutExportRoute,
     LayoutItemsRoute,
     LayoutJurisdictionsRoute,
     LayoutLaunchesRoute,
     LayoutLocationsRoute,
     LayoutMissionsRoute,
+    LayoutRefundsRoute,
     LayoutSettingsRoute,
     LayoutTripsRoute,
     LayoutIndexRoute,
@@ -231,6 +274,7 @@ export const routeTree = rootRoute.addChildren([
   BookRoute,
   BookConfirmRoute,
   LoginRoute,
+  LookupRoute,
   RecoverPasswordRoute,
   ResetPasswordRoute,
   SignupRoute,

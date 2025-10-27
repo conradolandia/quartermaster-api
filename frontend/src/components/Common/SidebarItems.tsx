@@ -1,7 +1,7 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
-import { FiSettings, FiUsers, FiTag } from "react-icons/fi"
+import { FiCheck, FiDollarSign, FiDownload, FiHome, FiSettings, FiUsers, FiTag } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
@@ -17,12 +17,15 @@ import {
 
 // Configure the default home page - change this to set where the app navigates
 // when clicking the logo or loading the app for the first time
-export const DEFAULT_HOME_PATH: string = "/missions" // Change to "/" for Dashboard, "/bookings", etc.
+export const DEFAULT_HOME_PATH: string = "/" // Dashboard is now the default home page
 
 const items = [
-  //{ icon: FiHome, title: "Dashboard", path: "/" },
+  { icon: FiHome, title: "Dashboard", path: "/" },
   { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
   { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
+  { icon: FiCheck, title: "Check-In", path: "/check-in" },
+  { icon: FiDollarSign, title: "Refunds", path: "/refunds" },
+  { icon: FiDownload, title: "Export", path: "/export" },
   { icon: FaRoute, title: "Trips", path: "/trips" },
   { icon: FaRocket, title: "Launches", path: "/launches" },
   { icon: FaMapMarked, title: "Locations", path: "/locations" },

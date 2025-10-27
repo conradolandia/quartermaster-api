@@ -524,20 +524,50 @@ const Step2ItemSelection = ({
                   <Text>${bookingData.tax_amount.toFixed(2)}</Text>
                 </HStack>
 
-                <HStack justify="space-between">
-                  <Text>Tip:</Text>
-                  <NumberInput.Root
-                    size="sm"
-                    min={0}
-                    value={tip.toString()}
-                    onValueChange={(details) =>
-                      setTip(Number.parseFloat(details.value) || 0)
-                    }
-                    w="120px"
-                  >
-                    <NumberInput.Input />
-                  </NumberInput.Root>
-                </HStack>
+                <VStack align="stretch" gap={2}>
+                  <HStack justify="space-between">
+                    <Text>Tip:</Text>
+                    <NumberInput.Root
+                      size="sm"
+                      min={0}
+                      value={tip.toString()}
+                      onValueChange={(details) =>
+                        setTip(Number.parseFloat(details.value) || 0)
+                      }
+                      w="120px"
+                    >
+                      <NumberInput.Input />
+                    </NumberInput.Root>
+                  </HStack>
+
+                  {/* Suggested tip amounts */}
+                  <HStack gap={2} justify="center">
+                    <Text fontSize="sm" color="text.muted">Quick tip:</Text>
+                    {[10, 15, 20, 25].map((percentage) => {
+                      const currentSubtotal = bookingData.selectedItems.reduce((sum, item) => {
+                        return sum + item.price_per_unit * item.quantity
+                      }, 0)
+                      const suggestedAmount = (currentSubtotal - discountAmount) * (percentage / 100)
+                      return (
+                        <Button
+                          key={percentage}
+                          size="xs"
+                          variant="outline"
+                          onClick={() => setTip(suggestedAmount)}
+                        >
+                          {percentage}%
+                        </Button>
+                      )
+                    })}
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => setTip(0)}
+                    >
+                      No tip
+                    </Button>
+                  </HStack>
+                </VStack>
 
                 <Separator />
 

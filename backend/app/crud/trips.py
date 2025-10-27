@@ -17,7 +17,7 @@ def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
 
 def get_trips(*, session: Session, skip: int = 0, limit: int = 100) -> list[Trip]:
     """Get multiple trips."""
-    return session.exec(select(Trip).offset(skip).limit(limit)).all()
+    return session.exec(select(Trip).offset(skip).limit(limit)).unique().all()
 
 
 def get_trips_no_relationships(

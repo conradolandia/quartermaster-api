@@ -33,7 +33,7 @@ def read_trips(
     """
     Retrieve trips.
     """
-    trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
+    trips = crud.get_trips(session=session, skip=skip, limit=limit)
     count = crud.get_trips_count(session=session)
     return TripsPublic(data=trips, count=count)
 

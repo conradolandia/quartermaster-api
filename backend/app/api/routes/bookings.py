@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlmodel import Session, func, select
 
@@ -13,6 +14,7 @@ from app.models import (
     BookingCreate,
     BookingItem,
     BookingItemPublic,
+    BookingItemStatus,
     BookingPublic,
     BookingStatus,
     BookingUpdate,
@@ -28,7 +30,7 @@ from app.utils import (
     send_email,
 )
 
-from .booking_utils import generate_qr_code
+from .booking_utils import generate_qr_code, validate_confirmation_code
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -737,4 +739,430 @@ def update_booking(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later.",
+        )
+
+
+@router.post(
+    "/check-in/{confirmation_code}",
+    response_model=BookingPublic,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+)
+def check_in_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+    trip_id: str | None = None,
+    boat_id: str | None = None,
+) -> BookingPublic:
+    """
+    Check in a booking by confirmation code.
+
+    Validates the booking against the selected trip/boat context and updates
+    the booking status to 'checked_in' and item statuses to 'fulfilled'.
+    """
+    try:
+        # Validate confirmation code format
+        validate_confirmation_code(confirmation_code)
+
+        # Fetch booking with items
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
+
+        if not booking:
+            logger.warning(
+                f"Booking not found for confirmation code: {confirmation_code}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found with the provided confirmation code",
+            )
+
+        # Validate booking status
+        if booking.status not in [BookingStatus.confirmed, BookingStatus.checked_in]:
+            logger.warning(
+                f"Invalid booking status for check-in: {booking.status} (confirmation: {confirmation_code})"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot check in booking with status '{booking.status}'. Booking must be 'confirmed'.",
+            )
+
+        # If trip_id and boat_id are provided, validate against booking items
+        if trip_id and boat_id:
+            # Find matching booking item
+            matching_item = session.exec(
+                select(BookingItem).where(
+                    (BookingItem.booking_id == booking.id)
+                    & (BookingItem.trip_id == trip_id)
+                    & (BookingItem.boat_id == boat_id)
+                )
+            ).first()
+
+            if not matching_item:
+                logger.warning(
+                    f"No matching booking item found for trip {trip_id} and boat {boat_id} "
+                    f"in booking {confirmation_code}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Booking does not contain items for the specified trip and boat combination",
+                )
+
+        # Update booking status to checked_in
+        booking.status = BookingStatus.checked_in
+        session.add(booking)
+
+        # Update all booking items to fulfilled status
+        items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+
+        for item in items:
+            item.status = BookingItemStatus.fulfilled
+            session.add(item)
+
+        # Commit all changes
+        session.commit()
+        session.refresh(booking)
+
+        # Fetch updated items for response
+        updated_items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+
+        # Build response
+        booking_public = BookingPublic.model_validate(booking)
+        booking_public.items = [
+            BookingItemPublic.model_validate(item) for item in updated_items
+        ]
+
+        logger.info(f"Successfully checked in booking {confirmation_code}")
+        return booking_public
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.exception(
+            f"Unexpected error during check-in for {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during check-in. Please try again later.",
+        )
+
+
+@router.post(
+    "/refund/{confirmation_code}",
+    response_model=BookingPublic,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+)
+def process_refund(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+    refund_reason: str,
+    refund_notes: str | None = None,
+    refund_amount: float | None = None,
+) -> BookingPublic:
+    """
+    Process a refund for a booking.
+
+    Validates the booking and processes the refund through Stripe,
+    then updates the booking status to 'refunded'.
+    """
+    try:
+        # Validate confirmation code format
+        validate_confirmation_code(confirmation_code)
+
+        # Fetch booking with items
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
+
+        if not booking:
+            logger.warning(
+                f"Booking not found for confirmation code: {confirmation_code}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found with the provided confirmation code",
+            )
+
+        # Validate booking status
+        if booking.status not in [
+            BookingStatus.confirmed,
+            BookingStatus.checked_in,
+            BookingStatus.completed,
+        ]:
+            logger.warning(
+                f"Invalid booking status for refund: {booking.status} (confirmation: {confirmation_code})"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot refund booking with status '{booking.status}'. Booking must be 'confirmed', 'checked_in', or 'completed'.",
+            )
+
+        # Validate refund amount
+        if refund_amount is not None and refund_amount > booking.total_amount:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Refund amount cannot exceed the total booking amount",
+            )
+
+        # Process Stripe refund if payment intent exists
+        if booking.payment_intent_id:
+            try:
+                from app.core.stripe import refund_payment
+
+                # Convert refund amount to cents for Stripe
+                stripe_amount = int((refund_amount or booking.total_amount) * 100)
+                refund = refund_payment(booking.payment_intent_id, stripe_amount)
+
+                logger.info(
+                    f"Stripe refund processed: {refund.id} for booking {confirmation_code}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Stripe refund failed for booking {confirmation_code}: {str(e)}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to process Stripe refund: {str(e)}",
+                )
+        else:
+            logger.warning(
+                f"No payment intent found for booking {confirmation_code}, processing refund without Stripe"
+            )
+
+        # Update booking status to refunded
+        booking.status = BookingStatus.refunded
+        session.add(booking)
+
+        # Update all booking items to refunded status with reason and notes
+        items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+
+        for item in items:
+            item.status = BookingItemStatus.refunded
+            item.refund_reason = refund_reason
+            item.refund_notes = refund_notes
+            session.add(item)
+
+        # Commit all changes
+        session.commit()
+        session.refresh(booking)
+
+        # Send refund confirmation email
+        try:
+            from app.utils import generate_booking_refunded_email
+
+            # Get mission name
+            mission = session.get(Mission, booking.mission_id)
+            mission_name = mission.name if mission else "Unknown Mission"
+
+            email_data = generate_booking_refunded_email(
+                email_to=booking.user_email,
+                user_name=booking.user_name,
+                confirmation_code=booking.confirmation_code,
+                mission_name=mission_name,
+                refund_amount=refund_amount or booking.total_amount,
+            )
+
+            send_email(
+                email_to=booking.user_email,
+                subject=email_data.subject,
+                html_content=email_data.html_content,
+            )
+
+            logger.info(f"Refund confirmation email sent to {booking.user_email}")
+        except Exception as e:
+            logger.error(
+                f"Failed to send refund email for booking {confirmation_code}: {str(e)}"
+            )
+            # Don't fail the refund if email sending fails
+
+        # Fetch updated items for response
+        updated_items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+
+        # Build response
+        booking_public = BookingPublic.model_validate(booking)
+        booking_public.items = [
+            BookingItemPublic.model_validate(item) for item in updated_items
+        ]
+
+        logger.info(f"Successfully processed refund for booking {confirmation_code}")
+        return booking_public
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.exception(
+            f"Unexpected error during refund processing for {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during refund processing. Please try again later.",
+        )
+
+
+@router.get(
+    "/export/csv",
+    dependencies=[Depends(deps.get_current_active_superuser)],
+)
+def export_bookings_csv(
+    *,
+    session: Session = Depends(deps.get_db),
+    mission_id: str | None = None,
+    trip_id: str | None = None,
+    booking_status: str | None = None,
+) -> Response:
+    """
+    Export bookings data to CSV format.
+
+    Supports filtering by mission_id, trip_id, and booking_status.
+    """
+    try:
+        import csv
+        import io
+
+        from fastapi.responses import Response
+
+        # Build query
+        query = select(Booking)
+
+        # Apply filters
+        conditions = []
+
+        if mission_id or trip_id:
+            # Join with BookingItem if we need to filter by mission or trip
+            query = query.join(BookingItem)
+
+            if mission_id:
+                conditions.append(BookingItem.trip.has(Trip.mission_id == mission_id))
+            if trip_id:
+                conditions.append(BookingItem.trip_id == trip_id)
+
+        if booking_status:
+            conditions.append(Booking.status == booking_status)
+
+        # Apply all conditions
+        if conditions:
+            query = query.where(*conditions)
+
+        # Execute query
+        bookings = session.exec(query).all()
+
+        # Create CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Write header
+        writer.writerow(
+            [
+                "Confirmation Code",
+                "Customer Name",
+                "Email",
+                "Phone",
+                "Billing Address",
+                "Status",
+                "Total Amount",
+                "Subtotal",
+                "Discount Amount",
+                "Tax Amount",
+                "Tip Amount",
+                "Created At",
+                "Trip Type",
+                "Boat Name",
+                "Item Type",
+                "Quantity",
+                "Price Per Unit",
+                "Item Status",
+            ]
+        )
+
+        # Write booking data
+        for booking in bookings:
+            # Get booking items
+            items = session.exec(
+                select(BookingItem).where(BookingItem.booking_id == booking.id)
+            ).all()
+
+            if not items:
+                # Write booking without items
+                writer.writerow(
+                    [
+                        booking.confirmation_code,
+                        booking.user_name,
+                        booking.user_email,
+                        booking.user_phone,
+                        booking.billing_address,
+                        booking.status,
+                        booking.total_amount,
+                        booking.subtotal,
+                        booking.discount_amount,
+                        booking.tax_amount,
+                        booking.tip_amount,
+                        booking.created_at.isoformat(),
+                        "",  # Trip type
+                        "",  # Boat name
+                        "",  # Item type
+                        "",  # Quantity
+                        "",  # Price per unit
+                        "",  # Item status
+                    ]
+                )
+            else:
+                # Write booking with items
+                for item in items:
+                    # Get trip and boat information
+                    trip = session.get(Trip, item.trip_id)
+                    boat = session.get(Boat, item.boat_id)
+
+                    writer.writerow(
+                        [
+                            booking.confirmation_code,
+                            booking.user_name,
+                            booking.user_email,
+                            booking.user_phone,
+                            booking.billing_address,
+                            booking.status,
+                            booking.total_amount,
+                            booking.subtotal,
+                            booking.discount_amount,
+                            booking.tax_amount,
+                            booking.tip_amount,
+                            booking.created_at.isoformat(),
+                            trip.type if trip else "",
+                            boat.name if boat else "",
+                            item.item_type,
+                            item.quantity,
+                            item.price_per_unit,
+                            item.status,
+                        ]
+                    )
+
+        # Get CSV content
+        csv_content = output.getvalue()
+        output.close()
+
+        # Create response
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=bookings_export.csv"},
+        )
+
+    except Exception as e:
+        logger.exception(f"Error exporting bookings CSV: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while exporting data. Please try again later.",
         )

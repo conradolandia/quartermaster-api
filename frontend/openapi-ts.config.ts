@@ -2,7 +2,8 @@ import { defineConfig } from "@hey-api/openapi-ts"
 
 export default defineConfig({
   client: "legacy/axios",
-  input: "./openapi.json",
+  //TODO: Change to the remote API URL
+  input: "http://localhost:8000/api/v1/openapi.json",
   output: "./src/client",
   // exportSchemas: true,
   plugins: [

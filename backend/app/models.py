@@ -406,6 +406,7 @@ class TripPublic(TripBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    trip_boats: list["TripBoatPublic"] = Field(default_factory=list)
 
 
 class TripsPublic(SQLModel):
@@ -440,6 +441,13 @@ class TripBoat(TripBoatBase, table=True):
     # Relationships
     trip: "Trip" = Relationship(back_populates="trip_boats")
     boat: "Boat" = Relationship()
+
+
+class TripBoatPublic(TripBoatBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    boat: "BoatPublic"
 
 
 # TripPricing models

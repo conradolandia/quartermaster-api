@@ -1,6 +1,7 @@
 import { Box, Container, Text } from "@chakra-ui/react"
 import { createFileRoute, Navigate } from "@tanstack/react-router"
 
+import DashboardStats from "@/components/Admin/DashboardStats"
 import { DEFAULT_HOME_PATH } from "@/components/Common/SidebarItems"
 import useAuth from "@/hooks/useAuth"
 
@@ -16,16 +17,25 @@ function Dashboard() {
     return <Navigate to={DEFAULT_HOME_PATH} />
   }
 
-  return (
-    <>
+  if (!currentUser) {
+    return (
       <Container maxW="full">
         <Box pt={12} m={4}>
-          <Text fontSize="2xl" truncate maxW="sm">
-            Hi, {currentUser?.full_name || currentUser?.email} 👋🏼
-          </Text>
-          <Text>Welcome back, nice to see you again!</Text>
+          <Text>Please log in to access the dashboard.</Text>
         </Box>
       </Container>
-    </>
+    )
+  }
+
+  return (
+    <Container maxW="full">
+      <Box pt={12} m={4}>
+        <Text fontSize="2xl" truncate maxW="sm" mb={6}>
+          Hi, {currentUser?.full_name || currentUser?.email} 👋🏼
+        </Text>
+        <Text mb={8}>Welcome back! Here's your business overview.</Text>
+        <DashboardStats />
+      </Box>
+    </Container>
   )
 }
