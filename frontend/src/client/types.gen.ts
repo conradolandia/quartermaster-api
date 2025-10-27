@@ -325,6 +325,11 @@ export type MissionsPublic = {
     count: number;
 };
 
+export type MissionsWithStatsPublic = {
+    data: Array<MissionWithStats>;
+    count: number;
+};
+
 export type MissionUpdate = {
     name?: (string | null);
     launch_id?: (string | null);
@@ -332,6 +337,20 @@ export type MissionUpdate = {
     public?: (boolean | null);
     sales_open_at?: (string | null);
     refund_cutoff_hours?: (number | null);
+};
+
+export type MissionWithStats = {
+    name: string;
+    launch_id: string;
+    active?: boolean;
+    public?: boolean;
+    sales_open_at?: (string | null);
+    refund_cutoff_hours?: number;
+    id: string;
+    created_at: string;
+    updated_at: string;
+    total_bookings?: number;
+    total_sales?: number;
 };
 
 export type NewPassword = {
@@ -800,7 +819,7 @@ export type MissionsReadMissionsData = {
     skip?: number;
 };
 
-export type MissionsReadMissionsResponse = (MissionsPublic);
+export type MissionsReadMissionsResponse = (MissionsWithStatsPublic);
 
 export type MissionsCreateMissionData = {
     requestBody: MissionCreate;

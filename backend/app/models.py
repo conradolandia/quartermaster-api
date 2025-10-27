@@ -291,8 +291,18 @@ class MissionPublic(MissionBase):
     updated_at: datetime
 
 
+class MissionWithStats(MissionPublic):
+    total_bookings: int = 0
+    total_sales: float = 0.0
+
+
 class MissionsPublic(SQLModel):
     data: list[MissionPublic]
+    count: int
+
+
+class MissionsWithStatsPublic(SQLModel):
+    data: list[MissionWithStats]
     count: int
 
 

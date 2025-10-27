@@ -1046,11 +1046,11 @@ export class LoginService {
 export class MissionsService {
     /**
      * Read Missions
-     * Retrieve missions.
+     * Retrieve missions with booking statistics.
      * @param data The data for the request.
      * @param data.skip
      * @param data.limit
-     * @returns MissionsPublic Successful Response
+     * @returns MissionsWithStatsPublic Successful Response
      * @throws ApiError
      */
     public static readMissions(data: MissionsReadMissionsData = {}): CancelablePromise<MissionsReadMissionsResponse> {

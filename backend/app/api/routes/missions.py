@@ -10,13 +10,14 @@ from app.models import (
     MissionCreate,
     MissionPublic,
     MissionsPublic,
+    MissionsWithStatsPublic,
     MissionUpdate,
 )
 
 router = APIRouter(prefix="/missions", tags=["missions"])
 
 
-@router.get("/", response_model=MissionsPublic)
+@router.get("/", response_model=MissionsWithStatsPublic)
 def read_missions(
     *,
     session: Session = Depends(deps.get_db),
@@ -24,13 +25,11 @@ def read_missions(
     limit: int = 100,
 ) -> Any:
     """
-    Retrieve missions.
+    Retrieve missions with booking statistics.
     """
-    missions = crud.get_missions_no_relationships(
-        session=session, skip=skip, limit=limit
-    )
+    missions = crud.get_missions_with_stats(session=session, skip=skip, limit=limit)
     count = crud.get_missions_count(session=session)
-    return MissionsPublic(data=missions, count=count)
+    return MissionsWithStatsPublic(data=missions, count=count)
 
 
 @router.post("/", response_model=MissionPublic, status_code=status.HTTP_201_CREATED)

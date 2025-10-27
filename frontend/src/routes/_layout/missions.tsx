@@ -15,7 +15,7 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
-import { LaunchesService, type MissionPublic, MissionsService } from "@/client"
+import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
 import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
 import AddMission from "@/components/Missions/AddMission"
 import PendingMissions from "@/components/Pending/PendingMissions"
@@ -27,18 +27,20 @@ type SortableColumn =
   | "sales_open_at"
   | "active"
   | "public"
+  | "total_bookings"
+  | "total_sales"
 type SortDirection = "asc" | "desc"
 
 const missionsSearchSchema = z.object({
   sortBy: z
-    .enum(["name", "launch_id", "sales_open_at", "active", "public"])
+    .enum(["name", "launch_id", "sales_open_at", "active", "public", "total_bookings", "total_sales"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
 // Helper function to sort missions
 const sortMissions = (
-  missions: MissionPublic[],
+  missions: MissionWithStats[],
   sortBy: SortableColumn | undefined,
   sortDirection: SortDirection | undefined,
 ) => {
@@ -207,6 +209,30 @@ function Missions() {
                     <SortIcon column="sales_open_at" />
                   </Flex>
                 </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("total_bookings")}
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  <Flex align="center">
+                    Bookings
+                    <SortIcon column="total_bookings" />
+                  </Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("total_sales")}
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  <Flex align="center">
+                    Sales
+                    <SortIcon column="total_sales" />
+                  </Flex>
+                </Table.ColumnHeader>
                 <Table.ColumnHeader w="sm" fontWeight="bold">
                   <Flex>Status</Flex>
                 </Table.ColumnHeader>
@@ -227,6 +253,14 @@ function Missions() {
                   {mission.sales_open_at
                     ? new Date(mission.sales_open_at).toLocaleString()
                     : "Not set"}
+                </Table.Cell>
+                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                  <Text fontWeight="medium">{mission.total_bookings || 0}</Text>
+                </Table.Cell>
+                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                  <Text fontWeight="medium">
+                    ${(mission.total_sales || 0).toFixed(2)}
+                  </Text>
                 </Table.Cell>
                 <Table.Cell>
                   <Flex gap={2}>

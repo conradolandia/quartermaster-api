@@ -10,6 +10,7 @@ from app.models import (
     Boat,
     BoatCreate,
     BoatUpdate,
+    Booking,
     BookingItem,
     BookingItemCreate,
     BookingItemUpdate,
@@ -422,6 +423,94 @@ def get_missions_count(*, session: Session) -> int:
     """Get the total count of missions."""
     statement = select(Mission)
     return len(session.exec(statement).all())
+
+
+def get_missions_with_stats(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get a list of missions with booking statistics.
+    Returns dictionaries with mission data plus total_bookings and total_sales.
+    """
+    from sqlmodel import func
+
+    # Get all missions without loading relationships
+    statement = (
+        select(
+            Mission.id,
+            Mission.name,
+            Mission.launch_id,
+            Mission.active,
+            Mission.public,
+            Mission.sales_open_at,
+            Mission.refund_cutoff_hours,
+            Mission.created_at,
+            Mission.updated_at,
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+    missions = session.exec(statement).unique().all()
+
+    result = []
+    for mission_row in missions:
+        mission_id = mission_row[0]  # id
+        mission_name = mission_row[1]  # name
+        launch_id = mission_row[2]  # launch_id
+        active = mission_row[3]  # active
+        public = mission_row[4]  # public
+        sales_open_at = mission_row[5]  # sales_open_at
+        refund_cutoff_hours = mission_row[6]  # refund_cutoff_hours
+        created_at = mission_row[7]  # created_at
+        updated_at = mission_row[8]  # updated_at
+
+        # Get all trips for this mission (just IDs to avoid relationship loading)
+        trips_statement = select(Trip.id).where(Trip.mission_id == mission_id)
+        trip_results = session.exec(trips_statement).unique().all()
+        trip_ids = list(trip_results)
+
+        # Calculate total bookings and sales for all trips in this mission
+        if trip_ids:
+            # Count unique bookings (not booking items) for this mission's trips
+            bookings_statement = (
+                select(func.count(func.distinct(Booking.id)))
+                .select_from(Booking)
+                .join(BookingItem, Booking.id == BookingItem.booking_id)
+                .where(BookingItem.trip_id.in_(trip_ids))
+                .where(Booking.status != "cancelled")  # Exclude cancelled bookings
+            )
+            total_bookings = session.exec(bookings_statement).first() or 0
+
+            # Sum total sales for this mission's trips
+            sales_statement = (
+                select(func.sum(Booking.total_amount))
+                .select_from(Booking)
+                .join(BookingItem, Booking.id == BookingItem.booking_id)
+                .where(BookingItem.trip_id.in_(trip_ids))
+                .where(Booking.status != "cancelled")  # Exclude cancelled bookings
+            )
+            total_sales = session.exec(sales_statement).first() or 0.0
+        else:
+            total_bookings = 0
+            total_sales = 0.0
+
+        result.append(
+            {
+                "id": mission_id,
+                "name": mission_name,
+                "launch_id": launch_id,
+                "active": active,
+                "public": public,
+                "sales_open_at": sales_open_at,
+                "refund_cutoff_hours": refund_cutoff_hours,
+                "created_at": created_at,
+                "updated_at": updated_at,
+                "total_bookings": total_bookings,
+                "total_sales": float(total_sales),
+            }
+        )
+
+    return result
 
 
 def update_mission(
