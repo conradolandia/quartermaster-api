@@ -14,7 +14,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { format } from "date-fns"
 import { useEffect, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import {
@@ -24,8 +24,10 @@ import {
   TripsService,
 } from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
+import YamlImportForm from "@/components/Common/YamlImportForm"
 import PendingTrips from "@/components/Pending/PendingTrips"
 import AddTrip from "@/components/Trips/AddTrip"
+import { YamlImportService } from "@/services/yamlImportService"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -341,17 +343,29 @@ function TripsTable() {
 
 function Trips() {
   const [isAddTripOpen, setIsAddTripOpen] = useState(false)
+  const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
 
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Trips Management</Heading>
-        <Button onClick={() => setIsAddTripOpen(true)}>
-          <Flex align="center" gap={2}>
-            <FiPlus />
-            <span>Add Trip</span>
-          </Flex>
-        </Button>
+        <Flex gap={3}>
+          <Button
+            variant="outline"
+            onClick={() => setIsYamlImportOpen(true)}
+          >
+            <Flex align="center" gap={2}>
+              <FiFileText />
+              <span>Import from YAML</span>
+            </Flex>
+          </Button>
+          <Button onClick={() => setIsAddTripOpen(true)}>
+            <Flex align="center" gap={2}>
+              <FiPlus />
+              <span>Add Trip</span>
+            </Flex>
+          </Button>
+        </Flex>
       </Flex>
 
       <AddTrip
@@ -359,6 +373,44 @@ function Trips() {
         onClose={() => setIsAddTripOpen(false)}
         onSuccess={() => setIsAddTripOpen(false)}
       />
+
+      {/* YAML Import Modal */}
+      {isYamlImportOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="blackAlpha.600"
+          zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
+        >
+          <Box
+            border="1px solid"
+            borderColor="dark.border.default"
+            borderRadius="lg"
+            maxW="md"
+            w="full"
+            maxH="90vh"
+            overflowY="auto"
+          >
+            <YamlImportForm
+              onImport={YamlImportService.importTrip}
+              onSuccess={() => {
+                setIsYamlImportOpen(false)
+                // Refresh the trips list
+                window.location.reload()
+              }}
+              onCancel={() => setIsYamlImportOpen(false)}
+              placeholder="Select a trip YAML file to import"
+            />
+          </Box>
+        </Box>
+      )}
       <TripsTable />
     </Container>
   )

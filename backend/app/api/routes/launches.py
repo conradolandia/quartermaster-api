@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session
 
 from app import crud
@@ -13,6 +13,8 @@ from app.models import (
     LaunchPublic,
     LaunchUpdate,
 )
+from app.services.yaml_importer import YamlImporter
+from app.services.yaml_validator import YamlValidationError
 
 router = APIRouter(prefix="/launches", tags=["launches"])
 
@@ -221,3 +223,56 @@ def read_public_launch(
             detail=f"Launch with ID {launch_id} not found",
         )
     return launch
+
+
+@router.post(
+    "/import-yaml",
+    response_model=LaunchPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def import_launch_from_yaml(
+    *,
+    session: Session = Depends(deps.get_db),
+    file: UploadFile = File(...),
+) -> Any:
+    """
+    Import a launch from YAML file.
+
+    Expected YAML format:
+    ```yaml
+    name: "SpaceX Falcon Heavy - Mars Mission"
+    provider: "SpaceX"
+    launch_date: "2024-03-15T14:30:00Z"
+    launch_site: "Kennedy Space Center LC-39A"
+    description: "Launch of Mars Sample Return mission"
+    status: "scheduled"
+    live_stream_url: "https://youtube.com/watch?v=..."
+    ```
+    """
+    try:
+        # Validate file type
+        if not file.filename.endswith((".yaml", ".yml")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be a YAML file (.yaml or .yml)",
+            )
+
+        # Read file content
+        yaml_content = file.file.read().decode("utf-8")
+
+        # Import using YamlImporter
+        importer = YamlImporter(session)
+        launch = importer.import_launch(yaml_content)
+
+        return launch
+
+    except YamlValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"YAML validation error: {e.message}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import launch: {str(e)}",
+        )

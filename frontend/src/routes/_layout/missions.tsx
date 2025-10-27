@@ -12,12 +12,14 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiArrowDown, FiArrowUp, FiPlus } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
 import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
 import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
+import YamlImportForm from "@/components/Common/YamlImportForm"
 import AddMission from "@/components/Missions/AddMission"
+import { YamlImportService } from "@/services/yamlImportService"
 import PendingMissions from "@/components/Pending/PendingMissions"
 
 // Define sortable columns
@@ -104,6 +106,7 @@ export const Route = createFileRoute("/_layout/missions")({
 
 function Missions() {
   const [isAddMissionOpen, setIsAddMissionOpen] = useState(false)
+  const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
   const launchesMap = useLaunchesMap()
   const { sortBy, sortDirection } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
@@ -157,12 +160,23 @@ function Missions() {
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Missions</Heading>
-        <Button onClick={() => setIsAddMissionOpen(true)}>
-          <Flex align="center" gap={2}>
-            <FiPlus />
-            <span>Add Mission</span>
-          </Flex>
-        </Button>
+        <Flex gap={3}>
+          <Button
+            variant="outline"
+            onClick={() => setIsYamlImportOpen(true)}
+          >
+            <Flex align="center" gap={2}>
+              <FiFileText />
+              <span>Import from YAML</span>
+            </Flex>
+          </Button>
+          <Button onClick={() => setIsAddMissionOpen(true)}>
+            <Flex align="center" gap={2}>
+              <FiPlus />
+              <span>Add Mission</span>
+            </Flex>
+          </Button>
+        </Flex>
       </Flex>
 
       {isLoading ? (
@@ -295,6 +309,44 @@ function Missions() {
         onClose={() => setIsAddMissionOpen(false)}
         onSuccess={handleAddMissionSuccess}
       />
+
+      {/* YAML Import Modal */}
+      {isYamlImportOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="blackAlpha.600"
+          zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
+        >
+          <Box
+            border="1px solid"
+            borderColor="dark.border.default"
+            borderRadius="lg"
+            maxW="md"
+            w="full"
+            maxH="90vh"
+            overflowY="auto"
+          >
+            <YamlImportForm
+              onImport={YamlImportService.importMission}
+              onSuccess={() => {
+                setIsYamlImportOpen(false)
+                // Refresh the missions list
+                window.location.reload()
+              }}
+              onCancel={() => setIsYamlImportOpen(false)}
+              placeholder="Select a mission YAML file to import"
+            />
+          </Box>
+        </Box>
+      )}
     </Container>
   )
 }

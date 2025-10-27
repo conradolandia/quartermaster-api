@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session
 
 from app import crud
@@ -14,6 +14,8 @@ from app.models import (
     MissionsWithStatsPublic,
     MissionUpdate,
 )
+from app.services.yaml_importer import YamlImporter
+from app.services.yaml_validator import YamlValidationError
 
 router = APIRouter(prefix="/missions", tags=["missions"])
 
@@ -255,3 +257,54 @@ def read_public_missions(
     ]
 
     return MissionsPublic(data=mission_dicts, count=count)
+
+
+@router.post(
+    "/import-yaml",
+    response_model=MissionPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def import_mission_from_yaml(
+    *,
+    session: Session = Depends(deps.get_db),
+    file: UploadFile = File(...),
+) -> Any:
+    """
+    Import a mission from YAML file.
+
+    Expected YAML format:
+    ```yaml
+    name: "Mars Sample Return"
+    description: "Return samples from Mars to Earth"
+    launch_id: "spacex-falcon-heavy-2024-03-15"
+    duration_days: 1095
+    status: "planned"
+    ```
+    """
+    try:
+        # Validate file type
+        if not file.filename.endswith((".yaml", ".yml")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be a YAML file (.yaml or .yml)",
+            )
+
+        # Read file content
+        yaml_content = file.file.read().decode("utf-8")
+
+        # Import using YamlImporter
+        importer = YamlImporter(session)
+        mission = importer.import_mission(yaml_content)
+
+        return mission
+
+    except YamlValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"YAML validation error: {e.message}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import mission: {str(e)}",
+        )

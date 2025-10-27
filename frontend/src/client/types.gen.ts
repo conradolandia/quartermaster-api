@@ -40,6 +40,10 @@ export type BoatUpdate = {
     map_link?: (string | null);
 };
 
+export type Body_launches_import_launch_from_yaml = {
+    file: (Blob | File);
+};
+
 export type Body_login_login_access_token = {
     grant_type?: (string | null);
     username: string;
@@ -47,6 +51,14 @@ export type Body_login_login_access_token = {
     scope?: string;
     client_id?: (string | null);
     client_secret?: (string | null);
+};
+
+export type Body_missions_import_mission_from_yaml = {
+    file: (Blob | File);
+};
+
+export type Body_trips_import_trip_from_yaml = {
+    file: (Blob | File);
 };
 
 export type BookingCreate = {
@@ -807,6 +819,12 @@ export type LaunchesReadPublicLaunchData = {
 
 export type LaunchesReadPublicLaunchResponse = (LaunchPublic);
 
+export type LaunchesImportLaunchFromYamlData = {
+    formData: Body_launches_import_launch_from_yaml;
+};
+
+export type LaunchesImportLaunchFromYamlResponse = (LaunchPublic);
+
 export type LocationsReadLocationsData = {
     limit?: number;
     skip?: number;
@@ -918,6 +936,12 @@ export type MissionsReadPublicMissionsData = {
 };
 
 export type MissionsReadPublicMissionsResponse = (MissionsPublic);
+
+export type MissionsImportMissionFromYamlData = {
+    formData: Body_missions_import_mission_from_yaml;
+};
+
+export type MissionsImportMissionFromYamlResponse = (MissionPublic);
 
 export type PaymentsCreatePaymentIntentEndpointData = {
     amount: number;
@@ -1096,6 +1120,12 @@ export type TripsReadPublicTripData = {
 };
 
 export type TripsReadPublicTripResponse = (TripPublic);
+
+export type TripsImportTripFromYamlData = {
+    formData: Body_trips_import_trip_from_yaml;
+};
+
+export type TripsImportTripFromYamlResponse = (TripPublic);
 
 export type UsersReadUsersData = {
     limit?: number;

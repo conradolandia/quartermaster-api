@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlmodel import Session
 
@@ -15,6 +15,8 @@ from app.models import (
     TripsPublic,
     TripUpdate,
 )
+from app.services.yaml_importer import YamlImporter
+from app.services.yaml_validator import YamlValidationError
 
 router = APIRouter(prefix="/trips", tags=["trips"])
 
@@ -230,3 +232,58 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} is not available",
         )
     return trip
+
+
+@router.post(
+    "/import-yaml",
+    response_model=TripPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def import_trip_from_yaml(
+    *,
+    session: Session = Depends(deps.get_db),
+    file: UploadFile = File(...),
+) -> Any:
+    """
+    Import a trip from YAML file.
+
+    Expected YAML format:
+    ```yaml
+    name: "Mars Sample Return Viewing Experience"
+    mission_id: "mars-sample-return"
+    type: "launch_viewing"
+    base_price: 299.99
+    departure_time: "2024-03-15T10:00:00Z"
+    return_time: "2024-03-15T18:00:00Z"
+    departure_location_id: "port-canaveral-marina"
+    description: "Watch the historic Mars Sample Return launch"
+    max_capacity: 50
+    ```
+    """
+    try:
+        # Validate file type
+        if not file.filename.endswith((".yaml", ".yml")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be a YAML file (.yaml or .yml)",
+            )
+
+        # Read file content
+        yaml_content = file.file.read().decode("utf-8")
+
+        # Import using YamlImporter
+        importer = YamlImporter(session)
+        trip = importer.import_trip(yaml_content)
+
+        return trip
+
+    except YamlValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"YAML validation error: {e.message}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import trip: {str(e)}",
+        )

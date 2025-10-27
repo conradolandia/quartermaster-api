@@ -12,12 +12,14 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { LaunchesService, LocationsService } from "@/client"
 import { LaunchActionsMenu } from "@/components/Common/LaunchActionsMenu"
+import YamlImportForm from "@/components/Common/YamlImportForm"
 import AddLaunch from "@/components/Launches/AddLaunch"
+import { YamlImportService } from "@/services/yamlImportService"
 import PendingLaunches from "@/components/Pending/PendingLaunches"
 import {
   PaginationItems,
@@ -290,23 +292,73 @@ function LaunchesTable() {
 
 function Launches() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
 
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Launches Management</Heading>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Flex align="center" gap={2}>
-            <FiPlus />
-            <span>Add Launch</span>
-          </Flex>
-        </Button>
+        <Flex gap={3}>
+          <Button
+            variant="outline"
+            onClick={() => setIsYamlImportOpen(true)}
+          >
+            <Flex align="center" gap={2}>
+              <FiFileText />
+              <span>Import from YAML</span>
+            </Flex>
+          </Button>
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Flex align="center" gap={2}>
+              <FiPlus />
+              <span>Add Launch</span>
+            </Flex>
+          </Button>
+        </Flex>
       </Flex>
       <AddLaunch
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => setIsAddModalOpen(false)}
       />
+
+      {/* YAML Import Modal */}
+      {isYamlImportOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="blackAlpha.600"
+          zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
+        >
+          <Box
+            border="1px solid"
+            borderColor="dark.border.default"
+            borderRadius="lg"
+            maxW="md"
+            w="full"
+            maxH="90vh"
+            overflowY="auto"
+          >
+            <YamlImportForm
+              onImport={YamlImportService.importLaunch}
+              onSuccess={() => {
+                setIsYamlImportOpen(false)
+                // Refresh the launches list
+                window.location.reload()
+              }}
+              onCancel={() => setIsYamlImportOpen(false)}
+              placeholder="Select a launch YAML file to import"
+            />
+          </Box>
+        </Box>
+      )}
       <LaunchesTable />
     </Container>
   )
