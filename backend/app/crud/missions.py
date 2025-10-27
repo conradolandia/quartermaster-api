@@ -5,7 +5,7 @@ Mission CRUD operations.
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 
 from app.models import (
     Booking,
@@ -70,7 +70,6 @@ def get_missions_no_relationships(
     Get missions without loading relationships.
     Returns dictionaries with mission data.
     """
-    from sqlmodel import text
 
     result = session.exec(
         text(
@@ -115,7 +114,6 @@ def get_missions_with_stats(
     Get a list of missions with booking statistics.
     Returns dictionaries with mission data plus total_bookings and total_sales.
     """
-    from sqlmodel import func, text
 
     # Get all missions using raw SQL to avoid relationship loading
     missions_result = session.exec(

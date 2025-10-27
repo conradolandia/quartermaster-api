@@ -5,7 +5,7 @@ Boat CRUD operations.
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 
 from app.models import Boat, BoatCreate, BoatUpdate
 
@@ -56,7 +56,6 @@ def get_boats_no_relationships(
     Get boats without loading relationships.
     Returns dictionaries with boat data.
     """
-    from sqlmodel import text
 
     result = session.exec(
         text(

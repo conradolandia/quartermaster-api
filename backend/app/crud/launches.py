@@ -5,7 +5,7 @@ Launch CRUD operations.
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 
 from app.models import Launch, LaunchCreate, LaunchUpdate
 
@@ -48,7 +48,6 @@ def get_launches_no_relationships(
     Get launches without loading relationships.
     Returns dictionaries with launch data.
     """
-    from sqlmodel import text
 
     result = session.exec(
         text(

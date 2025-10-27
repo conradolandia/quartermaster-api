@@ -5,7 +5,7 @@ Trip CRUD operations.
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 
 from app.models import Trip, TripCreate, TripUpdate
 
@@ -27,7 +27,6 @@ def get_trips_no_relationships(
     Get trips without loading relationships.
     Returns dictionaries with trip data.
     """
-    from sqlmodel import text
 
     result = session.exec(
         text(

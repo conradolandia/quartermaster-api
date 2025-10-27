@@ -5,7 +5,7 @@ Location CRUD operations.
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 
 from app.models import Location, LocationCreate, LocationUpdate
 
@@ -38,7 +38,6 @@ def get_locations_no_relationships(
     Get locations without loading relationships.
     Returns dictionaries with location data.
     """
-    from sqlmodel import text
 
     result = session.exec(
         text(
