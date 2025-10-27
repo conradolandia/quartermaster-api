@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     DiscountCode,
     DiscountCodeCreate,
@@ -20,7 +21,10 @@ router = APIRouter(prefix="/discount-codes", tags=["discount-codes"])
 
 
 @router.post(
-    "/", response_model=DiscountCodePublic, status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=DiscountCodePublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
 )
 def create_discount_code(
     *,
@@ -60,7 +64,11 @@ def create_discount_code(
         )
 
 
-@router.get("/", response_model=list[DiscountCodePublic])
+@router.get(
+    "/",
+    response_model=list[DiscountCodePublic],
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def list_discount_codes(
     *,
     session: Session = Depends(deps.get_db),
@@ -90,7 +98,11 @@ def list_discount_codes(
         )
 
 
-@router.get("/{discount_code_id}", response_model=DiscountCodePublic)
+@router.get(
+    "/{discount_code_id}",
+    response_model=DiscountCodePublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def get_discount_code(
     *,
     session: Session = Depends(deps.get_db),
@@ -118,7 +130,11 @@ def get_discount_code(
         )
 
 
-@router.put("/{discount_code_id}", response_model=DiscountCodePublic)
+@router.put(
+    "/{discount_code_id}",
+    response_model=DiscountCodePublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_discount_code(
     *,
     session: Session = Depends(deps.get_db),
@@ -170,7 +186,9 @@ def update_discount_code(
         )
 
 
-@router.delete("/{discount_code_id}")
+@router.delete(
+    "/{discount_code_id}", dependencies=[Depends(get_current_active_superuser)]
+)
 def delete_discount_code(
     *,
     session: Session = Depends(deps.get_db),

@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     LaunchCreate,
     LaunchesPublic,
@@ -16,7 +17,11 @@ from app.models import (
 router = APIRouter(prefix="/launches", tags=["launches"])
 
 
-@router.get("/", response_model=LaunchesPublic)
+@router.get(
+    "/",
+    response_model=LaunchesPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_launches(
     *,
     session: Session = Depends(deps.get_db),
@@ -33,7 +38,12 @@ def read_launches(
     return LaunchesPublic(data=launches, count=count)
 
 
-@router.post("/", response_model=LaunchPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=LaunchPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_launch(
     *,
     session: Session = Depends(deps.get_db),
@@ -54,7 +64,11 @@ def create_launch(
     return launch
 
 
-@router.get("/{launch_id}", response_model=LaunchPublic)
+@router.get(
+    "/{launch_id}",
+    response_model=LaunchPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_launch(
     *,
     session: Session = Depends(deps.get_db),
@@ -72,7 +86,11 @@ def read_launch(
     return launch
 
 
-@router.put("/{launch_id}", response_model=LaunchPublic)
+@router.put(
+    "/{launch_id}",
+    response_model=LaunchPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_launch(
     *,
     session: Session = Depends(deps.get_db),
@@ -102,7 +120,11 @@ def update_launch(
     return launch
 
 
-@router.delete("/{launch_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{launch_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_launch(
     *,
     session: Session = Depends(deps.get_db),
@@ -121,7 +143,11 @@ def delete_launch(
     crud.delete_launch(session=session, db_obj=launch)
 
 
-@router.get("/location/{location_id}", response_model=LaunchesPublic)
+@router.get(
+    "/location/{location_id}",
+    response_model=LaunchesPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_launches_by_location(
     *,
     session: Session = Depends(deps.get_db),
@@ -160,3 +186,38 @@ def read_launches_by_location(
     ]
 
     return LaunchesPublic(data=launch_dicts, count=count)
+
+
+@router.get("/public/", response_model=LaunchesPublic)
+def read_public_launches(
+    *,
+    session: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Retrieve public launches for booking form.
+    """
+    launches = crud.get_launches_no_relationships(
+        session=session, skip=skip, limit=limit
+    )
+    count = crud.get_launches_count(session=session)
+    return LaunchesPublic(data=launches, count=count)
+
+
+@router.get("/public/{launch_id}", response_model=LaunchPublic)
+def read_public_launch(
+    *,
+    session: Session = Depends(deps.get_db),
+    launch_id: uuid.UUID,
+) -> Any:
+    """
+    Get public launch by ID for booking form.
+    """
+    launch = crud.get_launch(session=session, launch_id=launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch with ID {launch_id} not found",
+        )
+    return launch

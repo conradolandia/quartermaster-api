@@ -20,12 +20,12 @@ export const MissionDropdown = ({
   portalRef,
   ...props
 }: MissionDropdownProps) => {
-  // Use React Query to fetch missions
+  // Use React Query to fetch missions (using public endpoint)
   const { data: missionsResponse, isLoading } = useQuery({
-    queryKey: ["missions-dropdown"],
+    queryKey: ["missions-dropdown-public"],
     queryFn: () => {
       try {
-        return MissionsService.readMissions()
+        return MissionsService.readPublicMissions()
       } catch (error) {
         console.error("Error fetching missions:", error)
         throw error

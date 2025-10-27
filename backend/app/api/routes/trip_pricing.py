@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     TripPricing,
     TripPricingCreate,
@@ -18,7 +19,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trip-pricing", tags=["trip-pricing"])
 
 
-@router.post("/", response_model=TripPricingPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=TripPricingPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_trip_pricing(
     *,
     session: Session = Depends(deps.get_db),
@@ -60,7 +66,11 @@ def create_trip_pricing(
         )
 
 
-@router.get("/", response_model=list[TripPricingPublic])
+@router.get(
+    "/",
+    response_model=list[TripPricingPublic],
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def list_trip_pricing(
     *,
     session: Session = Depends(deps.get_db),
@@ -92,7 +102,11 @@ def list_trip_pricing(
         )
 
 
-@router.get("/{trip_pricing_id}", response_model=TripPricingPublic)
+@router.get(
+    "/{trip_pricing_id}",
+    response_model=TripPricingPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def get_trip_pricing(
     *,
     session: Session = Depends(deps.get_db),
@@ -121,7 +135,11 @@ def get_trip_pricing(
         )
 
 
-@router.put("/{trip_pricing_id}", response_model=TripPricingPublic)
+@router.put(
+    "/{trip_pricing_id}",
+    response_model=TripPricingPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_trip_pricing(
     *,
     session: Session = Depends(deps.get_db),
@@ -180,7 +198,11 @@ def update_trip_pricing(
         )
 
 
-@router.delete("/{trip_pricing_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{trip_pricing_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_trip_pricing(
     *,
     session: Session = Depends(deps.get_db),

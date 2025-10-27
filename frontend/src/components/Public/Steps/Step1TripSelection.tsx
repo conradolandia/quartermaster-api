@@ -15,14 +15,11 @@ import * as React from "react"
 
 import {
   BoatsService,
-  type LaunchPublic,
-  LaunchesService,
-  type MissionPublic,
-  MissionsService,
   TripBoatsService,
   type TripPublic,
   TripsService,
 } from "@/client"
+import { fetchPublicLaunches, fetchPublicMissions, type PublicLaunch, type PublicMission } from "@/utils/publicApi"
 
 import type { BookingStepData } from "../PublicBookingForm"
 
@@ -45,14 +42,14 @@ const Step1TripSelection = ({
 
   // Fetch all missions to get mission details
   const { data: allMissions } = useQuery({
-    queryKey: ["all-missions"],
-    queryFn: () => MissionsService.readMissions({ limit: 100 }),
+    queryKey: ["public-missions"],
+    queryFn: () => fetchPublicMissions({ limit: 100 }),
   })
 
   // Fetch all launches to get launch details
   const { data: allLaunches } = useQuery({
-    queryKey: ["all-launches"],
-    queryFn: () => LaunchesService.readLaunches({ limit: 100 }),
+    queryKey: ["public-launches"],
+    queryFn: () => fetchPublicLaunches({ limit: 100 }),
   })
 
   // Fetch trip boats for selected trip
@@ -99,14 +96,14 @@ const Step1TripSelection = ({
   const getTripMission = (tripId: string) => {
     const trip = allTrips?.data?.find((t: TripPublic) => t.id === tripId)
     return allMissions?.data?.find(
-      (m: MissionPublic) => m.id === trip?.mission_id,
+      (m: PublicMission) => m.id === trip?.mission_id,
     )
   }
 
   const getTripLaunch = (tripId: string) => {
     const mission = getTripMission(tripId)
     return allLaunches?.data?.find(
-      (l: LaunchPublic) => l.id === mission?.launch_id,
+      (l: PublicLaunch) => l.id === mission?.launch_id,
     )
   }
 
@@ -152,7 +149,7 @@ const Step1TripSelection = ({
 
       // Find the associated mission
       const mission = allMissions.data.find(
-        (m: MissionPublic) => m.id === trip.mission_id,
+        (m: PublicMission) => m.id === trip.mission_id,
       )
       if (!mission) return false
 

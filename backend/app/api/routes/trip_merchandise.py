@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     TripMerchandise,
     TripMerchandiseCreate,
@@ -19,7 +20,10 @@ router = APIRouter(prefix="/trip-merchandise", tags=["trip-merchandise"])
 
 
 @router.post(
-    "/", response_model=TripMerchandisePublic, status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=TripMerchandisePublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
 )
 def create_trip_merchandise(
     *,
@@ -46,7 +50,11 @@ def create_trip_merchandise(
         )
 
 
-@router.get("/", response_model=list[TripMerchandisePublic])
+@router.get(
+    "/",
+    response_model=list[TripMerchandisePublic],
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def list_trip_merchandise(
     *,
     session: Session = Depends(deps.get_db),
@@ -75,7 +83,11 @@ def list_trip_merchandise(
         )
 
 
-@router.get("/{trip_merchandise_id}", response_model=TripMerchandisePublic)
+@router.get(
+    "/{trip_merchandise_id}",
+    response_model=TripMerchandisePublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def get_trip_merchandise(
     *,
     session: Session = Depends(deps.get_db),
@@ -106,7 +118,11 @@ def get_trip_merchandise(
         )
 
 
-@router.put("/{trip_merchandise_id}", response_model=TripMerchandisePublic)
+@router.put(
+    "/{trip_merchandise_id}",
+    response_model=TripMerchandisePublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_trip_merchandise(
     *,
     session: Session = Depends(deps.get_db),
@@ -148,7 +164,11 @@ def update_trip_merchandise(
         )
 
 
-@router.delete("/{trip_merchandise_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{trip_merchandise_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_trip_merchandise(
     *,
     session: Session = Depends(deps.get_db),

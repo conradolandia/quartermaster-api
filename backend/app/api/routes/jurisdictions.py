@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     JurisdictionCreate,
     JurisdictionPublic,
@@ -16,7 +17,11 @@ from app.models import (
 router = APIRouter(prefix="/jurisdictions", tags=["jurisdictions"])
 
 
-@router.get("/", response_model=JurisdictionsPublic)
+@router.get(
+    "/",
+    response_model=JurisdictionsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_jurisdictions(
     *,
     session: Session = Depends(deps.get_db),
@@ -42,7 +47,10 @@ def read_jurisdictions(
 
 
 @router.post(
-    "/", response_model=JurisdictionPublic, status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=JurisdictionPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
 )
 def create_jurisdiction(
     *,
@@ -89,7 +97,11 @@ def create_jurisdiction(
     return jurisdiction
 
 
-@router.get("/{jurisdiction_id}", response_model=JurisdictionPublic)
+@router.get(
+    "/{jurisdiction_id}",
+    response_model=JurisdictionPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_jurisdiction(
     *,
     session: Session = Depends(deps.get_db),
@@ -109,7 +121,11 @@ def read_jurisdiction(
     return jurisdiction
 
 
-@router.put("/{jurisdiction_id}", response_model=JurisdictionPublic)
+@router.put(
+    "/{jurisdiction_id}",
+    response_model=JurisdictionPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_jurisdiction(
     *,
     session: Session = Depends(deps.get_db),
@@ -161,7 +177,11 @@ def update_jurisdiction(
     return jurisdiction
 
 
-@router.delete("/{jurisdiction_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{jurisdiction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_jurisdiction(
     *,
     session: Session = Depends(deps.get_db),

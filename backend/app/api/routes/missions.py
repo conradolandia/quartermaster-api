@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     MissionCreate,
     MissionPublic,
@@ -17,7 +18,11 @@ from app.models import (
 router = APIRouter(prefix="/missions", tags=["missions"])
 
 
-@router.get("/", response_model=MissionsWithStatsPublic)
+@router.get(
+    "/",
+    response_model=MissionsWithStatsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_missions(
     *,
     session: Session = Depends(deps.get_db),
@@ -32,7 +37,12 @@ def read_missions(
     return MissionsWithStatsPublic(data=missions, count=count)
 
 
-@router.post("/", response_model=MissionPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=MissionPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_mission(
     *,
     session: Session = Depends(deps.get_db),
@@ -53,7 +63,11 @@ def create_mission(
     return mission
 
 
-@router.get("/{mission_id}", response_model=MissionPublic)
+@router.get(
+    "/{mission_id}",
+    response_model=MissionPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_mission(
     *,
     session: Session = Depends(deps.get_db),
@@ -71,7 +85,11 @@ def read_mission(
     return mission
 
 
-@router.put("/{mission_id}", response_model=MissionPublic)
+@router.put(
+    "/{mission_id}",
+    response_model=MissionPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_mission(
     *,
     session: Session = Depends(deps.get_db),
@@ -101,7 +119,11 @@ def update_mission(
     return mission
 
 
-@router.delete("/{mission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{mission_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_mission(
     *,
     session: Session = Depends(deps.get_db),
@@ -120,7 +142,11 @@ def delete_mission(
     crud.delete_mission(session=session, db_obj=mission)
 
 
-@router.get("/launch/{launch_id}", response_model=MissionsPublic)
+@router.get(
+    "/launch/{launch_id}",
+    response_model=MissionsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_missions_by_launch(
     *,
     session: Session = Depends(deps.get_db),
@@ -163,7 +189,11 @@ def read_missions_by_launch(
     return MissionsPublic(data=mission_dicts, count=count)
 
 
-@router.get("/active/", response_model=MissionsPublic)
+@router.get(
+    "/active/",
+    response_model=MissionsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_active_missions(
     *,
     session: Session = Depends(deps.get_db),

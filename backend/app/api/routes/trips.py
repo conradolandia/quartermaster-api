@@ -7,6 +7,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     Trip,
     TripCreate,
@@ -18,7 +19,11 @@ from app.models import (
 router = APIRouter(prefix="/trips", tags=["trips"])
 
 
-@router.get("/", response_model=TripsPublic)
+@router.get(
+    "/",
+    response_model=TripsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_trips(
     *,
     session: Session = Depends(deps.get_db),
@@ -33,7 +38,12 @@ def read_trips(
     return TripsPublic(data=trips, count=count)
 
 
-@router.post("/", response_model=TripPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=TripPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -54,7 +64,11 @@ def create_trip(
     return trip
 
 
-@router.get("/{trip_id}", response_model=TripPublic)
+@router.get(
+    "/{trip_id}",
+    response_model=TripPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -72,7 +86,11 @@ def read_trip(
     return trip
 
 
-@router.put("/{trip_id}", response_model=TripPublic)
+@router.put(
+    "/{trip_id}",
+    response_model=TripPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -102,7 +120,11 @@ def update_trip(
     return trip
 
 
-@router.delete("/{trip_id}", response_model=TripPublic)
+@router.delete(
+    "/{trip_id}",
+    response_model=TripPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -121,7 +143,11 @@ def delete_trip(
     return trip
 
 
-@router.get("/mission/{mission_id}", response_model=TripsPublic)
+@router.get(
+    "/mission/{mission_id}",
+    response_model=TripsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_trips_by_mission(
     *,
     session: Session = Depends(deps.get_db),
@@ -164,3 +190,43 @@ def read_trips_by_mission(
     ]
 
     return TripsPublic(data=trip_dicts, count=count)
+
+
+@router.get("/public/", response_model=TripsPublic)
+def read_public_trips(
+    *,
+    session: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Retrieve public trips for booking form.
+    """
+    # Only return active trips
+    trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
+    active_trips = [trip for trip in trips if trip.active]
+    count = len(active_trips)
+    return TripsPublic(data=active_trips, count=count)
+
+
+@router.get("/public/{trip_id}", response_model=TripPublic)
+def read_public_trip(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+) -> Any:
+    """
+    Get public trip by ID for booking form.
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    if not trip.active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} is not available",
+        )
+    return trip

@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     BoatCreate,
     BoatPublic,
@@ -16,7 +17,11 @@ from app.models import (
 router = APIRouter(prefix="/boats", tags=["boats"])
 
 
-@router.get("/", response_model=BoatsPublic)
+@router.get(
+    "/",
+    response_model=BoatsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_boats(
     *,
     session: Session = Depends(deps.get_db),
@@ -31,7 +36,12 @@ def read_boats(
     return BoatsPublic(data=boats, count=count)
 
 
-@router.post("/", response_model=BoatPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=BoatPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -54,7 +64,11 @@ def create_boat(
     return boat
 
 
-@router.get("/{boat_id}", response_model=BoatPublic)
+@router.get(
+    "/{boat_id}",
+    response_model=BoatPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -72,7 +86,11 @@ def read_boat(
     return boat
 
 
-@router.put("/{boat_id}", response_model=BoatPublic)
+@router.put(
+    "/{boat_id}",
+    response_model=BoatPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -104,7 +122,11 @@ def update_boat(
     return boat
 
 
-@router.delete("/{boat_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{boat_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -123,7 +145,11 @@ def delete_boat(
     crud.delete_boat(session=session, db_obj=boat)
 
 
-@router.get("/jurisdiction/{jurisdiction_id}", response_model=BoatsPublic)
+@router.get(
+    "/jurisdiction/{jurisdiction_id}",
+    response_model=BoatsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_boats_by_jurisdiction(
     *,
     session: Session = Depends(deps.get_db),

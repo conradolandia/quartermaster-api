@@ -52,7 +52,7 @@ def get_launches_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, name, description, launch_date, location_id, created_at, updated_at
+            SELECT id, name, summary, launch_timestamp, location_id, created_at, updated_at
             FROM launch
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
@@ -66,8 +66,8 @@ def get_launches_no_relationships(
             {
                 "id": row[0],  # id
                 "name": row[1],  # name
-                "description": row[2],  # description
-                "launch_date": row[3],  # launch_date
+                "summary": row[2],  # summary
+                "launch_timestamp": row[3],  # launch_timestamp
                 "location_id": row[4],  # location_id
                 "created_at": row[5],  # created_at
                 "updated_at": row[6],  # updated_at

@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
+from app.api.deps import get_current_active_superuser
 from app.models import (
     LocationCreate,
     LocationPublic,
@@ -16,7 +17,11 @@ from app.models import (
 router = APIRouter(prefix="/locations", tags=["locations"])
 
 
-@router.get("/", response_model=LocationsPublic)
+@router.get(
+    "/",
+    response_model=LocationsPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_locations(
     *,
     session: Session = Depends(deps.get_db),
@@ -33,7 +38,12 @@ def read_locations(
     return LocationsPublic(data=locations, count=count)
 
 
-@router.post("/", response_model=LocationPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=LocationPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def create_location(
     *,
     session: Session = Depends(deps.get_db),
@@ -46,7 +56,11 @@ def create_location(
     return location
 
 
-@router.get("/{location_id}", response_model=LocationPublic)
+@router.get(
+    "/{location_id}",
+    response_model=LocationPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_location(
     *,
     session: Session = Depends(deps.get_db),
@@ -64,7 +78,11 @@ def read_location(
     return location
 
 
-@router.put("/{location_id}", response_model=LocationPublic)
+@router.put(
+    "/{location_id}",
+    response_model=LocationPublic,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def update_location(
     *,
     session: Session = Depends(deps.get_db),
@@ -86,7 +104,11 @@ def update_location(
     return location
 
 
-@router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{location_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def delete_location(
     *,
     session: Session = Depends(deps.get_db),
