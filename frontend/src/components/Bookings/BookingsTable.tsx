@@ -9,7 +9,7 @@ import {
   Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService } from "@/client"
@@ -32,14 +32,24 @@ interface BookingsTableProps {
 
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [missionId, setMissionId] = useState<string | undefined>(undefined)
+  const [searchParams, setSearchParams] = useState(new URLSearchParams(window.location.search))
 
   // Parse search params
-  const searchParams = new URLSearchParams(window.location.search)
   const page = parseInt(searchParams.get("page") || "1")
   const sortBy = (searchParams.get("sortBy") as SortableColumn) || "created_at"
   const sortDirection = (searchParams.get("sortDirection") as SortDirection) || "desc"
 
-  // Fetch bookings with mission filter
+  // Listen for URL changes
+  useEffect(() => {
+    const handlePopState = () => {
+      setSearchParams(new URLSearchParams(window.location.search))
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  // Fetch bookings with mission filter and sorting
   const {
     data: bookingsData,
     isLoading,
@@ -51,6 +61,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         skip: (page - 1) * PER_PAGE,
         limit: PER_PAGE,
         missionId: missionId ? missionId : undefined,
+        sortBy: sortBy,
+        sortDirection: sortDirection,
       }),
   })
 
@@ -83,6 +95,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     params.set("sortBy", column)
     params.set("sortDirection", newDirection)
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+
+    // Update local state to trigger re-render
+    setSearchParams(new URLSearchParams(params.toString()))
   }
 
 
@@ -96,12 +111,18 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     }
     params.set("page", "1")
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+
+    // Update local state to trigger re-render
+    setSearchParams(new URLSearchParams(params.toString()))
   }
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set("page", newPage.toString())
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+
+    // Update local state to trigger re-render
+    setSearchParams(new URLSearchParams(params.toString()))
   }
 
   if (isLoading) {

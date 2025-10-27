@@ -575,6 +575,8 @@ export type BookingsListBookingsData = {
     limit?: number;
     missionId?: (string | null);
     skip?: number;
+    sortBy?: string;
+    sortDirection?: string;
 };
 
 export type BookingsListBookingsResponse = (BookingsPaginatedResponse);

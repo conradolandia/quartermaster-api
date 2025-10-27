@@ -147,22 +147,24 @@ def get_missions_with_stats(
         # Calculate total bookings and sales for all trips in this mission
         if trip_ids:
             # Count unique bookings (not booking items) for this mission's trips
+            # Only include confirmed, checked_in, and completed bookings (actual revenue)
             bookings_statement = (
                 select(func.count(func.distinct(Booking.id)))
                 .select_from(Booking)
                 .join(BookingItem, Booking.id == BookingItem.booking_id)
                 .where(BookingItem.trip_id.in_(trip_ids))
-                .where(Booking.status != "cancelled")  # Exclude cancelled bookings
+                .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
             )
             total_bookings = session.exec(bookings_statement).first() or 0
 
             # Sum total sales for this mission's trips
+            # Only include confirmed, checked_in, and completed bookings (actual revenue)
             sales_statement = (
                 select(func.sum(Booking.total_amount))
                 .select_from(Booking)
                 .join(BookingItem, Booking.id == BookingItem.booking_id)
                 .where(BookingItem.trip_id.in_(trip_ids))
-                .where(Booking.status != "cancelled")  # Exclude cancelled bookings
+                .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
             )
             total_sales = session.exec(sales_statement).first() or 0.0
         else:

@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Grid,
   HStack,
   Heading,
   Input,
@@ -15,7 +16,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiDollarSign, FiSearch, FiX } from "react-icons/fi"
+import { FiChevronUp, FiChevronDown, FiSearch, FiX } from "react-icons/fi"
 
 import {
   BookingsService,
@@ -180,7 +181,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                 placeholder="Enter confirmation code"
                 value={confirmationCode}
                 onChange={(e) => setConfirmationCode(e.target.value.toUpperCase())}
-                onKeyPress={(e) => e.key === "Enter" && handleLookupBooking()}
+                onKeyDown={(e) => e.key === "Enter" && handleLookupBooking()}
               />
               <Button
                 colorPalette="blue"
@@ -195,188 +196,191 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
         </Card.Body>
       </Card.Root>
 
-      {/* Booking Details */}
+      {/* Two-column layout for large screens */}
       {currentBooking && (
-        <Card.Root bg="bg.panel">
-          <Card.Body>
-            <VStack gap={4} align="stretch">
-              <HStack justify="space-between" align="center">
-                <Heading size="md">Booking Details</Heading>
-                <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
-                  {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
-                </Badge>
-              </HStack>
-
-              <VStack gap={3} align="stretch">
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Confirmation Code:</Text>
-                  <Text fontFamily="mono">{currentBooking.confirmation_code}</Text>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Customer:</Text>
-                  <Text>{currentBooking.user_name}</Text>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Email:</Text>
-                  <Text>{currentBooking.user_email}</Text>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Phone:</Text>
-                  <Text>{currentBooking.user_phone}</Text>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Total Amount:</Text>
-                  <Text fontWeight="bold">${currentBooking.total_amount.toFixed(2)}</Text>
-                </HStack>
-              </VStack>
-
-              {/* Booking Items */}
-              {currentBooking.items && currentBooking.items.length > 0 && (
-                <Box>
-                  <Text fontWeight="medium" mb={2}>
-                    Items:
-                  </Text>
-                  <VStack gap={2} align="stretch">
-                    {currentBooking.items.map((item, index) => (
-                      <HStack key={index} justify="space-between" p={2} bg="gray.50" borderRadius="md">
-                        <Text>
-                          {item.quantity}x {item.item_type.replace("_", " ")}
-                        </Text>
-                        <Badge colorPalette={item.status === "refunded" ? "orange" : "blue"}>
-                          {item.status}
-                        </Badge>
-                      </HStack>
-                    ))}
-                  </VStack>
-                </Box>
-              )}
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      )}
-
-      {/* Refund Form */}
-      {currentBooking && canRefund && (
-        <Card.Root bg="bg.panel">
-          <Card.Body>
-            <VStack gap={4} align="stretch">
-              <Heading size="md">Process Refund</Heading>
-
+        <Grid
+          templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
+          gap={6}
+        >
+          {/* Booking Details */}
+          <Card.Root bg="bg.panel">
+            <Card.Body>
               <VStack gap={4} align="stretch">
-                {/* Refund Amount */}
-                <Box>
-                  <Text fontWeight="medium" mb={2}>
-                    Refund Amount
-                  </Text>
-                  <NumberInput.Root
-                    value={(refundAmount || currentBooking.total_amount).toString()}
-                    onValueChange={(details) => setRefundAmount(Number.parseFloat(details.value) || 0)}
-                    min={0}
-                    max={currentBooking.total_amount}
-                  >
-                    <NumberInput.Input placeholder="0.00" />
-                    <NumberInput.Control>
-                      <NumberInput.IncrementTrigger>
-                        <FiDollarSign />
-                      </NumberInput.IncrementTrigger>
-                      <NumberInput.DecrementTrigger>
-                        <FiDollarSign />
-                      </NumberInput.DecrementTrigger>
-                    </NumberInput.Control>
-                  </NumberInput.Root>
-                  <Text fontSize="sm" color="text.muted" mt={1}>
-                    Maximum: ${currentBooking.total_amount.toFixed(2)}
-                  </Text>
-                </Box>
+                <HStack justify="space-between" align="center">
+                  <Heading size="md">Booking Details</Heading>
+                  <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
+                    {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
+                  </Badge>
+                </HStack>
 
-                {/* Refund Reason */}
-                <Box>
-                  <Text fontWeight="medium" mb={2}>
-                    Refund Reason *
-                  </Text>
-                  <Select.Root
-                    collection={reasonsCollection}
-                    value={refundReason ? [refundReason] : []}
-                    onValueChange={(details) => setRefundReason(details.value[0] || "")}
-                  >
-                    <Select.Control>
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Select a reason" />
-                      </Select.Trigger>
-                      <Select.IndicatorGroup>
-                        <Select.Indicator />
-                      </Select.IndicatorGroup>
-                    </Select.Control>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {reasonsCollection.items.map((item) => (
-                          <Select.Item key={item.value} item={item}>
-                            {item.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select.Root>
-                </Box>
+                <VStack gap={3} align="stretch">
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Confirmation Code:</Text>
+                    <Text fontFamily="mono">{currentBooking.confirmation_code}</Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Customer:</Text>
+                    <Text>{currentBooking.user_name}</Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Email:</Text>
+                    <Text>{currentBooking.user_email}</Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Phone:</Text>
+                    <Text>{currentBooking.user_phone}</Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Total Amount:</Text>
+                    <Text fontWeight="bold">${currentBooking.total_amount.toFixed(2)}</Text>
+                  </HStack>
+                </VStack>
 
-                {/* Refund Notes */}
-                <Box>
-                  <Text fontWeight="medium" mb={2}>
-                    Additional Notes (Optional)
-                  </Text>
-                  <Textarea
-                    placeholder="Add any additional details about the refund..."
-                    value={refundNotes}
-                    onChange={(e) => setRefundNotes(e.target.value)}
-                    rows={3}
-                  />
-                </Box>
+                {/* Booking Items */}
+                {currentBooking.items && currentBooking.items.length > 0 && (
+                  <Box>
+                    <Text fontWeight="medium" mb={2}>
+                      Items:
+                    </Text>
+                    <VStack gap={2} align="stretch">
+                      {currentBooking.items.map((item, index) => (
+                        <HStack key={index} justify="space-between" borderRadius="md">
+                          <Text>
+                            {item.quantity}x {item.item_type.replace("_", " ")}
+                          </Text>
+                          <Badge colorPalette={item.status === "refunded" ? "orange" : "blue"}>
+                            {item.status}
+                          </Badge>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+              </VStack>
+            </Card.Body>
+          </Card.Root>
 
-                {/* Actions */}
-                <HStack gap={4} justify="flex-end">
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={refundMutation.isPending}
-                  >
+          {/* Refund Form or Cannot Refund Message */}
+          {canRefund ? (
+            <Card.Root bg="bg.panel">
+              <Card.Body>
+                <VStack gap={4} align="stretch">
+                  <Heading size="md">Process Refund</Heading>
+
+                  <VStack gap={4} align="stretch">
+                    {/* Refund Amount */}
+                    <Box>
+                      <Text fontWeight="medium" mb={2}>
+                        Refund Amount
+                      </Text>
+                      <NumberInput.Root
+                        value={(refundAmount || currentBooking.total_amount).toString()}
+                        onValueChange={(details) => setRefundAmount(Number.parseFloat(details.value) || 0)}
+                        min={0}
+                        max={currentBooking.total_amount}
+                      >
+                        <NumberInput.Input placeholder="0.00" />
+                        <NumberInput.Control>
+                          <NumberInput.IncrementTrigger>
+                            <FiChevronUp />
+                          </NumberInput.IncrementTrigger>
+                          <NumberInput.DecrementTrigger>
+                            <FiChevronDown />
+                          </NumberInput.DecrementTrigger>
+                        </NumberInput.Control>
+                      </NumberInput.Root>
+                      <Text fontSize="sm" color="text.muted" mt={1}>
+                        Maximum: ${currentBooking.total_amount.toFixed(2)}
+                      </Text>
+                    </Box>
+
+                    {/* Refund Reason */}
+                    <Box>
+                      <Text fontWeight="medium" mb={2}>
+                        Refund Reason *
+                      </Text>
+                      <Select.Root
+                        collection={reasonsCollection}
+                        value={refundReason ? [refundReason] : []}
+                        onValueChange={(details) => setRefundReason(details.value[0] || "")}
+                      >
+                        <Select.Control width="100%">
+                          <Select.Trigger>
+                            <Select.ValueText placeholder="Select a reason" />
+                          </Select.Trigger>
+                          <Select.IndicatorGroup>
+                            <Select.Indicator />
+                          </Select.IndicatorGroup>
+                        </Select.Control>
+                        <Select.Positioner>
+                          <Select.Content minWidth="300px">
+                            {reasonsCollection.items.map((item) => (
+                              <Select.Item key={item.value} item={item}>
+                                {item.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Select.Root>
+                    </Box>
+
+                    {/* Refund Notes */}
+                    <Box>
+                      <Text fontWeight="medium" mb={2}>
+                        Additional Notes (Optional)
+                      </Text>
+                      <Textarea
+                        placeholder="Add any additional details about the refund..."
+                        value={refundNotes}
+                        onChange={(e) => setRefundNotes(e.target.value)}
+                        rows={3}
+                      />
+                    </Box>
+
+                    {/* Actions */}
+                    <HStack gap={4} justify="flex-end">
+                      <Button
+                        variant="outline"
+                        onClick={handleReset}
+                        disabled={refundMutation.isPending}
+                      >
+                        <FiX />
+                        Reset
+                      </Button>
+                      <Button
+                        colorPalette="red"
+                        onClick={handleProcessRefund}
+                        loading={refundMutation.isPending}
+                        disabled={!refundReason.trim()}
+                      >
+                        Process Refund
+                      </Button>
+                    </HStack>
+                  </VStack>
+                </VStack>
+              </Card.Body>
+            </Card.Root>
+          ) : (
+            <Card.Root bg="bg.panel" borderColor="red.200">
+              <Card.Body>
+                <VStack gap={4} align="center">
+                  <Text color="red.600" fontWeight="medium">
+                    This booking cannot be refunded
+                  </Text>
+                  <Text color="text.muted" textAlign="center">
+                    Only bookings with status "confirmed", "checked_in", or "completed" can be refunded.
+                    Current status: {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
+                  </Text>
+                  <Button variant="outline" onClick={handleReset}>
                     <FiX />
                     Reset
                   </Button>
-                  <Button
-                    colorPalette="red"
-                    onClick={handleProcessRefund}
-                    loading={refundMutation.isPending}
-                    disabled={!refundReason.trim()}
-                  >
-                    Process Refund
-                  </Button>
-                </HStack>
-              </VStack>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      )}
-
-      {/* Cannot Refund Message */}
-      {currentBooking && !canRefund && (
-        <Card.Root bg="bg.panel" borderColor="red.200">
-          <Card.Body>
-            <VStack gap={4} align="center">
-              <Text color="red.600" fontWeight="medium">
-                This booking cannot be refunded
-              </Text>
-              <Text color="text.muted" textAlign="center">
-                Only bookings with status "confirmed", "checked_in", or "completed" can be refunded.
-                Current status: {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
-              </Text>
-              <Button variant="outline" onClick={handleReset}>
-                <FiX />
-                Reset
-              </Button>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
+                </VStack>
+              </Card.Body>
+            </Card.Root>
+          )}
+        </Grid>
       )}
     </VStack>
   )

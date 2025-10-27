@@ -270,6 +270,8 @@ def list_bookings(
     skip: int = 0,
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
+    sort_by: str = "created_at",
+    sort_direction: str = "desc",
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
@@ -329,14 +331,21 @@ def list_bookings(
                 detail="Error counting bookings",
             )
 
-        # Fetch bookings (ordered by creation date, newest first)
+        # Apply sorting
+        sort_column = getattr(Booking, sort_by, Booking.created_at)
+        if sort_direction.lower() == "asc":
+            order_clause = sort_column.asc()
+        else:
+            order_clause = sort_column.desc()
+
+        # Fetch bookings with sorting
         bookings = []
         try:
             bookings = session.exec(
-                base_query.order_by(Booking.created_at.desc()).offset(skip).limit(limit)
+                base_query.order_by(order_clause).offset(skip).limit(limit)
             ).all()
             logger.info(
-                f"Retrieved {len(bookings)} bookings (skip={skip}, limit={limit})"
+                f"Retrieved {len(bookings)} bookings (skip={skip}, limit={limit}, sort_by={sort_by}, sort_direction={sort_direction})"
             )
         except Exception as e:
             logger.error(f"Database error in list_bookings: {str(e)}")

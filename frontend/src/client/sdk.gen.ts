@@ -173,6 +173,8 @@ export class BookingsService {
      * @param data.skip
      * @param data.limit
      * @param data.missionId
+     * @param data.sortBy
+     * @param data.sortDirection
      * @returns BookingsPaginatedResponse Successful Response
      * @throws ApiError
      */
@@ -183,7 +185,9 @@ export class BookingsService {
             query: {
                 skip: data.skip,
                 limit: data.limit,
-                mission_id: data.missionId
+                mission_id: data.missionId,
+                sort_by: data.sortBy,
+                sort_direction: data.sortDirection
             },
             errors: {
                 422: 'Validation Error'

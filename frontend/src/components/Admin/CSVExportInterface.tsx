@@ -169,7 +169,7 @@ const CSVExportInterface = () => {
                       setSelectedTripId("") // Reset trip when mission changes
                     }}
                   >
-                    <Select.Control>
+                    <Select.Control width="100%">
                       <Select.Trigger>
                         <Select.ValueText placeholder="All missions" />
                       </Select.Trigger>
@@ -178,7 +178,7 @@ const CSVExportInterface = () => {
                       </Select.IndicatorGroup>
                     </Select.Control>
                     <Select.Positioner>
-                      <Select.Content>
+                      <Select.Content minWidth="300px">
                         {missionsCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item}>
                             {item.label}
@@ -200,7 +200,7 @@ const CSVExportInterface = () => {
                     onValueChange={(details) => setSelectedTripId(details.value[0] || "")}
                     disabled={!selectedMissionId}
                   >
-                    <Select.Control>
+                    <Select.Control width="100%">
                       <Select.Trigger>
                         <Select.ValueText placeholder={selectedMissionId ? "All trips" : "Select mission first"} />
                       </Select.Trigger>
@@ -209,7 +209,7 @@ const CSVExportInterface = () => {
                       </Select.IndicatorGroup>
                     </Select.Control>
                     <Select.Positioner>
-                      <Select.Content>
+                      <Select.Content minWidth="300px">
                         {tripsCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item}>
                             {item.label}
@@ -230,7 +230,7 @@ const CSVExportInterface = () => {
                     value={selectedStatus ? [selectedStatus] : []}
                     onValueChange={(details) => setSelectedStatus(details.value[0] || "")}
                   >
-                    <Select.Control>
+                    <Select.Control width="100%">
                       <Select.Trigger>
                         <Select.ValueText placeholder="All statuses" />
                       </Select.Trigger>
@@ -239,7 +239,7 @@ const CSVExportInterface = () => {
                       </Select.IndicatorGroup>
                     </Select.Control>
                     <Select.Positioner>
-                      <Select.Content>
+                      <Select.Content minWidth="300px">
                         {statusCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item}>
                             {item.label}
