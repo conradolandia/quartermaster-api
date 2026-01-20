@@ -4,6 +4,7 @@ import {
   HStack,
   IconButton,
   Input,
+  Heading,
   Table,
   Text,
   VStack,
@@ -150,10 +151,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <HStack justify="space-between">
-        <Text fontWeight="bold" fontSize="lg">
-          Discount Codes
-        </Text>
+      <HStack justify="space-between" alignItems="center" py={2}>
+        <Heading size="lg">
+          Discount Codes Management
+        </Heading>
         {!isAdding && !editingId && (
           <Button size="sm" onClick={() => setIsAdding(true)}>
             <FiPlus style={{ marginRight: "4px" }} />
