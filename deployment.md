@@ -129,7 +129,7 @@ You can set several variables, like:
 
 * `PROJECT_NAME`: The name of the project, used in the API for the docs and emails.
 * `STACK_NAME`: The name of the stack used for Docker Compose labels and project name, this should be different for `staging`, `production`, etc. You could use the same domain replacing dots with dashes, e.g. `fastapi-project-example-com` and `staging-fastapi-project-example-com`.
-* `BACKEND_CORS_ORIGINS`: A list of allowed CORS origins separated by commas.
+* `BACKEND_CORS_ORIGINS`: **Additional** CORS origins (comma-separated). The backend always allows `FRONTEND_HOST`; set this only when you need **extra** origins (e.g. a second frontend, staging when the same API serves both prod and staging, or another domain). Format: full URLs including scheme, e.g. `https://dashboard.staging.book.star-fleet.tours`. Leave empty or unset if you have a single frontend at `FRONTEND_HOST`.
 * `SECRET_KEY`: The secret key for the FastAPI project, used to sign tokens.
 * `FIRST_SUPERUSER`: The email of the first superuser, this superuser will be the one that can create new users.
 * `FIRST_SUPERUSER_PASSWORD`: The password of the first superuser.
