@@ -4,7 +4,7 @@ User CRUD operations.
 
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.core.security import get_password_hash, verify_password
 from app.models import User, UserCreate, UserUpdate
@@ -41,8 +41,10 @@ def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:
-    """Get a user by email."""
-    return session.exec(select(User).where(User.email == email)).first()
+    """Get a user by email (case-insensitive)."""
+    return session.exec(
+        select(User).where(func.lower(User.email) == email.lower())
+    ).first()
 
 
 def authenticate(*, session: Session, email: str, password: str) -> User | None:

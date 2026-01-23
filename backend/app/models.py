@@ -16,6 +16,14 @@ class UserBase(SQLModel):
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        """Normalize email to lowercase for case-insensitive handling."""
+        if v:
+            return v.lower()
+        return v
+
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
@@ -27,6 +35,14 @@ class UserRegister(SQLModel):
     password: str = Field(min_length=8, max_length=40)
     full_name: str | None = Field(default=None, max_length=255)
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        """Normalize email to lowercase for case-insensitive handling."""
+        if v:
+            return v.lower()
+        return v
+
 
 # Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
@@ -37,6 +53,14 @@ class UserUpdate(UserBase):
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = Field(default=None, max_length=255)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str | None) -> str | None:
+        """Normalize email to lowercase for case-insensitive handling."""
+        if v:
+            return v.lower()
+        return v
 
 
 class UpdatePassword(SQLModel):
