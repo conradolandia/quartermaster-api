@@ -26,6 +26,14 @@ export const system = createSystem(defaultConfig, {
       color: "dark.accent.primary",
       fontWeight: "bold",
     },
+    "::selection": {
+      backgroundColor: "dark.accent.primary",
+      color: "dark.bg.primary",
+    },
+    "::-moz-selection": {
+      backgroundColor: "dark.accent.primary",
+      color: "dark.bg.primary",
+    },
   },
   theme: {
     tokens: {
