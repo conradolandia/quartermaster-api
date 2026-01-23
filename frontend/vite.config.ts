@@ -11,4 +11,17 @@ export default defineConfig({
     },
   },
   plugins: [react(), TanStackRouterVite()],
+  build: {
+    sourcemap: false, // Disable sourcemaps in production to avoid warnings
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries into separate chunks for better caching
+          "vendor-react": ["react", "react-dom"],
+          "vendor-chakra": ["@chakra-ui/react"],
+          "vendor-router": ["@tanstack/react-router", "@tanstack/react-query"],
+        },
+      },
+    },
+  },
 })
