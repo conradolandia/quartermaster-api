@@ -12,7 +12,17 @@ import { routeTree } from "./routeTree.gen"
 import { ApiError, OpenAPI } from "./client"
 import { CustomProvider } from "./components/ui/provider"
 
-OpenAPI.BASE = import.meta.env.VITE_API_URL
+// Redirect to /book when accessing the base domain (e.g., book.star-fleet.tours)
+// The base domain is identified by not having "admin." prefix
+const hostname = window.location.hostname
+const isBaseDomain = !hostname.startsWith("admin.")
+const isRootPath = window.location.pathname === "/" || window.location.pathname === ""
+
+if (isBaseDomain && isRootPath) {
+  window.location.replace("/book")
+}
+
+OpenAPI.BASE = (import.meta as any).env?.VITE_API_URL || ""
 OpenAPI.TOKEN = async () => {
   return localStorage.getItem("access_token") || ""
 }
