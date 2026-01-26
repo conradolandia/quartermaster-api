@@ -65,8 +65,9 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
     if (!confirmationCode) return
 
     try {
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || ""
       const response = await fetch(
-        `/api/v1/bookings/${confirmationCode}/resend-email`,
+        `${apiUrl}/api/v1/bookings/${confirmationCode}/resend-email`,
         {
           method: "POST",
         },
