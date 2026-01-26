@@ -214,18 +214,20 @@ def read_public_trips(
     # Filter trips by active status and mission booking_mode
     public_trips = []
     for trip in trips:
-        if not trip.active:
+        # trips from get_trips_no_relationships are dicts
+        if not trip["active"]:
             continue
 
         # Get the mission to check booking_mode
-        mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+        mission = crud.get_mission(session=session, mission_id=trip["mission_id"])
         if not mission:
             continue
 
-        # Filter based on booking_mode
-        if mission.booking_mode == "private":
+        # Filter based on booking_mode (default to "private" if not set)
+        booking_mode = getattr(mission, "booking_mode", "private")
+        if booking_mode == "private":
             continue  # Never show private trips in public endpoint
-        elif mission.booking_mode == "early_bird":
+        elif booking_mode == "early_bird":
             # Only show if access_code is provided (validation happens elsewhere)
             if access_code:
                 public_trips.append(trip)
