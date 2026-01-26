@@ -50,7 +50,7 @@ export default function BookingDetails({
   const handleEmail = async () => {
     try {
       const response = await fetch(
-        `/api/bookings/${confirmationCode}/resend-email`,
+        `/api/v1/bookings/${confirmationCode}/resend-email`,
         {
           method: "POST",
         }

@@ -66,7 +66,7 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
 
     try {
       const response = await fetch(
-        `/api/bookings/${confirmationCode}/resend-email`,
+        `/api/v1/bookings/${confirmationCode}/resend-email`,
         {
           method: "POST",
         },
