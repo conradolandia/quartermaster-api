@@ -19,7 +19,6 @@ import {
   Button,
   ButtonGroup,
   Input,
-  Portal,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -97,8 +96,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
         </Button>
       </DialogTrigger>
 
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogCloseTrigger />
             <DialogHeader>
@@ -270,7 +268,6 @@ const EditBoat = ({ boat }: EditBoatProps) => {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

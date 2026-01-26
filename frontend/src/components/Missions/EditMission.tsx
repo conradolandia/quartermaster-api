@@ -127,8 +127,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
           Edit Mission
         </Button>
       </DialogTrigger>
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Edit Mission</DialogTitle>
@@ -306,7 +305,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

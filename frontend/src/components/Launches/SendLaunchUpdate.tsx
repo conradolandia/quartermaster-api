@@ -3,7 +3,6 @@ import {
   ButtonGroup,
   DialogActionTrigger,
   Input,
-  Portal,
   Text,
   Textarea,
   VStack,
@@ -100,8 +99,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
           Send Update
         </Button>
       </DialogTrigger>
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <DialogHeader>
             <DialogTitle>Send Launch Update</DialogTitle>
           </DialogHeader>
@@ -149,7 +147,6 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
           </DialogFooter>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

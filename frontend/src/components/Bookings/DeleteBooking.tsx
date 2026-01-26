@@ -61,8 +61,7 @@ const DeleteBooking = ({
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent>
+      <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Booking</DialogTitle>
           </DialogHeader>
@@ -96,7 +95,6 @@ const DeleteBooking = ({
             </ButtonGroup>
           </DialogFooter>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

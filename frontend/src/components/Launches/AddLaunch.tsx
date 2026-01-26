@@ -1,4 +1,4 @@
-import { Button, Input, Portal, VStack } from "@chakra-ui/react"
+import { Button, Input, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
@@ -74,8 +74,7 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <DialogHeader>
             <DialogTitle>Add Launch</DialogTitle>
           </DialogHeader>
@@ -143,7 +142,6 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
           </DialogFooter>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

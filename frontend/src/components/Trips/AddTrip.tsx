@@ -358,8 +358,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <DialogHeader>
             <DialogTitle>Add Trip</DialogTitle>
           </DialogHeader>
@@ -887,7 +886,6 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
           </DialogFooter>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

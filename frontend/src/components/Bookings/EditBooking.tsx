@@ -173,8 +173,7 @@ const EditBooking = ({
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>
@@ -584,7 +583,6 @@ const EditBooking = ({
             </DialogFooter>
           </form>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

@@ -502,8 +502,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Add Booking</DialogTitle>
@@ -970,7 +969,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

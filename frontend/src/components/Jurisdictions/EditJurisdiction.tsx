@@ -96,8 +96,7 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
           Edit Jurisdiction
         </Button>
       </DialogTrigger>
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Edit Jurisdiction</DialogTitle>
@@ -234,7 +233,6 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

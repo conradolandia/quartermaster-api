@@ -101,8 +101,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <DialogHeader>
             <DialogTitle>Add Mission</DialogTitle>
           </DialogHeader>
@@ -228,7 +227,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
           </DialogFooter>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

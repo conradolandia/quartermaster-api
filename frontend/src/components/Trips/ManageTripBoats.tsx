@@ -171,8 +171,7 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
         </Button>
       </DialogTrigger>
 
-      <Portal>
-        <DialogContent>
+      <DialogContent>
           <DialogCloseTrigger />
           <DialogHeader>
             <DialogTitle>Manage Boats for Trip</DialogTitle>
@@ -294,7 +293,6 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

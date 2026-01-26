@@ -3,7 +3,6 @@ import {
   ButtonGroup,
   DialogActionTrigger,
   Input,
-  Portal,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -97,8 +96,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
           Edit Launch
         </Button>
       </DialogTrigger>
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Edit Launch</DialogTitle>
@@ -186,7 +184,6 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

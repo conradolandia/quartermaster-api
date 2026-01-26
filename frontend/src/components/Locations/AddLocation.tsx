@@ -1,5 +1,5 @@
 import useCustomToast from "@/hooks/useCustomToast"
-import { Button, ButtonGroup, Input, Portal, VStack } from "@chakra-ui/react"
+import { Button, ButtonGroup, Input, VStack } from "@chakra-ui/react"
 import { useRef } from "react"
 import {
   DialogActionTrigger,
@@ -77,8 +77,7 @@ export const AddLocation = ({
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Add Location</DialogTitle>
@@ -148,7 +147,6 @@ export const AddLocation = ({
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

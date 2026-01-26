@@ -86,8 +86,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
     >
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Add Boat</DialogTitle>
@@ -262,7 +261,6 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

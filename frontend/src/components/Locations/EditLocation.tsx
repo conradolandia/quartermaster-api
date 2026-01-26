@@ -3,7 +3,6 @@ import {
   ButtonGroup,
   DialogActionTrigger,
   Input,
-  Portal,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -93,8 +92,7 @@ const EditLocation = ({ location }: EditLocationProps) => {
           Edit Location
         </Button>
       </DialogTrigger>
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <DialogTitle>Edit Location</DialogTitle>
@@ -174,7 +172,6 @@ const EditLocation = ({ location }: EditLocationProps) => {
           </form>
           <DialogCloseTrigger />
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }

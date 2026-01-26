@@ -206,8 +206,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
         </Button>
       </DialogTrigger>
 
-      <Portal>
-        <DialogContent ref={contentRef}>
+      <DialogContent ref={contentRef}>
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -465,7 +464,6 @@ const EditTrip = ({ trip }: EditTripProps) => {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Portal>
     </DialogRoot>
   )
 }
