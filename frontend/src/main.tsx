@@ -12,14 +12,29 @@ import { routeTree } from "./routeTree.gen"
 import { ApiError, OpenAPI } from "./client"
 import { CustomProvider } from "./components/ui/provider"
 
-// Redirect to /book when accessing the base domain (e.g., book.star-fleet.tours)
-// The base domain is identified by not having "admin." prefix
+// Route protection based on hostname
+// Base domain (e.g., book.star-fleet.tours) only allows public routes
+// Admin routes are only accessible via admin subdomain (e.g., admin.book.star-fleet.tours)
+// Localhost is unrestricted for development
 const hostname = window.location.hostname
-const isBaseDomain = !hostname.startsWith("admin.")
-const isRootPath = window.location.pathname === "/" || window.location.pathname === ""
+const pathname = window.location.pathname
+const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1"
+const isBaseDomain = !isLocalhost && !hostname.startsWith("admin.")
 
-if (isBaseDomain && isRootPath) {
-  window.location.replace("/book")
+// Public routes allowed on base domain
+const publicRoutes = ["/book", "/book-confirm", "/lookup", "/login", "/signup", "/reset-password", "/recover-password"]
+const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"))
+const isRootPath = pathname === "/" || pathname === ""
+
+if (isBaseDomain) {
+  if (isRootPath) {
+    // Redirect root to /book on base domain
+    window.location.replace("/book")
+  } else if (!isPublicRoute) {
+    // Redirect admin routes to /book on base domain
+    // Or alternatively, redirect to admin subdomain: window.location.replace(`https://admin.${hostname}${pathname}`)
+    window.location.replace("/book")
+  }
 }
 
 OpenAPI.BASE = (import.meta as any).env?.VITE_API_URL || ""
