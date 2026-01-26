@@ -136,7 +136,8 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   }
 
   const handleSubmit = () => {
-    if (!formData.code || !formData.discount_value) return
+    // Allow discount_value to be 0 (especially for access codes)
+    if (!formData.code || formData.discount_value === undefined || formData.discount_value === null) return
 
     const data = {
       ...formData,
@@ -234,15 +235,21 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.discount_value || ""}
-                  onChange={(e) =>
+                  value={formData.discount_value ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value
                     setFormData({
                       ...formData,
-                      discount_value: Number.parseFloat(e.target.value) || 0,
+                      discount_value: value === "" ? 0 : Number.parseFloat(value) || 0,
                     })
-                  }
-                  placeholder="10"
+                  }}
+                  placeholder={formData.is_access_code ? "0 (no discount)" : "10"}
                 />
+                {formData.is_access_code && (
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Use 0 for access codes without discount
+                  </Text>
+                )}
               </Box>
             </HStack>
 
@@ -317,7 +324,8 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 onClick={handleSubmit}
                 disabled={
                   !formData.code ||
-                  !formData.discount_value ||
+                  formData.discount_value === undefined ||
+                  formData.discount_value === null ||
                   createMutation.isPending ||
                   updateMutation.isPending
                 }
