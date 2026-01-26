@@ -245,11 +245,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   }}
                   placeholder={formData.is_access_code ? "0 (no discount)" : "10"}
                 />
-                {formData.is_access_code && (
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    Use 0 for access codes without discount
-                  </Text>
-                )}
               </Box>
             </HStack>
 
