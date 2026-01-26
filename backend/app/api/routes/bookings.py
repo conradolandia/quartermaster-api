@@ -27,12 +27,16 @@ from app.models import (
 )
 from app.utils import (
     generate_booking_cancelled_email,
+    generate_booking_confirmation_email,
     generate_booking_refunded_email,
     send_email,
 )
 
 from .booking_utils import (
     generate_qr_code,
+    get_booking_with_items,
+    get_mission_name_for_booking,
+    prepare_booking_items_for_email,
     validate_confirmation_code,
 )
 
@@ -905,6 +909,86 @@ def check_in_booking(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during check-in. Please try again later.",
+        )
+
+
+@router.post("/{confirmation_code}/resend-email")
+def resend_booking_confirmation_email(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> dict:
+    """
+    Resend booking confirmation email.
+
+    Available for both admin and public use.
+
+    Args:
+        confirmation_code: The booking confirmation code
+
+    Returns:
+        dict: Status of the email sending
+    """
+    try:
+        # Validate confirmation code format
+        validate_confirmation_code(confirmation_code)
+
+        # Get booking with items
+        booking = get_booking_with_items(
+            session, confirmation_code, include_qr_generation=False
+        )
+
+        # Only send emails for confirmed bookings
+        if booking.status not in [
+            BookingStatus.confirmed,
+            BookingStatus.checked_in,
+            BookingStatus.completed,
+        ]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Can only resend emails for confirmed bookings",
+            )
+
+        # Check if emails are enabled
+        if not settings.emails_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Email service is not available",
+            )
+
+        # Get mission name and prepare booking items
+        mission_name = get_mission_name_for_booking(session, booking)
+        booking_items = prepare_booking_items_for_email(booking)
+
+        # Generate and send the email
+        email_data = generate_booking_confirmation_email(
+            email_to=booking.user_email,
+            user_name=booking.user_name,
+            confirmation_code=booking.confirmation_code,
+            mission_name=mission_name,
+            booking_items=booking_items,
+            total_amount=booking.total_amount,
+        )
+
+        send_email(
+            email_to=booking.user_email,
+            subject=email_data.subject,
+            html_content=email_data.html_content,
+        )
+
+        return {"status": "success", "message": "Confirmation email sent successfully"}
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log the error and return a generic error response
+        logger.error(
+            f"Failed to resend booking confirmation email for {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send confirmation email. Please try again later.",
         )
 
 
