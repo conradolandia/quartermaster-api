@@ -95,7 +95,7 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
           <Card.Body>
             <VStack gap={4} textAlign="center">
               <Heading size="lg">Unable to Load Trips</Heading>
-              <Text color="gray.600">
+              <Text>
                 We encountered an error while loading available trips. Please try again later.
               </Text>
             </VStack>
@@ -128,7 +128,7 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
           <Card.Body>
             <VStack gap={6} textAlign="center">
               <Heading size="lg">Early Access Required</Heading>
-              <Text color="gray.600">
+              <Text>
                 Tickets are not yet available to the public. If you have an early access code,
                 enter it below to continue.
               </Text>
@@ -173,7 +173,7 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
         <Card.Body>
           <VStack gap={6} textAlign="center">
             <Heading size="lg">Access Denied</Heading>
-            <Text color="gray.600">{errorMessage}</Text>
+            <Text>{errorMessage}</Text>
             <Box w="100%" maxW="400px">
               <VStack gap={4}>
                 <Input
