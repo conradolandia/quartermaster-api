@@ -1174,22 +1174,21 @@ def export_bookings_csv(
                     if boat:
                         boat_name = boat.name
 
-                if item.item_type == "adult_ticket":
+                # Ticket types: "adult"/"adult_ticket", "child"/"child_ticket", "infant"/"infant_ticket"
+                # Merchandise items have trip_merchandise_id set and item_type is the merch name
+                item_type_lower = item.item_type.lower()
+                if item_type_lower in ("adult", "adult_ticket"):
                     adults_qty += item.quantity
                     adults_price += item.price_per_unit * item.quantity
-                elif item.item_type == "child_ticket":
+                elif item_type_lower in ("child", "child_ticket"):
                     children_qty += item.quantity
                     children_price += item.price_per_unit * item.quantity
-                elif item.item_type == "infant_ticket":
+                elif item_type_lower in ("infant", "infant_ticket"):
                     infants_qty += item.quantity
                     infants_price += item.price_per_unit * item.quantity
-                elif item.item_type == "swag":
-                    # Get merchandise name if available
-                    merch_name = "Merchandise"
-                    if item.trip_merchandise_id:
-                        merch = session.get(TripMerchandise, item.trip_merchandise_id)
-                        if merch:
-                            merch_name = merch.name
+                elif item.trip_merchandise_id:
+                    # Merchandise item - item_type contains the merchandise name
+                    merch_name = item.item_type
                     swag_items.append(
                         f"{merch_name} x{item.quantity}"
                         if item.quantity > 1
