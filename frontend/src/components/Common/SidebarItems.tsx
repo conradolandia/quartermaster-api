@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
 import { FiCheck, FiDollarSign, FiDownload, FiHome, FiSettings, FiUsers, FiTag } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
+import { useState, useEffect } from "react"
 
 import type { UserPublic } from "@/client"
 import {
@@ -15,11 +16,32 @@ import {
   FaTicketAlt,
 } from "react-icons/fa"
 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+
 // Configure the default home page - change this to set where the app navigates
 // when clicking the logo or loading the app for the first time
 export const DEFAULT_HOME_PATH: string = "/" // Dashboard is now the default home page
 
-const items = [
+const SIDEBAR_ORDER_KEY = "sidebarOrder"
+
+// Default items configuration
+const defaultItems = [
   { icon: FiHome, title: "Dashboard", path: "/" },
   { icon: FaSpaceShuttle, title: "Missions", path: "/missions" },
   { icon: FaTicketAlt, title: "Bookings", path: "/bookings" },
@@ -45,21 +67,69 @@ interface Item {
   path: string
 }
 
-const SidebarItems = ({ onClose }: SidebarItemsProps) => {
-  const queryClient = useQueryClient()
-  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
-  const matchRoute = useMatchRoute()
+// Load saved order from localStorage and apply it to items
+function getOrderedItems(items: Item[]): Item[] {
+  try {
+    const savedOrder = localStorage.getItem(SIDEBAR_ORDER_KEY)
+    if (!savedOrder) return items
 
-  const finalItems: Item[] = currentUser?.is_superuser
-    ? [...items, { icon: FiUsers, title: "Admin", path: "/admin" }]
-    : items
+    const orderArray: string[] = JSON.parse(savedOrder)
+    const itemMap = new Map(items.map(item => [item.title, item]))
 
-  const listItems = finalItems.map(({ icon, title, path }) => {
-    // Check if the current route matches this item's path
-    const isActive = matchRoute({ to: path })
+    // Build ordered list from saved order
+    const ordered: Item[] = []
+    for (const title of orderArray) {
+      const item = itemMap.get(title)
+      if (item) {
+        ordered.push(item)
+        itemMap.delete(title)
+      }
+    }
 
-    return (
-      <RouterLink key={title} to={path} onClick={onClose}>
+    // Append any new items not in saved order
+    for (const item of itemMap.values()) {
+      ordered.push(item)
+    }
+
+    return ordered
+  } catch {
+    return items
+  }
+}
+
+// Save order to localStorage
+function saveOrder(items: Item[]): void {
+  const order = items.map(item => item.title)
+  localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(order))
+}
+
+// Sortable item component
+interface SortableItemProps {
+  item: Item
+  isActive: boolean
+  onClose?: () => void
+}
+
+function SortableItem({ item, isActive, onClose }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.title })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+  }
+
+  return (
+    <Box ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <RouterLink to={item.path} onClick={onClose}>
         <Flex
           gap={3}
           px={3}
@@ -78,14 +148,60 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           bg={isActive ? "dark.accent.primary" : "transparent"}
           fontWeight={isActive ? "bold" : "normal"}
           borderColor={isActive ? "dark.accent.primary" : "transparent"}
-          cursor="pointer"
+          cursor={isDragging ? "grabbing" : "pointer"}
         >
-          <Icon as={icon} alignSelf="center" boxSize={4} />
-          <Text>{title}</Text>
+          <Icon as={item.icon} alignSelf="center" boxSize={4} />
+          <Text>{item.title}</Text>
         </Flex>
       </RouterLink>
-    )
-  })
+    </Box>
+  )
+}
+
+const SidebarItems = ({ onClose }: SidebarItemsProps) => {
+  const queryClient = useQueryClient()
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+  const matchRoute = useMatchRoute()
+
+  // Build full items list (including Admin for superusers)
+  const allItems: Item[] = currentUser?.is_superuser
+    ? [...defaultItems, { icon: FiUsers, title: "Admin", path: "/admin" }]
+    : defaultItems
+
+  // State for ordered items
+  const [orderedItems, setOrderedItems] = useState<Item[]>(() => getOrderedItems(allItems))
+
+  // Update ordered items when allItems changes (e.g., user becomes superuser)
+  useEffect(() => {
+    setOrderedItems(getOrderedItems(allItems))
+  }, [currentUser?.is_superuser])
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before starting drag (allows clicks)
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Handle drag end
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setOrderedItems((items) => {
+        const oldIndex = items.findIndex((item) => item.title === active.id)
+        const newIndex = items.findIndex((item) => item.title === over.id)
+        const newItems = arrayMove(items, oldIndex, newIndex)
+        saveOrder(newItems)
+        return newItems
+      })
+    }
+  }
 
   return (
     <>
@@ -100,7 +216,27 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
       >
         Menu
       </Text>
-      <Box mt={2}>{listItems}</Box>
+      <Box mt={2}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={orderedItems.map(item => item.title)}
+            strategy={verticalListSortingStrategy}
+          >
+            {orderedItems.map((item) => (
+              <SortableItem
+                key={item.title}
+                item={item}
+                isActive={!!matchRoute({ to: item.path })}
+                onClose={onClose}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      </Box>
     </>
   )
 }
