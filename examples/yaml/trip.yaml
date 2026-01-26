@@ -1,0 +1,19 @@
+# Example Trip YAML
+#
+# Trips are specific departures within a Mission. Customers book seats on Trips.
+# A Mission typically has multiple Trips (e.g., morning and afternoon departures).
+# Before importing, ensure the mission_id references an existing Mission.
+#
+# Required fields: mission_id, type, check_in_time, boarding_time, departure_time
+# Optional fields: active
+
+mission_id: "c3d4e5f6-a7b8-9012-cdef-345678901234"  # Replace with actual Mission UUID
+type: "boat"  # Trip type (e.g., "boat", "bus", "vip")
+
+# Times should allow enough buffer between each phase
+check_in_time: "2024-06-15T15:00:00Z"   # Guests arrive and check in
+boarding_time: "2024-06-15T15:45:00Z"   # Begin boarding the vessel
+departure_time: "2024-06-15T16:30:00Z"  # Vessel departs for viewing location
+
+# Optional settings
+active: true

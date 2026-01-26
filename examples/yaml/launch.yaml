@@ -1,0 +1,11 @@
+# Example Launch YAML
+#
+# Launches represent rocket launch events at a specific location.
+# Before importing, ensure the location_id references an existing Location.
+#
+# Required fields: name, launch_timestamp, summary, location_id
+
+name: "SpaceX Falcon 9 - Starlink Group 6-1"
+launch_timestamp: "2024-06-15T18:45:00Z"
+summary: "SpaceX Falcon 9 rocket launching 23 Starlink satellites to low Earth orbit from LC-39A at Kennedy Space Center."
+location_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"  # Replace with actual Location UUID

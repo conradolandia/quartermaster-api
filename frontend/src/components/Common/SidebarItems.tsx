@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
 import { FiCheck, FiDollarSign, FiDownload, FiHome, FiSettings, FiUsers, FiTag } from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 import type { UserPublic } from "@/client"
 import {
@@ -108,28 +108,44 @@ interface SortableItemProps {
   item: Item
   isActive: boolean
   onClose?: () => void
+  wasDragging: React.MutableRefObject<boolean>
+  isAnyDragging: boolean // True when any item is being dragged
 }
 
-function SortableItem({ item, isActive, onClose }: SortableItemProps) {
+function SortableItem({ item, isActive, onClose, wasDragging, isAnyDragging }: SortableItemProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging,
+    isDragging: isThisDragging,
   } = useSortable({ id: item.title })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1 : 0,
+    opacity: isThisDragging ? 0.5 : 1,
+    zIndex: isThisDragging ? 1 : 0,
+  }
+
+  // Handle click - prevent navigation if we just finished dragging
+  const handleClick = (e: React.MouseEvent) => {
+    if (wasDragging.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    onClose?.()
   }
 
   return (
     <Box ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <RouterLink to={item.path} onClick={onClose}>
+      <RouterLink
+        to={item.path}
+        onClick={handleClick}
+        style={{ pointerEvents: isAnyDragging ? "none" : "auto" }}
+      >
         <Flex
           gap={3}
           px={3}
@@ -148,7 +164,7 @@ function SortableItem({ item, isActive, onClose }: SortableItemProps) {
           bg={isActive ? "dark.accent.primary" : "transparent"}
           fontWeight={isActive ? "bold" : "normal"}
           borderColor={isActive ? "dark.accent.primary" : "transparent"}
-          cursor={isDragging ? "grabbing" : "pointer"}
+          cursor={isThisDragging ? "grabbing" : "pointer"}
         >
           <Icon as={item.icon} alignSelf="center" boxSize={4} />
           <Text>{item.title}</Text>
@@ -162,6 +178,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   const queryClient = useQueryClient()
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
   const matchRoute = useMatchRoute()
+
+  // Track if a drag is currently in progress (disables pointer events on links)
+  const [isDragging, setIsDragging] = useState(false)
+  // Track if a drag just ended (to prevent click on the dragged item)
+  const wasDragging = useRef(false)
 
   // Build full items list (including Admin for superusers)
   const allItems: Item[] = currentUser?.is_superuser
@@ -188,6 +209,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     })
   )
 
+  // Handle drag start - disable pointer events on all links
+  function handleDragStart() {
+    setIsDragging(true)
+    wasDragging.current = true
+  }
+
   // Handle drag end
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -201,6 +228,12 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         return newItems
       })
     }
+
+    // Re-enable pointer events after a brief delay
+    setTimeout(() => {
+      setIsDragging(false)
+      wasDragging.current = false
+    }, 50)
   }
 
   return (
@@ -220,6 +253,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -232,6 +266,8 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
                 item={item}
                 isActive={!!matchRoute({ to: item.path })}
                 onClose={onClose}
+                wasDragging={wasDragging}
+                isAnyDragging={isDragging}
               />
             ))}
           </SortableContext>
