@@ -3,7 +3,6 @@ import {
   HStack,
   IconButton,
   Input,
-  Portal,
   Text,
   Textarea,
   VStack,

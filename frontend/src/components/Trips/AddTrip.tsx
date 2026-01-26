@@ -6,7 +6,6 @@ import {
   HStack,
   IconButton,
   Input,
-  Portal,
   Tabs,
   Text,
   VStack,
