@@ -1115,7 +1115,7 @@ def export_bookings_csv(
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # Write header
+        # Write header - one row per booking with flattened item columns
         writer.writerow(
             [
                 "Confirmation Code",
@@ -1132,73 +1132,97 @@ def export_bookings_csv(
                 "Created At",
                 "Trip Type",
                 "Boat Name",
-                "Item Type",
-                "Quantity",
-                "Price Per Unit",
-                "Item Status",
+                "Adult Tickets",
+                "Adult Price",
+                "Child Tickets",
+                "Child Price",
+                "Infant Tickets",
+                "Infant Price",
+                "Swag Description",
+                "Swag Total",
             ]
         )
 
-        # Write booking data
+        # Write booking data - one row per booking
         for booking in bookings:
             # Get booking items
             items = session.exec(
                 select(BookingItem).where(BookingItem.booking_id == booking.id)
             ).all()
 
-            if not items:
-                # Write booking without items
-                writer.writerow(
-                    [
-                        booking.confirmation_code,
-                        booking.user_name,
-                        booking.user_email,
-                        booking.user_phone,
-                        booking.billing_address,
-                        booking.status,
-                        booking.total_amount,
-                        booking.subtotal,
-                        booking.discount_amount,
-                        booking.tax_amount,
-                        booking.tip_amount,
-                        booking.created_at.isoformat(),
-                        "",  # Trip type
-                        "",  # Boat name
-                        "",  # Item type
-                        "",  # Quantity
-                        "",  # Price per unit
-                        "",  # Item status
-                    ]
-                )
-            else:
-                # Write booking with items
-                for item in items:
-                    # Get trip and boat information
-                    trip = session.get(Trip, item.trip_id)
-                    boat = session.get(Boat, item.boat_id)
+            # Aggregate items by type
+            adults_qty = 0
+            adults_price = 0.0
+            children_qty = 0
+            children_price = 0.0
+            infants_qty = 0
+            infants_price = 0.0
+            swag_items: list[str] = []
+            swag_total = 0.0
 
-                    writer.writerow(
-                        [
-                            booking.confirmation_code,
-                            booking.user_name,
-                            booking.user_email,
-                            booking.user_phone,
-                            booking.billing_address,
-                            booking.status,
-                            booking.total_amount,
-                            booking.subtotal,
-                            booking.discount_amount,
-                            booking.tax_amount,
-                            booking.tip_amount,
-                            booking.created_at.isoformat(),
-                            trip.type if trip else "",
-                            boat.name if boat else "",
-                            item.item_type,
-                            item.quantity,
-                            item.price_per_unit,
-                            item.status,
-                        ]
+            trip_type = ""
+            boat_name = ""
+
+            for item in items:
+                # Get trip and boat info from first item
+                if not trip_type:
+                    trip = session.get(Trip, item.trip_id)
+                    if trip:
+                        trip_type = trip.type
+                if not boat_name:
+                    boat = session.get(Boat, item.boat_id)
+                    if boat:
+                        boat_name = boat.name
+
+                if item.item_type == "adult_ticket":
+                    adults_qty += item.quantity
+                    adults_price += item.price_per_unit * item.quantity
+                elif item.item_type == "child_ticket":
+                    children_qty += item.quantity
+                    children_price += item.price_per_unit * item.quantity
+                elif item.item_type == "infant_ticket":
+                    infants_qty += item.quantity
+                    infants_price += item.price_per_unit * item.quantity
+                elif item.item_type == "swag":
+                    # Get merchandise name if available
+                    merch_name = "Merchandise"
+                    if item.trip_merchandise_id:
+                        merch = session.get(TripMerchandise, item.trip_merchandise_id)
+                        if merch:
+                            merch_name = merch.name
+                    swag_items.append(
+                        f"{merch_name} x{item.quantity}"
+                        if item.quantity > 1
+                        else merch_name
                     )
+                    swag_total += item.price_per_unit * item.quantity
+
+            writer.writerow(
+                [
+                    booking.confirmation_code,
+                    booking.user_name,
+                    booking.user_email,
+                    booking.user_phone,
+                    booking.billing_address,
+                    booking.status,
+                    booking.total_amount,
+                    booking.subtotal,
+                    booking.discount_amount,
+                    booking.tax_amount,
+                    booking.tip_amount,
+                    booking.created_at.isoformat(),
+                    trip_type,
+                    boat_name,
+                    adults_qty or "",
+                    f"{adults_price:.2f}" if adults_price else "",
+                    children_qty or "",
+                    f"{children_price:.2f}" if children_price else "",
+                    infants_qty or "",
+                    f"{infants_price:.2f}" if infants_price else "",
+                    ", ".join(swag_items) if swag_items else "",
+                    f"{swag_total:.2f}" if swag_total else "",
+                ]
+            )
 
         # Get CSV content
         csv_content = output.getvalue()

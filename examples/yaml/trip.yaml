@@ -8,7 +8,7 @@
 # Optional fields: active
 
 mission_id: "c3d4e5f6-a7b8-9012-cdef-345678901234"  # Replace with actual Mission UUID
-type: "boat"  # Trip type (e.g., "boat", "bus", "vip")
+type: "boat"  # Trip type (e.g., "boat", "bus", "vip" -  possible future options)
 
 # Times should allow enough buffer between each phase
 check_in_time: "2024-06-15T15:00:00Z"   # Guests arrive and check in
