@@ -281,6 +281,9 @@ class MissionBase(SQLModel):
     launch_id: uuid.UUID = Field(foreign_key="launch.id")
     active: bool = Field(default=True)
     public: bool = Field(default=False)
+    booking_mode: str = Field(
+        default="private", max_length=20
+    )  # private, early_bird, public
     sales_open_at: datetime | None = None
     refund_cutoff_hours: int = Field(default=12, ge=0, le=72)
 
@@ -294,6 +297,7 @@ class MissionUpdate(SQLModel):
     launch_id: uuid.UUID | None = None
     active: bool | None = None
     public: bool | None = None
+    booking_mode: str | None = Field(default=None, max_length=20)
     sales_open_at: datetime | None = None
     refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
 
@@ -544,6 +548,13 @@ class TripMerchandisePublic(TripMerchandiseBase):
     updated_at: datetime
 
 
+# --- Booking Mode Enum ---
+class BookingMode(str, enum.Enum):
+    private = "private"  # Admin only, no public access
+    early_bird = "early_bird"  # Requires access code
+    public = "public"  # Open to everyone
+
+
 # --- BookingItem models ---
 class BookingItemStatus(str, enum.Enum):
     active = "active"
@@ -722,6 +733,11 @@ class DiscountCodeBase(SQLModel):
     valid_until: datetime | None = Field(default=None)
     min_order_amount: float | None = Field(default=None, ge=0)
     max_discount_amount: float | None = Field(default=None, ge=0)
+    # Access code fields for early_bird booking mode
+    is_access_code: bool = Field(default=False)  # Grants early_bird access
+    access_code_mission_id: uuid.UUID | None = Field(
+        default=None
+    )  # Restrict to specific mission
 
 
 class DiscountCodeCreate(SQLModel):
@@ -735,6 +751,8 @@ class DiscountCodeCreate(SQLModel):
     valid_until: datetime | None = Field(default=None)
     min_order_amount: float | None = Field(default=None, ge=0)
     max_discount_amount: float | None = Field(default=None, ge=0)
+    is_access_code: bool = Field(default=False)
+    access_code_mission_id: uuid.UUID | None = Field(default=None)
 
 
 class DiscountCodeUpdate(SQLModel):
@@ -748,6 +766,8 @@ class DiscountCodeUpdate(SQLModel):
     valid_until: datetime | None = Field(default=None)
     min_order_amount: float | None = Field(default=None, ge=0)
     max_discount_amount: float | None = Field(default=None, ge=0)
+    is_access_code: bool | None = None
+    access_code_mission_id: uuid.UUID | None = Field(default=None)
 
 
 class DiscountCode(DiscountCodeBase, table=True):

@@ -34,10 +34,10 @@ const Step1TripSelection = ({
   updateBookingData,
   onNext,
 }: Step1TripSelectionProps) => {
-  // Fetch all trips with their details
+  // Fetch all trips with their details (using public endpoint)
   const { data: allTrips, isLoading: isLoadingTrips } = useQuery({
-    queryKey: ["all-trips"],
-    queryFn: () => TripsService.readTrips({ limit: 100 }),
+    queryKey: ["public-trips"],
+    queryFn: () => TripsService.readPublicTrips({ limit: 100 }),
   })
 
   // Fetch all missions to get mission details
@@ -52,11 +52,11 @@ const Step1TripSelection = ({
     queryFn: () => fetchPublicLaunches({ limit: 100 }),
   })
 
-  // Fetch trip boats for selected trip
+  // Fetch trip boats for selected trip (using public endpoint)
   const { data: tripBoatsResponse, isLoading: isLoadingBoats } = useQuery({
-    queryKey: ["trip-boats", bookingData.selectedTripId],
+    queryKey: ["public-trip-boats", bookingData.selectedTripId],
     queryFn: () =>
-      TripBoatsService.readTripBoatsByTrip({
+      TripBoatsService.readPublicTripBoatsByTrip({
         tripId: bookingData.selectedTripId,
       }),
     enabled: !!bookingData.selectedTripId,
@@ -66,10 +66,10 @@ const Step1TripSelection = ({
     ? tripBoatsResponse
     : []
 
-  // Fetch boat names for display
+  // Fetch boat names for display (using public endpoint)
   const { data: boatNames, isLoading: isLoadingBoatNames } = useQuery({
     queryKey: [
-      "boat-names",
+      "public-boat-names",
       tripBoats.map((tb: { boat_id: string }) => tb.boat_id),
     ],
     queryFn: async () => {
@@ -78,7 +78,7 @@ const Step1TripSelection = ({
       await Promise.all(
         tripBoats.map(async (tripBoat: { boat_id: string }) => {
           try {
-            const boat = await BoatsService.readBoat({
+            const boat = await BoatsService.readPublicBoat({
               boatId: tripBoat.boat_id,
             })
             names[tripBoat.boat_id] = boat.name

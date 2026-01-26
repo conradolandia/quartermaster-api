@@ -2,10 +2,12 @@ import { MissionsService } from "@/client"
 import {
   Button,
   ButtonGroup,
+  createListCollection,
   DialogActionTrigger,
   Flex,
   Input,
   Portal,
+  Select,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -36,11 +38,20 @@ interface Mission {
   launch_id: string
   active: boolean
   public: boolean
+  booking_mode: string
   sales_open_at: string | null
   refund_cutoff_hours: number
   created_at: string
   updated_at: string
 }
+
+const bookingModeOptions = createListCollection({
+  items: [
+    { label: "Private (Admin Only)", value: "private" },
+    { label: "Early Bird (Access Code Required)", value: "early_bird" },
+    { label: "Public (Open to All)", value: "public" },
+  ],
+})
 
 interface EditMissionProps {
   mission: Mission
@@ -65,6 +76,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
       launch_id: mission.launch_id,
       active: mission.active,
       public: mission.public,
+      booking_mode: mission.booking_mode || "private",
       sales_open_at: mission.sales_open_at
         ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
         : "",
@@ -229,6 +241,46 @@ const EditMission = ({ mission }: EditMissionProps) => {
                           inputProps={{ id: "public" }}
                         />
                       </Flex>
+                    )}
+                  />
+                </Field>
+
+                <Field
+                  label="Booking Mode"
+                  helperText="Controls who can book tickets for this mission"
+                >
+                  <Controller
+                    name="booking_mode"
+                    control={control}
+                    render={({ field }) => (
+                      <Select.Root
+                        collection={bookingModeOptions}
+                        value={field.value ? [field.value] : ["private"]}
+                        onValueChange={(details) =>
+                          field.onChange(details.value[0])
+                        }
+                      >
+                        <Select.Control width="100%">
+                          <Select.Trigger>
+                            <Select.ValueText placeholder="Select booking mode" />
+                          </Select.Trigger>
+                          <Select.IndicatorGroup>
+                            <Select.Indicator />
+                          </Select.IndicatorGroup>
+                        </Select.Control>
+                        <Portal container={contentRef}>
+                          <Select.Positioner>
+                            <Select.Content>
+                              {bookingModeOptions.items.map((option) => (
+                                <Select.Item key={option.value} item={option}>
+                                  {option.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.Content>
+                          </Select.Positioner>
+                        </Portal>
+                      </Select.Root>
                     )}
                   />
                 </Field>

@@ -156,3 +156,44 @@ def delete_trip_boat(
         )
     trip_boat = crud.delete_trip_boat(session=session, trip_boat_id=trip_boat_id)
     return trip_boat
+
+
+# Public endpoint (no authentication required)
+@router.get("/public/trip/{trip_id}")
+def read_public_trip_boats_by_trip(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Get all boats for a specific trip (public endpoint for booking form).
+    Validates that the trip's mission has public or early_bird booking_mode.
+    """
+    # Verify that the trip exists
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+
+    # Check mission booking_mode
+    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mission not found",
+        )
+
+    if mission.booking_mode == "private":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tickets are not yet available for this trip",
+        )
+
+    trip_boats = crud.get_trip_boats_by_trip(
+        session=session, trip_id=trip_id, skip=skip, limit=limit
+    )
+    return trip_boats

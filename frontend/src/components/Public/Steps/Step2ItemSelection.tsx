@@ -49,27 +49,28 @@ const Step2ItemSelection = ({
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
 
-  // Fetch trip details to get jurisdiction for tax rate
+  // Fetch trip details to get jurisdiction for tax rate (using public endpoint)
   const { data: tripData } = useQuery({
-    queryKey: ["trip-details", bookingData.selectedTripId],
+    queryKey: ["public-trip-details", bookingData.selectedTripId],
     queryFn: () =>
-      TripsService.readTrip({ tripId: bookingData.selectedTripId }),
+      TripsService.readPublicTrip({ tripId: bookingData.selectedTripId }),
     enabled: !!bookingData.selectedTripId,
   })
 
-  // Fetch mission details
+  // Fetch mission details (using public endpoint)
   const { data: missionData } = useQuery({
-    queryKey: ["mission-details", tripData?.mission_id],
+    queryKey: ["public-mission-details", tripData?.mission_id],
     queryFn: () =>
-      MissionsService.readMission({ missionId: tripData!.mission_id }),
+      MissionsService.readPublicMissions({ limit: 100 }),
     enabled: !!tripData?.mission_id,
+    select: (data) => data.data.find((m) => m.id === tripData?.mission_id),
   })
 
-  // Fetch launch details
+  // Fetch launch details (using public endpoint)
   const { data: launchData } = useQuery({
-    queryKey: ["launch-details", missionData?.launch_id],
+    queryKey: ["public-launch-details", missionData?.launch_id],
     queryFn: () =>
-      LaunchesService.readLaunch({ launchId: missionData!.launch_id }),
+      LaunchesService.readPublicLaunch({ launchId: missionData!.launch_id }),
     enabled: !!missionData?.launch_id,
   })
 
@@ -141,21 +142,21 @@ const Step2ItemSelection = ({
     }
   }
 
-  // Fetch trip pricing
+  // Fetch trip pricing (using public endpoint)
   const { data: tripPricing } = useQuery({
-    queryKey: ["trip-pricing", bookingData.selectedTripId],
+    queryKey: ["public-trip-pricing", bookingData.selectedTripId],
     queryFn: () =>
-      TripPricingService.listTripPricing({
+      TripPricingService.listPublicTripPricing({
         tripId: bookingData.selectedTripId,
       }),
     enabled: !!bookingData.selectedTripId,
   })
 
-  // Fetch trip merchandise
+  // Fetch trip merchandise (using public endpoint)
   const { data: tripMerchandise } = useQuery({
-    queryKey: ["trip-merchandise", bookingData.selectedTripId],
+    queryKey: ["public-trip-merchandise", bookingData.selectedTripId],
     queryFn: () =>
-      TripMerchandiseService.listTripMerchandise({
+      TripMerchandiseService.listPublicTripMerchandise({
         tripId: bookingData.selectedTripId,
       }),
     enabled: !!bookingData.selectedTripId,

@@ -3,8 +3,10 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
@@ -289,4 +291,104 @@ def validate_discount_code(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while validating discount code.",
+        )
+
+
+class AccessCodeValidationResponse(BaseModel):
+    """Response model for access code validation."""
+
+    valid: bool
+    message: str | None = None
+    discount_code: DiscountCodePublic | None = None
+
+
+@router.get("/validate-access/{code}", response_model=AccessCodeValidationResponse)
+def validate_access_code(
+    *,
+    session: Session = Depends(deps.get_db),
+    code: str,
+    mission_id: uuid.UUID | None = None,
+) -> AccessCodeValidationResponse:
+    """
+    Validate an access code for early_bird booking mode.
+    Returns validation status and the discount code details if valid.
+    """
+    try:
+        discount_code = session.exec(
+            select(DiscountCode).where(DiscountCode.code == code)
+        ).first()
+
+        if not discount_code:
+            return AccessCodeValidationResponse(
+                valid=False, message="Access code not found"
+            )
+
+        # Check if it's an access code
+        if not discount_code.is_access_code:
+            return AccessCodeValidationResponse(
+                valid=False, message="This is not a valid access code"
+            )
+
+        # Check if code is active
+        if not discount_code.is_active:
+            return AccessCodeValidationResponse(
+                valid=False, message="Access code is not active"
+            )
+
+        # Check validity dates
+        now = datetime.now(timezone.utc)
+        if discount_code.valid_from and now < discount_code.valid_from:
+            return AccessCodeValidationResponse(
+                valid=False, message="Access code is not yet valid"
+            )
+
+        if discount_code.valid_until and now > discount_code.valid_until:
+            return AccessCodeValidationResponse(
+                valid=False, message="Access code has expired"
+            )
+
+        # Check usage limits
+        if (
+            discount_code.max_uses
+            and discount_code.used_count >= discount_code.max_uses
+        ):
+            return AccessCodeValidationResponse(
+                valid=False, message="Access code has reached maximum usage limit"
+            )
+
+        # Check mission restriction if specified
+        if discount_code.access_code_mission_id and mission_id:
+            if discount_code.access_code_mission_id != mission_id:
+                return AccessCodeValidationResponse(
+                    valid=False,
+                    message="Access code is not valid for this mission",
+                )
+
+        # If mission_id is provided, verify the mission exists and has early_bird mode
+        if mission_id:
+            mission = crud.get_mission(session=session, mission_id=mission_id)
+            if not mission:
+                return AccessCodeValidationResponse(
+                    valid=False, message="Mission not found"
+                )
+            if mission.booking_mode != "early_bird":
+                # If mission is public, access code is still valid but not required
+                # If mission is private, access code won't help
+                if mission.booking_mode == "private":
+                    return AccessCodeValidationResponse(
+                        valid=False,
+                        message="Tickets are not yet available for this mission",
+                    )
+
+        return AccessCodeValidationResponse(
+            valid=True,
+            message="Access code is valid",
+            discount_code=DiscountCodePublic.model_validate(discount_code),
+        )
+
+    except Exception as e:
+        logger.exception(f"Error validating access code: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while validating access code.",
         )

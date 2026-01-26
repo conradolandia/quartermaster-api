@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
+from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
@@ -199,4 +200,55 @@ def delete_trip_merchandise(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while deleting trip merchandise.",
+        )
+
+
+# Public endpoint (no authentication required)
+@router.get("/public/", response_model=list[TripMerchandisePublic])
+def list_public_trip_merchandise(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+) -> list[TripMerchandisePublic]:
+    """
+    List trip merchandise for a specific trip (public endpoint for booking form).
+    Validates that the trip's mission has public or early_bird booking_mode.
+    """
+    try:
+        # Get the trip to check mission booking_mode
+        trip = crud.get_trip(session=session, trip_id=trip_id)
+        if not trip:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Trip with ID {trip_id} not found",
+            )
+
+        # Check mission booking_mode
+        mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+        if not mission:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mission not found",
+            )
+
+        if mission.booking_mode == "private":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tickets are not yet available for this trip",
+            )
+
+        query = select(TripMerchandise).where(TripMerchandise.trip_id == trip_id)
+        trip_merchandise_list = session.exec(query).all()
+        return [
+            TripMerchandisePublic.model_validate(merchandise)
+            for merchandise in trip_merchandise_list
+        ]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error listing public trip merchandise: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while listing trip merchandise.",
         )

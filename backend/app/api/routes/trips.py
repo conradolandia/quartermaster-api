@@ -200,15 +200,40 @@ def read_public_trips(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    access_code: str | None = None,
 ) -> Any:
     """
     Retrieve public trips for booking form.
+    Filters by booking_mode:
+    - private: Not shown unless admin
+    - early_bird: Shown if valid access_code provided
+    - public: Always shown
     """
-    # Only return active trips
     trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
-    active_trips = [trip for trip in trips if trip.active]
-    count = len(active_trips)
-    return TripsPublic(data=active_trips, count=count)
+
+    # Filter trips by active status and mission booking_mode
+    public_trips = []
+    for trip in trips:
+        if not trip.active:
+            continue
+
+        # Get the mission to check booking_mode
+        mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+        if not mission:
+            continue
+
+        # Filter based on booking_mode
+        if mission.booking_mode == "private":
+            continue  # Never show private trips in public endpoint
+        elif mission.booking_mode == "early_bird":
+            # Only show if access_code is provided (validation happens elsewhere)
+            if access_code:
+                public_trips.append(trip)
+        else:  # public
+            public_trips.append(trip)
+
+    count = len(public_trips)
+    return TripsPublic(data=public_trips, count=count)
 
 
 @router.get("/public/{trip_id}", response_model=TripPublic)
@@ -216,9 +241,11 @@ def read_public_trip(
     *,
     session: Session = Depends(deps.get_db),
     trip_id: uuid.UUID,
+    access_code: str | None = None,
 ) -> Any:
     """
     Get public trip by ID for booking form.
+    Checks booking_mode to determine access.
     """
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
@@ -231,6 +258,26 @@ def read_public_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} is not available",
         )
+
+    # Check mission booking_mode
+    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mission not found",
+        )
+
+    if mission.booking_mode == "private":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tickets are not yet available for this trip",
+        )
+    elif mission.booking_mode == "early_bird" and not access_code:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This trip requires an access code",
+        )
+
     return trip
 
 

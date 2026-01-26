@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Checkbox,
   HStack,
   IconButton,
   Input,
@@ -40,6 +41,8 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     valid_until: null,
     min_order_amount: null,
     max_discount_amount: null,
+    is_access_code: false,
+    access_code_mission_id: null,
   })
 
   const queryClient = useQueryClient()
@@ -103,6 +106,8 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       valid_until: null,
       min_order_amount: null,
       max_discount_amount: null,
+      is_access_code: false,
+      access_code_mission_id: null,
     })
   }
 
@@ -119,6 +124,8 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       valid_until: discountCode.valid_until,
       min_order_amount: discountCode.min_order_amount,
       max_discount_amount: discountCode.max_discount_amount,
+      is_access_code: discountCode.is_access_code || false,
+      access_code_mission_id: discountCode.access_code_mission_id || null,
     })
   }
 
@@ -277,6 +284,29 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               </Box>
             </HStack>
 
+            <HStack width="100%" alignItems="center">
+              <Box flex={1}>
+                <Checkbox.Root
+                  checked={formData.is_access_code || false}
+                  onCheckedChange={(details) =>
+                    setFormData({
+                      ...formData,
+                      is_access_code: !!details.checked,
+                    })
+                  }
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                  <Checkbox.Label>
+                    Early Bird Access Code
+                  </Checkbox.Label>
+                </Checkbox.Root>
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  When enabled, this code grants access to missions in "Early Bird" booking mode
+                </Text>
+              </Box>
+            </HStack>
+
             <HStack width="100%" justify="flex-end">
               <Button size="sm" onClick={cancelEdit}>
                 Cancel
@@ -310,6 +340,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               <Table.ColumnHeader>Type</Table.ColumnHeader>
               <Table.ColumnHeader>Value</Table.ColumnHeader>
               <Table.ColumnHeader>Uses</Table.ColumnHeader>
+              <Table.ColumnHeader>Access Code</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
               <Table.ColumnHeader>Actions</Table.ColumnHeader>
             </Table.Row>
@@ -337,6 +368,14 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   <Text fontSize="sm">
                     {discountCode.used_count}
                     {discountCode.max_uses ? ` / ${discountCode.max_uses}` : ""}
+                  </Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <Text
+                    fontSize="sm"
+                    color={discountCode.is_access_code ? "blue.500" : "gray.400"}
+                  >
+                    {discountCode.is_access_code ? "Yes" : "No"}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>

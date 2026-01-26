@@ -194,3 +194,39 @@ def read_boats_by_jurisdiction(
     ]
 
     return BoatsPublic(data=boat_dicts, count=count)
+
+
+# Public endpoints (no authentication required)
+@router.get("/public/{boat_id}", response_model=BoatPublic)
+def read_public_boat(
+    *,
+    session: Session = Depends(deps.get_db),
+    boat_id: uuid.UUID,
+) -> Any:
+    """
+    Get boat by ID for public booking form.
+    No authentication required.
+    """
+    boat = crud.get_boat(session=session, boat_id=boat_id)
+    if not boat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Boat with ID {boat_id} not found",
+        )
+    return boat
+
+
+@router.get("/public/", response_model=BoatsPublic)
+def read_public_boats(
+    *,
+    session: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Retrieve boats for public booking form.
+    No authentication required.
+    """
+    boats = crud.get_boats_no_relationships(session=session, skip=skip, limit=limit)
+    count = crud.get_boats_count(session=session)
+    return BoatsPublic(data=boats, count=count)

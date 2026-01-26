@@ -1,4 +1,13 @@
-import { Button, Flex, Input, Portal, Text, VStack } from "@chakra-ui/react"
+import {
+  Button,
+  createListCollection,
+  Flex,
+  Input,
+  Portal,
+  Select,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
@@ -20,6 +29,14 @@ import { handleError } from "@/utils"
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
+const bookingModeOptions = createListCollection({
+  items: [
+    { label: "Private (Admin Only)", value: "private" },
+    { label: "Early Bird (Access Code Required)", value: "early_bird" },
+    { label: "Public (Open to All)", value: "public" },
+  ],
+})
+
 // Props interface
 interface AddMissionProps {
   isOpen: boolean
@@ -32,6 +49,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const [launchId, setLaunchId] = useState("")
   const [active, setActive] = useState(true)
   const [isPublic, setIsPublic] = useState(false)
+  const [bookingMode, setBookingMode] = useState("private")
   const [salesOpenAt, setSalesOpenAt] = useState("")
   const [refundCutoffHours, setRefundCutoffHours] = useState(12)
   const { showSuccessToast } = useCustomToast()
@@ -50,6 +68,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       setLaunchId("")
       setActive(true)
       setIsPublic(false)
+      setBookingMode("private")
       setSalesOpenAt("")
       setRefundCutoffHours(12)
       queryClient.invalidateQueries({ queryKey: ["missions"] })
@@ -69,6 +88,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       launch_id: launchId,
       active,
       public: isPublic,
+      booking_mode: bookingMode,
       sales_open_at: salesOpenAt ? new Date(salesOpenAt).toISOString() : null,
       refund_cutoff_hours: refundCutoffHours,
     })
@@ -154,6 +174,37 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                     inputProps={{ id: "public" }}
                   />
                 </Flex>
+              </Field>
+              <Field
+                label="Booking Mode"
+                helperText="Controls who can book tickets for this mission"
+              >
+                <Select.Root
+                  collection={bookingModeOptions}
+                  value={[bookingMode]}
+                  onValueChange={(details) => setBookingMode(details.value[0])}
+                >
+                  <Select.Control width="100%">
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select booking mode" />
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Portal container={contentRef}>
+                    <Select.Positioner>
+                      <Select.Content>
+                        {bookingModeOptions.items.map((option) => (
+                          <Select.Item key={option.value} item={option}>
+                            {option.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Portal>
+                </Select.Root>
               </Field>
             </VStack>
           </DialogBody>

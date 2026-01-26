@@ -292,6 +292,7 @@ function Missions() {
                       ...mission,
                       active: mission.active ?? false,
                       public: mission.public ?? false,
+                      booking_mode: mission.booking_mode ?? "private",
                       sales_open_at: mission.sales_open_at ?? null,
                       refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
                     }}

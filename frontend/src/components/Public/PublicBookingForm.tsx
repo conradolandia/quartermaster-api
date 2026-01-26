@@ -25,7 +25,7 @@ export interface BookingStepData {
     phone: string
     special_requests?: string
     billing_address?: string
-    launch_updates_pref?: boolean
+    launch_updates_pref: boolean
     terms_accepted: boolean
   }
 
@@ -57,7 +57,11 @@ import Step2ItemSelection from "./Steps/Step2ItemSelection"
 import Step3CustomerInfo from "./Steps/Step3CustomerInfo"
 import Step4Review from "./Steps/Step4Review"
 
-const PublicBookingForm = () => {
+interface PublicBookingFormProps {
+  initialDiscountCodeId?: string | null
+}
+
+const PublicBookingForm = ({ initialDiscountCodeId }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
   const search = useSearch({ from: "/book" })
   const [bookingData, setBookingData] = useState<BookingStepData>({
@@ -97,7 +101,7 @@ const PublicBookingForm = () => {
     }))
   }
 
-  // Handle URL parameters
+  // Handle URL parameters and initial discount code from AccessGate
   useEffect(() => {
     if (search.discount) {
       // Pre-fill discount code from URL parameter
@@ -107,6 +111,16 @@ const PublicBookingForm = () => {
       }))
     }
   }, [search.discount])
+
+  // Apply discount code ID from AccessGate (access code validation)
+  useEffect(() => {
+    if (initialDiscountCodeId) {
+      setBookingData((prev) => ({
+        ...prev,
+        discount_code_id: initialDiscountCodeId,
+      }))
+    }
+  }, [initialDiscountCodeId])
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {

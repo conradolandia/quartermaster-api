@@ -18,6 +18,7 @@ from app.models import (
     BookingPublic,
     BookingStatus,
     BookingUpdate,
+    DiscountCode,
     Mission,
     Trip,
     TripBoat,
@@ -103,6 +104,47 @@ def create_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mission is not active",
         )
+
+    # Enforce booking_mode access control
+    if mission.booking_mode == "private":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tickets are not yet available for this mission",
+        )
+    elif mission.booking_mode == "early_bird":
+        # Require a valid access code (passed via discount_code_id)
+        if not booking_in.discount_code_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="An access code is required to book this mission",
+            )
+        # Validate that the discount code is a valid access code
+        discount_code = session.get(DiscountCode, booking_in.discount_code_id)
+        if not discount_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid access code",
+            )
+        if not discount_code.is_access_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="A valid access code is required to book this mission",
+            )
+        if not discount_code.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Access code is not active",
+            )
+        # Check if access code is restricted to a specific mission
+        if (
+            discount_code.access_code_mission_id
+            and discount_code.access_code_mission_id != mission_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access code is not valid for this mission",
+            )
+    # booking_mode == "public" allows all bookings
 
     # Validate all boats exist and are associated with the corresponding trip
     for item in booking_in.items:
