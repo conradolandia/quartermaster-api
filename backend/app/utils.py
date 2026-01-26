@@ -215,6 +215,51 @@ def generate_booking_refunded_email(
     return EmailData(html_content=html_content, subject=subject)
 
 
+def generate_launch_update_email(
+    *,
+    email_to: str,
+    user_name: str,
+    confirmation_code: str,
+    mission_name: str,
+    update_message: str,
+) -> EmailData:
+    """
+    Generate launch update email for customers who opted in.
+
+    Args:
+        email_to: Recipient's email address
+        user_name: Customer's name
+        confirmation_code: Unique booking confirmation code
+        mission_name: Name of the mission/launch
+        update_message: The update message to send
+
+    Returns:
+        EmailData containing the subject and HTML content
+    """
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Launch Update: {mission_name}"
+
+    # Create the confirmation link
+    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+    confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
+
+    # Render the email template
+    html_content = render_email_template(
+        template_name="launch_update.html",
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "user_name": user_name,
+            "confirmation_code": confirmation_code,
+            "mission_name": mission_name,
+            "update_message": update_message,
+            "confirmation_link": confirmation_link,
+            "email": email_to,
+        },
+    )
+
+    return EmailData(html_content=html_content, subject=subject)
+
+
 def generate_reset_password_email(email_to: str, email: str, token: str) -> EmailData:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Password recovery for user {email}"

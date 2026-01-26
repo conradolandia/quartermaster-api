@@ -17,6 +17,7 @@ interface CustomerInfo {
   phone: string
   special_requests?: string
   billing_address?: string
+  launch_updates_pref: boolean
   terms_accepted: boolean
 }
 
@@ -50,6 +51,7 @@ const Step3CustomerInfo = ({
     phone: bookingData.customerInfo?.phone || "",
     special_requests: bookingData.customerInfo?.special_requests || "",
     billing_address: bookingData.customerInfo?.billing_address || "",
+    launch_updates_pref: bookingData.customerInfo?.launch_updates_pref || false,
     terms_accepted: bookingData.customerInfo?.terms_accepted || false,
   })
 
@@ -186,6 +188,17 @@ const Step3CustomerInfo = ({
 
           <Box>
             <VStack gap={4} align="stretch">
+              <Box display="flex" alignItems="center" gap={2}>
+                <input
+                  type="checkbox"
+                  checked={customerInfo.launch_updates_pref}
+                  onChange={(e) =>
+                    updateCustomerInfo("launch_updates_pref", e.target.checked)
+                  }
+                />
+                <Text>Send me launch updates and schedule changes</Text>
+              </Box>
+
               <Box display="flex" alignItems="center" gap={2}>
                 <input
                   type="checkbox"

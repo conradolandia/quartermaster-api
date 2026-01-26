@@ -1,20 +1,30 @@
+import logging
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlmodel import Session
+from pydantic import BaseModel
+from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    Booking,
+    BookingItem,
+    BookingStatus,
     LaunchCreate,
     LaunchesPublic,
     LaunchPublic,
     LaunchUpdate,
+    Mission,
+    Trip,
 )
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
+from app.utils import generate_launch_update_email, send_email
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/launches", tags=["launches"])
 
@@ -276,3 +286,89 @@ def import_launch_from_yaml(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to import launch: {str(e)}",
         )
+
+
+class LaunchUpdateMessage(BaseModel):
+    """Request body for sending launch update emails."""
+
+    message: str
+
+
+class LaunchUpdateResponse(BaseModel):
+    """Response for launch update email sending."""
+
+    emails_sent: int
+    emails_failed: int
+    recipients: list[str]
+
+
+@router.post(
+    "/{launch_id}/send-update",
+    response_model=LaunchUpdateResponse,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def send_launch_update(
+    *,
+    session: Session = Depends(deps.get_db),
+    launch_id: uuid.UUID,
+    update_data: LaunchUpdateMessage,
+) -> Any:
+    """
+    Send a launch update email to all customers with confirmed bookings
+    for this launch who have opted in to receive launch updates.
+    """
+    # Get the launch
+    launch = crud.get_launch(session=session, launch_id=launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch with ID {launch_id} not found",
+        )
+
+    # Find all bookings for this launch where launch_updates_pref is True
+    # Path: Launch -> Mission -> Trip -> BookingItem -> Booking
+    statement = (
+        select(Booking)
+        .join(BookingItem, BookingItem.booking_id == Booking.id)
+        .join(Trip, Trip.id == BookingItem.trip_id)
+        .join(Mission, Mission.id == Trip.mission_id)
+        .where(Mission.launch_id == launch_id)
+        .where(Booking.launch_updates_pref == True)  # noqa: E712
+        .where(Booking.status.in_([BookingStatus.confirmed, BookingStatus.checked_in]))
+        .distinct()
+    )
+    bookings = session.exec(statement).all()
+
+    emails_sent = 0
+    emails_failed = 0
+    recipients = []
+
+    for booking in bookings:
+        try:
+            # Generate and send the email
+            email_data = generate_launch_update_email(
+                email_to=booking.user_email,
+                user_name=booking.user_name,
+                confirmation_code=booking.confirmation_code,
+                mission_name=launch.name,
+                update_message=update_data.message,
+            )
+            send_email(
+                email_to=booking.user_email,
+                subject=email_data.subject,
+                html_content=email_data.html_content,
+            )
+            emails_sent += 1
+            recipients.append(booking.user_email)
+            logger.info(f"Sent launch update to {booking.user_email}")
+        except Exception as e:
+            emails_failed += 1
+            logger.error(
+                f"Failed to send launch update to {booking.user_email}: {str(e)}"
+            )
+
+    return LaunchUpdateResponse(
+        emails_sent=emails_sent,
+        emails_failed=emails_failed,
+        recipients=recipients,
+    )

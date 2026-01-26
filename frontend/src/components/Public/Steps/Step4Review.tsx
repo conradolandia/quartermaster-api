@@ -57,7 +57,7 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
         tip_amount: bookingData.tip,
         total_amount: bookingData.total,
         special_requests: bookingData.customerInfo.special_requests || "",
-        launch_updates_pref: false,
+        launch_updates_pref: bookingData.customerInfo.launch_updates_pref ?? false,
         discount_code_id: bookingData.discount_code_id,
       };
 

@@ -5,6 +5,7 @@ import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 import type { LaunchPublic } from "@/client"
 import DeleteLaunch from "../Launches/DeleteLaunch"
 import EditLaunch from "../Launches/EditLaunch"
+import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 
 interface LaunchActionsMenuProps {
   launch: LaunchPublic
@@ -19,6 +20,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
         </IconButton>
       </MenuTrigger>
       <MenuContent>
+        <SendLaunchUpdate launch={launch} />
         <EditLaunch launch={launch} />
         <DeleteLaunch id={launch.id} />
       </MenuContent>
