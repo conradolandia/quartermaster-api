@@ -28,11 +28,6 @@ interface TripPricingManagerProps {
   tripId: string
 }
 
-const TICKET_TYPES = [
-  { value: "adult", label: "Adult" },
-  { value: "child", label: "Child" },
-  { value: "infant", label: "Infant" },
-]
 
 export default function TripPricingManager({
   tripId,
@@ -46,7 +41,7 @@ export default function TripPricingManager({
 
   // Form states for pricing
   const [pricingForm, setPricingForm] = useState({
-    ticket_type: "adult",
+    ticket_type: "",
     price: "",
   })
 
@@ -59,7 +54,7 @@ export default function TripPricingManager({
   })
 
   const queryClient = useQueryClient()
-  const { showSuccessToast } = useCustomToast()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
 
   // Fetch trip pricing
   const { data: pricingData, refetch: refetchPricing } = useQuery({
@@ -80,7 +75,7 @@ export default function TripPricingManager({
     onSuccess: () => {
       showSuccessToast("Pricing created successfully")
       setIsAddingPricing(false)
-      setPricingForm({ ticket_type: "adult", price: "" })
+      setPricingForm({ ticket_type: "", price: "" })
       refetchPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-pricing"] })
     },
@@ -97,7 +92,7 @@ export default function TripPricingManager({
     onSuccess: () => {
       showSuccessToast("Pricing updated successfully")
       setEditingPricingId(null)
-      setPricingForm({ ticket_type: "adult", price: "" })
+      setPricingForm({ ticket_type: "", price: "" })
       refetchPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-pricing"] })
     },
@@ -170,7 +165,20 @@ export default function TripPricingManager({
   })
 
   const handlePricingSubmit = () => {
-    if (!pricingForm.price) return
+    if (!pricingForm.ticket_type.trim() || !pricingForm.price) return
+
+    // Check for duplicate ticket type (only when creating, not when editing)
+    if (!editingPricingId) {
+      const exists = pricingData?.some(
+        (p) =>
+          p.ticket_type.toLowerCase().trim() ===
+          pricingForm.ticket_type.toLowerCase().trim(),
+      )
+      if (exists) {
+        showErrorToast("This ticket type already exists for this trip")
+        return
+      }
+    }
 
     const data: TripPricingCreate = {
       trip_id: tripId,
@@ -265,7 +273,7 @@ export default function TripPricingManager({
                   <Text fontSize="sm" mb={1}>
                     Ticket Type
                   </Text>
-                  <select
+                  <Input
                     value={pricingForm.ticket_type}
                     onChange={(e) =>
                       setPricingForm({
@@ -273,20 +281,8 @@ export default function TripPricingManager({
                         ticket_type: e.target.value,
                       })
                     }
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "0.375rem",
-                      border: "1px solid",
-                      borderColor: "inherit",
-                    }}
-                  >
-                    {TICKET_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="e.g., Adult, Child, VIP, Standard"
+                  />
                 </Box>
                 <Box flex={1}>
                   <Text fontSize="sm" mb={1}>
@@ -313,6 +309,7 @@ export default function TripPricingManager({
                   colorScheme="blue"
                   onClick={handlePricingSubmit}
                   disabled={
+                    !pricingForm.ticket_type.trim() ||
                     !pricingForm.price ||
                     createPricingMutation.isPending ||
                     updatePricingMutation.isPending
@@ -341,8 +338,7 @@ export default function TripPricingManager({
             >
               <HStack>
                 <Text fontWeight="medium" color={editingPricingId === pricing.id ? "white" : "inherit"}>
-                  {TICKET_TYPES.find((t) => t.value === pricing.ticket_type)
-                    ?.label || pricing.ticket_type}
+                  {pricing.ticket_type}
                 </Text>
                 <Text color={editingPricingId === pricing.id ? "white" : "inherit"}>${pricing.price.toFixed(2)}</Text>
               </HStack>

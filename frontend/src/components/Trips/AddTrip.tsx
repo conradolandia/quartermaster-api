@@ -67,11 +67,6 @@ interface SelectedMerchandise {
   quantity_available: number
 }
 
-const TICKET_TYPES = [
-  { value: "adult", label: "Adult" },
-  { value: "child", label: "Child" },
-  { value: "infant", label: "Infant" },
-]
 
 const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [missionId, setMissionId] = useState("")
@@ -94,7 +89,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   // Pricing management
   const [selectedPricing, setSelectedPricing] = useState<SelectedPricing[]>([])
   const [pricingForm, setPricingForm] = useState({
-    ticket_type: "adult",
+    ticket_type: "",
     price: "",
   })
   const [isAddingPricing, setIsAddingPricing] = useState(false)
@@ -133,7 +128,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setMaxCapacity(undefined)
       setIsAddingBoat(false)
       setSelectedPricing([])
-      setPricingForm({ ticket_type: "adult", price: "" })
+      setPricingForm({ ticket_type: "", price: "" })
       setIsAddingPricing(false)
       setSelectedMerchandise([])
       setMerchandiseForm({
@@ -184,7 +179,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
 
   // Handle adding pricing
   const handleAddPricing = () => {
-    if (!pricingForm.price) return
+    if (!pricingForm.ticket_type.trim() || !pricingForm.price) return
 
     // Check if this ticket type is already added
     const exists = selectedPricing.some(
@@ -203,7 +198,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       },
     ])
 
-    setPricingForm({ ticket_type: "adult", price: "" })
+    setPricingForm({ ticket_type: "", price: "" })
     setIsAddingPricing(false)
   }
 
@@ -579,7 +574,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               <Text fontSize="sm" mb={1}>
                                 Ticket Type
                               </Text>
-                              <select
+                              <Input
                                 value={pricingForm.ticket_type}
                                 onChange={(e) =>
                                   setPricingForm({
@@ -587,20 +582,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                     ticket_type: e.target.value,
                                   })
                                 }
-                                style={{
-                                  width: "100%",
-                                  padding: "0.5rem",
-                                  borderRadius: "0.375rem",
-                                  border: "1px solid",
-                                  borderColor: "inherit",
-                                }}
-                              >
-                                {TICKET_TYPES.map((type) => (
-                                  <option key={type.value} value={type.value}>
-                                    {type.label}
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="e.g., Adult, Child, VIP, Standard"
+                              />
                             </Box>
                             <Box flex={1}>
                               <Text fontSize="sm" mb={1}>
@@ -632,7 +615,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               size="sm"
                               colorScheme="blue"
                               onClick={handleAddPricing}
-                              disabled={!pricingForm.price}
+                              disabled={!pricingForm.ticket_type.trim() || !pricingForm.price}
                             >
                               Add Pricing
                             </Button>
@@ -653,9 +636,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         >
                           <HStack>
                             <Text fontWeight="medium">
-                              {TICKET_TYPES.find(
-                                (t) => t.value === pricing.ticket_type,
-                              )?.label || pricing.ticket_type}
+                              {pricing.ticket_type}
                             </Text>
                             <Text>${pricing.price.toFixed(2)}</Text>
                           </HStack>
