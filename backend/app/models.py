@@ -28,14 +28,20 @@ class UserBase(SQLModel):
     @field_validator("full_name", mode="before")
     @classmethod
     def validate_full_name(cls, v: str | None) -> str | None:
-        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        """Validate full_name: max 64 chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
         if v is None:
             return v
         if len(v) > 64:
             raise ValueError("Full name must be 64 characters or less")
-        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+        # Allow Unicode letters (including accented), numbers, spaces, hyphens
+        # Exclude quotes (single and double) which can break the application
+        if "'" in v or '"' in v:
             raise ValueError(
-                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+                "Full name cannot contain quotes (single or double). Letters (including accented), numbers, spaces, and hyphens are allowed."
+            )
+        if not re.match(r"^[\w\s-]+$", v, re.UNICODE):
+            raise ValueError(
+                "Full name can only contain letters (including accented), numbers, spaces, and hyphens"
             )
         return v
 
@@ -61,14 +67,20 @@ class UserRegister(SQLModel):
     @field_validator("full_name", mode="before")
     @classmethod
     def validate_full_name(cls, v: str | None) -> str | None:
-        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        """Validate full_name: max 64 chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
         if v is None:
             return v
         if len(v) > 64:
             raise ValueError("Full name must be 64 characters or less")
-        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+        # Allow Unicode letters (including accented), numbers, spaces, hyphens
+        # Exclude quotes (single and double) which can break the application
+        if "'" in v or '"' in v:
             raise ValueError(
-                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+                "Full name cannot contain quotes (single or double). Letters (including accented), numbers, spaces, and hyphens are allowed."
+            )
+        if not re.match(r"^[\w\s-]+$", v, re.UNICODE):
+            raise ValueError(
+                "Full name can only contain letters (including accented), numbers, spaces, and hyphens"
             )
         return v
 
@@ -94,14 +106,20 @@ class UserUpdateMe(SQLModel):
     @field_validator("full_name", mode="before")
     @classmethod
     def validate_full_name(cls, v: str | None) -> str | None:
-        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        """Validate full_name: max 64 chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
         if v is None:
             return v
         if len(v) > 64:
             raise ValueError("Full name must be 64 characters or less")
-        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+        # Allow Unicode letters (including accented), numbers, spaces, hyphens
+        # Exclude quotes (single and double) which can break the application
+        if "'" in v or '"' in v:
             raise ValueError(
-                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+                "Full name cannot contain quotes (single or double). Letters (including accented), numbers, spaces, and hyphens are allowed."
+            )
+        if not re.match(r"^[\w\s-]+$", v, re.UNICODE):
+            raise ValueError(
+                "Full name can only contain letters (including accented), numbers, spaces, and hyphens"
             )
         return v
 

@@ -128,10 +128,15 @@ const EditUser = ({ user }: EditUserProps) => {
                       value: 64,
                       message: "Full name must be 64 characters or less",
                     },
-                    pattern: {
-                      value: /^[a-zA-Z0-9\s-]+$/,
-                      message:
-                        "Full name can only contain alphanumeric characters, spaces, and hyphens",
+                    validate: (value) => {
+                      if (!value) return true
+                      if (value.includes("'") || value.includes('"')) {
+                        return "Full name cannot contain quotes (single or double). Letters (including accented), numbers, spaces, and hyphens are allowed."
+                      }
+                      if (!/^[\w\s-]+$/u.test(value)) {
+                        return "Full name can only contain letters (including accented), numbers, spaces, and hyphens"
+                      }
+                      return true
                     },
                   })}
                   placeholder="Full name"
