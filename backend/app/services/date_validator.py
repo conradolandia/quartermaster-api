@@ -16,6 +16,21 @@ def _get_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def ensure_aware(dt: datetime) -> datetime:
+    """
+    Ensure datetime is timezone-aware (assumes UTC if naive).
+
+    Args:
+        dt: Datetime to ensure is timezone-aware
+
+    Returns:
+        Timezone-aware datetime (UTC if originally naive)
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def is_launch_past(launch: "Launch", now: datetime | None = None) -> bool:
     """
     Check if a launch has already occurred.

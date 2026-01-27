@@ -80,7 +80,7 @@ const Step2ItemSelection = ({
   })
 
   // Fetch jurisdiction for tax rate (using public endpoint)
-  const { data: jurisdictionsData } = useQuery({
+  const { data: jurisdictionsData, isPending: isLoadingJurisdictions } = useQuery({
     queryKey: ["public-jurisdictions-by-location", launchData?.location_id],
     queryFn: () =>
       JurisdictionsService.readPublicJurisdictions({
@@ -96,7 +96,11 @@ const Step2ItemSelection = ({
     : 0
 
   // Check if jurisdiction is missing when we have location data
-  const jurisdictionMissing = !!launchData?.location_id && (!jurisdictionsData?.data || jurisdictionsData.data.length === 0)
+  // Only show error if query has completed (not loading) and no data found
+  const jurisdictionMissing =
+    !!launchData?.location_id &&
+    !isLoadingJurisdictions &&
+    (!jurisdictionsData?.data || jurisdictionsData.data.length === 0)
 
   // Auto-validate discount code if it was pre-filled from URL
   useEffect(() => {

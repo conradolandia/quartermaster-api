@@ -18,6 +18,7 @@ from app.models import (
     TripUpdate,
 )
 from app.services.date_validator import (
+    ensure_aware,
     is_trip_past,
     validate_trip_dates,
     validate_trip_time_ordering,
@@ -382,12 +383,14 @@ def read_public_trips(
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
             continue
 
-        # Filter out past trips
-        if departure_time and departure_time < now:
-            logger.info(
-                f"Trip {trip_id} ({trip_name}) filtered out: departure_time {departure_time} is in the past"
-            )
-            continue
+        # Filter out past trips (ensure timezone-aware for comparison)
+        if departure_time:
+            departure_time = ensure_aware(departure_time)
+            if departure_time < now:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: departure_time {departure_time} is in the past"
+                )
+                continue
 
         # Get the mission to check booking_mode and launch
         mission_id = trip.get("mission_id")
@@ -410,8 +413,9 @@ def read_public_trips(
             )
             continue
 
-        # Filter out trips for past launches
-        if launch.launch_timestamp < now:
+        # Filter out trips for past launches (ensure timezone-aware for comparison)
+        launch_time = ensure_aware(launch.launch_timestamp)
+        if launch_time < now:
             logger.info(
                 f"Trip {trip_id} ({trip_name}) filtered out: launch {launch.launch_timestamp} is in the past"
             )
@@ -488,9 +492,10 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} is not available",
         )
 
-    # Filter out past trips
+    # Filter out past trips (ensure timezone-aware for comparison)
     now = datetime.now(timezone.utc)
-    if trip.departure_time < now:
+    trip_departure = ensure_aware(trip.departure_time)
+    if trip_departure < now:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} has already departed",
@@ -512,8 +517,9 @@ def read_public_trip(
             detail="Launch not found",
         )
 
-    # Filter out trips for past launches
-    if launch.launch_timestamp < now:
+    # Filter out trips for past launches (ensure timezone-aware for comparison)
+    launch_time = ensure_aware(launch.launch_timestamp)
+    if launch_time < now:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
