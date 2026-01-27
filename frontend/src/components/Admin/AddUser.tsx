@@ -51,7 +51,7 @@ const AddUser = () => {
       full_name: "",
       password: "",
       confirm_password: "",
-      is_superuser: false,
+      is_superuser: true, // All users must be superusers
       is_active: false,
     },
   })
@@ -73,7 +73,8 @@ const AddUser = () => {
   })
 
   const onSubmit: SubmitHandler<UserCreateForm> = (data) => {
-    mutation.mutate(data)
+    // Always set is_superuser to true (all users must be superusers)
+    mutation.mutate({ ...data, is_superuser: true })
   }
 
   return (
@@ -170,20 +171,6 @@ const AddUser = () => {
             </VStack>
 
             <Flex mt={4} direction="column" gap={4}>
-              <Controller
-                control={control}
-                name="is_superuser"
-                render={({ field }) => (
-                  <Field disabled={field.disabled} colorPalette="teal">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={({ checked }) => field.onChange(checked)}
-                    >
-                      Is superuser?
-                    </Checkbox>
-                  </Field>
-                )}
-              />
               <Controller
                 control={control}
                 name="is_active"

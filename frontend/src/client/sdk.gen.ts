@@ -423,7 +423,7 @@ export class BoatsService {
 export class BookingsService {
   /**
    * Create Booking
-   * Create new booking.
+   * Create new booking (authentication optional - public or admin).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns BookingPublic Successful Response

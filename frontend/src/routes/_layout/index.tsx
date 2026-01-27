@@ -27,6 +27,16 @@ function Dashboard() {
     )
   }
 
+  if (!currentUser.is_superuser) {
+    return (
+      <Container maxW="full">
+        <Box pt={12} m={4}>
+          <Text>Only superusers can access the dashboard. Please use the public booking form.</Text>
+        </Box>
+      </Container>
+    )
+  }
+
   return (
     <Container maxW="full">
       <Box pt={12} m={4}>

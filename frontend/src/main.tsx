@@ -22,7 +22,7 @@ const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1"
 const isBaseDomain = !isLocalhost && !hostname.startsWith("admin.")
 
 // Public routes allowed on base domain
-const publicRoutes = ["/book", "/book-confirm", "/lookup", "/login", "/signup", "/reset-password", "/recover-password"]
+const publicRoutes = ["/book", "/book-confirm", "/lookup", "/login", "/reset-password", "/recover-password"]
 const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"))
 const isRootPath = pathname === "/" || pathname === ""
 

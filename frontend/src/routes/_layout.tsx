@@ -1,9 +1,11 @@
 import { Flex } from "@chakra-ui/react"
 import { Outlet, createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
 
 import Navbar from "@/components/Common/Navbar"
 import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
+import type { UserPublic } from "@/client"
 
 export const Route = createFileRoute("/_layout")({
   component: Layout,
@@ -24,6 +26,8 @@ export const Route = createFileRoute("/_layout")({
 
 function Layout() {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
 
   // Check if this is a public booking confirmation (unauthenticated access)
   const isPublicBookingConfirmation = router.state.location.pathname === "/bookings" &&
@@ -37,7 +41,14 @@ function Layout() {
     return <Outlet />
   }
 
-  // For authenticated users or other routes, show the full layout
+  // Require superuser for dashboard access
+  if (isLoggedIn() && currentUser && !currentUser.is_superuser) {
+    throw redirect({
+      to: "/login",
+    })
+  }
+
+  // For authenticated superusers or other routes, show the full layout
   return (
     <Flex direction="column" h="100vh">
       <Navbar />

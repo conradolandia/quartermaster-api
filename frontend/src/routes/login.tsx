@@ -1,4 +1,4 @@
-import { Container, Image, Input, Text } from "@chakra-ui/react"
+import { Container, Image, Input } from "@chakra-ui/react"
 import {
   Link as RouterLink,
   createFileRoute,
@@ -103,12 +103,6 @@ function Login() {
         <Button variant="solid" type="submit" loading={isSubmitting} size="md">
           Log In
         </Button>
-        <Text>
-          Don't have an account?{" "}
-          <RouterLink to="/signup" className="main-link">
-            Sign Up
-          </RouterLink>
-        </Text>
       </Container>
     </>
   )
