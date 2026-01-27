@@ -123,7 +123,17 @@ const EditUser = ({ user }: EditUserProps) => {
               >
                 <Input
                   id="name"
-                  {...register("full_name")}
+                  {...register("full_name", {
+                    maxLength: {
+                      value: 64,
+                      message: "Full name must be 64 characters or less",
+                    },
+                    pattern: {
+                      value: /^[a-zA-Z0-9\s-]+$/,
+                      message:
+                        "Full name can only contain alphanumeric characters, spaces, and hyphens",
+                    },
+                  })}
                   placeholder="Full name"
                   type="text"
                 />

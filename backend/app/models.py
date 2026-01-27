@@ -1,4 +1,5 @@
 import enum
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -14,7 +15,7 @@ class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
     is_superuser: bool = False
-    full_name: str | None = Field(default=None, max_length=255)
+    full_name: str | None = Field(default=None, max_length=64)
 
     @field_validator("email", mode="before")
     @classmethod
@@ -22,6 +23,20 @@ class UserBase(SQLModel):
         """Normalize email to lowercase for case-insensitive handling."""
         if v:
             return v.lower()
+        return v
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def validate_full_name(cls, v: str | None) -> str | None:
+        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        if v is None:
+            return v
+        if len(v) > 64:
+            raise ValueError("Full name must be 64 characters or less")
+        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+            raise ValueError(
+                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+            )
         return v
 
 
@@ -33,7 +48,7 @@ class UserCreate(UserBase):
 class UserRegister(SQLModel):
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=40)
-    full_name: str | None = Field(default=None, max_length=255)
+    full_name: str | None = Field(default=None, max_length=64)
 
     @field_validator("email", mode="before")
     @classmethod
@@ -41,6 +56,20 @@ class UserRegister(SQLModel):
         """Normalize email to lowercase for case-insensitive handling."""
         if v:
             return v.lower()
+        return v
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def validate_full_name(cls, v: str | None) -> str | None:
+        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        if v is None:
+            return v
+        if len(v) > 64:
+            raise ValueError("Full name must be 64 characters or less")
+        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+            raise ValueError(
+                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+            )
         return v
 
 
@@ -51,7 +80,7 @@ class UserUpdate(UserBase):
 
 
 class UserUpdateMe(SQLModel):
-    full_name: str | None = Field(default=None, max_length=255)
+    full_name: str | None = Field(default=None, max_length=64)
     email: EmailStr | None = Field(default=None, max_length=255)
 
     @field_validator("email", mode="before")
@@ -60,6 +89,20 @@ class UserUpdateMe(SQLModel):
         """Normalize email to lowercase for case-insensitive handling."""
         if v:
             return v.lower()
+        return v
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def validate_full_name(cls, v: str | None) -> str | None:
+        """Validate full_name: max 64 chars, alphanumeric, spaces, and hyphens only."""
+        if v is None:
+            return v
+        if len(v) > 64:
+            raise ValueError("Full name must be 64 characters or less")
+        if not re.match(r"^[a-zA-Z0-9\s-]+$", v):
+            raise ValueError(
+                "Full name can only contain alphanumeric characters, spaces, and hyphens"
+            )
         return v
 
 
