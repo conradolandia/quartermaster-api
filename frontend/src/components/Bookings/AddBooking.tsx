@@ -94,7 +94,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [tripBoats, setTripBoats] = useState<{ boat_id: string }[]>([])
   const [boatNames, setBoatNames] = useState<Record<string, string>>({})
   const [selectedBoatId, setSelectedBoatId] = useState<string>("")
-  const [isDiscountPercent, setIsDiscountPercent] = useState<boolean>(false)
   const [discountInput, setDiscountInput] = useState<number>(0)
   const [discountCode, setDiscountCode] = useState<string>("")
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
@@ -319,35 +318,28 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       return sum + item.quantity * item.price_per_unit
     }, 0)
 
-    // Compute discount in dollars from input (supports % mode)
-    const discount = isDiscountPercent
-      ? Math.max(
-          0,
-          Number(
-            ((calculatedSubtotal * (discountInput || 0)) / 100).toFixed(2),
-          ),
-        )
-      : discountInput || 0
+    // Compute discount in dollars from discount code input
+    const discount = discountInput || 0
     // Sync computed discount dollars to the form field expected by backend
     setValue("discount_amount", discount)
 
-    // Apply discount BEFORE tax; tax calculated as percentage of (subtotal - discount)
+    // Calculate in order: subtotal → discount → tip → tax (on subtotal - discount + tip)
     const subtotalAfterDiscount = Math.max(0, calculatedSubtotal - discount)
+    const amountAfterDiscountAndTip = subtotalAfterDiscount + (watchedTipAmount || 0)
+    // Tax calculated after discount and tip are applied
     const taxAmount = Math.max(
       0,
       Number(
-        ((subtotalAfterDiscount * (taxRatePercent || 0)) / 100).toFixed(2),
+        ((amountAfterDiscountAndTip * (taxRatePercent || 0)) / 100).toFixed(2),
       ),
     )
-    const calculatedTotal =
-      subtotalAfterDiscount + taxAmount + (watchedTipAmount || 0)
+    const calculatedTotal = amountAfterDiscountAndTip + taxAmount
 
     setValue("subtotal", calculatedSubtotal)
     setValue("tax_amount", taxAmount)
     setValue("total_amount", Math.max(0, calculatedTotal))
   }, [
     selectedItems,
-    isDiscountPercent,
     discountInput,
     watchedTipAmount,
     taxRatePercent,
@@ -471,13 +463,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       return merchandise?.name || "Merchandise"
     }
 
-    const ticketTypeLabels: Record<string, string> = {
-      adult_ticket: "Adult Ticket",
-      child_ticket: "Child Ticket",
-      infant_ticket: "Infant Ticket",
-    }
-
-    return ticketTypeLabels[item.item_type] || item.item_type
+    return item.item_type
   }
 
   // Reset form on close
@@ -805,39 +791,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                         </Text>
                       </HStack>
                     )}
-                    <HStack justify="space-between">
-                      <Text>Manual Discount ({isDiscountPercent ? "%" : "$"}):</Text>
-                      <HStack gap={2}>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={discountInput}
-                          onChange={(e) =>
-                            setDiscountInput(
-                              Number.parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          style={{ width: "100px" }}
-                        />
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isDiscountPercent}
-                            onChange={(e) =>
-                              setIsDiscountPercent(e.target.checked)
-                            }
-                          />
-                          <Text fontSize="sm">Use %</Text>
-                        </label>
-                      </HStack>
-                    </HStack>
                   </VStack>
                   <HStack justify="space-between" width="100%">
                     <Text>Tax Rate:</Text>
@@ -874,12 +827,17 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       step="0.01"
                       min="0"
                       value={watch("discount_amount")}
-                      onChange={(e) =>
-                        setValue(
-                          "discount_amount",
-                          Number.parseFloat(e.target.value) || 0,
-                        )
-                      }
+                      onChange={(e) => {
+                        const newDiscount = Number.parseFloat(e.target.value) || 0
+                        setValue("discount_amount", newDiscount)
+                        // Sync to discountInput to keep them in sync
+                        setDiscountInput(newDiscount)
+                        // Clear applied discount code if manually edited
+                        if (appliedDiscountCode && newDiscount !== discountInput) {
+                          setAppliedDiscountCode(null)
+                          setDiscountCode("")
+                        }
+                      }}
                       style={{ width: "100px" }}
                     />
                   </HStack>

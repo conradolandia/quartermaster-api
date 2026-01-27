@@ -145,13 +145,11 @@ const EditBooking = ({
   ]
 
   const getItemTypeLabel = (itemType: string) => {
-    const typeMap: Record<string, string> = {
-      adult_ticket: "Adult Ticket",
-      child_ticket: "Child Ticket",
-      infant_ticket: "Infant Ticket",
+    // Map merchandise item types to display names
+    const merchandiseMap: Record<string, string> = {
       swag: "Merchandise",
     }
-    return typeMap[itemType] || itemType
+    return merchandiseMap[itemType] || itemType
   }
 
   const getTripName = (tripId: string) => {

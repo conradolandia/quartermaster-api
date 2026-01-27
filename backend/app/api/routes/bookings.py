@@ -176,31 +176,35 @@ def create_booking(
 
     # Validate pricing and inventory server-side
     for item in booking_in.items:
-        if item.item_type in ("adult_ticket", "child_ticket", "infant_ticket"):
+        # Check if this is a ticket item (not merchandise)
+        # Tickets don't have trip_merchandise_id, merchandise items do
+        if item.trip_merchandise_id is None:
             # Ticket pricing must match TripPricing
+            # Try matching item_type directly, or with "_ticket" suffix removed for backward compatibility
             pricing = session.exec(
                 select(TripPricing).where(
                     (TripPricing.trip_id == item.trip_id)
-                    & (TripPricing.ticket_type == item.item_type.replace("_ticket", ""))
+                    & (
+                        (TripPricing.ticket_type == item.item_type)
+                        | (
+                            TripPricing.ticket_type
+                            == item.item_type.replace("_ticket", "")
+                        )
+                    )
                 )
             ).first()
             if not pricing:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"No pricing configured for {item.item_type}",
+                    detail=f"No pricing configured for ticket type '{item.item_type}'",
                 )
             if abs(pricing.price - item.price_per_unit) > 0.0001:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Ticket price mismatch",
                 )
-        elif item.item_type == "swag":
+        else:
             # Merchandise must reference a valid TripMerchandise row and have inventory
-            if item.trip_merchandise_id is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Merchandise item is missing reference",
-                )
             merch = session.get(TripMerchandise, item.trip_merchandise_id)
             if not merch or merch.trip_id != item.trip_id:
                 raise HTTPException(
@@ -1198,37 +1202,53 @@ def export_bookings_csv(
         # Execute query
         bookings = session.exec(query).all()
 
+        # First pass: collect all unique ticket types from all bookings
+        all_ticket_types: set[str] = set()
+        for booking in bookings:
+            items = session.exec(
+                select(BookingItem).where(BookingItem.booking_id == booking.id)
+            ).all()
+            for item in items:
+                # Only count ticket items (not merchandise)
+                if item.trip_merchandise_id is None:
+                    all_ticket_types.add(item.item_type)
+
+        # Sort ticket types for consistent column order
+        sorted_ticket_types = sorted(all_ticket_types)
+
         # Create CSV content
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # Write header - one row per booking with flattened item columns
-        writer.writerow(
-            [
-                "Confirmation Code",
-                "Customer Name",
-                "Email",
-                "Phone",
-                "Billing Address",
-                "Status",
-                "Total Amount",
-                "Subtotal",
-                "Discount Amount",
-                "Tax Amount",
-                "Tip Amount",
-                "Created At",
-                "Trip Type",
-                "Boat Name",
-                "Adult Tickets",
-                "Adult Price",
-                "Child Tickets",
-                "Child Price",
-                "Infant Tickets",
-                "Infant Price",
-                "Swag Description",
-                "Swag Total",
-            ]
-        )
+        # Build header with dynamic ticket type columns
+        header = [
+            "Confirmation Code",
+            "Customer Name",
+            "Email",
+            "Phone",
+            "Billing Address",
+            "Status",
+            "Total Amount",
+            "Subtotal",
+            "Discount Amount",
+            "Tax Amount",
+            "Tip Amount",
+            "Created At",
+            "Trip Type",
+            "Boat Name",
+        ]
+        # Add 3 columns per ticket type: Quantity, Price, Total
+        for ticket_type in sorted_ticket_types:
+            header.extend(
+                [
+                    f"{ticket_type} Quantity",
+                    f"{ticket_type} Price",
+                    f"{ticket_type} Total",
+                ]
+            )
+        header.extend(["Swag Description", "Swag Total"])
+
+        writer.writerow(header)
 
         # Write booking data - one row per booking
         for booking in bookings:
@@ -1238,12 +1258,7 @@ def export_bookings_csv(
             ).all()
 
             # Aggregate items by type
-            adults_qty = 0
-            adults_price = 0.0
-            children_qty = 0
-            children_price = 0.0
-            infants_qty = 0
-            infants_price = 0.0
+            tickets: dict[str, dict[str, float]] = {}  # ticket_type -> {qty, price}
             swag_items: list[str] = []
             swag_total = 0.0
 
@@ -1261,19 +1276,9 @@ def export_bookings_csv(
                     if boat:
                         boat_name = boat.name
 
-                # Ticket types: "adult"/"adult_ticket", "child"/"child_ticket", "infant"/"infant_ticket"
-                # Merchandise items have trip_merchandise_id set and item_type is the merch name
-                item_type_lower = item.item_type.lower()
-                if item_type_lower in ("adult", "adult_ticket"):
-                    adults_qty += item.quantity
-                    adults_price += item.price_per_unit * item.quantity
-                elif item_type_lower in ("child", "child_ticket"):
-                    children_qty += item.quantity
-                    children_price += item.price_per_unit * item.quantity
-                elif item_type_lower in ("infant", "infant_ticket"):
-                    infants_qty += item.quantity
-                    infants_price += item.price_per_unit * item.quantity
-                elif item.trip_merchandise_id:
+                # Group items by type
+                # Merchandise items have trip_merchandise_id set
+                if item.trip_merchandise_id:
                     # Merchandise item - item_type contains the merchandise name
                     merch_name = item.item_type
                     swag_items.append(
@@ -1282,33 +1287,60 @@ def export_bookings_csv(
                         else merch_name
                     )
                     swag_total += item.price_per_unit * item.quantity
+                else:
+                    # Ticket item - aggregate by ticket type
+                    if item.item_type not in tickets:
+                        tickets[item.item_type] = {"qty": 0, "price": 0.0}
+                    tickets[item.item_type]["qty"] += item.quantity
+                    tickets[item.item_type]["price"] += (
+                        item.price_per_unit * item.quantity
+                    )
 
-            writer.writerow(
+            # Build row data
+            row = [
+                booking.confirmation_code,
+                booking.user_name,
+                booking.user_email,
+                booking.user_phone,
+                booking.billing_address,
+                booking.status,
+                booking.total_amount,
+                booking.subtotal,
+                booking.discount_amount,
+                booking.tax_amount,
+                booking.tip_amount,
+                booking.created_at.isoformat(),
+                trip_type,
+                boat_name,
+            ]
+
+            # Add ticket data columns (3 per ticket type: Quantity, Price, Total)
+            for ticket_type in sorted_ticket_types:
+                if ticket_type in tickets:
+                    data = tickets[ticket_type]
+                    row.extend(
+                        [
+                            data["qty"],
+                            f"{data['price'] / data['qty']:.2f}"
+                            if data["qty"] > 0
+                            else "0.00",  # Price per unit
+                            f"{data['price']:.2f}",  # Total price
+                        ]
+                    )
+                else:
+                    row.extend(
+                        ["", "", ""]
+                    )  # Empty columns if this ticket type not in booking
+
+            # Add swag data
+            row.extend(
                 [
-                    booking.confirmation_code,
-                    booking.user_name,
-                    booking.user_email,
-                    booking.user_phone,
-                    booking.billing_address,
-                    booking.status,
-                    booking.total_amount,
-                    booking.subtotal,
-                    booking.discount_amount,
-                    booking.tax_amount,
-                    booking.tip_amount,
-                    booking.created_at.isoformat(),
-                    trip_type,
-                    boat_name,
-                    adults_qty or "",
-                    f"{adults_price:.2f}" if adults_price else "",
-                    children_qty or "",
-                    f"{children_price:.2f}" if children_price else "",
-                    infants_qty or "",
-                    f"{infants_price:.2f}" if infants_price else "",
                     ", ".join(swag_items) if swag_items else "",
                     f"{swag_total:.2f}" if swag_total else "",
                 ]
             )
+
+            writer.writerow(row)
 
         # Get CSV content
         csv_content = output.getvalue()

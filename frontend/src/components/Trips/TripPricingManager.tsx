@@ -239,7 +239,7 @@ export default function TripPricingManager({
     setEditingMerchandiseId(null)
     setIsAddingPricing(false)
     setIsAddingMerchandise(false)
-    setPricingForm({ ticket_type: "adult", price: "" })
+    setPricingForm({ ticket_type: "", price: "" })
     setMerchandiseForm({
       name: "",
       description: "",
