@@ -188,7 +188,12 @@ const EditBooking = ({
               </DialogTitle>
             </DialogHeader>
             <DialogBody>
-              <Text mb={4}>Update booking information.</Text>
+              {isPast && (
+                <Text mb={4} color="orange.500">
+                  This booking's trip has already departed and cannot be edited. Contact a system administrator if you need to make changes to past bookings.
+                </Text>
+              )}
+              {!isPast && <Text mb={4}>Update booking information.</Text>}
               <VStack gap={4}>
                 <Field
                   label="Confirmation Code"
@@ -380,6 +385,7 @@ const EditBooking = ({
                       <NativeSelect
                         {...field}
                         value={field.value || ""}
+                        disabled={isPast}
                       >
                         {statusOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -407,6 +413,7 @@ const EditBooking = ({
                     })}
                     placeholder="Special Requests"
                     rows={3}
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -450,6 +457,7 @@ const EditBooking = ({
                             )
                           }
                           placeholder="0.00"
+                          disabled={isPast}
                         />
                       )}
                     />
@@ -482,6 +490,7 @@ const EditBooking = ({
                             )
                           }
                           placeholder="0.00"
+                          disabled={isPast}
                         />
                       )}
                     />
@@ -516,6 +525,7 @@ const EditBooking = ({
                             )
                           }
                           placeholder="0.00"
+                          disabled={isPast}
                         />
                       )}
                     />
@@ -552,6 +562,7 @@ const EditBooking = ({
                         onCheckedChange={(details) =>
                           field.onChange(details.checked)
                         }
+                        disabled={isPast}
                       >
                         Receive launch updates
                       </Checkbox>
@@ -569,7 +580,7 @@ const EditBooking = ({
                   variant="solid"
                   type="submit"
                   loading={isSubmitting}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isPast}
                 >
                   Save
                 </Button>

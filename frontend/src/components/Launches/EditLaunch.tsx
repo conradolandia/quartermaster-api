@@ -107,7 +107,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
             <DialogBody>
               {isPast && (
                 <Text mb={4} color="orange.500">
-                  This launch has already occurred and cannot be edited. Use allow_past_edit=true to override.
+                  This launch has already occurred and cannot be edited. Contact a system administrator if you need to make changes to past launches.
                 </Text>
               )}
               {!isPast && <Text mb={4}>Update the launch details below.</Text>}

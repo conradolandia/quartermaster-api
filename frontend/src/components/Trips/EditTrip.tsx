@@ -203,7 +203,11 @@ const EditTrip = ({ trip }: EditTripProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button
+          variant="ghost"
+          disabled={isPast}
+          title={isPast ? "This trip has already departed and cannot be edited" : ""}
+        >
           <FiEdit fontSize="16px" />
           Edit Trip
         </Button>
@@ -221,6 +225,11 @@ const EditTrip = ({ trip }: EditTripProps) => {
               <DialogTitle>Edit Trip</DialogTitle>
             </DialogHeader>
             <DialogBody>
+              {isPast && (
+                <Text mb={4} color="orange.500">
+                  This trip has already departed and cannot be edited. Contact a system administrator if you need to make changes to past trips.
+                </Text>
+              )}
               <Tabs.Root defaultValue="basic-info" variant="subtle">
                 <Tabs.List>
                   <Tabs.Trigger value="basic-info">Basic Info</Tabs.Trigger>
@@ -237,7 +246,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         id="mission_id"
                         value={missionId}
                         onChange={setMissionId}
-                        isDisabled={mutation.isPending}
+                        isDisabled={mutation.isPending || isPast}
                         portalRef={contentRef}
                       />
                     </Field>
@@ -249,7 +258,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                           setType(e.target.value)
                         }
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || isPast}
                       >
                         <option value="launch_viewing">Launch Viewing</option>
                         <option value="pre_launch">Pre-Launch</option>
@@ -262,7 +271,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         type="datetime-local"
                         value={checkInTime}
                         onChange={(e) => setCheckInTime(e.target.value)}
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || isPast}
                       />
                     </Field>
 
@@ -272,7 +281,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         type="datetime-local"
                         value={boardingTime}
                         onChange={(e) => setBoardingTime(e.target.value)}
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || isPast}
                       />
                     </Field>
 
@@ -282,7 +291,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         type="datetime-local"
                         value={departureTime}
                         onChange={(e) => setDepartureTime(e.target.value)}
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || isPast}
                       />
                     </Field>
 
@@ -293,15 +302,16 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         width="100%"
                       >
                         <Text>Active</Text>
-                        <Box
-                          onClick={() => {
-                            setActive(!active)
-                          }}
-                          cursor="pointer"
-                        >
+                      <Box
+                        onClick={() => {
+                          if (!isPast) setActive(!active)
+                        }}
+                        cursor={isPast ? "not-allowed" : "pointer"}
+                        opacity={isPast ? 0.5 : 1}
+                      >
                           <Switch
                             checked={active}
-                            disabled={mutation.isPending}
+                            disabled={mutation.isPending || isPast}
                             inputProps={{ id: "active" }}
                           />
                         </Box>
@@ -370,7 +380,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                               setSelectedBoatId(e.target.value)
                             }
-                            disabled={mutation.isPending}
+                            disabled={mutation.isPending || isPast}
                           >
                             <option value="">Select a boat</option>
                             {boatsData.map((boat) => (
@@ -449,6 +459,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                   type="submit"
                   loading={mutation.isPending}
                   disabled={
+                    isPast ||
                     !missionId ||
                     !checkInTime ||
                     !boardingTime ||

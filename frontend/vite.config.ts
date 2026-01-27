@@ -13,6 +13,7 @@ export default defineConfig({
   plugins: [react(), TanStackRouterVite()],
   build: {
     sourcemap: false, // Disable sourcemaps in production to avoid warnings
+    chunkSizeWarningLimit: 700, // Set chunk size warning limit to 700 kB
     rollupOptions: {
       output: {
         manualChunks: {

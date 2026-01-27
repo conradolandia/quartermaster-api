@@ -157,7 +157,11 @@ const EditMission = ({ mission }: EditMissionProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button
+          variant="ghost"
+          disabled={isPast}
+          title={isPast ? "This mission's launch has already occurred and cannot be edited" : ""}
+        >
           <FaExchangeAlt fontSize="16px" />
           Edit Mission
         </Button>
@@ -168,7 +172,12 @@ const EditMission = ({ mission }: EditMissionProps) => {
               <DialogTitle>Edit Mission</DialogTitle>
             </DialogHeader>
             <DialogBody>
-              <Text mb={4}>Update the mission details below.</Text>
+              {isPast && (
+                <Text mb={4} color="orange.500">
+                  This mission's launch has already occurred and cannot be edited. Contact a system administrator if you need to make changes to past missions.
+                </Text>
+              )}
+              {!isPast && <Text mb={4}>Update the mission details below.</Text>}
               <VStack gap={4}>
                 <Field
                   invalid={!!errors.name}
@@ -180,6 +189,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     {...register("name")}
                     placeholder="Mission name"
                     type="text"
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -196,7 +206,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                         id="launch_id"
                         value={field.value || ""}
                         onChange={field.onChange}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isPast}
                         portalRef={contentRef}
                       />
                     )}
@@ -213,6 +223,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     {...register("sales_open_at")}
                     placeholder="Sales open date and time"
                     type="datetime-local"
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -230,6 +241,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     type="number"
                     min={0}
                     max={72}
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -242,9 +254,10 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     <Text>Active</Text>
                     <Box
                       onClick={() => {
-                        setActive(!active)
+                        if (!isPast) setActive(!active)
                       }}
-                      cursor="pointer"
+                      cursor={isPast ? "not-allowed" : "pointer"}
+                      opacity={isPast ? 0.5 : 1}
                     >
                       <Switch
                         checked={active}
@@ -263,9 +276,10 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     <Text>Public</Text>
                     <Box
                       onClick={() => {
-                        setIsPublic(!isPublic)
+                        if (!isPast) setIsPublic(!isPublic)
                       }}
-                      cursor="pointer"
+                      cursor={isPast ? "not-allowed" : "pointer"}
+                      opacity={isPast ? 0.5 : 1}
                     >
                       <Switch
                         checked={isPublic}
@@ -289,6 +303,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                         onValueChange={(details) =>
                           field.onChange(details.value[0])
                         }
+                        disabled={isPast}
                       >
                         <Select.Control width="100%">
                           <Select.Trigger>
@@ -328,7 +343,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     Cancel
                   </Button>
                 </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting}>
+                <Button variant="solid" type="submit" loading={isSubmitting} disabled={isPast}>
                   Save
                 </Button>
               </ButtonGroup>
