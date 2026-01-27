@@ -59,9 +59,13 @@ import Step4Review from "./Steps/Step4Review"
 
 interface PublicBookingFormProps {
   initialDiscountCodeId?: string | null
+  accessCode?: string | null
 }
 
-const PublicBookingForm = ({ initialDiscountCodeId }: PublicBookingFormProps) => {
+const PublicBookingForm = ({
+  initialDiscountCodeId,
+  accessCode,
+}: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
   const search = useSearch({ from: "/book" })
   const [bookingData, setBookingData] = useState<BookingStepData>({
@@ -142,6 +146,7 @@ const PublicBookingForm = ({ initialDiscountCodeId }: PublicBookingFormProps) =>
             bookingData={bookingData}
             updateBookingData={updateBookingData}
             onNext={nextStep}
+            accessCode={accessCode}
           />
         )
       case 2:
@@ -151,6 +156,7 @@ const PublicBookingForm = ({ initialDiscountCodeId }: PublicBookingFormProps) =>
             updateBookingData={updateBookingData}
             onNext={nextStep}
             onBack={prevStep}
+            accessCode={accessCode}
           />
         )
       case 3:

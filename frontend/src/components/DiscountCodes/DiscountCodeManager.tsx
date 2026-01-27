@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Flex,
   HStack,
   IconButton,
   Input,
@@ -10,6 +11,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { Switch } from "@/components/ui/switch"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
@@ -305,6 +307,35 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 </Checkbox.Root>
                 <Text fontSize="xs" color="gray.500" mt={1}>
                   When enabled, this code grants access to missions in "Early Bird" booking mode
+                </Text>
+              </Box>
+            </HStack>
+
+            <HStack width="100%" alignItems="center">
+              <Box flex={1}>
+                <Flex
+                  alignItems="center"
+                  justifyContent="space-between"
+                  width="100%"
+                >
+                  <Text fontSize="sm">Active</Text>
+                  <Box
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        is_active: !formData.is_active,
+                      })
+                    }}
+                    cursor="pointer"
+                  >
+                    <Switch
+                      checked={formData.is_active ?? true}
+                      inputProps={{ id: "is_active" }}
+                    />
+                  </Box>
+                </Flex>
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  When disabled, this discount code cannot be used
                 </Text>
               </Box>
             </HStack>

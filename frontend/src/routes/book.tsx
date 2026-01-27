@@ -22,7 +22,7 @@ function PublicBookingPage() {
   // Use access code from URL if provided, otherwise check for discount code
   const initialAccessCode = search.access || search.discount
 
-  const handleAccessGranted = (_accessCode: string | null, codeId: string | null) => {
+  const handleAccessGranted = (_accessCodeValue: string | null, codeId: string | null) => {
     if (codeId) {
       setDiscountCodeId(codeId)
     }
@@ -33,7 +33,12 @@ function PublicBookingPage() {
       accessCode={initialAccessCode}
       onAccessGranted={handleAccessGranted}
     >
-      <PublicBookingForm initialDiscountCodeId={discountCodeId} />
+      {(accessCodeValue) => (
+        <PublicBookingForm
+          initialDiscountCodeId={discountCodeId}
+          accessCode={accessCodeValue}
+        />
+      )}
     </AccessGate>
   )
 }

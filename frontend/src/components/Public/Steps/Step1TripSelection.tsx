@@ -27,17 +27,23 @@ interface Step1TripSelectionProps {
   bookingData: BookingStepData
   updateBookingData: (updates: Partial<BookingStepData>) => void
   onNext: () => void
+  accessCode?: string | null
 }
 
 const Step1TripSelection = ({
   bookingData,
   updateBookingData,
   onNext,
+  accessCode,
 }: Step1TripSelectionProps) => {
   // Fetch all trips with their details (using public endpoint)
   const { data: allTrips, isLoading: isLoadingTrips } = useQuery({
-    queryKey: ["public-trips"],
-    queryFn: () => TripsService.readPublicTrips({ limit: 100 }),
+    queryKey: ["public-trips", accessCode],
+    queryFn: () =>
+      TripsService.readPublicTrips({
+        limit: 100,
+        accessCode: accessCode || undefined,
+      }),
   })
 
   // Fetch all missions to get mission details
@@ -139,25 +145,17 @@ const Step1TripSelection = ({
     bookingData.selectedTripId &&
     (bookingData.selectedBoatId || (tripBoats && tripBoats.length === 1))
 
-  // Filter trips to show only legitimate customer-facing experiences
+  // Filter trips to show only active trips
+  // Note: The backend already filters trips based on booking_mode and access_code,
+  // so we only need to ensure trips are active here
   const activeTrips = React.useMemo(() => {
-    if (!allTrips?.data || !allMissions?.data) return []
+    if (!allTrips?.data) return []
 
     return allTrips.data.filter((trip: TripPublic) => {
       // Trip must be active
-      if (trip.active !== true) return false
-
-      // Find the associated mission
-      const mission = allMissions.data.find(
-        (m: PublicMission) => m.id === trip.mission_id,
-      )
-      if (!mission) return false
-
-      const isValid = mission.public === true
-
-      return isValid
+      return trip.active === true
     })
-  }, [allTrips?.data, allMissions?.data])
+  }, [allTrips?.data])
 
   // Create collection for trip selection with full context - only active trips
   const tripsCollection = createListCollection({

@@ -669,6 +669,14 @@ export type BookingsCheckInBookingData = {
 
 export type BookingsCheckInBookingResponse = BookingPublic
 
+export type BookingsResendBookingConfirmationEmailData = {
+  confirmationCode: string
+}
+
+export type BookingsResendBookingConfirmationEmailResponse = {
+  [key: string]: unknown
+}
+
 export type BookingsProcessRefundData = {
   confirmationCode: string
   refundAmount?: number | null
@@ -697,14 +705,6 @@ export type BookingsGetBookingByConfirmationCodeData = {
 }
 
 export type BookingsGetBookingByConfirmationCodeResponse = BookingPublic
-
-export type BookingsResendBookingConfirmationEmailData = {
-  confirmationCode: string
-}
-
-export type BookingsResendBookingConfirmationEmailResponse = {
-  [key: string]: unknown
-}
 
 export type BookingsInitializePaymentData = {
   confirmationCode: string
@@ -795,6 +795,14 @@ export type ItemsDeleteItemData = {
 }
 
 export type ItemsDeleteItemResponse = Message
+
+export type JurisdictionsReadPublicJurisdictionsData = {
+  limit?: number
+  locationId?: string
+  skip?: number
+}
+
+export type JurisdictionsReadPublicJurisdictionsResponse = JurisdictionsPublic
 
 export type JurisdictionsReadJurisdictionsData = {
   limit?: number

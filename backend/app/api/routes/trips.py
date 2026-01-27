@@ -1,14 +1,16 @@
+import logging
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy import select
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    DiscountCode,
     Trip,
     TripCreate,
     TripPublic,
@@ -17,6 +19,8 @@ from app.models import (
 )
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/trips", tags=["trips"])
 
@@ -210,30 +214,140 @@ def read_public_trips(
     - public: Always shown
     """
     trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
+    logger.info(f"Found {len(trips)} total trips in database")
+
+    # Validate access code if provided - reuse the validation logic from validate-access endpoint
+    discount_code = None
+    if access_code:
+        logger.info(f"Validating access code: {access_code}")
+        try:
+            # Query the discount code - use the same pattern as validate-access endpoint
+            discount_code_obj = session.exec(
+                select(DiscountCode).where(DiscountCode.code == access_code)
+            ).first()
+
+            if discount_code_obj:
+                logger.info(
+                    f"Discount code found - ID: {discount_code_obj.id}, code: {discount_code_obj.code}"
+                )
+                logger.info(
+                    f"is_access_code: {discount_code_obj.is_access_code}, is_active: {discount_code_obj.is_active}"
+                )
+
+                # Access attributes directly like validate-access endpoint does
+                # Check if it's an access code
+                if not discount_code_obj.is_access_code:
+                    logger.info("Access code validation failed: not an access code")
+                    discount_code = None
+                # Check if code is active
+                elif not discount_code_obj.is_active:
+                    logger.info("Access code validation failed: not active")
+                    discount_code = None
+                else:
+                    # Validate the access code (same logic as validate-access endpoint)
+                    now = datetime.now(timezone.utc)
+                    valid_from = discount_code_obj.valid_from
+                    valid_until = discount_code_obj.valid_until
+                    max_uses = discount_code_obj.max_uses
+                    used_count = discount_code_obj.used_count
+
+                    # Check validity dates
+                    if valid_from and now < valid_from:
+                        logger.info(
+                            f"Access code not yet valid (valid_from: {valid_from})"
+                        )
+                        discount_code = None
+                    elif valid_until and now > valid_until:
+                        logger.info(f"Access code expired (valid_until: {valid_until})")
+                        discount_code = None
+                    # Check usage limits
+                    elif max_uses and used_count >= max_uses:
+                        logger.info(
+                            f"Access code usage limit reached ({used_count}/{max_uses})"
+                        )
+                        discount_code = None
+                    else:
+                        discount_code = discount_code_obj
+                        logger.info("Access code validated successfully")
+            else:
+                logger.info(f"Access code not found: {access_code}")
+        except Exception as e:
+            logger.exception(f"Error validating access code: {e}")
+            discount_code = None
+    else:
+        logger.info("No access code provided")
 
     # Filter trips by active status and mission booking_mode
     public_trips = []
+    logger.info(
+        f"Filtering {len(trips)} trips with access_code={access_code}, discount_code={'present' if discount_code else 'None'}"
+    )
     for trip in trips:
+        trip_id = trip.get("id", "unknown")
+        trip_name = trip.get("type", "unknown")
+        trip_active = trip.get("active", False)
+
+        logger.info(f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}")
+
         # trips from get_trips_no_relationships are dicts
-        if not trip["active"]:
+        if not trip_active:
+            logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
             continue
 
         # Get the mission to check booking_mode
-        mission = crud.get_mission(session=session, mission_id=trip["mission_id"])
+        mission_id = trip.get("mission_id")
+        if not mission_id:
+            logger.info(f"Trip {trip_id} ({trip_name}) filtered out: no mission_id")
+            continue
+
+        mission = crud.get_mission(session=session, mission_id=mission_id)
         if not mission:
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: mission {mission_id} not found"
+            )
             continue
 
         # Filter based on booking_mode (default to "private" if not set)
         booking_mode = getattr(mission, "booking_mode", "private")
+        logger.info(
+            f"Trip {trip_id} ({trip_name}) - Mission: {mission.name} (ID: {mission.id}), booking_mode: {booking_mode}"
+        )
+
         if booking_mode == "private":
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: booking_mode is private"
+            )
             continue  # Never show private trips in public endpoint
         elif booking_mode == "early_bird":
-            # Only show if access_code is provided (validation happens elsewhere)
-            if access_code:
-                public_trips.append(trip)
+            # Only show if valid access_code is provided
+            if not access_code or not discount_code:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: early_bird but access_code={access_code}, discount_code={'present' if discount_code else 'None'}"
+                )
+                continue
+            # If access code is restricted to a specific mission, check it matches
+            access_code_mission_id = discount_code.access_code_mission_id
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) - access_code_mission_id: {access_code_mission_id}, mission.id: {mission.id}"
+            )
+            if access_code_mission_id and access_code_mission_id != mission.id:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: access code restricted to mission {access_code_mission_id}, but trip is for mission {mission.id}"
+                )
+                continue
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) included: early_bird with valid access code"
+            )
+            public_trips.append(trip)
         else:  # public
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) included: booking_mode is public"
+            )
             public_trips.append(trip)
 
+    logger.info(
+        f"Returning {len(public_trips)} public trips (access_code: {access_code})"
+    )
     count = len(public_trips)
     return TripsPublic(data=public_trips, count=count)
 
@@ -249,6 +363,9 @@ def read_public_trip(
     Get public trip by ID for booking form.
     Checks booking_mode to determine access.
     """
+    logger.info(
+        f"read_public_trip called for trip_id={trip_id}, access_code={access_code}"
+    )
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
         raise HTTPException(
@@ -274,11 +391,98 @@ def read_public_trip(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",
         )
-    elif mission.booking_mode == "early_bird" and not access_code:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This trip requires an access code",
-        )
+    elif mission.booking_mode == "early_bird":
+        if not access_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This trip requires an access code",
+            )
+
+        # Validate the access code (same logic as read_public_trips)
+        logger.info(f"Validating access code for trip {trip_id}: {access_code}")
+        try:
+            discount_code_obj = session.exec(
+                select(DiscountCode).where(DiscountCode.code == access_code)
+            ).first()
+
+            if not discount_code_obj:
+                logger.info(f"Access code {access_code} not found")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid access code",
+                )
+
+            logger.info(
+                f"Access code found - is_access_code: {discount_code_obj.is_access_code}, is_active: {discount_code_obj.is_active}"
+            )
+
+            # Check if it's an access code
+            if not discount_code_obj.is_access_code:
+                logger.info("Access code validation failed: not an access code")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid access code",
+                )
+
+            # Check if code is active
+            if not discount_code_obj.is_active:
+                logger.info("Access code validation failed: not active")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not active",
+                )
+
+            # Validate the access code (same logic as validate-access endpoint)
+            now = datetime.now(timezone.utc)
+            valid_from = discount_code_obj.valid_from
+            valid_until = discount_code_obj.valid_until
+            max_uses = discount_code_obj.max_uses
+            used_count = discount_code_obj.used_count
+
+            # Check validity dates
+            if valid_from and now < valid_from:
+                logger.info(f"Access code not yet valid (valid_from: {valid_from})")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not yet valid",
+                )
+            elif valid_until and now > valid_until:
+                logger.info(f"Access code expired (valid_until: {valid_until})")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code has expired",
+                )
+
+            # Check usage limits
+            elif max_uses and used_count >= max_uses:
+                logger.info(
+                    f"Access code usage limit reached ({used_count}/{max_uses})"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code usage limit reached",
+                )
+
+            # If access code is restricted to a specific mission, check it matches
+            access_code_mission_id = discount_code_obj.access_code_mission_id
+            if access_code_mission_id and access_code_mission_id != mission.id:
+                logger.info(
+                    f"Access code restricted to mission {access_code_mission_id}, but trip is for mission {mission.id}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not valid for this trip",
+                )
+
+            logger.info("Access code validated successfully")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(f"Error validating access code: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Error validating access code",
+            )
 
     return trip
 

@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
+import { NativeSelect } from "@/components/ui/native-select"
 import {
   Button,
   Flex,
@@ -235,20 +236,13 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                 </Text>
                 <VStack align="stretch" gap={4}>
                   <Field label="Select Boat" required>
-                    <select
+                    <NativeSelect
                       id="boat_id"
                       value={selectedBoatId}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                         setSelectedBoatId(e.target.value)
                       }
                       disabled={isSubmitting}
-                      style={{
-                        width: "100%",
-                        padding: "0.5rem",
-                        borderRadius: "0.375rem",
-                        border: "1px solid",
-                        borderColor: "inherit",
-                      }}
                     >
                       <option value="">Select a boat</option>
                       {boatsData?.data?.map((boat: any) => (
@@ -256,7 +250,7 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                           {boat.name} (Capacity: {boat.capacity})
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
 
                   <Field label="Custom Max Capacity (Optional)">

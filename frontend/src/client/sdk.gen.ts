@@ -30,6 +30,8 @@ import type {
   BookingsUpdateBookingResponse,
   BookingsCheckInBookingData,
   BookingsCheckInBookingResponse,
+  BookingsResendBookingConfirmationEmailData,
+  BookingsResendBookingConfirmationEmailResponse,
   BookingsProcessRefundData,
   BookingsProcessRefundResponse,
   BookingsExportBookingsCsvData,
@@ -38,8 +40,6 @@ import type {
   BookingsGetBookingQrCodeResponse,
   BookingsGetBookingByConfirmationCodeData,
   BookingsGetBookingByConfirmationCodeResponse,
-  BookingsResendBookingConfirmationEmailData,
-  BookingsResendBookingConfirmationEmailResponse,
   BookingsInitializePaymentData,
   BookingsInitializePaymentResponse,
   DiscountCodesCreateDiscountCodeData,
@@ -66,6 +66,8 @@ import type {
   ItemsUpdateItemResponse,
   ItemsDeleteItemData,
   ItemsDeleteItemResponse,
+  JurisdictionsReadPublicJurisdictionsData,
+  JurisdictionsReadPublicJurisdictionsResponse,
   JurisdictionsReadJurisdictionsData,
   JurisdictionsReadJurisdictionsResponse,
   JurisdictionsCreateJurisdictionData,
@@ -555,6 +557,35 @@ export class BookingsService {
   }
 
   /**
+   * Resend Booking Confirmation Email
+   * Resend booking confirmation email.
+   *
+   * Args:
+   * confirmation_code: The booking confirmation code
+   *
+   * Returns:
+   * dict: Status of the email sending
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static resendBookingConfirmationEmail(
+    data: BookingsResendBookingConfirmationEmailData,
+  ): CancelablePromise<BookingsResendBookingConfirmationEmailResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/{confirmation_code}/resend-email",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Process Refund
    * Process a refund for a booking.
    *
@@ -654,35 +685,6 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/bookings/{confirmation_code}",
-      path: {
-        confirmation_code: data.confirmationCode,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Resend Booking Confirmation Email
-   * Resend booking confirmation email.
-   *
-   * Args:
-   * confirmation_code: The booking confirmation code
-   *
-   * Returns:
-   * dict: Status of the email sending
-   * @param data The data for the request.
-   * @param data.confirmationCode
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static resendBookingConfirmationEmail(
-    data: BookingsResendBookingConfirmationEmailData,
-  ): CancelablePromise<BookingsResendBookingConfirmationEmailResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/bookings/{confirmation_code}/resend-email",
       path: {
         confirmation_code: data.confirmationCode,
       },
@@ -1017,6 +1019,34 @@ export class ItemsService {
 }
 
 export class JurisdictionsService {
+  /**
+   * Read Public Jurisdictions
+   * Retrieve jurisdictions with optional filtering by location (public endpoint).
+   * Used by public booking form to calculate tax rates.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @param data.locationId
+   * @returns JurisdictionsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readPublicJurisdictions(
+    data: JurisdictionsReadPublicJurisdictionsData = {},
+  ): CancelablePromise<JurisdictionsReadPublicJurisdictionsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/jurisdictions/public/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        location_id: data.locationId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
   /**
    * Read Jurisdictions
    * Retrieve jurisdictions with optional filtering by location.

@@ -1,5 +1,6 @@
 import { MissionsService } from "@/client"
 import {
+  Box,
   Button,
   ButtonGroup,
   createListCollection,
@@ -12,7 +13,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 import { Switch } from "../ui/switch"
@@ -59,6 +60,8 @@ interface EditMissionProps {
 
 const EditMission = ({ mission }: EditMissionProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [active, setActive] = useState(mission.active)
+  const [isPublic, setIsPublic] = useState(mission.public)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -92,24 +95,46 @@ const EditMission = ({ mission }: EditMissionProps) => {
       }),
     onSuccess: () => {
       showSuccessToast("Mission updated successfully.")
-      reset()
       setIsOpen(false)
+      queryClient.invalidateQueries({ queryKey: ["missions"] })
     },
     onError: (err: any) => {
       handleError(err)
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["missions"] })
-    },
   })
+
+  // Reset form and local state when dialog opens or mission changes
+  useEffect(() => {
+    if (isOpen) {
+      setActive(mission.active)
+      setIsPublic(mission.public)
+      reset({
+        name: mission.name,
+        launch_id: mission.launch_id,
+        active: mission.active,
+        public: mission.public,
+        booking_mode: mission.booking_mode || "private",
+        sales_open_at: mission.sales_open_at
+          ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
+          : "",
+        refund_cutoff_hours: mission.refund_cutoff_hours,
+      })
+    }
+  }, [isOpen, mission, reset])
 
   const onSubmit: SubmitHandler<any> = async (data) => {
     // Format the data before sending
-    const formattedData = {
-      ...data,
+    // Use local state for active and public switches
+    const formattedData: any = {
+      name: data.name,
+      launch_id: data.launch_id,
+      active: active,
+      public: isPublic,
+      booking_mode: data.booking_mode || "private",
       sales_open_at: data.sales_open_at
         ? new Date(data.sales_open_at).toISOString()
         : null,
+      refund_cutoff_hours: data.refund_cutoff_hours,
     }
     mutation.mutate(formattedData)
   }
@@ -199,49 +224,45 @@ const EditMission = ({ mission }: EditMissionProps) => {
                 </Field>
 
                 <Field>
-                  <Controller
-                    name="active"
-                    control={control}
-                    render={({ field }) => (
-                      <Flex
-                        alignItems="center"
-                        justifyContent="space-between"
-                        width="100%"
-                      >
-                        <Text>Active</Text>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={(details) =>
-                            field.onChange(details.checked)
-                          }
-                          inputProps={{ id: "active" }}
-                        />
-                      </Flex>
-                    )}
-                  />
+                  <Flex
+                    alignItems="center"
+                    justifyContent="space-between"
+                    width="100%"
+                  >
+                    <Text>Active</Text>
+                    <Box
+                      onClick={() => {
+                        setActive(!active)
+                      }}
+                      cursor="pointer"
+                    >
+                      <Switch
+                        checked={active}
+                        inputProps={{ id: "active" }}
+                      />
+                    </Box>
+                  </Flex>
                 </Field>
 
                 <Field>
-                  <Controller
-                    name="public"
-                    control={control}
-                    render={({ field }) => (
-                      <Flex
-                        alignItems="center"
-                        justifyContent="space-between"
-                        width="100%"
-                      >
-                        <Text>Public</Text>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={(details) =>
-                            field.onChange(details.checked)
-                          }
-                          inputProps={{ id: "public" }}
-                        />
-                      </Flex>
-                    )}
-                  />
+                  <Flex
+                    alignItems="center"
+                    justifyContent="space-between"
+                    width="100%"
+                  >
+                    <Text>Public</Text>
+                    <Box
+                      onClick={() => {
+                        setIsPublic(!isPublic)
+                      }}
+                      cursor="pointer"
+                    >
+                      <Switch
+                        checked={isPublic}
+                        inputProps={{ id: "public" }}
+                      />
+                    </Box>
+                  </Flex>
                 </Field>
 
                 <Field

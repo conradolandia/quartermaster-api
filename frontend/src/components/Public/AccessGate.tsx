@@ -10,14 +10,14 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { DiscountCodesService, TripsService } from "@/client"
 
 interface AccessGateProps {
   accessCode?: string
   onAccessGranted: (accessCode: string | null, discountCodeId: string | null) => void
-  children: React.ReactNode
+  children: (accessCode: string | null) => React.ReactNode
 }
 
 /**
@@ -32,6 +32,23 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
   const [accessCode, setAccessCode] = useState(initialAccessCode || "")
   const [submittedCode, setSubmittedCode] = useState(initialAccessCode || "")
   const [codeError, setCodeError] = useState<string | null>(null)
+
+  // Sync state when initialAccessCode prop changes (e.g., URL parameter changes)
+  // This allows URL parameters like ?access=EARLY23 to automatically trigger validation
+  useEffect(() => {
+    if (initialAccessCode) {
+      const trimmedCode = initialAccessCode.trim()
+      setAccessCode(trimmedCode)
+      setSubmittedCode(trimmedCode)
+      setCodeError(null)
+    } else if (initialAccessCode === undefined || initialAccessCode === null) {
+      // Only clear if explicitly undefined/null (not empty string from user input)
+      // This prevents clearing user input when URL param is removed
+      if (!submittedCode) {
+        setAccessCode("")
+      }
+    }
+  }, [initialAccessCode, submittedCode])
 
   // Fetch public trips (this will only return trips with public or early_bird booking_mode)
   const {
@@ -113,10 +130,11 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
     // Notify parent about access and discount code
     if (accessCodeValid && accessCodeValidation?.discount_code) {
       onAccessGranted(submittedCode, accessCodeValidation.discount_code.id)
+      return <>{children(submittedCode)}</>
     } else {
       onAccessGranted(null, null)
+      return <>{children(null)}</>
     }
-    return <>{children}</>
   }
 
   // No trips available - check if we need an access code
@@ -165,14 +183,30 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
   }
 
   // User submitted a code but it was invalid or no trips are available
-  const errorMessage = accessCodeValidation?.message || "No trips are currently available for booking."
+  // Determine the appropriate error message based on validation status
+  let errorMessage: string
+  let heading: string
+
+  if (accessCodeValid) {
+    // Access code is valid but no trips are available
+    heading = "No Trips Available"
+    errorMessage = "Your access code is valid, but there are currently no trips available for booking. Please check back later or contact support."
+  } else if (accessCodeValidation) {
+    // Access code validation failed
+    heading = "Access Denied"
+    errorMessage = accessCodeValidation.message || "The access code you entered is not valid."
+  } else {
+    // No validation result yet or no trips available
+    heading = "No Trips Available"
+    errorMessage = "No trips are currently available for booking."
+  }
 
   return (
     <Container maxW="container.md" py={16}>
       <Card.Root>
         <Card.Body>
           <VStack gap={6} textAlign="center">
-            <Heading size="lg">Access Denied</Heading>
+            <Heading size="lg">{heading}</Heading>
             <Text>{errorMessage}</Text>
             <Box w="100%" maxW="400px">
               <VStack gap={4}>

@@ -10,11 +10,18 @@ export interface SwitchProps extends ChakraSwitch.RootProps {
 
 export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
   function Switch(props, ref) {
-    const { inputProps, children, rootRef, trackLabel, thumbLabel, ...rest } =
+    const { inputProps, children, rootRef, trackLabel, thumbLabel, checked, ...rest } =
       props
 
+    // Map 'checked' to 'checked' prop for ChakraSwitch.Root
+    // Chakra UI v3 Switch uses 'checked' prop directly
+    const rootProps = {
+      ...rest,
+      ...(checked !== undefined && { checked }),
+    }
+
     return (
-      <ChakraSwitch.Root ref={rootRef} {...rest}>
+      <ChakraSwitch.Root ref={rootRef} {...rootProps}>
         <ChakraSwitch.HiddenInput ref={ref} {...inputProps} />
         <ChakraSwitch.Control>
           <ChakraSwitch.Thumb>

@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
+import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -372,26 +373,16 @@ const EditBooking = ({
                     name="status"
                     control={control}
                     render={({ field }) => (
-                      <select
+                      <NativeSelect
                         {...field}
                         value={field.value || ""}
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          borderRadius: "6px",
-                          border:
-                            "1px solid var(--chakra-colors-dark-border-default)",
-                          backgroundColor:
-                            "var(--chakra-colors-dark-bg-primary)",
-                          color: "var(--chakra-colors-dark-text-primary)",
-                        }}
                       >
                         {statusOptions.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     )}
                   />
                 </Field>

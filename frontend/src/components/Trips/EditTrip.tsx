@@ -9,6 +9,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { NativeSelect } from "@/components/ui/native-select"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { useEffect, useRef, useState } from "react"
@@ -239,24 +240,17 @@ const EditTrip = ({ trip }: EditTripProps) => {
                     </Field>
 
                     <Field label="Type" required>
-                      <select
+                      <NativeSelect
                         id="type"
                         value={type}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                           setType(e.target.value)
                         }
                         disabled={mutation.isPending}
-                        style={{
-                          width: "100%",
-                          padding: "0.5rem",
-                          borderRadius: "0.375rem",
-                          border: "1px solid",
-                          borderColor: "inherit",
-                        }}
                       >
                         <option value="launch_viewing">Launch Viewing</option>
                         <option value="pre_launch">Pre-Launch</option>
-                      </select>
+                      </NativeSelect>
                     </Field>
 
                     <Field label="Check-in Time" required>
@@ -368,10 +362,12 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         borderRadius="md"
                       >
                         <Field label="Select Boat" required>
-                          <select
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          <NativeSelect
                             value={selectedBoatId}
-                            onChange={(e) => setSelectedBoatId(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                              setSelectedBoatId(e.target.value)
+                            }
+                            disabled={mutation.isPending}
                           >
                             <option value="">Select a boat</option>
                             {boatsData.map((boat) => (
@@ -379,7 +375,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                                 {boat.name} (Capacity: {boat.capacity})
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         </Field>
 
                         <Field label="Custom Max Capacity (Optional)">

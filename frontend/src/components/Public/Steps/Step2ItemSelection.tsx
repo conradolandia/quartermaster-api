@@ -35,6 +35,7 @@ interface Step2ItemSelectionProps {
   updateBookingData: (updates: Partial<BookingStepData>) => void
   onNext: () => void
   onBack: () => void
+  accessCode?: string | null
 }
 
 const Step2ItemSelection = ({
@@ -42,6 +43,7 @@ const Step2ItemSelection = ({
   updateBookingData,
   onNext,
   onBack,
+  accessCode,
 }: Step2ItemSelectionProps) => {
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [tip, setTip] = useState<number>(0)
@@ -51,9 +53,12 @@ const Step2ItemSelection = ({
 
   // Fetch trip details to get jurisdiction for tax rate (using public endpoint)
   const { data: tripData } = useQuery({
-    queryKey: ["public-trip-details", bookingData.selectedTripId],
+    queryKey: ["public-trip-details", bookingData.selectedTripId, accessCode],
     queryFn: () =>
-      TripsService.readPublicTrip({ tripId: bookingData.selectedTripId }),
+      TripsService.readPublicTrip({
+        tripId: bookingData.selectedTripId,
+        accessCode: accessCode || undefined,
+      }),
     enabled: !!bookingData.selectedTripId,
   })
 
@@ -74,11 +79,11 @@ const Step2ItemSelection = ({
     enabled: !!missionData?.launch_id,
   })
 
-  // Fetch jurisdiction for tax rate
+  // Fetch jurisdiction for tax rate (using public endpoint)
   const { data: jurisdictionsData } = useQuery({
-    queryKey: ["jurisdictions-by-location", launchData?.location_id],
+    queryKey: ["public-jurisdictions-by-location", launchData?.location_id],
     queryFn: () =>
-      JurisdictionsService.readJurisdictions({
+      JurisdictionsService.readPublicJurisdictions({
         locationId: launchData!.location_id,
         limit: 100,
       }),

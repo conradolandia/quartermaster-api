@@ -42,6 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
+import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
 
 // In-memory cache to avoid re-fetching boat names we already resolved
@@ -514,19 +515,10 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
               <VStack gap={4}>
                 {/* Trip Selection */}
                 <Field label="Select Trip" required>
-                  <select
+                  <NativeSelect
                     value={selectedTripId}
                     onChange={(e) => {
                       handleTripSelection(e.target.value)
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      borderRadius: "6px",
-                      border:
-                        "1px solid var(--chakra-colors-dark-border-default)",
-                      backgroundColor: "var(--chakra-colors-dark-bg-primary)",
-                      color: "var(--chakra-colors-dark-text-primary)",
                     }}
                   >
                     <option value="">Select a trip...</option>
@@ -536,30 +528,21 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                         {new Date(trip.departure_time).toLocaleDateString()}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
 
                 {selectedTripId && tripBoats.length > 0 && (
                   <Field label="Assign Boat" required>
-                    <select
+                    <NativeSelect
                       value={selectedBoatId}
                       onChange={(e) => setSelectedBoatId(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "8px",
-                        borderRadius: "6px",
-                        border:
-                          "1px solid var(--chakra-colors-dark-border-default)",
-                        backgroundColor: "var(--chakra-colors-dark-bg-primary)",
-                        color: "var(--chakra-colors-dark-text-primary)",
-                      }}
                     >
                       {tripBoats.map((tb, idx) => (
                         <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
                           {boatNames[tb.boat_id] || tb.boat_id}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                 )}
 

@@ -22,6 +22,7 @@ import {
   TripsService,
 } from "@/client"
 import { MissionDropdown } from "@/components/Common/MissionDropdown"
+import { NativeSelect } from "@/components/ui/native-select"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -383,23 +384,16 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     />
                   </Field>
                   <Field label="Type" required>
-                    <select
+                    <NativeSelect
                       id="type"
                       value={type}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                         setType(e.target.value)
                       }
-                      style={{
-                        width: "100%",
-                        padding: "0.5rem",
-                        borderRadius: "0.375rem",
-                        border: "1px solid",
-                        borderColor: "inherit",
-                      }}
                     >
                       <option value="launch_viewing">Launch Viewing</option>
                       <option value="pre_launch">Pre-Launch</option>
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field label="Check-in Time" required>
                     <Input
@@ -496,18 +490,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       borderRadius="md"
                     >
                       <Field label="Select Boat" required>
-                        <select
+                        <NativeSelect
                           value={selectedBoatId}
                           onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                             setSelectedBoatId(e.target.value)
                           }
-                          style={{
-                            width: "100%",
-                            padding: "0.5rem",
-                            borderRadius: "0.375rem",
-                            border: "1px solid",
-                            borderColor: "inherit",
-                          }}
                         >
                           <option value="">Select a boat</option>
                           {boatsData.map((boat) => (
@@ -515,7 +502,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               {boat.name} (Capacity: {boat.capacity})
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </Field>
 
                       <Field label="Custom Max Capacity (Optional)">

@@ -17,6 +17,32 @@ from app.models import (
 router = APIRouter(prefix="/jurisdictions", tags=["jurisdictions"])
 
 
+@router.get("/public/", response_model=JurisdictionsPublic)
+def read_public_jurisdictions(
+    *,
+    session: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+    location_id: uuid.UUID = None,
+) -> Any:
+    """
+    Retrieve jurisdictions with optional filtering by location (public endpoint).
+    Used by public booking form to calculate tax rates.
+    """
+    if location_id:
+        jurisdictions = crud.get_jurisdictions_by_location(
+            session=session, location_id=location_id, skip=skip, limit=limit
+        )
+        # For simplicity, we're not implementing a count method for filtered results
+        # In a production app, we would add this for proper pagination
+        count = len(jurisdictions)
+    else:
+        jurisdictions = crud.get_jurisdictions(session=session, skip=skip, limit=limit)
+        count = crud.get_jurisdictions_count(session=session)
+
+    return JurisdictionsPublic(data=jurisdictions, count=count)
+
+
 @router.get(
     "/",
     response_model=JurisdictionsPublic,

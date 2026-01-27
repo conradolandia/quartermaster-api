@@ -22,7 +22,7 @@ export const dialogRecipe = defineSlotRecipe({
       justifyContent: "center",
       position: "fixed",
       inset: 0,
-      zIndex: "modal",
+      zIndex: 2000,
       p: 4,
     },
     content: {

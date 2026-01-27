@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   createListCollection,
   Flex,
@@ -153,11 +154,17 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   width="100%"
                 >
                   <Text>Active</Text>
-                  <Switch
-                    checked={active}
-                    onCheckedChange={(details) => setActive(details.checked)}
-                    inputProps={{ id: "active" }}
-                  />
+                  <Box
+                    onClick={() => {
+                      setActive(!active)
+                    }}
+                    cursor="pointer"
+                  >
+                    <Switch
+                      checked={active}
+                      inputProps={{ id: "active" }}
+                    />
+                  </Box>
                 </Flex>
               </Field>
               <Field>
@@ -167,11 +174,17 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   width="100%"
                 >
                   <Text>Public</Text>
-                  <Switch
-                    checked={isPublic}
-                    onCheckedChange={(details) => setIsPublic(details.checked)}
-                    inputProps={{ id: "public" }}
-                  />
+                  <Box
+                    onClick={() => {
+                      setIsPublic(!isPublic)
+                    }}
+                    cursor="pointer"
+                  >
+                    <Switch
+                      checked={isPublic}
+                      inputProps={{ id: "public" }}
+                    />
+                  </Box>
                 </Flex>
               </Field>
               <Field
