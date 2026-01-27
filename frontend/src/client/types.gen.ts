@@ -226,28 +226,6 @@ export type HTTPValidationError = {
   detail?: Array<ValidationError>
 }
 
-export type ItemCreate = {
-  title: string
-  description?: string | null
-}
-
-export type ItemPublic = {
-  title: string
-  description?: string | null
-  id: string
-  owner_id: string
-}
-
-export type ItemsPublic = {
-  data: Array<ItemPublic>
-  count: number
-}
-
-export type ItemUpdate = {
-  title?: string | null
-  description?: string | null
-}
-
 export type JurisdictionCreate = {
   name: string
   state: string
@@ -549,12 +527,6 @@ export type UserPublic = {
   id: string
 }
 
-export type UserRegister = {
-  email: string
-  password: string
-  full_name?: string | null
-}
-
 export type UsersPublic = {
   data: Array<UserPublic>
   count: number
@@ -669,11 +641,11 @@ export type BookingsCheckInBookingData = {
 
 export type BookingsCheckInBookingResponse = BookingPublic
 
-export type BookingsResendBookingConfirmationEmailData = {
+export type BookingPublicResendBookingConfirmationEmailData = {
   confirmationCode: string
 }
 
-export type BookingsResendBookingConfirmationEmailResponse = {
+export type BookingPublicResendBookingConfirmationEmailResponse = {
   [key: string]: unknown
 }
 
@@ -688,6 +660,7 @@ export type BookingsProcessRefundResponse = BookingPublic
 
 export type BookingsExportBookingsCsvData = {
   bookingStatus?: string | null
+  fields?: string | null
   missionId?: string | null
   tripId?: string | null
 }
@@ -763,38 +736,6 @@ export type DiscountCodesValidateAccessCodeData = {
 
 export type DiscountCodesValidateAccessCodeResponse =
   AccessCodeValidationResponse
-
-export type ItemsReadItemsData = {
-  limit?: number
-  skip?: number
-}
-
-export type ItemsReadItemsResponse = ItemsPublic
-
-export type ItemsCreateItemData = {
-  requestBody: ItemCreate
-}
-
-export type ItemsCreateItemResponse = ItemPublic
-
-export type ItemsReadItemData = {
-  id: string
-}
-
-export type ItemsReadItemResponse = ItemPublic
-
-export type ItemsUpdateItemData = {
-  id: string
-  requestBody: ItemUpdate
-}
-
-export type ItemsUpdateItemResponse = ItemPublic
-
-export type ItemsDeleteItemData = {
-  id: string
-}
-
-export type ItemsDeleteItemResponse = Message
 
 export type JurisdictionsReadPublicJurisdictionsData = {
   limit?: number
@@ -1260,12 +1201,6 @@ export type UsersUpdatePasswordMeData = {
 }
 
 export type UsersUpdatePasswordMeResponse = Message
-
-export type UsersRegisterUserData = {
-  requestBody: UserRegister
-}
-
-export type UsersRegisterUserResponse = UserPublic
 
 export type UsersReadUserByIdData = {
   userId: string

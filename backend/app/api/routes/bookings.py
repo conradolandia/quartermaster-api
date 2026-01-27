@@ -956,7 +956,10 @@ def check_in_booking(
         )
 
 
-@router.post("/{confirmation_code}/resend-email")
+@router.post(
+    "/{confirmation_code}/resend-email",
+    operation_id="bookings_resend_booking_confirmation_email",
+)
 def resend_booking_confirmation_email(
     *,
     session: Session = Depends(deps.get_db),
@@ -1205,11 +1208,16 @@ def export_bookings_csv(
     mission_id: str | None = None,
     trip_id: str | None = None,
     booking_status: str | None = None,
+    fields: str | None = None,  # Comma-separated list of field names
 ) -> Response:
     """
     Export bookings data to CSV format.
 
     Supports filtering by mission_id, trip_id, and booking_status.
+    Supports field selection via the fields parameter (comma-separated list of field names).
+    Available fields: confirmation_code, customer_name, email, phone, billing_address,
+    status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
+    trip_type, boat_name, ticket_types, swag.
     """
     try:
         import csv
@@ -1256,37 +1264,61 @@ def export_bookings_csv(
         # Sort ticket types for consistent column order
         sorted_ticket_types = sorted(all_ticket_types)
 
+        # Define all available fields
+        base_fields = {
+            "confirmation_code": "Confirmation Code",
+            "customer_name": "Customer Name",
+            "email": "Email",
+            "phone": "Phone",
+            "billing_address": "Billing Address",
+            "status": "Status",
+            "total_amount": "Total Amount",
+            "subtotal": "Subtotal",
+            "discount_amount": "Discount Amount",
+            "tax_amount": "Tax Amount",
+            "tip_amount": "Tip Amount",
+            "created_at": "Created At",
+            "trip_type": "Trip Type",
+            "boat_name": "Boat Name",
+        }
+
+        # Parse fields parameter
+        selected_fields: list[str] = []
+        if fields:
+            selected_fields = [f.strip() for f in fields.split(",") if f.strip()]
+        else:
+            # If no fields specified, include all fields
+            selected_fields = list(base_fields.keys()) + ["ticket_types", "swag"]
+
+        # Validate selected fields
+        valid_fields = set(base_fields.keys()) | {"ticket_types", "swag"}
+        selected_fields = [f for f in selected_fields if f in valid_fields]
+
+        # If no valid fields selected, use all fields
+        if not selected_fields:
+            selected_fields = list(base_fields.keys()) + ["ticket_types", "swag"]
+
         # Create CSV content
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # Build header with dynamic ticket type columns
-        header = [
-            "Confirmation Code",
-            "Customer Name",
-            "Email",
-            "Phone",
-            "Billing Address",
-            "Status",
-            "Total Amount",
-            "Subtotal",
-            "Discount Amount",
-            "Tax Amount",
-            "Tip Amount",
-            "Created At",
-            "Trip Type",
-            "Boat Name",
-        ]
-        # Add 3 columns per ticket type: Quantity, Price, Total
-        for ticket_type in sorted_ticket_types:
-            header.extend(
-                [
-                    f"{ticket_type} Quantity",
-                    f"{ticket_type} Price",
-                    f"{ticket_type} Total",
-                ]
-            )
-        header.extend(["Swag Description", "Swag Total"])
+        # Build header based on selected fields
+        header = []
+        for field_key in selected_fields:
+            if field_key in base_fields:
+                header.append(base_fields[field_key])
+            elif field_key == "ticket_types":
+                # Add 3 columns per ticket type: Quantity, Price, Total
+                for ticket_type in sorted_ticket_types:
+                    header.extend(
+                        [
+                            f"{ticket_type} Quantity",
+                            f"{ticket_type} Price",
+                            f"{ticket_type} Total",
+                        ]
+                    )
+            elif field_key == "swag":
+                header.extend(["Swag Description", "Swag Total"])
 
         writer.writerow(header)
 
@@ -1336,49 +1368,54 @@ def export_bookings_csv(
                         item.price_per_unit * item.quantity
                     )
 
-            # Build row data
-            row = [
-                booking.confirmation_code,
-                booking.user_name,
-                booking.user_email,
-                booking.user_phone,
-                booking.billing_address,
-                booking.status,
-                booking.total_amount,
-                booking.subtotal,
-                booking.discount_amount,
-                booking.tax_amount,
-                booking.tip_amount,
-                booking.created_at.isoformat(),
-                trip_type,
-                boat_name,
-            ]
+            # Build row data based on selected fields
+            row = []
+            field_data = {
+                "confirmation_code": booking.confirmation_code,
+                "customer_name": booking.user_name,
+                "email": booking.user_email,
+                "phone": booking.user_phone,
+                "billing_address": booking.billing_address,
+                "status": booking.status,
+                "total_amount": booking.total_amount,
+                "subtotal": booking.subtotal,
+                "discount_amount": booking.discount_amount,
+                "tax_amount": booking.tax_amount,
+                "tip_amount": booking.tip_amount,
+                "created_at": booking.created_at.isoformat(),
+                "trip_type": trip_type,
+                "boat_name": boat_name,
+            }
 
-            # Add ticket data columns (3 per ticket type: Quantity, Price, Total)
-            for ticket_type in sorted_ticket_types:
-                if ticket_type in tickets:
-                    data = tickets[ticket_type]
+            for field_key in selected_fields:
+                if field_key in field_data:
+                    row.append(field_data[field_key])
+                elif field_key == "ticket_types":
+                    # Add ticket data columns (3 per ticket type: Quantity, Price, Total)
+                    for ticket_type in sorted_ticket_types:
+                        if ticket_type in tickets:
+                            data = tickets[ticket_type]
+                            row.extend(
+                                [
+                                    data["qty"],
+                                    f"{data['price'] / data['qty']:.2f}"
+                                    if data["qty"] > 0
+                                    else "0.00",  # Price per unit
+                                    f"{data['price']:.2f}",  # Total price
+                                ]
+                            )
+                        else:
+                            row.extend(
+                                ["", "", ""]
+                            )  # Empty columns if this ticket type not in booking
+                elif field_key == "swag":
+                    # Add swag data
                     row.extend(
                         [
-                            data["qty"],
-                            f"{data['price'] / data['qty']:.2f}"
-                            if data["qty"] > 0
-                            else "0.00",  # Price per unit
-                            f"{data['price']:.2f}",  # Total price
+                            ", ".join(swag_items) if swag_items else "",
+                            f"{swag_total:.2f}" if swag_total else "",
                         ]
                     )
-                else:
-                    row.extend(
-                        ["", "", ""]
-                    )  # Empty columns if this ticket type not in booking
-
-            # Add swag data
-            row.extend(
-                [
-                    ", ".join(swag_items) if swag_items else "",
-                    f"{swag_total:.2f}" if swag_total else "",
-                ]
-            )
 
             writer.writerow(row)
 

@@ -22,7 +22,6 @@ from .booking_items import (
     get_booking_items_by_trip,
     update_booking_item,
 )
-from .items import create_item
 from .jurisdictions import (
     create_jurisdiction,
     delete_jurisdiction,
@@ -109,8 +108,6 @@ __all__ = [
     "create_user",
     "get_user_by_email",
     "update_user",
-    # Items
-    "create_item",
     # Locations
     "create_location",
     "delete_location",

@@ -145,7 +145,10 @@ def get_booking_by_confirmation_code(
         )
 
 
-@router.post("/{confirmation_code}/resend-email")
+@router.post(
+    "/{confirmation_code}/resend-email",
+    operation_id="booking_public_resend_booking_confirmation_email",
+)
 def resend_booking_confirmation_email(
     *,
     session: Session = Depends(deps.get_db),

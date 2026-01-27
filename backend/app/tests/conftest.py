@@ -7,7 +7,7 @@ from sqlmodel import Session, delete
 from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
-from app.models import Item, Jurisdiction, Location, User
+from app.models import Jurisdiction, Location, User
 from app.tests.utils.user import authentication_token_from_email
 from app.tests.utils.utils import get_superuser_token_headers
 
@@ -21,7 +21,6 @@ def db() -> Generator[Session, None, None]:
             # We need to delete jurisdiction first because it has a foreign key to location
             session.execute(delete(Jurisdiction))
             session.execute(delete(Location))
-            session.execute(delete(Item))
             session.execute(delete(User))
             session.commit()
         except Exception as e:
@@ -37,7 +36,6 @@ def db() -> Generator[Session, None, None]:
             session.rollback()
             session.execute(delete(Jurisdiction))
             session.execute(delete(Location))
-            session.execute(delete(Item))
             session.execute(delete(User))
             session.commit()
         except Exception as e:

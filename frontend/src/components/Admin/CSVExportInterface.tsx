@@ -12,6 +12,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiDownload, FiFilter } from "react-icons/fi"
+import { Checkbox } from "@/components/ui/checkbox"
 
 import {
   BookingsService,
@@ -31,10 +32,33 @@ const BOOKING_STATUSES = [
   "pending_payment",
 ]
 
+// Available CSV fields
+const CSV_FIELDS = [
+  { key: "confirmation_code", label: "Confirmation Code" },
+  { key: "customer_name", label: "Customer Name" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone" },
+  { key: "billing_address", label: "Billing Address" },
+  { key: "status", label: "Status" },
+  { key: "total_amount", label: "Total Amount" },
+  { key: "subtotal", label: "Subtotal" },
+  { key: "discount_amount", label: "Discount Amount" },
+  { key: "tax_amount", label: "Tax Amount" },
+  { key: "tip_amount", label: "Tip Amount" },
+  { key: "created_at", label: "Created At" },
+  { key: "trip_type", label: "Trip Type" },
+  { key: "boat_name", label: "Boat Name" },
+  { key: "ticket_types", label: "Ticket Types (Quantity, Price, Total)" },
+  { key: "swag", label: "Swag (Description, Total)" },
+]
+
 const CSVExportInterface = () => {
   const [selectedMissionId, setSelectedMissionId] = useState("")
   const [selectedTripId, setSelectedTripId] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(
+    new Set(CSV_FIELDS.map((f) => f.key)), // All fields selected by default
+  )
   const [isExporting, setIsExporting] = useState(false)
 
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -84,17 +108,16 @@ const CSVExportInterface = () => {
     try {
       setIsExporting(true)
 
-      // Build query parameters
-      const params = new URLSearchParams()
-      if (selectedMissionId) params.append("mission_id", selectedMissionId)
-      if (selectedTripId) params.append("trip_id", selectedTripId)
-      if (selectedStatus) params.append("booking_status", selectedStatus)
+      // Convert selected fields set to comma-separated string
+      const fieldsParam =
+        selectedFields.size > 0 ? Array.from(selectedFields).join(",") : undefined
 
       // Make the API call
       const response = await BookingsService.exportBookingsCsv({
         missionId: selectedMissionId || undefined,
         tripId: selectedTripId || undefined,
         bookingStatus: selectedStatus || undefined,
+        fields: fieldsParam,
       })
 
       // Create download link
@@ -138,6 +161,25 @@ const CSVExportInterface = () => {
     setSelectedMissionId("")
     setSelectedTripId("")
     setSelectedStatus("")
+    setSelectedFields(new Set(CSV_FIELDS.map((f) => f.key))) // Reset to all fields
+  }
+
+  const toggleField = (fieldKey: string) => {
+    const newSelected = new Set(selectedFields)
+    if (newSelected.has(fieldKey)) {
+      newSelected.delete(fieldKey)
+    } else {
+      newSelected.add(fieldKey)
+    }
+    setSelectedFields(newSelected)
+  }
+
+  const selectAllFields = () => {
+    setSelectedFields(new Set(CSV_FIELDS.map((f) => f.key)))
+  }
+
+  const deselectAllFields = () => {
+    setSelectedFields(new Set())
   }
 
   const canExport = !isExporting
@@ -154,8 +196,37 @@ const CSVExportInterface = () => {
               Export booking data to CSV format with optional filtering by mission, trip, or status.
             </Text>
 
+            {/* Field Selection */}
+            <VStack gap={4} align="stretch">
+              <Heading size="sm">Select Fields to Export</Heading>
+              <HStack gap={2} justify="flex-end">
+                <Button variant="ghost" size="sm" onClick={selectAllFields}>
+                  Select All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deselectAllFields}>
+                  Deselect All
+                </Button>
+              </HStack>
+              <Box
+                display="grid"
+                gridTemplateColumns="repeat(auto-fill, minmax(250px, 1fr))"
+                gap={3}
+              >
+                {CSV_FIELDS.map((field) => (
+                  <Checkbox
+                    key={field.key}
+                    checked={selectedFields.has(field.key)}
+                    onCheckedChange={() => toggleField(field.key)}
+                  >
+                    {field.label}
+                  </Checkbox>
+                ))}
+              </Box>
+            </VStack>
+
             {/* Filters */}
             <VStack gap={4} align="stretch">
+              <Heading size="sm">Filters</Heading>
               <HStack gap={4} align="end">
                 <Box flex={1}>
                   <Text fontWeight="medium" mb={2}>

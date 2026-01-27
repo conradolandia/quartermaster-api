@@ -30,8 +30,8 @@ import type {
   BookingsUpdateBookingResponse,
   BookingsCheckInBookingData,
   BookingsCheckInBookingResponse,
-  BookingsResendBookingConfirmationEmailData,
-  BookingsResendBookingConfirmationEmailResponse,
+  BookingPublicResendBookingConfirmationEmailData,
+  BookingPublicResendBookingConfirmationEmailResponse,
   BookingsProcessRefundData,
   BookingsProcessRefundResponse,
   BookingsExportBookingsCsvData,
@@ -56,16 +56,6 @@ import type {
   DiscountCodesValidateDiscountCodeResponse,
   DiscountCodesValidateAccessCodeData,
   DiscountCodesValidateAccessCodeResponse,
-  ItemsReadItemsData,
-  ItemsReadItemsResponse,
-  ItemsCreateItemData,
-  ItemsCreateItemResponse,
-  ItemsReadItemData,
-  ItemsReadItemResponse,
-  ItemsUpdateItemData,
-  ItemsUpdateItemResponse,
-  ItemsDeleteItemData,
-  ItemsDeleteItemResponse,
   JurisdictionsReadPublicJurisdictionsData,
   JurisdictionsReadPublicJurisdictionsResponse,
   JurisdictionsReadJurisdictionsData,
@@ -206,8 +196,6 @@ import type {
   UsersUpdateUserMeResponse,
   UsersUpdatePasswordMeData,
   UsersUpdatePasswordMeResponse,
-  UsersRegisterUserData,
-  UsersRegisterUserResponse,
   UsersReadUserByIdData,
   UsersReadUserByIdResponse,
   UsersUpdateUserData,
@@ -570,9 +558,9 @@ export class BookingsService {
    * @returns unknown Successful Response
    * @throws ApiError
    */
-  public static resendBookingConfirmationEmail(
-    data: BookingsResendBookingConfirmationEmailData,
-  ): CancelablePromise<BookingsResendBookingConfirmationEmailResponse> {
+  public static bookingPublicResendBookingConfirmationEmail(
+    data: BookingPublicResendBookingConfirmationEmailData,
+  ): CancelablePromise<BookingPublicResendBookingConfirmationEmailResponse> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/bookings/{confirmation_code}/resend-email",
@@ -624,10 +612,15 @@ export class BookingsService {
    * Export bookings data to CSV format.
    *
    * Supports filtering by mission_id, trip_id, and booking_status.
+   * Supports field selection via the fields parameter (comma-separated list of field names).
+   * Available fields: confirmation_code, customer_name, email, phone, billing_address,
+   * status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
+   * trip_type, boat_name, ticket_types, swag.
    * @param data The data for the request.
    * @param data.missionId
    * @param data.tripId
    * @param data.bookingStatus
+   * @param data.fields
    * @returns unknown Successful Response
    * @throws ApiError
    */
@@ -641,6 +634,7 @@ export class BookingsService {
         mission_id: data.missionId,
         trip_id: data.tripId,
         booking_status: data.bookingStatus,
+        fields: data.fields,
       },
       errors: {
         422: "Validation Error",
@@ -889,127 +883,6 @@ export class DiscountCodesService {
       },
       query: {
         mission_id: data.missionId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class ItemsService {
-  /**
-   * Read Items
-   * Retrieve items.
-   * @param data The data for the request.
-   * @param data.skip
-   * @param data.limit
-   * @returns ItemsPublic Successful Response
-   * @throws ApiError
-   */
-  public static readItems(
-    data: ItemsReadItemsData = {},
-  ): CancelablePromise<ItemsReadItemsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/items/",
-      query: {
-        skip: data.skip,
-        limit: data.limit,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Create Item
-   * Create new item.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns ItemPublic Successful Response
-   * @throws ApiError
-   */
-  public static createItem(
-    data: ItemsCreateItemData,
-  ): CancelablePromise<ItemsCreateItemResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/items/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Read Item
-   * Get item by ID.
-   * @param data The data for the request.
-   * @param data.id
-   * @returns ItemPublic Successful Response
-   * @throws ApiError
-   */
-  public static readItem(
-    data: ItemsReadItemData,
-  ): CancelablePromise<ItemsReadItemResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/items/{id}",
-      path: {
-        id: data.id,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Update Item
-   * Update an item.
-   * @param data The data for the request.
-   * @param data.id
-   * @param data.requestBody
-   * @returns ItemPublic Successful Response
-   * @throws ApiError
-   */
-  public static updateItem(
-    data: ItemsUpdateItemData,
-  ): CancelablePromise<ItemsUpdateItemResponse> {
-    return __request(OpenAPI, {
-      method: "PUT",
-      url: "/api/v1/items/{id}",
-      path: {
-        id: data.id,
-      },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Delete Item
-   * Delete an item.
-   * @param data The data for the request.
-   * @param data.id
-   * @returns Message Successful Response
-   * @throws ApiError
-   */
-  public static deleteItem(
-    data: ItemsDeleteItemData,
-  ): CancelablePromise<ItemsDeleteItemResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/items/{id}",
-      path: {
-        id: data.id,
       },
       errors: {
         422: "Validation Error",
@@ -2723,7 +2596,7 @@ export class UsersService {
 
   /**
    * Create User
-   * Create new user.
+   * Create new user (superuser only - all users must be superusers).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns UserPublic Successful Response
@@ -2745,7 +2618,7 @@ export class UsersService {
 
   /**
    * Read User Me
-   * Get current user.
+   * Get current user (superuser only).
    * @returns UserPublic Successful Response
    * @throws ApiError
    */
@@ -2758,7 +2631,7 @@ export class UsersService {
 
   /**
    * Delete User Me
-   * Delete own user.
+   * Delete own user (superuser only, but not allowed).
    * @returns Message Successful Response
    * @throws ApiError
    */
@@ -2771,7 +2644,7 @@ export class UsersService {
 
   /**
    * Update User Me
-   * Update own user.
+   * Update own user (superuser only).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns UserPublic Successful Response
@@ -2793,7 +2666,7 @@ export class UsersService {
 
   /**
    * Update Password Me
-   * Update own password.
+   * Update own password (superuser only).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns Message Successful Response
@@ -2814,30 +2687,8 @@ export class UsersService {
   }
 
   /**
-   * Register User
-   * Create new user without the need to be logged in.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns UserPublic Successful Response
-   * @throws ApiError
-   */
-  public static registerUser(
-    data: UsersRegisterUserData,
-  ): CancelablePromise<UsersRegisterUserResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/users/signup",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Read User By Id
-   * Get a specific user by id.
+   * Get a specific user by id (superuser only).
    * @param data The data for the request.
    * @param data.userId
    * @returns UserPublic Successful Response
@@ -2886,7 +2737,7 @@ export class UsersService {
 
   /**
    * Delete User
-   * Delete a user.
+   * Delete a user (superuser only).
    * @param data The data for the request.
    * @param data.userId
    * @returns Message Successful Response
