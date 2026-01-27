@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiPlus, FiTrash2 } from "react-icons/fi"
+import { Checkbox } from "../ui/checkbox"
 
 import {
   type ApiError,
@@ -98,6 +99,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [discountCode, setDiscountCode] = useState<string>("")
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
+  const [markAsPaid, setMarkAsPaid] = useState<boolean>(true) // Default to true for admin bookings
 
   // Get trips for dropdown
   const { data: tripsData } = useQuery({
@@ -353,21 +355,38 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   }
 
   const mutation = useMutation({
-    mutationFn: (data: BookingCreate) =>
-      BookingsService.createBooking({
-        requestBody: data,
-      }),
+    mutationFn: async (data: { bookingData: BookingCreate; markAsPaid: boolean }) => {
+      // Create the booking
+      const booking = await BookingsService.createBooking({
+        requestBody: data.bookingData,
+      })
+
+      // If markAsPaid is true, update status to confirmed
+      if (data.markAsPaid && booking.id) {
+        await BookingsService.updateBooking({
+          bookingId: booking.id,
+          requestBody: { status: "confirmed" },
+        })
+      }
+
+      return booking
+    },
     onSuccess: async () => {
       // Backend decrements inventory and validates pricing atomically
       queryClient.invalidateQueries({
         queryKey: ["trip-merchandise", selectedTripId],
       })
-      showSuccessToast("Booking created successfully.")
+      showSuccessToast(
+        markAsPaid
+          ? "Booking created and marked as paid successfully."
+          : "Booking created as draft successfully."
+      )
       reset()
       setSelectedTripId("")
       setTripPricing([])
       setTripMerchandise([])
       setSelectedItems([])
+      setMarkAsPaid(true) // Reset to default
       onSuccess()
       onClose()
     },
@@ -400,7 +419,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       items: bookingItems,
       discount_code_id: appliedDiscountCode?.id || null,
     }
-    mutation.mutate(bookingData)
+    mutation.mutate({ bookingData, markAsPaid })
   }
 
   // Handle trip selection
@@ -877,22 +896,36 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   />
                 </Field>
 
-                <Field
-                  invalid={!!errors.launch_updates_pref}
-                  errorText={errors.launch_updates_pref?.message}
-                  label="Launch Updates Preference"
-                >
-                  <Controller
-                    name="launch_updates_pref"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        type="checkbox"
+                <Controller
+                  name="launch_updates_pref"
+                  control={control}
+                  render={({ field }) => (
+                    <Field
+                      invalid={!!errors.launch_updates_pref}
+                      errorText={errors.launch_updates_pref?.message}
+                    >
+                      <Checkbox
                         checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                      />
-                    )}
-                  />
+                        onCheckedChange={({ checked }) =>
+                          field.onChange(checked === true)
+                        }
+                      >
+                        Send launch updates
+                      </Checkbox>
+                    </Field>
+                  )}
+                />
+
+                {/* Mark as paid checkbox for admin bookings */}
+                <Field>
+                  <Checkbox
+                    checked={markAsPaid}
+                    onCheckedChange={({ checked }) =>
+                      setMarkAsPaid(checked === true)
+                    }
+                  >
+                    Mark as paid/confirmed
+                  </Checkbox>
                 </Field>
               </VStack>
             </DialogBody>

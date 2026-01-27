@@ -254,7 +254,18 @@ def create_booking(
             detail="Confirmation code already exists. Please try again.",
         )
 
+    # Determine booking status
+    # If superuser and status is provided, use it (for admin bookings marked as paid)
+    # Otherwise, start as draft
+    initial_status = BookingStatus.draft
+    if current_user and current_user.is_superuser:
+        # Check if status was provided in booking_in (via model field if added)
+        # For now, we'll default to draft but allow update after creation
+        # Status can be set via update endpoint after creation
+        pass
+
     # Create booking as draft (no PaymentIntent yet)
+    # Superusers can update status to "confirmed" after creation via update endpoint
     booking = Booking(
         confirmation_code=confirmation_code,
         user_name=booking_in.user_name,
@@ -268,7 +279,7 @@ def create_booking(
         total_amount=booking_in.total_amount,
         payment_intent_id=None,  # No PaymentIntent yet
         special_requests=booking_in.special_requests,
-        status=BookingStatus.draft,  # Start as draft
+        status=initial_status,  # Start as draft (can be updated to confirmed for admin)
         launch_updates_pref=booking_in.launch_updates_pref,
     )
 
@@ -637,6 +648,10 @@ def update_booking(
 
             # Define valid status transitions
             valid_transitions = {
+                "draft": [
+                    "confirmed",
+                    "cancelled",
+                ],  # Allow draft -> confirmed for admin bookings
                 "pending_payment": ["confirmed", "cancelled"],
                 "confirmed": ["checked_in", "cancelled", "refunded"],
                 "checked_in": ["completed", "refunded"],

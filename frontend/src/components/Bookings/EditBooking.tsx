@@ -552,7 +552,7 @@ const EditBooking = ({
                   </Field>
                 </HStack>
 
-                <Field label="Launch Updates Preference">
+                <Field>
                   <Controller
                     name="launch_updates_pref"
                     control={control}
@@ -564,7 +564,7 @@ const EditBooking = ({
                         }
                         disabled={isPast}
                       >
-                        Receive launch updates
+                        Send launch updates
                       </Checkbox>
                     )}
                   />

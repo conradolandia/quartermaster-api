@@ -9,6 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useState } from "react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface CustomerInfo {
   first_name: string
@@ -188,28 +189,24 @@ const Step3CustomerInfo = ({
 
           <Box>
             <VStack gap={4} align="stretch">
-              <Box display="flex" alignItems="center" gap={2}>
-                <input
-                  type="checkbox"
-                  checked={customerInfo.launch_updates_pref}
-                  onChange={(e) =>
-                    updateCustomerInfo("launch_updates_pref", e.target.checked)
-                  }
-                />
-                <Text>Send me launch updates and schedule changes</Text>
-              </Box>
+              <Checkbox
+                checked={customerInfo.launch_updates_pref}
+                onCheckedChange={({ checked }) =>
+                  updateCustomerInfo("launch_updates_pref", checked === true)
+                }
+              >
+                Send me launch updates and schedule changes
+              </Checkbox>
 
-              <Box display="flex" alignItems="center" gap={2}>
-                <input
-                  type="checkbox"
-                  checked={customerInfo.terms_accepted}
-                  onChange={(e) =>
-                    updateCustomerInfo("terms_accepted", e.target.checked)
-                  }
-                  required
-                />
-                <Text>I agree to the terms and conditions *</Text>
-              </Box>
+              <Checkbox
+                checked={customerInfo.terms_accepted}
+                onCheckedChange={({ checked }) =>
+                  updateCustomerInfo("terms_accepted", checked === true)
+                }
+                inputProps={{ required: true }}
+              >
+                I agree to the terms and conditions *
+              </Checkbox>
 
               <Text fontSize="sm" color="gray.600">
                 By checking this box, you agree to our booking terms and
