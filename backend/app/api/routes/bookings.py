@@ -24,6 +24,7 @@ from app.models import (
     TripBoat,
     TripMerchandise,
     TripPricing,
+    User,
 )
 from app.services.date_validator import is_booking_past, is_trip_past
 from app.utils import (
@@ -65,10 +66,13 @@ def create_booking(
     *,
     session: Session = Depends(deps.get_db),
     booking_in: BookingCreate,
+    current_user: User | None = Depends(deps.get_optional_current_user),
 ) -> BookingPublic:
     """
-    Create new booking.
+    Create new booking (authentication optional - public or admin).
     """
+    # current_user is available if authenticated (for admin use), None for public bookings
+    _ = current_user  # Available for future use (e.g., logging, audit trail)
     # Validate that booking has items
     if not booking_in.items:
         raise HTTPException(
@@ -120,8 +124,11 @@ def create_booking(
             detail="Mission is not active",
         )
 
-    # Enforce booking_mode access control
-    if mission.booking_mode == "private":
+    # Enforce booking_mode access control (bypass for authenticated superusers)
+    if current_user and current_user.is_superuser:
+        # Superusers can create bookings regardless of booking_mode
+        pass
+    elif mission.booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this mission",

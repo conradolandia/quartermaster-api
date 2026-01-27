@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 from sqlmodel import Session
+from starlette.requests import Request
 
 from app.core import security
 from app.core.config import settings
@@ -15,6 +16,12 @@ from app.models import TokenPayload, User
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+)
+
+# OAuth2PasswordBearer for optional authentication (doesn't raise error if no token)
+optional_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=False,
 )
 
 
@@ -55,3 +62,42 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
             status_code=403, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+def get_optional_current_user(
+    session: SessionDep,
+    request: Request,
+) -> User | None:
+    """
+    Get current user if authenticated, otherwise return None.
+    This allows endpoints to work with or without authentication.
+    """
+    # Try to get token from Authorization header manually
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        return None
+
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            return None
+    except ValueError:
+        # Malformed Authorization header
+        return None
+
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        # Invalid token - return None instead of raising error
+        return None
+
+    user = session.get(User, token_data.sub)
+    if not user or not user.is_active:
+        return None
+    return user

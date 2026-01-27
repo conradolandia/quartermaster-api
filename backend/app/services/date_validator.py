@@ -44,7 +44,7 @@ def is_launch_past(launch: "Launch", now: datetime | None = None) -> bool:
     """
     if now is None:
         now = _get_now()
-    return launch.launch_timestamp < now
+    return ensure_aware(launch.launch_timestamp) < now
 
 
 def is_mission_past(mission: "Mission", session: "Session") -> bool:
@@ -79,7 +79,7 @@ def is_trip_past(trip: "Trip", now: datetime | None = None) -> bool:
     """
     if now is None:
         now = _get_now()
-    return trip.departure_time < now
+    return ensure_aware(trip.departure_time) < now
 
 
 def is_booking_past(booking: "Booking", session: "Session") -> bool:
@@ -129,7 +129,7 @@ def validate_mission_dates(
         - error_message: Error message if invalid, None if valid
     """
     if mission.sales_open_at is not None:
-        if mission.sales_open_at >= launch.launch_timestamp:
+        if ensure_aware(mission.sales_open_at) >= ensure_aware(launch.launch_timestamp):
             return (
                 False,
                 "Sales open date must be before launch timestamp",
@@ -150,13 +150,17 @@ def validate_trip_time_ordering(trip: "Trip") -> tuple[bool, str | None]:
         - is_valid: True if times are valid, False otherwise
         - error_message: Error message if invalid, None if valid
     """
-    if trip.check_in_time > trip.boarding_time:
+    check_in = ensure_aware(trip.check_in_time)
+    boarding = ensure_aware(trip.boarding_time)
+    departure = ensure_aware(trip.departure_time)
+
+    if check_in > boarding:
         return (
             False,
             "Check-in time must be before or equal to boarding time",
         )
 
-    if trip.boarding_time > trip.departure_time:
+    if boarding > departure:
         return (
             False,
             "Boarding time must be before or equal to departure time",
@@ -190,7 +194,7 @@ def validate_trip_dates(
     # But post-launch trips are allowed (special cases)
     # We'll allow both but log if departure is after launch for launch_viewing/pre_launch
     if trip.type in ("launch_viewing", "pre_launch"):
-        if trip.departure_time > launch.launch_timestamp:
+        if ensure_aware(trip.departure_time) > ensure_aware(launch.launch_timestamp):
             # This is allowed but might be unusual - we'll allow it but could log a warning
             pass
 
@@ -216,14 +220,14 @@ def validate_booking_dates(booking: "Booking", trip: "Trip") -> tuple[bool, str 
     now = _get_now()
 
     # Booking should be for a future trip
-    if trip.departure_time < now:
+    if ensure_aware(trip.departure_time) < now:
         return (
             False,
             "Cannot create booking for a trip that has already departed",
         )
 
     # Booking created_at should be before trip departure (logical check)
-    if booking.created_at > trip.departure_time:
+    if ensure_aware(booking.created_at) > ensure_aware(trip.departure_time):
         # This is unusual but not necessarily invalid (could be a data correction)
         # We'll allow it but could log a warning
         pass
