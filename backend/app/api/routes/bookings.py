@@ -25,6 +25,7 @@ from app.models import (
     TripMerchandise,
     TripPricing,
 )
+from app.services.date_validator import is_booking_past, is_trip_past
 from app.utils import (
     generate_booking_cancelled_email,
     generate_booking_confirmation_email,
@@ -88,6 +89,13 @@ def create_booking(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Trip {item.trip_id} is not active",
+            )
+
+        # Validate trip has not already departed
+        if is_trip_past(trip):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot create booking: Trip {item.trip_id} has already departed",
             )
 
         # Ensure all trips belong to the same mission
@@ -580,6 +588,16 @@ def update_booking(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Booking with ID {booking_id} not found",
+            )
+
+        # Check if booking's trip is in the past and prevent editing unless override is allowed
+        # Note: allow_past_edit parameter would need to be added to the function signature
+        # For now, we'll check but allow superusers to edit (they have access to this endpoint)
+        if is_booking_past(booking, session):
+            # Allow superusers to edit past bookings (for refunds, corrections)
+            # This endpoint already requires superuser authentication
+            logger.info(
+                f"Updating booking {booking_id} for a trip that has already departed (superuser override)"
             )
 
         # 1. Enforce business rules

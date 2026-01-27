@@ -41,6 +41,9 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
+
+  // Check if launch is in the past
+  const isPast = new Date(launch.launch_timestamp) < new Date()
   const {
     register,
     handleSubmit,
@@ -91,7 +94,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button variant="ghost" disabled={isPast} title={isPast ? "This launch has already occurred and cannot be edited" : ""}>
           <FaExchangeAlt fontSize="16px" />
           Edit Launch
         </Button>
@@ -102,7 +105,12 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
               <DialogTitle>Edit Launch</DialogTitle>
             </DialogHeader>
             <DialogBody>
-              <Text mb={4}>Update the launch details below.</Text>
+              {isPast && (
+                <Text mb={4} color="orange.500">
+                  This launch has already occurred and cannot be edited. Use allow_past_edit=true to override.
+                </Text>
+              )}
+              {!isPast && <Text mb={4}>Update the launch details below.</Text>}
               <VStack gap={4}>
                 <Field
                   invalid={!!errors.name}
@@ -127,6 +135,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                     {...register("launch_timestamp")}
                     placeholder="Launch date and time"
                     type="datetime-local"
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -140,6 +149,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                     {...register("summary")}
                     placeholder="Launch summary"
                     type="text"
+                    disabled={isPast}
                   />
                 </Field>
 
@@ -156,7 +166,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                         id="location_id"
                         value={field.value || ""}
                         onChange={field.onChange}
-                        isDisabled={isSubmitting}
+                        isDisabled={isSubmitting || isPast}
                         portalRef={contentRef}
                       />
                     )}
@@ -176,7 +186,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                     Cancel
                   </Button>
                 </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting}>
+                <Button variant="solid" type="submit" loading={isSubmitting} disabled={isPast}>
                   Save
                 </Button>
               </ButtonGroup>

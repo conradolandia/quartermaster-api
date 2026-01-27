@@ -50,6 +50,9 @@ const EditTrip = ({ trip }: EditTripProps) => {
   const [missionId, setMissionId] = useState(trip.mission_id)
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
+
+  // Check if trip is in the past
+  const isPast = new Date(trip.departure_time) < new Date()
   const [checkInTime, setCheckInTime] = useState(
     format(new Date(trip.check_in_time), "yyyy-MM-dd'T'HH:mm"),
   )

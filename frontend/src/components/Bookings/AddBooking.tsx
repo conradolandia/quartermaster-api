@@ -508,12 +508,18 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     }}
                   >
                     <option value="">Select a trip...</option>
-                    {tripsData?.data?.map((trip: TripPublic) => (
-                      <option key={trip.id} value={trip.id}>
-                        {trip.type} -{" "}
-                        {new Date(trip.departure_time).toLocaleDateString()}
-                      </option>
-                    ))}
+                    {tripsData?.data
+                      ?.filter((trip: TripPublic) => {
+                        if (!trip.departure_time) return false
+                        const departureTime = new Date(trip.departure_time)
+                        return departureTime >= new Date()
+                      })
+                      .map((trip: TripPublic) => (
+                        <option key={trip.id} value={trip.id}>
+                          {trip.type} -{" "}
+                          {new Date(trip.departure_time).toLocaleDateString()}
+                        </option>
+                      ))}
                   </NativeSelect>
                 </Field>
 

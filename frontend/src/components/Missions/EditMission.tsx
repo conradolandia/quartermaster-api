@@ -1,4 +1,4 @@
-import { MissionsService } from "@/client"
+import { LaunchesService, MissionsService } from "@/client"
 import {
   Box,
   Button,
@@ -12,7 +12,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
@@ -65,6 +65,16 @@ const EditMission = ({ mission }: EditMissionProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
+
+  // Fetch launch to check if it's in the past
+  const { data: launchData } = useQuery({
+    queryKey: ["launch-for-mission", mission.launch_id],
+    queryFn: () => LaunchesService.readLaunch({ launchId: mission.launch_id }),
+    enabled: isOpen,
+  })
+
+  // Check if mission's launch is in the past
+  const isPast = launchData ? new Date(launchData.launch_timestamp) < new Date() : false
   const {
     register,
     handleSubmit,

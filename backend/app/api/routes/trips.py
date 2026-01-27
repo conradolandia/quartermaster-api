@@ -17,6 +17,11 @@ from app.models import (
     TripsPublic,
     TripUpdate,
 )
+from app.services.date_validator import (
+    is_trip_past,
+    validate_trip_dates,
+    validate_trip_time_ordering,
+)
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
 
@@ -66,6 +71,33 @@ def create_trip(
             detail=f"Mission with ID {trip_in.mission_id} not found",
         )
 
+    # Get the launch for date validation
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch for mission {trip_in.mission_id} not found",
+        )
+
+    # Create temporary trip object for validation
+    temp_trip = Trip.model_validate(trip_in)
+
+    # Validate time ordering
+    is_valid, error_msg = validate_trip_time_ordering(temp_trip)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot create trip: {error_msg}",
+        )
+
+    # Validate trip dates are coherent with mission/launch
+    is_valid, error_msg = validate_trip_dates(temp_trip, mission, launch)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot create trip: {error_msg}",
+        )
+
     trip = crud.create_trip(session=session, trip_in=trip_in)
     return trip
 
@@ -102,6 +134,7 @@ def update_trip(
     session: Session = Depends(deps.get_db),
     trip_id: uuid.UUID,
     trip_in: TripUpdate,
+    allow_past_edit: bool = False,
 ) -> Any:
     """
     Update a trip.
@@ -113,16 +146,69 @@ def update_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
 
-    # If mission_id is being updated, verify that the new mission exists
-    if trip_in.mission_id is not None:
-        mission = crud.get_mission(session=session, mission_id=trip_in.mission_id)
-        if not mission:
+    # Check if trip is in the past and prevent editing unless override is allowed
+    if is_trip_past(trip) and not allow_past_edit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update trip: This trip has already departed. Use allow_past_edit=true to override",
+        )
+
+    # Get mission (either existing or new if being updated)
+    mission_id = (
+        trip_in.mission_id if trip_in.mission_id is not None else trip.mission_id
+    )
+    mission = crud.get_mission(session=session, mission_id=mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mission with ID {mission_id} not found",
+        )
+
+    # Get launch for date validation
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch for mission {mission_id} not found",
+        )
+
+    # Merge update data with existing trip data for validation
+    update_data = trip_in.model_dump(exclude_unset=True)
+    temp_trip_data = {**trip.model_dump(), **update_data}
+    temp_trip = Trip.model_validate(temp_trip_data)
+
+    # Validate time ordering if any time fields are being updated
+    if any(
+        field in update_data
+        for field in ["check_in_time", "boarding_time", "departure_time"]
+    ):
+        is_valid, error_msg = validate_trip_time_ordering(temp_trip)
+        if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Mission with ID {trip_in.mission_id} not found",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot update trip: {error_msg}",
+            )
+
+    # Validate trip dates are coherent with mission/launch if dates or mission are being updated
+    if any(
+        field in update_data
+        for field in ["mission_id", "check_in_time", "boarding_time", "departure_time"]
+    ):
+        is_valid, error_msg = validate_trip_dates(temp_trip, mission, launch)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot update trip: {error_msg}",
             )
 
     trip = crud.update_trip(session=session, db_obj=trip, obj_in=trip_in)
+
+    # Log override action if past edit was allowed
+    if allow_past_edit and is_trip_past(trip):
+        logger.warning(
+            f"Superuser override: Trip {trip_id} was edited despite being in the past"
+        )
+
     return trip
 
 
@@ -277,7 +363,8 @@ def read_public_trips(
     else:
         logger.info("No access code provided")
 
-    # Filter trips by active status and mission booking_mode
+    # Filter trips by active status, mission booking_mode, and future dates
+    now = datetime.now(timezone.utc)
     public_trips = []
     logger.info(
         f"Filtering {len(trips)} trips with access_code={access_code}, discount_code={'present' if discount_code else 'None'}"
@@ -286,6 +373,7 @@ def read_public_trips(
         trip_id = trip.get("id", "unknown")
         trip_name = trip.get("type", "unknown")
         trip_active = trip.get("active", False)
+        departure_time = trip.get("departure_time")
 
         logger.info(f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}")
 
@@ -294,7 +382,14 @@ def read_public_trips(
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
             continue
 
-        # Get the mission to check booking_mode
+        # Filter out past trips
+        if departure_time and departure_time < now:
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: departure_time {departure_time} is in the past"
+            )
+            continue
+
+        # Get the mission to check booking_mode and launch
         mission_id = trip.get("mission_id")
         if not mission_id:
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: no mission_id")
@@ -304,6 +399,21 @@ def read_public_trips(
         if not mission:
             logger.info(
                 f"Trip {trip_id} ({trip_name}) filtered out: mission {mission_id} not found"
+            )
+            continue
+
+        # Get launch to check if launch is in the past
+        launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+        if not launch:
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: launch for mission {mission_id} not found"
+            )
+            continue
+
+        # Filter out trips for past launches
+        if launch.launch_timestamp < now:
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: launch {launch.launch_timestamp} is in the past"
             )
             continue
 
@@ -378,12 +488,35 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} is not available",
         )
 
+    # Filter out past trips
+    now = datetime.now(timezone.utc)
+    if trip.departure_time < now:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} has already departed",
+        )
+
     # Check mission booking_mode
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
     if not mission:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Mission not found",
+        )
+
+    # Get launch to check if launch is in the past
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Launch not found",
+        )
+
+    # Filter out trips for past launches
+    if launch.launch_timestamp < now:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
         )
 
     if mission.booking_mode == "private":

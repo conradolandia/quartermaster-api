@@ -59,6 +59,12 @@ const EditBooking = ({
     queryFn: () => TripsService.readTrips({ limit: 100 }),
   })
 
+  // Find the trip for this booking to check if it's in the past
+  const bookingTrip = tripsData?.data?.find((t: any) =>
+    booking.items?.some((item: any) => item.trip_id === t.id)
+  )
+  const isPast = bookingTrip ? new Date(bookingTrip.departure_time) < new Date() : false
+
   // Get boats for display
   const { data: boatsData } = useQuery({
     queryKey: ["boats"],
