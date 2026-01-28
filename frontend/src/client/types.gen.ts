@@ -228,19 +228,18 @@ export type HTTPValidationError = {
 
 export type JurisdictionCreate = {
   name: string
-  state: string
   sales_tax_rate: number
   location_id: string
 }
 
 export type JurisdictionPublic = {
   name: string
-  state: string
   sales_tax_rate: number
   location_id: string
   id: string
   created_at: string
   updated_at: string
+  location?: LocationPublic | null
 }
 
 export type JurisdictionsPublic = {
@@ -250,7 +249,6 @@ export type JurisdictionsPublic = {
 
 export type JurisdictionUpdate = {
   name?: string | null
-  state?: string | null
   sales_tax_rate?: number | null
   location_id?: string | null
 }

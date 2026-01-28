@@ -213,26 +213,18 @@ class LocationsPublic(SQLModel):
 # Jurisdiction models
 class JurisdictionBase(SQLModel):
     name: str = Field(index=True, max_length=255)
-    state: str = Field(max_length=100)
     sales_tax_rate: float = Field(ge=0.0, le=1.0)
     location_id: uuid.UUID = Field(foreign_key="location.id")
 
-    @field_validator("state")
-    def validate_state(cls, v):
-        if v.upper() not in VALID_US_STATES:
-            raise ValueError(
-                f"Invalid state code. Must be one of {', '.join(VALID_US_STATES)}"
-            )
-        return v.upper()  # Ensure state is always uppercase
 
-
-class JurisdictionCreate(JurisdictionBase):
-    pass
+class JurisdictionCreate(SQLModel):
+    name: str = Field(index=True, max_length=255)
+    sales_tax_rate: float = Field(ge=0.0, le=1.0)
+    location_id: uuid.UUID = Field(foreign_key="location.id")
 
 
 class JurisdictionUpdate(SQLModel):
     name: str | None = Field(default=None, max_length=255)
-    state: str | None = Field(default=None, max_length=100)
     sales_tax_rate: float | None = Field(default=None, ge=0.0, le=1.0)
     location_id: uuid.UUID | None = Field(default=None)
 
@@ -252,6 +244,8 @@ class JurisdictionPublic(JurisdictionBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    # Include location data for state access
+    location: Optional["LocationPublic"] = None
 
 
 class JurisdictionsPublic(SQLModel):

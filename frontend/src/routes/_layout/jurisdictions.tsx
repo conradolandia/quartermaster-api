@@ -31,13 +31,13 @@ import {
 } from "@/components/ui/pagination.tsx"
 
 // Define sortable columns
-type SortableColumn = "name" | "state" | "sales_tax_rate" | "location_id"
+type SortableColumn = "name" | "sales_tax_rate" | "location_id"
 type SortDirection = "asc" | "desc"
 
 const jurisdictionsSearchSchema = z.object({
   page: z.number().catch(1),
   locationId: z.string().optional(),
-  sortBy: z.enum(["name", "state", "sales_tax_rate", "location_id"]).optional(),
+  sortBy: z.enum(["name", "sales_tax_rate", "location_id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
@@ -58,8 +58,10 @@ const sortJurisdictions = (
 
     // Special handling for location_id - sort by location name
     if (sortBy === "location_id") {
-      aValue = locationsMap.get(a.location_id)?.name || a.location_id
-      bValue = locationsMap.get(b.location_id)?.name || b.location_id
+      const aLocation = a.location || locationsMap.get(a.location_id)
+      const bLocation = b.location || locationsMap.get(b.location_id)
+      aValue = aLocation?.name || a.location_id
+      bValue = bLocation?.name || b.location_id
     }
 
     // Special handling for sales_tax_rate - convert to number
@@ -219,12 +221,12 @@ function JurisdictionsTable() {
                 w="sm"
                 fontWeight="bold"
                 cursor="pointer"
-                onClick={() => handleSort("state")}
+                onClick={() => handleSort("location_id")}
                 display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
-                  State
-                  <SortIcon column="state" />
+                  Location
+                  <SortIcon column="location_id" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -239,18 +241,6 @@ function JurisdictionsTable() {
                   <SortIcon column="sales_tax_rate" />
                 </Flex>
               </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("location_id")}
-              display={{ base: "none", md: "table-cell" }}
-            >
-              <Flex align="center">
-                Location
-                <SortIcon column="location_id" />
-              </Flex>
-            </Table.ColumnHeader>
             <Table.ColumnHeader w="sm" fontWeight="bold">
               Actions
             </Table.ColumnHeader>
@@ -266,14 +256,15 @@ function JurisdictionsTable() {
                 {jurisdiction.name}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {jurisdiction.state}
+                {(() => {
+                  const location = jurisdiction.location || locationsMap.get(jurisdiction.location_id)
+                  const locationName = location?.name || jurisdiction.location_id
+                  const state = location?.state || locationsMap.get(jurisdiction.location_id)?.state
+                  return state ? `${locationName} (${state})` : locationName
+                })()}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {locationsMap.get(jurisdiction.location_id)?.name ||
-                  jurisdiction.location_id}
               </Table.Cell>
               <Table.Cell>
                 <JurisdictionActionsMenu jurisdiction={jurisdiction} />

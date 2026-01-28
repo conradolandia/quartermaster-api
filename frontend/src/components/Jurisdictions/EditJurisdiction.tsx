@@ -20,7 +20,6 @@ import {
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import LocationDropdown from "../Common/LocationDropdown"
-import StateDropdown from "../Locations/StateDropdown"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -53,7 +52,6 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
     criteriaMode: "all",
     defaultValues: {
       name: jurisdiction.name,
-      state: jurisdiction.state,
       sales_tax_rate: jurisdiction.sales_tax_rate,
       location_id: jurisdiction.location_id,
     },
@@ -119,33 +117,6 @@ const EditJurisdiction = ({ jurisdiction }: EditJurisdictionProps) => {
                     })}
                     placeholder="Name"
                     type="text"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.state}
-                  errorText={errors.state?.message}
-                  label="State"
-                  required
-                >
-                  <Controller
-                    name="state"
-                    control={control}
-                    rules={{
-                      maxLength: {
-                        value: 100,
-                        message: "State cannot exceed 100 characters",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <StateDropdown
-                        id="state"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        isDisabled={isSubmitting}
-                        portalRef={contentRef}
-                      />
-                    )}
                   />
                 </Field>
 

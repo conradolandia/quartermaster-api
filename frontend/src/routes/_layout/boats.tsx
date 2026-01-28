@@ -16,7 +16,12 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import { type BoatPublic, BoatsService, JurisdictionsService } from "@/client"
+import {
+  type BoatPublic,
+  BoatsService,
+  JurisdictionsService,
+  LocationsService,
+} from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
 import BoatActionsMenu from "@/components/Common/BoatActionsMenu"
 import PendingBoats from "@/components/Pending/PendingBoats"
@@ -140,11 +145,26 @@ function BoatsTable() {
     queryFn: () => JurisdictionsService.readJurisdictions({ limit: 100 }),
   })
 
+  // Get all locations for state lookup
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations-for-boats"],
+    queryFn: () => LocationsService.readLocations({ limit: 100 }),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  })
+
   // Create a map of jurisdictions for easy lookup
   const jurisdictionsMap = new Map()
   if (jurisdictionsData?.data) {
     jurisdictionsData.data.forEach((jurisdiction) => {
       jurisdictionsMap.set(jurisdiction.id, jurisdiction)
+    })
+  }
+
+  // Create a map of locations for state lookup
+  const locationsMap = new Map()
+  if (locationsData?.data) {
+    locationsData.data.forEach((location) => {
+      locationsMap.set(location.id, location)
     })
   }
 
@@ -272,7 +292,9 @@ function BoatsTable() {
                     <Flex direction="column">
                       <Text fontWeight="medium">{jurisdiction.name}</Text>
                       <Text fontSize="xs" color="gray.600">
-                        {jurisdiction.state}
+                        {jurisdiction.location?.state ||
+                          locationsMap.get(jurisdiction.location_id)?.state ||
+                          "N/A"}
                       </Text>
                     </Flex>
                   ) : (

@@ -17,7 +17,6 @@ import { handleError } from "@/utils"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import LocationDropdown from "../Common/LocationDropdown"
-import StateDropdown from "../Locations/StateDropdown"
 import { Field } from "../ui/field"
 
 // Props interface
@@ -47,7 +46,6 @@ export const AddJurisdiction = ({
     criteriaMode: "all",
     defaultValues: {
       name: "",
-      state: "",
       sales_tax_rate: 0,
       location_id: "",
     },
@@ -103,33 +101,6 @@ export const AddJurisdiction = ({
                       },
                     })}
                     placeholder="Jurisdiction name"
-                  />
-                </Field>
-                <Field
-                  label="State"
-                  required
-                  invalid={!!errors.state}
-                  errorText={errors.state?.message}
-                >
-                  <Controller
-                    name="state"
-                    control={control}
-                    rules={{
-                      required: "State is required",
-                      maxLength: {
-                        value: 100,
-                        message: "State cannot exceed 100 characters",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <StateDropdown
-                        value={field.value}
-                        onChange={field.onChange}
-                        id="state"
-                        isDisabled={isSubmitting}
-                        portalRef={contentRef}
-                      />
-                    )}
                   />
                 </Field>
                 <Field

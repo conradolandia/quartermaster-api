@@ -1,5 +1,5 @@
 // @ts-ignore
-import { JurisdictionsService } from "@/client"
+import { JurisdictionsService, LocationsService } from "@/client"
 import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import type { RefObject } from "react"
@@ -41,13 +41,40 @@ export const JurisdictionDropdown = ({
     retry: 1,
   })
 
+  // Fetch locations for state lookup
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations-dropdown"],
+    queryFn: () => LocationsService.readLocations({ limit: 100 }),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  })
+
+  // Create locations map
+  const locationsMap = new Map()
+  if (locationsData?.data) {
+    locationsData.data.forEach((location) => {
+      locationsMap.set(location.id, location)
+    })
+  }
+
+  // Helper to get state from jurisdiction
+  const getJurisdictionState = (jurisdiction: any) => {
+    return (
+      jurisdiction.location?.state ||
+      locationsMap.get(jurisdiction.location_id)?.state ||
+      ""
+    )
+  }
+
   // Create a collection from the API response
   const jurisdictionsCollection = createListCollection({
     items:
-      jurisdictionsResponse?.data?.map((jurisdiction) => ({
-        label: `${jurisdiction.name} (${jurisdiction.state})`,
-        value: jurisdiction.id,
-      })) || [],
+      jurisdictionsResponse?.data?.map((jurisdiction) => {
+        const state = getJurisdictionState(jurisdiction)
+        return {
+          label: state ? `${jurisdiction.name} (${state})` : jurisdiction.name,
+          value: jurisdiction.id,
+        }
+      }) || [],
   })
 
   return (
@@ -71,18 +98,24 @@ export const JurisdictionDropdown = ({
       <Portal container={portalRef}>
         <Select.Positioner>
           <Select.Content minWidth="300px">
-            {jurisdictionsResponse?.data?.map((jurisdiction) => (
-              <Select.Item
-                key={jurisdiction.id}
-                item={{
-                  value: jurisdiction.id,
-                  label: `${jurisdiction.name} (${jurisdiction.state})`,
-                }}
-              >
-                {jurisdiction.name} ({jurisdiction.state})
-                <Select.ItemIndicator />
-              </Select.Item>
-            ))}
+            {jurisdictionsResponse?.data?.map((jurisdiction) => {
+              const state = getJurisdictionState(jurisdiction)
+              const label = state
+                ? `${jurisdiction.name} (${state})`
+                : jurisdiction.name
+              return (
+                <Select.Item
+                  key={jurisdiction.id}
+                  item={{
+                    value: jurisdiction.id,
+                    label,
+                  }}
+                >
+                  {label}
+                  <Select.ItemIndicator />
+                </Select.Item>
+              )
+            })}
           </Select.Content>
         </Select.Positioner>
       </Portal>
