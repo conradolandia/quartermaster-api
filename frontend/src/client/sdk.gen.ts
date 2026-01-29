@@ -641,7 +641,8 @@ export class BookingsService {
    * Supports field selection via the fields parameter (comma-separated list of field names).
    * Available fields: confirmation_code, customer_name, email, phone, billing_address,
    * status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
-   * trip_type, boat_name, ticket_types, swag.
+   * trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
+   * ticket_types_total); swag (or swag_description, swag_total).
    * @param data The data for the request.
    * @param data.missionId
    * @param data.tripId

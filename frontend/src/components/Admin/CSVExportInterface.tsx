@@ -49,8 +49,22 @@ const CSV_FIELDS = [
   { key: "created_at", label: "Created At" },
   { key: "trip_type", label: "Trip Type" },
   { key: "boat_name", label: "Boat Name" },
-  { key: "ticket_types", label: "Ticket Types (Quantity, Price, Total)" },
-  { key: "swag", label: "Swag (Description, Total)" },
+  { key: "ticket_types_quantity", label: "Ticket Types – Quantity" },
+  { key: "ticket_types_price", label: "Ticket Types – Price" },
+  { key: "ticket_types_total", label: "Ticket Types – Total" },
+  { key: "swag_description", label: "Swag – Description" },
+  { key: "swag_total", label: "Swag – Total" },
+]
+
+const AMOUNT_FIELD_KEYS = [
+  "total_amount",
+  "subtotal",
+  "discount_amount",
+  "tax_amount",
+  "tip_amount",
+  "ticket_types_price",
+  "ticket_types_total",
+  "swag_total",
 ]
 
 const CSVExportInterface = () => {
@@ -183,7 +197,26 @@ const CSVExportInterface = () => {
     setSelectedFields(new Set())
   }
 
-  const canExport = !isExporting
+  const deselectAmountFields = () => {
+    const next = new Set(selectedFields)
+    AMOUNT_FIELD_KEYS.forEach((k) => next.delete(k))
+    setSelectedFields(next)
+  }
+
+  const selectAmountFields = () => {
+    const next = new Set(selectedFields)
+    AMOUNT_FIELD_KEYS.forEach((k) => next.add(k))
+    setSelectedFields(next)
+  }
+
+  // Check if ticket-type fields are selected
+  const hasTicketTypeFields = selectedFields.has("ticket_types_quantity") ||
+    selectedFields.has("ticket_types_price") ||
+    selectedFields.has("ticket_types_total")
+
+  // Trip is required when ticket-type fields are selected
+  const tripRequired = hasTicketTypeFields
+  const canExport = !isExporting && (!tripRequired || selectedTripId)
 
   return (
     <VStack gap={6} align="stretch">
@@ -195,17 +228,28 @@ const CSVExportInterface = () => {
             <Heading size="md">Export Passenger Manifest</Heading>
             <Text color="text.muted">
               Export booking data to CSV format with optional filtering by mission, trip, or status.
+              {hasTicketTypeFields && (
+                <Text as="span" display="block" mt={1} color="orange.600">
+                  Note: Trip selection is required when exporting ticket-type columns to ensure accurate column headers.
+                </Text>
+              )}
             </Text>
 
             {/* Field Selection */}
             <VStack gap={4} align="stretch">
               <Heading size="sm">Select Fields to Export</Heading>
-              <HStack gap={2} justify="flex-end">
+              <HStack gap={2} justify="flex-end" flexWrap="wrap">
                 <Button variant="ghost" size="sm" onClick={selectAllFields}>
                   Select All
                 </Button>
                 <Button variant="ghost" size="sm" onClick={deselectAllFields}>
                   Deselect All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deselectAmountFields}>
+                  Deselect amount columns
+                </Button>
+                <Button variant="ghost" size="sm" onClick={selectAmountFields}>
+                  Select amount columns
                 </Button>
               </HStack>
               <Box
@@ -264,8 +308,14 @@ const CSVExportInterface = () => {
 
                 <Box flex={1}>
                   <Text fontWeight="medium" mb={2}>
-                    Trip (Optional)
+                    Trip {tripRequired && <Text as="span" color="red.500">*</Text>}
+                    {tripRequired ? " (Required)" : " (Optional)"}
                   </Text>
+                  {tripRequired && !selectedTripId && (
+                    <Text fontSize="sm" color="orange.600" mb={1}>
+                      Trip selection is required when exporting ticket-type columns
+                    </Text>
+                  )}
                   <Select.Root
                     collection={tripsCollection}
                     value={selectedTripId ? [selectedTripId] : []}
@@ -274,7 +324,7 @@ const CSVExportInterface = () => {
                   >
                     <Select.Control width="100%">
                       <Select.Trigger>
-                        <Select.ValueText placeholder={selectedMissionId ? "All trips" : "Select mission first"} />
+                        <Select.ValueText placeholder={selectedMissionId ? (tripRequired ? "Select a trip" : "All trips") : "Select mission first"} />
                       </Select.Trigger>
                       <Select.IndicatorGroup>
                         <Select.Indicator />
