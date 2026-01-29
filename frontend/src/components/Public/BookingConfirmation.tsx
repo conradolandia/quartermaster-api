@@ -97,6 +97,29 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
           </Text>
         </Box>
 
+        {/* QR Code Ticket - above other sections */}
+        <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+          <Heading size="sm" mb={4} textAlign="center">
+            Your QR Code Ticket
+          </Heading>
+          <VStack gap={4} align="stretch">
+            <Box textAlign="center">
+              {booking.qr_code_base64 ? (
+                <img
+                  src={`data:image/png;base64,${booking.qr_code_base64}`}
+                  alt={`QR Code for booking ${booking.confirmation_code}`}
+                  style={{ width: "100%", height: "auto" }}
+                />
+              ) : (
+                <Text fontSize="sm" color="gray.500">
+                  QR code is not available yet. Please refresh this page in a
+                  moment.
+                </Text>
+              )}
+            </Box>
+          </VStack>
+        </Box>
+
         <VStack gap={6} align="stretch">
           {/* Booking Details */}
           <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
@@ -158,28 +181,6 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
                   ${booking.total_amount?.toFixed(2)}
                 </Text>
               </HStack>
-            </VStack>
-          </Box>
-
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-            <Heading size="sm" mb={4}>
-              Your QR Code Ticket
-            </Heading>
-            <VStack gap={4} align="stretch">
-              <Box textAlign="center" p={4}>
-                {booking.qr_code_base64 ? (
-                  <img
-                    src={`data:image/png;base64,${booking.qr_code_base64}`}
-                    alt={`QR Code for booking ${booking.confirmation_code}`}
-                    style={{ width: "100%", height: "auto" }}
-                  />
-                ) : (
-                  <Text fontSize="sm" color="gray.500">
-                    QR code is not available yet. Please refresh this page in a
-                    moment.
-                  </Text>
-                )}
-              </Box>
             </VStack>
           </Box>
 
