@@ -22,6 +22,7 @@ branch_labels = None
 depends_on = None
 
 
+
 def _boat_has_provider_id(inspector) -> bool:
     if not inspector.has_table("boat"):
         return False
