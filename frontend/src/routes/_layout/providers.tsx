@@ -23,6 +23,10 @@ import ProviderActionsMenu from "@/components/Common/ProviderActionsMenu"
 import AddProvider from "@/components/Providers/AddProvider"
 import PendingProviders from "@/components/Pending/PendingProviders"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -35,12 +39,11 @@ type SortDirection = "asc" | "desc"
 
 const providersSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   jurisdictionId: z.string().optional(),
   sortBy: z.enum(["name", "jurisdiction_id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 5
 
 // Helper function to sort providers
 const sortProviders = (
@@ -74,19 +77,21 @@ const sortProviders = (
 
 function getProvidersQueryOptions({
   page,
+  pageSize,
   jurisdictionId,
 }: {
   page: number
+  pageSize: number
   jurisdictionId?: string
 }) {
   return {
     queryFn: () =>
       ProvidersService.readProviders({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
         jurisdictionId,
       }),
-    queryKey: ["providers", { page, jurisdictionId }],
+    queryKey: ["providers", { page, pageSize, jurisdictionId }],
   }
 }
 
@@ -97,7 +102,9 @@ export const Route = createFileRoute("/_layout/providers")({
 
 function ProvidersTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, jurisdictionId, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, jurisdictionId, sortBy, sortDirection } =
+    Route.useSearch()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -113,19 +120,38 @@ function ProvidersTable() {
   }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getProvidersQueryOptions({ page, jurisdictionId }),
+    ...getProvidersQueryOptions({
+      page,
+      pageSize: effectivePageSize,
+      jurisdictionId,
+    }),
     placeholderData: (prevData) => prevData,
-    queryKey: ["providers", { page, jurisdictionId, sortBy, sortDirection }],
+    queryKey: [
+      "providers",
+      { page, pageSize: effectivePageSize, jurisdictionId, sortBy, sortDirection },
+    ],
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string | number }) => ({ ...prev, page }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Apply sorting to providers
   const providers = sortProviders(
-    data?.data.slice(0, PER_PAGE) ?? [],
+    data?.data.slice(0, effectivePageSize) ?? [],
     sortBy as SortableColumn | undefined,
     sortDirection as SortDirection | undefined,
   )
@@ -230,19 +256,28 @@ function ProvidersTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

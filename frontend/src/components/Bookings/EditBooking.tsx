@@ -100,12 +100,11 @@ const EditBooking = ({
 
   // Auto-calculate total based on original subtotal and updated values
   useEffect(() => {
-    // Calculate total: subtotal + tax + tip - discount
+    // Standard formula: (subtotal - discount) * (1 + tax_rate) + tip = total.
+    // Here we allow manual override: total = subtotal - discount + tax + tip.
+    const afterDiscount = Math.max(0, booking.subtotal - (watchedDiscountAmount || 0))
     const calculatedTotal =
-      booking.subtotal +
-      (watchedTaxAmount || 0) +
-      (watchedTipAmount || 0) -
-      (watchedDiscountAmount || 0)
+      afterDiscount + (watchedTaxAmount || 0) + (watchedTipAmount || 0)
 
     setValue("total_amount", Math.max(0, calculatedTotal)) // Ensure total is not negative
   }, [
@@ -533,7 +532,7 @@ const EditBooking = ({
 
                   <Field
                     label="Total Amount"
-                    helperText="Auto-calculated: subtotal + tax + tip - discount"
+                    helperText="Auto-calculated: (subtotal - discount) + tax + tip"
                   >
                     <Controller
                       name="total_amount"

@@ -38,6 +38,10 @@ export type BoatUpdate = {
   provider_id?: string | null
 }
 
+export type Body_import_import_yaml_document = {
+  file: Blob | File
+}
+
 export type Body_launches_import_launch_from_yaml = {
   file: Blob | File
 }
@@ -213,6 +217,15 @@ export type DiscountCodeUpdate = {
 
 export type HTTPValidationError = {
   detail?: Array<ValidationError>
+}
+
+/**
+ * Result of a multi-entity YAML import.
+ */
+export type ImportResult = {
+  launches?: Array<LaunchPublic>
+  missions?: Array<MissionPublic>
+  trips?: Array<TripPublic>
 }
 
 export type JurisdictionCreate = {
@@ -790,6 +803,12 @@ export type DiscountCodesValidateAccessCodeData = {
 
 export type DiscountCodesValidateAccessCodeResponse =
   AccessCodeValidationResponse
+
+export type ImportImportYamlDocumentData = {
+  formData: Body_import_import_yaml_document
+}
+
+export type ImportImportYamlDocumentResponse = ImportResult
 
 export type JurisdictionsReadPublicJurisdictionsData = {
   limit?: number

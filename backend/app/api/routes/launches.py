@@ -296,13 +296,10 @@ def import_launch_from_yaml(
 
     Expected YAML format:
     ```yaml
-    name: "SpaceX Falcon Heavy - Mars Mission"
-    provider: "SpaceX"
-    launch_date: "2024-03-15T14:30:00Z"
-    launch_site: "Kennedy Space Center LC-39A"
-    description: "Launch of Mars Sample Return mission"
-    status: "scheduled"
-    live_stream_url: "https://youtube.com/watch?v=..."
+    name: "SpaceX Falcon 9 - Starlink Group 6-1"
+    launch_timestamp: "2024-06-15T18:45:00Z"
+    summary: "Brief description of the launch."
+    location_id: "uuid-of-existing-location"
     ```
     """
     try:

@@ -4,10 +4,16 @@ This directory contains example YAML files for importing Launches, Missions, and
 
 ## Usage
 
+### Single-entity import
+
 1. Navigate to the appropriate admin page (Launches, Missions, or Trips)
 2. Click the "Import from YAML" button
-3. Select or drag-and-drop your YAML file
+3. Select or drag-and-drop your YAML file (single entity per file)
 4. The system validates the file and creates the entity
+
+### Multi-entity import
+
+Use `POST /api/v1/import/yaml` with a YAML file whose root contains one or more of: `launches` (list), `missions` (list), `trips` (list). Creation order: launches, then missions, then trips. Within the same file, missions can reference launches by 0-based index (`launch_ref: 0`) instead of UUID; trips can reference missions by index (`mission_ref: 0`). See `import-multi.yaml` for an example.
 
 **Note:** All import endpoints require superuser authentication.
 
@@ -45,6 +51,7 @@ Trips are specific departures within a Mission. Customers book seats on Trips.
 |-------|------|----------|---------|-------------|
 | `mission_id` | UUID | Yes | - | Reference to an existing Mission |
 | `type` | string | Yes | - | Trip type (max 50 chars, e.g., "boat", "bus") |
+| `name` | string | No | - | Optional label for the trip |
 | `check_in_time` | datetime | Yes | - | When passengers should check in (ISO 8601) |
 | `boarding_time` | datetime | Yes | - | When boarding begins (ISO 8601) |
 | `departure_time` | datetime | Yes | - | When the trip departs (ISO 8601) |
@@ -87,3 +94,13 @@ The import validates:
 - Datetime strings are valid ISO 8601 format
 
 Validation errors return a descriptive message indicating what failed.
+
+## Multi-entity format
+
+| Top-level key | Type | Description |
+|---------------|------|-------------|
+| `launches` | list | Launch objects (same schema as single launch YAML) |
+| `missions` | list | Mission objects; use `launch_id` (UUID) or `launch_ref` (0-based index into `launches` in this file) |
+| `trips` | list | Trip objects; use `mission_id` (UUID) or `mission_ref` (0-based index into `missions` in this file) |
+
+At least one of the three keys must be present. Order of creation is always launches, then missions, then trips, so `launch_ref` and `mission_ref` refer to entities defined in the same file.

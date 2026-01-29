@@ -8,6 +8,10 @@ import AddUser from "@/components/Admin/AddUser"
 import { UserActionsMenu } from "@/components/Common/UserActionsMenu"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -16,15 +20,23 @@ import {
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
 })
 
-const PER_PAGE = 5
-
-function getUsersQueryOptions({ page }: { page: number }) {
+function getUsersQueryOptions({
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+}) {
   return {
     queryFn: () =>
-      UsersService.readUsers({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
-    queryKey: ["users", { page }],
+      UsersService.readUsers({
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
+      }),
+    queryKey: ["users", { page, pageSize }],
   }
 }
 
@@ -37,19 +49,32 @@ function UsersTable() {
   const queryClient = useQueryClient()
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page } = Route.useSearch()
+  const { page, pageSize } = Route.useSearch()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getUsersQueryOptions({ page }),
+    ...getUsersQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string }) => ({ ...prev, page }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
     })
 
-  const users = data?.data.slice(0, PER_PAGE) ?? []
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
+    })
+
+  const users = data?.data.slice(0, effectivePageSize) ?? []
   const count = data?.count ?? 0
 
   if (isLoading) {
@@ -96,19 +121,28 @@ function UsersTable() {
           ))}
         </Table.Body>
       </Table.Root>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

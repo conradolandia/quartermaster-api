@@ -23,6 +23,10 @@ import { MerchandiseActionsMenu } from "@/components/Common/MerchandiseActionsMe
 import AddMerchandise from "@/components/Merchandise/AddMerchandise"
 import PendingMerchandise from "@/components/Pending/PendingMerchandise"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -34,13 +38,12 @@ type SortDirection = "asc" | "desc"
 
 const merchandiseSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
     .enum(["name", "price", "quantity_available", "id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 10
 
 const sortMerchandise = (
   items: MerchandisePublic[],
@@ -64,14 +67,20 @@ const sortMerchandise = (
   })
 }
 
-function getMerchandiseQueryOptions({ page }: { page: number }) {
+function getMerchandiseQueryOptions({
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+}) {
   return {
     queryFn: () =>
       MerchandiseService.readMerchandiseList({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
       }),
-    queryKey: ["merchandise", { page }],
+    queryKey: ["merchandise", { page, pageSize }],
   }
 }
 
@@ -82,7 +91,8 @@ export const Route = createFileRoute("/_layout/merchandise")({
 
 function MerchandiseTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -97,21 +107,33 @@ function MerchandiseTable() {
   }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getMerchandiseQueryOptions({ page }),
+    ...getMerchandiseQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
-    queryKey: ["merchandise", { page, sortBy, sortDirection }],
+    queryKey: [
+      "merchandise",
+      { page, pageSize: effectivePageSize, sortBy, sortDirection },
+    ],
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
         ...prev,
-        page,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
       }),
     })
 
   const items = sortMerchandise(
-    data?.data.slice(0, PER_PAGE) ?? [],
+    data?.data.slice(0, effectivePageSize) ?? [],
     sortBy as SortableColumn | undefined,
     sortDirection as SortDirection | undefined,
   )
@@ -242,19 +264,28 @@ function MerchandiseTable() {
           </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

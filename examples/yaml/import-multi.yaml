@@ -1,0 +1,46 @@
+# Multi-entity YAML import example
+#
+# Use POST /api/v1/import/yaml to import this file.
+# Root keys: launches (list), missions (list), trips (list).
+# Use launch_ref / mission_ref (0-based index) to reference entities
+# created in this file instead of UUIDs.
+
+launches:
+  - name: "SpaceX Falcon 9 - Starlink Group 6-1"
+    launch_timestamp: "2024-06-15T18:45:00Z"
+    summary: "SpaceX Falcon 9 launching 23 Starlink satellites from LC-39A."
+    location_id: "36c0c38b-e456-4d4b-93ca-b4a4e2685ea0"
+
+missions:
+  - name: "Starlink 6-1 River Cruise"
+    launch_ref: 0  # References first launch above
+    active: true
+    booking_mode: "public"
+    sales_open_at: "2024-05-01T00:00:00Z"
+    refund_cutoff_hours: 24
+  - name: "Starlink 6-1 VIP Viewing"
+    launch_ref: 0
+    active: true
+    booking_mode: "early_bird"
+    refund_cutoff_hours: 12
+
+trips:
+  - mission_ref: 0  # First mission
+    type: "boat"
+    check_in_time: "2024-06-15T15:00:00Z"
+    boarding_time: "2024-06-15T15:45:00Z"
+    departure_time: "2024-06-15T16:30:00Z"
+    active: true
+  - mission_ref: 0
+    type: "boat"
+    name: "Afternoon departure"
+    check_in_time: "2024-06-15T17:00:00Z"
+    boarding_time: "2024-06-15T17:45:00Z"
+    departure_time: "2024-06-15T18:15:00Z"
+    active: true
+  - mission_ref: 1  # Second mission
+    type: "bus"
+    check_in_time: "2024-06-15T14:00:00Z"
+    boarding_time: "2024-06-15T14:30:00Z"
+    departure_time: "2024-06-15T15:00:00Z"
+    active: true

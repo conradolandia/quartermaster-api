@@ -20,6 +20,10 @@ import { LocationActionsMenu } from "@/components/Common/LocationActionsMenu"
 import AddLocation from "@/components/Locations/AddLocation"
 import PendingLocations from "@/components/Pending/PendingLocations"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -32,11 +36,10 @@ type SortDirection = "asc" | "desc"
 
 const locationsSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z.enum(["name", "state", "timezone", "id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 5
 
 // Helper function to sort locations
 const sortLocations = (
@@ -66,14 +69,20 @@ const sortLocations = (
   })
 }
 
-function getLocationsQueryOptions({ page }: { page: number }) {
+function getLocationsQueryOptions({
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+}) {
   return {
     queryFn: () =>
       LocationsService.readLocations({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
       }),
-    queryKey: ["locations", { page }],
+    queryKey: ["locations", { page, pageSize }],
   }
 }
 
@@ -84,7 +93,8 @@ export const Route = createFileRoute("/_layout/locations")({
 
 function LocationsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -100,19 +110,31 @@ function LocationsTable() {
   }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getLocationsQueryOptions({ page }),
+    ...getLocationsQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
-    queryKey: ["locations", { page, sortBy, sortDirection }],
+    queryKey: ["locations", { page, pageSize: effectivePageSize, sortBy, sortDirection }],
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string }) => ({ ...prev, page }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Apply sorting to locations
   const locations = sortLocations(
-    data?.data.slice(0, PER_PAGE) ?? [],
+    data?.data.slice(0, effectivePageSize) ?? [],
     sortBy as SortableColumn | undefined,
     sortDirection as SortDirection | undefined,
   )
@@ -234,19 +256,28 @@ function LocationsTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

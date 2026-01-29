@@ -29,6 +29,10 @@ import PendingTrips from "@/components/Pending/PendingTrips"
 import AddTrip from "@/components/Trips/AddTrip"
 import { YamlImportService } from "@/services/yamlImportService"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -51,19 +55,24 @@ type SortDirection = "asc" | "desc"
 
 const tripsSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
     .enum(["name", "type", "mission_id", "check_in_time", "departure_time", "active"])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
 })
 
-const PER_PAGE = 5
-
-function getTripsQueryOptions({ page }: { page: number }) {
+function getTripsQueryOptions({
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+}) {
   return {
     queryFn: () =>
-      TripsService.readTrips({ skip: (page - 1) * PER_PAGE, limit: PER_PAGE }),
-    queryKey: ["trips", { page }],
+      TripsService.readTrips({ skip: (page - 1) * pageSize, limit: pageSize }),
+    queryKey: ["trips", { page, pageSize }],
   }
 }
 
@@ -73,7 +82,7 @@ export const Route = createFileRoute("/_layout/trips")({
 })
 
 function TripsTable() {
-  const { page, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
 
   // Handle sorting
@@ -92,9 +101,11 @@ function TripsTable() {
     })
   }
 
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
+
   // Query for trips
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getTripsQueryOptions({ page }),
+    ...getTripsQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -138,7 +149,19 @@ function TripsTable() {
 
   const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string }) => ({ ...prev, page: newPage }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Handler for pagination component
@@ -376,22 +399,32 @@ function TripsTable() {
         </Table.Root>
       </Box>
 
-      {count > PER_PAGE && (
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          siblingCount={1}
-          page={page}
-          onPageChange={handlePageChange}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex justifyContent="flex-end" mt={4}>
+          <PageSizeSelect
+            value={effectivePageSize}
+            onChange={setPageSize}
+          />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            siblingCount={1}
+            page={page}
+            onPageChange={handlePageChange}
+          >
             <Flex>
               <PaginationPrevTrigger />
               <PaginationItems />
               <PaginationNextTrigger />
             </Flex>
-          </Flex>
-        </PaginationRoot>
+          </PaginationRoot>
+        </Flex>
       )}
     </>
   )

@@ -4,28 +4,30 @@ import {
   Button,
   createListCollection,
   Flex,
+  Icon,
   Select,
   Table,
   Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import useCustomToast from "@/hooks/useCustomToast"
 import PendingBookings from "@/components/Pending/PendingBookings"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-import SortIcon from "./shared/SortIcon"
 import { getStatusColor, type SortableColumn, type SortDirection } from "./types"
-
-const PER_PAGE = 10
 
 interface BookingsTableProps {
   onBookingClick: (confirmationCode: string) => void
@@ -45,6 +47,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   // Parse search params
   const page = parseInt(searchParams.get("page") || "1")
+  const pageSizeParam = searchParams.get("pageSize")
+  const pageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : DEFAULT_PAGE_SIZE
+  const effectivePageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE
   const sortBy = (searchParams.get("sortBy") as SortableColumn) || "created_at"
   const sortDirection = (searchParams.get("sortDirection") as SortDirection) || "desc"
 
@@ -64,11 +69,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["bookings", page, missionId, sortBy, sortDirection],
+    queryKey: ["bookings", page, effectivePageSize, missionId, sortBy, sortDirection],
     queryFn: () =>
       BookingsService.listBookings({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * effectivePageSize,
+        limit: effectivePageSize,
         missionId: missionId ? missionId : undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
@@ -134,12 +139,32 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     setSearchParams(new URLSearchParams(params.toString()))
   }
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set("pageSize", newPageSize.toString())
+    params.set("page", "1")
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+
+    setSearchParams(new URLSearchParams(params.toString()))
+  }
+
   if (isLoading) {
     return <PendingBookings />
   }
 
   if (error) {
     return <Text>Error loading bookings</Text>
+  }
+
+  const SortIcon = ({ column }: { column: SortableColumn }) => {
+    if (sortBy !== column) return null
+    return (
+      <Icon
+        as={sortDirection === "asc" ? FiArrowUp : FiArrowDown}
+        ml={2}
+        boxSize={4}
+      />
+    )
   }
 
   // Create mission collection for the dropdown
@@ -208,7 +233,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Confirmation Code
-                  <SortIcon column="confirmation_code" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="confirmation_code" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -219,7 +244,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Name
-                  <SortIcon column="user_name" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="user_name" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -231,7 +256,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Email
-                  <SortIcon column="user_email" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="user_email" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -243,7 +268,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Phone
-                  <SortIcon column="user_phone" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="user_phone" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -255,7 +280,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Mission
-                  <SortIcon column="mission_name" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="mission_name" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -266,7 +291,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Status
-                  <SortIcon column="status" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="status" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -277,7 +302,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Total
-                  <SortIcon column="total_amount" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="total_amount" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -288,7 +313,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Flex align="center">
                   Created
-                  <SortIcon column="created_at" sortBy={sortBy} sortDirection={sortDirection} />
+                  <SortIcon column="created_at" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader w="sm" fontWeight="bold">
@@ -357,11 +382,21 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         </Table.Root>
       </Box>
 
-      {count > PER_PAGE && (
-        <Flex justifyContent="flex-end" mt={4}>
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
+        >
+          <PageSizeSelect
+            value={effectivePageSize}
+            onChange={handlePageSizeChange}
+          />
           <PaginationRoot
             count={count}
-            pageSize={PER_PAGE}
+            pageSize={effectivePageSize}
             onPageChange={({ page }) => handlePageChange(page)}
           >
             <Flex>

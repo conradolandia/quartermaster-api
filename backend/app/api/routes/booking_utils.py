@@ -3,6 +3,12 @@ Booking utilities and shared functions.
 
 This module contains utility functions used across multiple booking endpoints
 to avoid code duplication and improve maintainability.
+
+Pricing formula for sales:
+  (subtotal - discount_amount) * (1 + tax_rate) + tip_amount = total_amount
+  Equivalently: after_discount = subtotal - discount_amount (or subtotal * (1 - discount_percent));
+  tax_amount = after_discount * tax_rate;
+  total_amount = after_discount * (1 + tax_rate) + tip_amount.
 """
 
 import base64
@@ -18,6 +24,32 @@ from app.models import Booking, BookingItem, Mission, Trip
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+
+def compute_booking_totals(
+    subtotal: float,
+    discount_amount: float,
+    tax_rate: float,
+    tip_amount: float,
+) -> tuple[float, float]:
+    """
+    Compute tax_amount and total_amount from the standard pricing formula.
+
+    Formula: (subtotal - discount_amount) * (1 + tax_rate) + tip_amount = total_amount.
+
+    Args:
+        subtotal: Sum of item prices before discount.
+        discount_amount: Fixed discount in currency (or effective amount from percent).
+        tax_rate: Tax rate as decimal (e.g. 0.06 for 6%).
+        tip_amount: Tip in currency.
+
+    Returns:
+        (tax_amount, total_amount)
+    """
+    after_discount = max(0.0, subtotal - discount_amount)
+    tax_amount = round(after_discount * tax_rate, 2)
+    total_amount = round(after_discount * (1 + tax_rate) + tip_amount, 2)
+    return (tax_amount, total_amount)
 
 
 def generate_qr_code(confirmation_code: str) -> str:

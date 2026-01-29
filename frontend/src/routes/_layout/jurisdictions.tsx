@@ -24,6 +24,10 @@ import JurisdictionActionsMenu from "@/components/Common/JurisdictionActionsMenu
 import AddJurisdiction from "@/components/Jurisdictions/AddJurisdiction"
 import PendingJurisdictions from "@/components/Pending/PendingJurisdictions"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -36,12 +40,11 @@ type SortDirection = "asc" | "desc"
 
 const jurisdictionsSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   locationId: z.string().optional(),
   sortBy: z.enum(["name", "sales_tax_rate", "location_id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 5
 
 // Helper function to sort jurisdictions
 const sortJurisdictions = (
@@ -88,19 +91,21 @@ const sortJurisdictions = (
 
 function getJurisdictionsQueryOptions({
   page,
+  pageSize,
   locationId,
 }: {
   page: number
+  pageSize: number
   locationId?: string
 }) {
   return {
     queryFn: () =>
       JurisdictionsService.readJurisdictions({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
         locationId,
       }),
-    queryKey: ["jurisdictions", { page, locationId }],
+    queryKey: ["jurisdictions", { page, pageSize, locationId }],
   }
 }
 
@@ -129,8 +134,10 @@ export const Route = createFileRoute("/_layout/jurisdictions")({
 
 function JurisdictionsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, locationId, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, locationId, sortBy, sortDirection } =
+    Route.useSearch()
   const locationsMap = useLocationsMap()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -146,19 +153,38 @@ function JurisdictionsTable() {
   }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getJurisdictionsQueryOptions({ page, locationId }),
+    ...getJurisdictionsQueryOptions({
+      page,
+      pageSize: effectivePageSize,
+      locationId,
+    }),
     placeholderData: (prevData) => prevData,
-    queryKey: ["jurisdictions", { page, locationId, sortBy, sortDirection }],
+    queryKey: [
+      "jurisdictions",
+      { page, pageSize: effectivePageSize, locationId, sortBy, sortDirection },
+    ],
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string | number }) => ({ ...prev, page }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Apply sorting to jurisdictions
   const jurisdictions = sortJurisdictions(
-    data?.data.slice(0, PER_PAGE) ?? [],
+    data?.data.slice(0, effectivePageSize) ?? [],
     sortBy as SortableColumn | undefined,
     sortDirection as SortDirection | undefined,
     locationsMap,
@@ -274,19 +300,28 @@ function JurisdictionsTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

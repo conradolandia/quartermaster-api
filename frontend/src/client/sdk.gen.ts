@@ -56,6 +56,8 @@ import type {
   DiscountCodesValidateDiscountCodeResponse,
   DiscountCodesValidateAccessCodeData,
   DiscountCodesValidateAccessCodeResponse,
+  ImportImportYamlDocumentData,
+  ImportImportYamlDocumentResponse,
   JurisdictionsReadPublicJurisdictionsData,
   JurisdictionsReadPublicJurisdictionsResponse,
   JurisdictionsReadJurisdictionsData,
@@ -924,6 +926,35 @@ export class DiscountCodesService {
   }
 }
 
+export class ImportService {
+  /**
+   * Import Yaml Document
+   * Import launches, missions, and trips from a single YAML file.
+   *
+   * Root must contain at least one of: launches (list), missions (list), trips (list).
+   * Missions may use launch_id (UUID) or launch_ref (0-based index into launches in this file).
+   * Trips may use mission_id (UUID) or mission_ref (0-based index into missions in this file).
+   * Creation order: launches, then missions, then trips.
+   * @param data The data for the request.
+   * @param data.formData
+   * @returns ImportResult Successful Response
+   * @throws ApiError
+   */
+  public static importYamlDocument(
+    data: ImportImportYamlDocumentData,
+  ): CancelablePromise<ImportImportYamlDocumentResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/import/yaml",
+      formData: data.formData,
+      mediaType: "multipart/form-data",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class JurisdictionsService {
   /**
    * Read Public Jurisdictions
@@ -1282,13 +1313,10 @@ export class LaunchesService {
    *
    * Expected YAML format:
    * ```yaml
-   * name: "SpaceX Falcon Heavy - Mars Mission"
-   * provider: "SpaceX"
-   * launch_date: "2024-03-15T14:30:00Z"
-   * launch_site: "Kennedy Space Center LC-39A"
-   * description: "Launch of Mars Sample Return mission"
-   * status: "scheduled"
-   * live_stream_url: "https://youtube.com/watch?v=..."
+   * name: "SpaceX Falcon 9 - Starlink Group 6-1"
+   * launch_timestamp: "2024-06-15T18:45:00Z"
+   * summary: "Brief description of the launch."
+   * location_id: "uuid-of-existing-location"
    * ```
    * @param data The data for the request.
    * @param data.formData

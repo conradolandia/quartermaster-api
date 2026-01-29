@@ -326,17 +326,13 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     // Sync computed discount dollars to the form field expected by backend
     setValue("discount_amount", discount)
 
-    // Calculate in order: subtotal → discount → tip → tax (on subtotal - discount + tip)
-    const subtotalAfterDiscount = Math.max(0, calculatedSubtotal - discount)
-    const amountAfterDiscountAndTip = subtotalAfterDiscount + (watchedTipAmount || 0)
-    // Tax calculated after discount and tip are applied
-    const taxAmount = Math.max(
-      0,
-      Number(
-        ((amountAfterDiscountAndTip * (taxRatePercent || 0)) / 100).toFixed(2),
-      ),
+    // Formula: (subtotal - discount) * (1 + tax_rate) + tip = total
+    const taxRate = (taxRatePercent || 0) / 100
+    const afterDiscount = Math.max(0, calculatedSubtotal - discount)
+    const taxAmount = Number((afterDiscount * taxRate).toFixed(2))
+    const calculatedTotal = Number(
+      (afterDiscount * (1 + taxRate) + (watchedTipAmount || 0)).toFixed(2),
     )
-    const calculatedTotal = amountAfterDiscountAndTip + taxAmount
 
     setValue("subtotal", calculatedSubtotal)
     setValue("tax_amount", taxAmount)
@@ -819,6 +815,27 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     )}
                   </VStack>
                   <HStack justify="space-between" width="100%">
+                    <Text>Discount override (optional, in dollars):</Text>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={watch("discount_amount")}
+                      onChange={(e) => {
+                        const newDiscount = Number.parseFloat(e.target.value) || 0
+                        setValue("discount_amount", newDiscount)
+                        // Sync to discountInput to keep them in sync
+                        setDiscountInput(newDiscount)
+                        // Clear applied discount code if manually edited
+                        if (appliedDiscountCode && newDiscount !== discountInput) {
+                          setAppliedDiscountCode(null)
+                          setDiscountCode("")
+                        }
+                      }}
+                      style={{ width: "100px" }}
+                    />
+                  </HStack>
+                  <HStack justify="space-between" width="100%">
                     <Text>Tax Rate:</Text>
                     <Text>
                       {taxRatePercent > 0
@@ -843,27 +860,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                           Number.parseFloat(e.target.value) || 0,
                         )
                       }
-                      style={{ width: "100px" }}
-                    />
-                  </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Discount:</Text>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={watch("discount_amount")}
-                      onChange={(e) => {
-                        const newDiscount = Number.parseFloat(e.target.value) || 0
-                        setValue("discount_amount", newDiscount)
-                        // Sync to discountInput to keep them in sync
-                        setDiscountInput(newDiscount)
-                        // Clear applied discount code if manually edited
-                        if (appliedDiscountCode && newDiscount !== discountInput) {
-                          setAppliedDiscountCode(null)
-                          setDiscountCode("")
-                        }
-                      }}
                       style={{ width: "100px" }}
                     />
                   </HStack>

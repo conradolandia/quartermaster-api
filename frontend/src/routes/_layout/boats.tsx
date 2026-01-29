@@ -23,6 +23,10 @@ import AddBoat from "@/components/Boats/AddBoat"
 import BoatActionsMenu from "@/components/Common/BoatActionsMenu"
 import PendingBoats from "@/components/Pending/PendingBoats"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -36,14 +40,13 @@ type SortDirection = "asc" | "desc"
 
 const boatsSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   jurisdictionId: z.string().optional(),
   sortBy: z
     .enum(["name", "capacity", "provider_id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 5
 
 // Helper function to convert BoatPublic to Boat
 const convertToBoat = (boatPublic: BoatPublic): Boat => ({
@@ -108,8 +111,10 @@ export const Route = createFileRoute("/_layout/boats")({
 })
 
 function BoatsTable() {
-  const { page, jurisdictionId, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, jurisdictionId, sortBy, sortDirection } =
+    Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -129,30 +134,41 @@ function BoatsTable() {
     ? () =>
         BoatsService.readBoatsByJurisdiction({
           jurisdictionId,
-          skip: (page - 1) * PER_PAGE,
-          limit: PER_PAGE,
+          skip: (page - 1) * effectivePageSize,
+          limit: effectivePageSize,
         })
     : () =>
         BoatsService.readBoats({
-          skip: (page - 1) * PER_PAGE,
-          limit: PER_PAGE,
+          skip: (page - 1) * effectivePageSize,
+          limit: effectivePageSize,
         })
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    queryKey: ["boats", { page, jurisdictionId }],
+    queryKey: ["boats", { page, pageSize: effectivePageSize, jurisdictionId }],
     queryFn,
     placeholderData: (prevData) => prevData,
   })
 
-
   const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string }) => ({ ...prev, page: newPage }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Convert BoatPublic to Boat and sort them
   const boats = sortBoats(
-    (data?.data.slice(0, PER_PAGE) ?? []).map(convertToBoat),
+    (data?.data.slice(0, effectivePageSize) ?? []).map(convertToBoat),
     sortBy,
     sortDirection,
   )
@@ -257,19 +273,28 @@ function BoatsTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

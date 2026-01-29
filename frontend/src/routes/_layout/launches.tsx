@@ -23,6 +23,10 @@ import AddLaunch from "@/components/Launches/AddLaunch"
 import { YamlImportService } from "@/services/yamlImportService"
 import PendingLaunches from "@/components/Pending/PendingLaunches"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
@@ -39,13 +43,12 @@ type SortDirection = "asc" | "desc"
 
 const launchesSearchSchema = z.object({
   page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
     .enum(["name", "launch_timestamp", "summary", "location_id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
-
-const PER_PAGE = 5
 
 // Helper function to sort launches
 const sortLaunches = (
@@ -87,14 +90,20 @@ const sortLaunches = (
   })
 }
 
-function getLaunchesQueryOptions({ page }: { page: number }) {
+function getLaunchesQueryOptions({
+  page,
+  pageSize,
+}: {
+  page: number
+  pageSize: number
+}) {
   return {
     queryFn: () =>
       LaunchesService.readLaunches({
-        skip: (page - 1) * PER_PAGE,
-        limit: PER_PAGE,
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
       }),
-    queryKey: ["launches", { page }],
+    queryKey: ["launches", { page, pageSize }],
   }
 }
 
@@ -123,8 +132,9 @@ export const Route = createFileRoute("/_layout/launches")({
 
 function LaunchesTable() {
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const locationsMap = useLocationsMap()
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -140,18 +150,30 @@ function LaunchesTable() {
   }
 
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getLaunchesQueryOptions({ page }),
+    ...getLaunchesQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
   })
 
-  const setPage = (page: number) =>
+  const setPage = (newPage: number) =>
     navigate({
-      search: (prev: { [key: string]: string }) => ({ ...prev, page }),
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
     })
 
   // Sort launches
   const launches = sortLaunches(
-    data?.data.slice(0, PER_PAGE) ?? [],
+    data?.data.slice(0, effectivePageSize) ?? [],
     sortBy,
     sortDirection,
   )
@@ -216,7 +238,7 @@ function LaunchesTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }} interactive>
+        <Table.Root size={{ base: "sm", md: "md" }}>
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -295,19 +317,28 @@ function LaunchesTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      <Flex justifyContent="flex-end" mt={4}>
-        <PaginationRoot
-          count={count}
-          pageSize={PER_PAGE}
-          onPageChange={({ page }) => setPage(page)}
+      {count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
         >
-          <Flex>
-            <PaginationPrevTrigger />
-            <PaginationItems />
-            <PaginationNextTrigger />
-          </Flex>
-        </PaginationRoot>
-      </Flex>
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
+      )}
     </>
   )
 }

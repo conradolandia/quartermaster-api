@@ -17,6 +17,16 @@ import { z } from "zod"
 
 import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
 import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
+import {
+  PaginationItems,
+  PaginationNextTrigger,
+  PaginationPrevTrigger,
+  PaginationRoot,
+} from "@/components/ui/pagination.tsx"
+import {
   formatInLocationTimezoneDisplayParts,
   parseApiDate,
 } from "@/utils"
@@ -37,6 +47,8 @@ type SortableColumn =
 type SortDirection = "asc" | "desc"
 
 const missionsSearchSchema = z.object({
+  page: z.number().catch(1),
+  pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
     .enum(["name", "launch_id", "sales_open_at", "active", "total_bookings", "total_sales"])
     .optional(),
@@ -111,8 +123,9 @@ function Missions() {
   const [isAddMissionOpen, setIsAddMissionOpen] = useState(false)
   const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
   const launchesMap = useLaunchesMap()
-  const { sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -127,22 +140,42 @@ function Missions() {
     })
   }
 
+  const setPage = (newPage: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        page: newPage,
+      }),
+    })
+
+  const setPageSize = (newPageSize: number) =>
+    navigate({
+      search: (prev: { [key: string]: string | number }) => ({
+        ...prev,
+        pageSize: newPageSize,
+        page: 1,
+      }),
+    })
+
   // Fetch missions
   const {
     data: missionsResponse,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["missions", { sortBy, sortDirection }],
-    queryFn: () => MissionsService.readMissions(),
+    queryKey: ["missions", { page, pageSize: effectivePageSize, sortBy, sortDirection }],
+    queryFn: () =>
+      MissionsService.readMissions({
+        skip: ((page ?? 1) - 1) * effectivePageSize,
+        limit: effectivePageSize,
+      }),
   })
 
-  // Sort the missions
-  const missions = sortMissions(
-    missionsResponse?.data || [],
-    sortBy,
-    sortDirection,
-  )
+  const allMissions = missionsResponse?.data ?? []
+  const count = missionsResponse?.count ?? allMissions.length
+
+  // Sort the missions (client-side; API may not support sort)
+  const missions = sortMissions(allMissions, sortBy, sortDirection)
 
   const handleAddMissionSuccess = () => {
     // Additional logic after successful mission addition
@@ -273,8 +306,16 @@ function Missions() {
                     <SortIcon column="total_sales" />
                   </Flex>
                 </Table.ColumnHeader>
-                <Table.ColumnHeader w="sm" fontWeight="bold">
-                  <Flex>Status</Flex>
+                <Table.ColumnHeader
+                  w="sm"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("active")}
+                >
+                  <Flex align="center">
+                    Status
+                    <SortIcon column="active" />
+                  </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader w="sm" fontWeight="bold">
                   Actions
@@ -338,6 +379,29 @@ function Missions() {
           </Table.Body>
           </Table.Root>
         </Box>
+      )}
+
+      {!isLoading && !isError && count > effectivePageSize && (
+        <Flex
+          justifyContent="space-between"
+          align="center"
+          flexWrap="wrap"
+          gap={4}
+          mt={4}
+        >
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
+          <PaginationRoot
+            count={count}
+            pageSize={effectivePageSize}
+            onPageChange={({ page }) => setPage(page)}
+          >
+            <Flex>
+              <PaginationPrevTrigger />
+              <PaginationItems />
+              <PaginationNextTrigger />
+            </Flex>
+          </PaginationRoot>
+        </Flex>
       )}
 
       <AddMission
