@@ -1,15 +1,22 @@
 import { Container } from "@chakra-ui/react"
 import { createFileRoute } from "@tanstack/react-router"
+import { z } from "zod"
 
 import CheckInInterface from "@/components/Admin/CheckInInterface"
 import useAuth from "@/hooks/useAuth"
 
+const checkInSearchSchema = z.object({
+  code: z.string().optional(),
+})
+
 export const Route = createFileRoute("/_layout/check-in")({
   component: CheckIn,
+  validateSearch: (search) => checkInSearchSchema.parse(search),
 })
 
 function CheckIn() {
   const { user } = useAuth()
+  const { code } = Route.useSearch()
 
   if (!user) {
     return (
@@ -21,7 +28,7 @@ function CheckIn() {
 
   return (
     <Container maxW="full">
-      <CheckInInterface />
+      <CheckInInterface initialCode={code} />
     </Container>
   )
 }

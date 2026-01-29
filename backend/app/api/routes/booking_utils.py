@@ -31,9 +31,9 @@ def generate_qr_code(confirmation_code: str) -> str:
         Base64 encoded PNG image string
     """
     # Build target URL (prefer explicit QR_CODE_BASE_URL if provided)
+    # QR codes point to admin check-in so staff can scan and check in directly.
     base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
-    # Use direct frontend URL for better performance (no redirect needed)
-    qr_url = f"{base_url}/bookings?code={confirmation_code}"
+    qr_url = f"{base_url}/check-in?code={confirmation_code}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
     qr.make(fit=True)

@@ -20,12 +20,18 @@ import {
 } from "@/client"
 import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
+import { useEffect } from "react"
 
 interface CheckInInterfaceProps {
+  /** When set (e.g. from URL ?code=), load this booking on mount. Used by QR scan flow. */
+  initialCode?: string
   onBookingCheckedIn?: (booking: BookingPublic) => void
 }
 
-const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
+const CheckInInterface = ({
+  initialCode,
+  onBookingCheckedIn,
+}: CheckInInterfaceProps) => {
   const [confirmationCode, setConfirmationCode] = useState("")
   const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -69,6 +75,13 @@ const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
       )
     },
   })
+
+  // Load booking when opened with ?code= (e.g. from QR scan)
+  useEffect(() => {
+    if (!initialCode?.trim()) return
+    setConfirmationCode(initialCode.trim())
+    lookupBookingMutation.mutate(initialCode.trim())
+  }, [initialCode])
 
   const handleLookupBooking = () => {
     if (!confirmationCode.trim()) {

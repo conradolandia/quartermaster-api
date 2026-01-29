@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """
-Script to force regenerate all QR codes with direct frontend URLs.
+Script to force regenerate all QR codes (check-in URL format).
 
-This script clears existing QR codes and regenerates them with the new format.
+Clears existing qr_code_base64 and regenerates so every booking has a QR
+encoding {base}/check-in?code={confirmation_code}. Use when migrating to
+the check-in URL format or after changing QR_CODE_BASE_URL.
 """
 
 import logging

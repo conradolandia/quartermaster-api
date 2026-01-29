@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """
-Script to update all QR codes in the database to use direct frontend URLs.
+Script to regenerate all QR codes in the database.
 
-This updates existing QR codes from the old redirect approach to the new direct approach.
+QR codes encode the admin check-in URL: {base}/check-in?code={confirmation_code}.
+Run this after changing the QR target URL (e.g. from /bookings to /check-in)
+so existing stored QR images match the new format.
 """
 
 import logging
