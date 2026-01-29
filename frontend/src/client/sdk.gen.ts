@@ -643,6 +643,12 @@ export class BookingsService {
    * status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
    * trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
    * ticket_types_total); swag (or swag_description, swag_total).
+   *
+   * When ticket-type columns are requested (ticket_types, ticket_types_quantity, etc.),
+   * trip_id should be provided. The ticket-type columns will be derived from that trip's
+   * TripPricing records, ensuring consistent column headers that match the trip's configuration.
+   * Booking items will be matched to the trip's ticket types (with backward compatibility
+   * for legacy naming variants like "adult" vs "adult_ticket").
    * @param data The data for the request.
    * @param data.missionId
    * @param data.tripId
