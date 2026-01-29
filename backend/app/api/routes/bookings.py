@@ -19,6 +19,7 @@ from app.models import (
     BookingStatus,
     BookingUpdate,
     DiscountCode,
+    Merchandise,
     Mission,
     Trip,
     TripBoat,
@@ -220,18 +221,32 @@ def create_booking(
                 )
         else:
             # Merchandise must reference a valid TripMerchandise row and have inventory
-            merch = session.get(TripMerchandise, item.trip_merchandise_id)
-            if not merch or merch.trip_id != item.trip_id:
+            tm = session.get(TripMerchandise, item.trip_merchandise_id)
+            if not tm or tm.trip_id != item.trip_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid merchandise reference",
                 )
-            if merch.quantity_available < item.quantity:
+            m = session.get(Merchandise, tm.merchandise_id)
+            if not m:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Merchandise not found",
+                )
+            effective_qty = (
+                tm.quantity_available_override
+                if tm.quantity_available_override is not None
+                else m.quantity_available
+            )
+            effective_price = (
+                tm.price_override if tm.price_override is not None else m.price
+            )
+            if effective_qty < item.quantity:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Insufficient merchandise inventory",
                 )
-            if abs(merch.price - item.price_per_unit) > 0.0001:
+            if abs(effective_price - item.price_per_unit) > 0.0001:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Merchandise price mismatch",
@@ -309,16 +324,18 @@ def create_booking(
     session.commit()
     session.refresh(booking)
 
-    # Decrement inventory for merchandise items
+    # Decrement catalog inventory for merchandise items
     try:
         for item in booking_items:
             if item.trip_merchandise_id:
-                merch = session.get(TripMerchandise, item.trip_merchandise_id)
-                if merch:
-                    merch.quantity_available = max(
-                        0, merch.quantity_available - item.quantity
-                    )
-                    session.add(merch)
+                tm = session.get(TripMerchandise, item.trip_merchandise_id)
+                if tm:
+                    m = session.get(Merchandise, tm.merchandise_id)
+                    if m:
+                        m.quantity_available = max(
+                            0, m.quantity_available - item.quantity
+                        )
+                        session.add(m)
         session.commit()
     except Exception:
         session.rollback()

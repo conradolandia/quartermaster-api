@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Grid,
   HStack,
   Heading,
   Input,
@@ -11,12 +12,13 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCheck, FiSearch, FiX } from "react-icons/fi"
+import { FiCheck, FiEdit, FiSearch, FiX } from "react-icons/fi"
 
 import {
   BookingsService,
   type BookingPublic,
 } from "@/client"
+import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
 
 interface CheckInInterfaceProps {
@@ -26,6 +28,7 @@ interface CheckInInterfaceProps {
 const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
   const [confirmationCode, setConfirmationCode] = useState("")
   const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -83,6 +86,19 @@ const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
   const handleReset = () => {
     setConfirmationCode("")
     setCurrentBooking(null)
+    setIsEditOpen(false)
+  }
+
+  const refetchCurrentBooking = async () => {
+    if (!currentBooking?.confirmation_code) return
+    try {
+      const updated = await BookingsService.getBookingByConfirmationCode({
+        confirmationCode: currentBooking.confirmation_code,
+      })
+      setCurrentBooking(updated)
+    } catch {
+      // Keep current data on refetch error
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -123,7 +139,7 @@ const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
     <VStack gap={6} align="stretch">
       <Box>
         <Heading size="lg" mb={2}>
-          Check-In Interface
+          Check-In Management
         </Heading>
       </Box>
 
@@ -159,68 +175,79 @@ const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
       </Card.Root>
 
       {currentBooking && (
-        <Card.Root>
-          <Card.Header>
-            <HStack justify="space-between">
-              <Heading size="md">Booking Details</Heading>
-              <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
-                {getStatusText(currentBooking.status || "unknown")}
-              </Badge>
-            </HStack>
-          </Card.Header>
-          <Card.Body>
-            <VStack gap={4} align="stretch">
-              <Box>
-                <Text fontWeight="medium" mb={2}>
-                  Customer Information
-                </Text>
-                <Text>
-                  <strong>Name:</strong> {currentBooking.user_name}
-                </Text>
-                <Text>
-                  <strong>Email:</strong> {currentBooking.user_email}
-                </Text>
-                <Text>
-                  <strong>Phone:</strong> {currentBooking.user_phone || "Not provided"}
-                </Text>
-              </Box>
+        <>
+          <Card.Root>
+            <Card.Header>
+              <HStack justify="space-between">
+                <Heading size="md">Booking Details</Heading>
+                <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
+                  {getStatusText(currentBooking.status || "unknown")}
+                </Badge>
+              </HStack>
+            </Card.Header>
+            <Card.Body>
+              <Grid
+                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                gap={6}
+                mb={6}
+              >
+                <VStack gap={4} align="stretch">
+                  <Box>
+                    <Text fontWeight="medium" mb={2}>
+                      Customer Information
+                    </Text>
+                    <Text>
+                      <strong>Name:</strong> {currentBooking.user_name}
+                    </Text>
+                    <Text>
+                      <strong>Email:</strong> {currentBooking.user_email}
+                    </Text>
+                    <Text>
+                      <strong>Phone:</strong> {currentBooking.user_phone || "Not provided"}
+                    </Text>
+                  </Box>
 
-              <Box>
-                <Text fontWeight="medium" mb={2}>
-                  Booking Information
-                </Text>
-                <Text>
-                  <strong>Confirmation Code:</strong> {currentBooking.confirmation_code}
-                </Text>
-                <Text>
-                  <strong>Total Amount:</strong> ${currentBooking.total_amount?.toFixed(2)}
-                </Text>
-                <Text>
-                  <strong>Created:</strong> {new Date(currentBooking.created_at).toLocaleDateString()}
-                </Text>
-              </Box>
+                  <Box>
+                    <Text fontWeight="medium" mb={2}>
+                      Booking Information
+                    </Text>
+                    <Text>
+                      <strong>Confirmation Code:</strong> {currentBooking.confirmation_code}
+                    </Text>
+                    <Text>
+                      <strong>Total Amount:</strong> ${currentBooking.total_amount?.toFixed(2)}
+                    </Text>
+                    <Text>
+                      <strong>Created:</strong>{" "}
+                      {new Date(currentBooking.created_at).toLocaleDateString()}
+                    </Text>
+                  </Box>
+                </VStack>
 
-              {currentBooking.items && currentBooking.items.length > 0 && (
                 <Box>
                   <Text fontWeight="medium" mb={2}>
                     Booking Items
                   </Text>
-                  <VStack gap={2} align="stretch">
-                    {currentBooking.items.map((item, index) => (
-                      <Box key={index} p={3} bg="bg.muted" borderRadius="md">
-                        <Text>
-                          <strong>{item.item_type}</strong> x {item.quantity}
-                        </Text>
-                        <Text fontSize="sm" color="text.muted">
-                          ${item.price_per_unit?.toFixed(2)} each
-                        </Text>
-                      </Box>
-                    ))}
-                  </VStack>
+                  {currentBooking.items && currentBooking.items.length > 0 ? (
+                    <VStack gap={2} align="stretch">
+                      {currentBooking.items.map((item, index) => (
+                        <Box key={index} p={3} bg="bg.muted" borderRadius="md">
+                          <Text>
+                            <strong>{item.item_type}</strong> x {item.quantity}
+                          </Text>
+                          <Text fontSize="sm" color="text.muted">
+                            ${item.price_per_unit?.toFixed(2)} each
+                          </Text>
+                        </Box>
+                      ))}
+                    </VStack>
+                  ) : (
+                    <Text color="text.muted">No items</Text>
+                  )}
                 </Box>
-              )}
+              </Grid>
 
-              <HStack gap={4} justify="flex-end">
+              <HStack gap={4} justify="flex-end" flexWrap="wrap">
                 <Button
                   variant="outline"
                   onClick={handleReset}
@@ -230,18 +257,38 @@ const CheckInInterface = ({ onBookingCheckedIn }: CheckInInterfaceProps) => {
                   Reset
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() => setIsEditOpen(true)}
+                  disabled={checkInMutation.isPending}
+                >
+                  <FiEdit />
+                  Edit Booking
+                </Button>
+                <Button
                   colorPalette="green"
                   onClick={handleCheckIn}
                   loading={checkInMutation.isPending}
                   disabled={currentBooking.status === "checked_in"}
                 >
                   <FiCheck />
-                  {currentBooking.status === "checked_in" ? "Already Checked In" : "Check In"}
+                  {currentBooking.status === "checked_in"
+                    ? "Already Checked In"
+                    : "Check In"}
                 </Button>
               </HStack>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
+            </Card.Body>
+          </Card.Root>
+
+          <EditBooking
+            booking={currentBooking}
+            isOpen={isEditOpen}
+            onClose={() => setIsEditOpen(false)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["bookings"] })
+              void refetchCurrentBooking()
+            }}
+          />
+        </>
       )}
     </VStack>
   )

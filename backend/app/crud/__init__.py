@@ -50,6 +50,14 @@ from .locations import (
     get_locations_no_relationships,
     update_location,
 )
+from .merchandise import (
+    create_merchandise,
+    delete_merchandise,
+    get_merchandise,
+    get_merchandise_count,
+    get_merchandise_list,
+    update_merchandise,
+)
 from .missions import (
     create_mission,
     delete_mission,
@@ -125,6 +133,13 @@ __all__ = [
     "get_locations_count",
     "get_locations_no_relationships",
     "update_location",
+    # Merchandise
+    "create_merchandise",
+    "delete_merchandise",
+    "get_merchandise",
+    "get_merchandise_count",
+    "get_merchandise_list",
+    "update_merchandise",
     # Jurisdictions
     "create_jurisdiction",
     "delete_jurisdiction",

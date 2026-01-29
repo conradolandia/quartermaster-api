@@ -315,6 +315,35 @@ export type LocationUpdate = {
   timezone?: string | null
 }
 
+export type MerchandiseCreate = {
+  name: string
+  description?: string | null
+  price: number
+  quantity_available: number
+}
+
+export type MerchandisePublic = {
+  name: string
+  description?: string | null
+  price: number
+  quantity_available: number
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type MerchandisesPublic = {
+  data: Array<MerchandisePublic>
+  count: number
+}
+
+export type MerchandiseUpdate = {
+  name?: string | null
+  description?: string | null
+  price?: number | null
+  quantity_available?: number | null
+}
+
 export type Message = {
   message: string
 }
@@ -459,28 +488,26 @@ export type TripCreate = {
 
 export type TripMerchandiseCreate = {
   trip_id: string
-  name: string
-  description?: string | null
-  price: number
-  quantity_available: number
+  merchandise_id: string
+  quantity_available_override?: number | null
+  price_override?: number | null
 }
 
 export type TripMerchandisePublic = {
+  id: string
   trip_id: string
+  merchandise_id: string
   name: string
-  description?: string | null
+  description: string | null
   price: number
   quantity_available: number
-  id: string
   created_at: string
   updated_at: string
 }
 
 export type TripMerchandiseUpdate = {
-  name?: string | null
-  description?: string | null
-  price?: number | null
-  quantity_available?: number | null
+  quantity_available_override?: number | null
+  price_override?: number | null
 }
 
 export type TripPricingCreate = {
@@ -929,6 +956,38 @@ export type LoginRecoverPasswordHtmlContentData = {
 }
 
 export type LoginRecoverPasswordHtmlContentResponse = string
+
+export type MerchandiseReadMerchandiseListData = {
+  limit?: number
+  skip?: number
+}
+
+export type MerchandiseReadMerchandiseListResponse = MerchandisesPublic
+
+export type MerchandiseCreateMerchandiseData = {
+  requestBody: MerchandiseCreate
+}
+
+export type MerchandiseCreateMerchandiseResponse = MerchandisePublic
+
+export type MerchandiseReadMerchandiseData = {
+  merchandiseId: string
+}
+
+export type MerchandiseReadMerchandiseResponse = MerchandisePublic
+
+export type MerchandiseUpdateMerchandiseData = {
+  merchandiseId: string
+  requestBody: MerchandiseUpdate
+}
+
+export type MerchandiseUpdateMerchandiseResponse = MerchandisePublic
+
+export type MerchandiseDeleteMerchandiseData = {
+  merchandiseId: string
+}
+
+export type MerchandiseDeleteMerchandiseResponse = void
 
 export type MissionsReadMissionsData = {
   limit?: number

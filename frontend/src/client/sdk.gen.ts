@@ -107,6 +107,16 @@ import type {
   LoginResetPasswordResponse,
   LoginRecoverPasswordHtmlContentData,
   LoginRecoverPasswordHtmlContentResponse,
+  MerchandiseReadMerchandiseListData,
+  MerchandiseReadMerchandiseListResponse,
+  MerchandiseCreateMerchandiseData,
+  MerchandiseCreateMerchandiseResponse,
+  MerchandiseReadMerchandiseData,
+  MerchandiseReadMerchandiseResponse,
+  MerchandiseUpdateMerchandiseData,
+  MerchandiseUpdateMerchandiseResponse,
+  MerchandiseDeleteMerchandiseData,
+  MerchandiseDeleteMerchandiseResponse,
   MissionsReadMissionsData,
   MissionsReadMissionsResponse,
   MissionsCreateMissionData,
@@ -1549,6 +1559,127 @@ export class LoginService {
   }
 }
 
+export class MerchandiseService {
+  /**
+   * Read Merchandise List
+   * Retrieve merchandise (catalog) with pagination.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @returns MerchandisesPublic Successful Response
+   * @throws ApiError
+   */
+  public static readMerchandiseList(
+    data: MerchandiseReadMerchandiseListData = {},
+  ): CancelablePromise<MerchandiseReadMerchandiseListResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/merchandise/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Merchandise
+   * Create new merchandise (catalog item).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns MerchandisePublic Successful Response
+   * @throws ApiError
+   */
+  public static createMerchandise(
+    data: MerchandiseCreateMerchandiseData,
+  ): CancelablePromise<MerchandiseCreateMerchandiseResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/merchandise/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Merchandise
+   * Get merchandise by ID.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @returns MerchandisePublic Successful Response
+   * @throws ApiError
+   */
+  public static readMerchandise(
+    data: MerchandiseReadMerchandiseData,
+  ): CancelablePromise<MerchandiseReadMerchandiseResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/merchandise/{merchandise_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Merchandise
+   * Update merchandise.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @param data.requestBody
+   * @returns MerchandisePublic Successful Response
+   * @throws ApiError
+   */
+  public static updateMerchandise(
+    data: MerchandiseUpdateMerchandiseData,
+  ): CancelablePromise<MerchandiseUpdateMerchandiseResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/merchandise/{merchandise_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Merchandise
+   * Delete merchandise. Fails if still offered on any trip.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteMerchandise(
+    data: MerchandiseDeleteMerchandiseData,
+  ): CancelablePromise<MerchandiseDeleteMerchandiseResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/merchandise/{merchandise_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class MissionsService {
   /**
    * Read Missions
@@ -2257,7 +2388,7 @@ export class TripBoatsService {
 export class TripMerchandiseService {
   /**
    * Create Trip Merchandise
-   * Create new trip merchandise.
+   * Create new trip merchandise (link trip to catalog merchandise with optional overrides).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns TripMerchandisePublic Successful Response
@@ -2279,7 +2410,7 @@ export class TripMerchandiseService {
 
   /**
    * List Trip Merchandise
-   * List trip merchandise with optional filtering.
+   * List trip merchandise with optional filtering by trip_id. Returns effective name, price, quantity.
    * @param data The data for the request.
    * @param data.tripId
    * @returns TripMerchandisePublic Successful Response
@@ -2325,7 +2456,7 @@ export class TripMerchandiseService {
 
   /**
    * Update Trip Merchandise
-   * Update trip merchandise.
+   * Update trip merchandise (quantity_available_override, price_override).
    * @param data The data for the request.
    * @param data.tripMerchandiseId
    * @param data.requestBody
@@ -2351,7 +2482,7 @@ export class TripMerchandiseService {
 
   /**
    * Delete Trip Merchandise
-   * Delete trip merchandise.
+   * Delete trip merchandise (unlink trip from catalog item).
    * @param data The data for the request.
    * @param data.tripMerchandiseId
    * @returns void Successful Response
@@ -2375,7 +2506,6 @@ export class TripMerchandiseService {
   /**
    * List Public Trip Merchandise
    * List trip merchandise for a specific trip (public endpoint for booking form).
-   * Validates that the trip's mission has public or early_bird booking_mode.
    * @param data The data for the request.
    * @param data.tripId
    * @returns TripMerchandisePublic Successful Response

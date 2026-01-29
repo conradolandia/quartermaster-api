@@ -16,6 +16,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   BoatsService,
+  MerchandiseService,
   MissionsService,
   TripBoatsService,
   TripMerchandiseService,
@@ -60,12 +61,12 @@ interface SelectedPricing {
   price: number
 }
 
-// Interface for merchandise selection
+// Catalog merchandise selection for new trip (merchandise_id + optional overrides)
 interface SelectedMerchandise {
+  merchandise_id: string
   name: string
-  description?: string
-  price: number
-  quantity_available: number
+  price_override?: number | null
+  quantity_available_override?: number | null
 }
 
 
@@ -101,10 +102,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     SelectedMerchandise[]
   >([])
   const [merchandiseForm, setMerchandiseForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    quantity_available: "",
+    merchandise_id: "",
+    price_override: "",
+    quantity_available_override: "",
   })
   const [isAddingMerchandise, setIsAddingMerchandise] = useState(false)
 
@@ -121,6 +121,13 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     enabled: !!missionId && isOpen,
   })
   const timezone = missionData?.timezone ?? null
+
+  const { data: catalogMerchandise } = useQuery({
+    queryKey: ["merchandise-catalog"],
+    queryFn: () =>
+      MerchandiseService.readMerchandiseList({ limit: 500, skip: 0 }),
+    enabled: isOpen,
+  })
 
   // Update boats data when fetched
   useEffect(() => {
@@ -148,10 +155,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setIsAddingPricing(false)
       setSelectedMerchandise([])
       setMerchandiseForm({
-        name: "",
-        description: "",
-        price: "",
-        quantity_available: "",
+        merchandise_id: "",
+        price_override: "",
+        quantity_available_override: "",
       })
       setIsAddingMerchandise(false)
     }
@@ -225,37 +231,49 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     )
   }
 
-  // Handle adding merchandise
+  // Handle adding merchandise (from catalog)
   const handleAddMerchandise = () => {
-    if (
-      !merchandiseForm.name ||
-      !merchandiseForm.price ||
-      !merchandiseForm.quantity_available
+    if (!merchandiseForm.merchandise_id) return
+    const catalogItem = catalogMerchandise?.data.find(
+      (m) => m.id === merchandiseForm.merchandise_id,
     )
+    if (!catalogItem) return
+
+    const alreadyAdded = selectedMerchandise.some(
+      (m) => m.merchandise_id === merchandiseForm.merchandise_id,
+    )
+    if (alreadyAdded) {
+      showSuccessToast("This item is already added")
       return
+    }
 
     setSelectedMerchandise([
       ...selectedMerchandise,
       {
-        name: merchandiseForm.name,
-        description: merchandiseForm.description || undefined,
-        price: Number.parseFloat(merchandiseForm.price),
-        quantity_available: Number.parseInt(merchandiseForm.quantity_available),
+        merchandise_id: catalogItem.id,
+        name: catalogItem.name,
+        price_override: merchandiseForm.price_override
+          ? Number.parseFloat(merchandiseForm.price_override)
+          : null,
+        quantity_available_override: merchandiseForm.quantity_available_override
+          ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
+          : null,
       },
     ])
 
     setMerchandiseForm({
-      name: "",
-      description: "",
-      price: "",
-      quantity_available: "",
+      merchandise_id: "",
+      price_override: "",
+      quantity_available_override: "",
     })
     setIsAddingMerchandise(false)
   }
 
   // Handle removing merchandise
-  const handleRemoveMerchandise = (name: string) => {
-    setSelectedMerchandise(selectedMerchandise.filter((m) => m.name !== name))
+  const handleRemoveMerchandise = (merchandiseId: string) => {
+    setSelectedMerchandise(
+      selectedMerchandise.filter((m) => m.merchandise_id !== merchandiseId),
+    )
   }
 
   // Use mutation for creating trip
@@ -296,16 +314,15 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
         await Promise.all(pricingPromises)
       }
 
-      // Create merchandise
+      // Create merchandise (link catalog items to trip with optional overrides)
       if (selectedMerchandise.length > 0) {
-        const merchandisePromises = selectedMerchandise.map((merchandise) =>
+        const merchandisePromises = selectedMerchandise.map((item) =>
           TripMerchandiseService.createTripMerchandise({
             requestBody: {
               trip_id: tripId,
-              name: merchandise.name,
-              description: merchandise.description,
-              price: merchandise.price,
-              quantity_available: merchandise.quantity_available,
+              merchandise_id: item.merchandise_id,
+              price_override: item.price_override ?? null,
+              quantity_available_override: item.quantity_available_override ?? null,
             },
           }),
         )
@@ -736,76 +753,65 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       )}
                     </HStack>
 
-                    {/* Add Merchandise Form */}
+                    {/* Add Merchandise Form (select from catalog + optional overrides) */}
                     {isAddingMerchandise && (
                       <Box p={4} borderWidth="1px" borderRadius="md" mb={4}>
                         <VStack gap={3}>
                           <HStack width="100%">
                             <Box flex={1}>
                               <Text fontSize="sm" mb={1}>
-                                Name
+                                Catalog item
                               </Text>
-                              <Input
-                                value={merchandiseForm.name}
+                              <NativeSelect
+                                value={merchandiseForm.merchandise_id}
                                 onChange={(e) =>
                                   setMerchandiseForm({
                                     ...merchandiseForm,
-                                    name: e.target.value,
+                                    merchandise_id: e.target.value,
                                   })
                                 }
-                                placeholder="Item name"
-                              />
+                                placeholder="Select merchandise"
+                              >
+                                {catalogMerchandise?.data.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.name} — ${m.price.toFixed(2)} (qty {m.quantity_available})
+                                  </option>
+                                ))}
+                              </NativeSelect>
                             </Box>
                             <Box flex={1}>
                               <Text fontSize="sm" mb={1}>
-                                Price ($)
+                                Price override ($, optional)
                               </Text>
                               <Input
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={merchandiseForm.price}
+                                value={merchandiseForm.price_override}
                                 onChange={(e) =>
                                   setMerchandiseForm({
                                     ...merchandiseForm,
-                                    price: e.target.value,
+                                    price_override: e.target.value,
                                   })
                                 }
-                                placeholder="0.00"
-                              />
-                            </Box>
-                          </HStack>
-                          <HStack width="100%">
-                            <Box flex={1}>
-                              <Text fontSize="sm" mb={1}>
-                                Description
-                              </Text>
-                              <Input
-                                value={merchandiseForm.description}
-                                onChange={(e) =>
-                                  setMerchandiseForm({
-                                    ...merchandiseForm,
-                                    description: e.target.value,
-                                  })
-                                }
-                                placeholder="Item description (optional)"
+                                placeholder="Use catalog price"
                               />
                             </Box>
                             <Box flex={1}>
                               <Text fontSize="sm" mb={1}>
-                                Quantity Available
+                                Quantity override (optional)
                               </Text>
                               <Input
                                 type="number"
                                 min="0"
-                                value={merchandiseForm.quantity_available}
+                                value={merchandiseForm.quantity_available_override}
                                 onChange={(e) =>
                                   setMerchandiseForm({
                                     ...merchandiseForm,
-                                    quantity_available: e.target.value,
+                                    quantity_available_override: e.target.value,
                                   })
                                 }
-                                placeholder="0"
+                                placeholder="Use catalog qty"
                               />
                             </Box>
                           </HStack>
@@ -820,11 +826,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               size="sm"
                               colorScheme="blue"
                               onClick={handleAddMerchandise}
-                              disabled={
-                                !merchandiseForm.name ||
-                                !merchandiseForm.price ||
-                                !merchandiseForm.quantity_available
-                              }
+                              disabled={!merchandiseForm.merchandise_id}
                             >
                               Add Merchandise
                             </Button>
@@ -835,28 +837,27 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
 
                     {/* Merchandise List */}
                     <VStack align="stretch" gap={2}>
-                      {selectedMerchandise.map((merchandise) => (
+                      {selectedMerchandise.map((item) => (
                         <HStack
-                          key={merchandise.name}
+                          key={item.merchandise_id}
                           justify="space-between"
                           p={3}
                           borderWidth="1px"
                           borderRadius="md"
                         >
                           <VStack align="start" flex={1}>
-                            <Text fontWeight="medium">{merchandise.name}</Text>
-                            {merchandise.description && (
-                              <Text fontSize="sm" color="gray.600">
-                                {merchandise.description}
-                              </Text>
-                            )}
-                            <HStack>
-                              <Text fontSize="sm">
-                                ${merchandise.price.toFixed(2)}
-                              </Text>
-                              <Text fontSize="sm" color="gray.500">
-                                ({merchandise.quantity_available} available)
-                              </Text>
+                            <Text fontWeight="medium">{item.name}</Text>
+                            <HStack fontSize="sm" color="gray.500">
+                              {item.price_override != null && (
+                                <Text>Price override: ${item.price_override.toFixed(2)}</Text>
+                              )}
+                              {item.quantity_available_override != null && (
+                                <Text>Qty override: {item.quantity_available_override}</Text>
+                              )}
+                              {item.price_override == null &&
+                                item.quantity_available_override == null && (
+                                  <Text>Catalog defaults</Text>
+                                )}
                             </HStack>
                           </VStack>
                           <IconButton
@@ -866,7 +867,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             variant="ghost"
                             colorScheme="red"
                             onClick={() =>
-                              handleRemoveMerchandise(merchandise.name)
+                              handleRemoveMerchandise(item.merchandise_id)
                             }
                           />
                         </HStack>

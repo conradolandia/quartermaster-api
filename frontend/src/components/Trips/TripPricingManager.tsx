@@ -12,6 +12,7 @@ import { useState } from "react"
 import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
+  MerchandiseService,
   type TripMerchandiseCreate,
   type TripMerchandisePublic,
   TripMerchandiseService,
@@ -21,6 +22,7 @@ import {
   TripPricingService,
   type TripPricingUpdate,
 } from "@/client"
+import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 
@@ -45,12 +47,11 @@ export default function TripPricingManager({
     price: "",
   })
 
-  // Form states for merchandise
+  // Form states for merchandise (catalog selection + optional overrides)
   const [merchandiseForm, setMerchandiseForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    quantity_available: "",
+    merchandise_id: "",
+    price_override: "",
+    quantity_available_override: "",
   })
 
   const queryClient = useQueryClient()
@@ -66,6 +67,13 @@ export default function TripPricingManager({
   const { data: merchandiseData, refetch: refetchMerchandise } = useQuery({
     queryKey: ["trip-merchandise", tripId],
     queryFn: () => TripMerchandiseService.listTripMerchandise({ tripId }),
+  })
+
+  // Fetch catalog merchandise for dropdown
+  const { data: catalogMerchandise } = useQuery({
+    queryKey: ["merchandise-catalog"],
+    queryFn: () =>
+      MerchandiseService.readMerchandiseList({ limit: 500, skip: 0 }),
   })
 
   // Create pricing mutation
@@ -119,10 +127,9 @@ export default function TripPricingManager({
       showSuccessToast("Merchandise created successfully")
       setIsAddingMerchandise(false)
       setMerchandiseForm({
-        name: "",
-        description: "",
-        price: "",
-        quantity_available: "",
+        merchandise_id: "",
+        price_override: "",
+        quantity_available_override: "",
       })
       refetchMerchandise()
       queryClient.invalidateQueries({ queryKey: ["trip-merchandise"] })
@@ -141,10 +148,9 @@ export default function TripPricingManager({
       showSuccessToast("Merchandise updated successfully")
       setEditingMerchandiseId(null)
       setMerchandiseForm({
-        name: "",
-        description: "",
-        price: "",
-        quantity_available: "",
+        merchandise_id: "",
+        price_override: "",
+        quantity_available_override: "",
       })
       refetchMerchandise()
       queryClient.invalidateQueries({ queryKey: ["trip-merchandise"] })
@@ -194,24 +200,29 @@ export default function TripPricingManager({
   }
 
   const handleMerchandiseSubmit = () => {
-    if (
-      !merchandiseForm.name ||
-      !merchandiseForm.price ||
-      !merchandiseForm.quantity_available
-    )
-      return
-
-    const data: TripMerchandiseCreate = {
-      trip_id: tripId,
-      name: merchandiseForm.name,
-      description: merchandiseForm.description || null,
-      price: Number.parseFloat(merchandiseForm.price),
-      quantity_available: Number.parseInt(merchandiseForm.quantity_available),
-    }
+    if (!merchandiseForm.merchandise_id && !editingMerchandiseId) return
 
     if (editingMerchandiseId) {
+      const data: TripMerchandiseUpdate = {
+        price_override: merchandiseForm.price_override
+          ? Number.parseFloat(merchandiseForm.price_override)
+          : null,
+        quantity_available_override: merchandiseForm.quantity_available_override
+          ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
+          : null,
+      }
       updateMerchandiseMutation.mutate({ id: editingMerchandiseId, data })
     } else {
+      const data: TripMerchandiseCreate = {
+        trip_id: tripId,
+        merchandise_id: merchandiseForm.merchandise_id,
+        price_override: merchandiseForm.price_override
+          ? Number.parseFloat(merchandiseForm.price_override)
+          : null,
+        quantity_available_override: merchandiseForm.quantity_available_override
+          ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
+          : null,
+      }
       createMerchandiseMutation.mutate(data)
     }
   }
@@ -227,10 +238,13 @@ export default function TripPricingManager({
   const startEditMerchandise = (merchandise: TripMerchandisePublic) => {
     setEditingMerchandiseId(merchandise.id)
     setMerchandiseForm({
-      name: merchandise.name,
-      description: merchandise.description || "",
-      price: merchandise.price.toString(),
-      quantity_available: merchandise.quantity_available.toString(),
+      merchandise_id: merchandise.merchandise_id,
+      price_override:
+        merchandise.price != null ? merchandise.price.toString() : "",
+      quantity_available_override:
+        merchandise.quantity_available != null
+          ? merchandise.quantity_available.toString()
+          : "",
     })
   }
 
@@ -241,10 +255,9 @@ export default function TripPricingManager({
     setIsAddingMerchandise(false)
     setPricingForm({ ticket_type: "", price: "" })
     setMerchandiseForm({
-      name: "",
-      description: "",
-      price: "",
-      quantity_available: "",
+      merchandise_id: "",
+      price_override: "",
+      quantity_available_override: "",
     })
   }
 
@@ -387,76 +400,73 @@ export default function TripPricingManager({
           )}
         </HStack>
 
-        {/* Add/Edit Merchandise Form */}
+        {/* Add/Edit Merchandise Form (catalog selection + optional overrides) */}
         {(isAddingMerchandise || editingMerchandiseId) && (
           <Box p={4} borderWidth="1px" borderRadius="md" mb={4}>
             <VStack gap={3}>
+              {editingMerchandiseId ? (
+                <Text fontSize="sm" width="100%">
+                  Editing overrides for this trip. Catalog item cannot be changed.
+                </Text>
+              ) : (
+                <HStack width="100%">
+                  <Box flex={1}>
+                    <Text fontSize="sm" mb={1}>
+                      Catalog item
+                    </Text>
+                    <NativeSelect
+                      value={merchandiseForm.merchandise_id}
+                      onChange={(e) =>
+                        setMerchandiseForm({
+                          ...merchandiseForm,
+                          merchandise_id: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select merchandise</option>
+                      {catalogMerchandise?.data.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} — ${m.price.toFixed(2)} (qty {m.quantity_available})
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </Box>
+                </HStack>
+              )}
               <HStack width="100%">
                 <Box flex={1}>
                   <Text fontSize="sm" mb={1}>
-                    Name
-                  </Text>
-                  <Input
-                    value={merchandiseForm.name}
-                    onChange={(e) =>
-                      setMerchandiseForm({
-                        ...merchandiseForm,
-                        name: e.target.value,
-                      })
-                    }
-                    placeholder="Item name"
-                  />
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Price ($)
+                    Price override ($, optional)
                   </Text>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    value={merchandiseForm.price}
+                    value={merchandiseForm.price_override}
                     onChange={(e) =>
                       setMerchandiseForm({
                         ...merchandiseForm,
-                        price: e.target.value,
+                        price_override: e.target.value,
                       })
                     }
-                    placeholder="0.00"
-                  />
-                </Box>
-              </HStack>
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Description
-                  </Text>
-                  <Input
-                    value={merchandiseForm.description}
-                    onChange={(e) =>
-                      setMerchandiseForm({
-                        ...merchandiseForm,
-                        description: e.target.value,
-                      })
-                    }
-                    placeholder="Item description (optional)"
+                    placeholder="Use catalog price"
                   />
                 </Box>
                 <Box flex={1}>
                   <Text fontSize="sm" mb={1}>
-                    Quantity Available
+                    Quantity override (optional)
                   </Text>
                   <Input
                     type="number"
                     min="0"
-                    value={merchandiseForm.quantity_available}
+                    value={merchandiseForm.quantity_available_override}
                     onChange={(e) =>
                       setMerchandiseForm({
                         ...merchandiseForm,
-                        quantity_available: e.target.value,
+                        quantity_available_override: e.target.value,
                       })
                     }
-                    placeholder="0"
+                    placeholder="Use catalog qty"
                   />
                 </Box>
               </HStack>
@@ -469,9 +479,7 @@ export default function TripPricingManager({
                   colorScheme="blue"
                   onClick={handleMerchandiseSubmit}
                   disabled={
-                    !merchandiseForm.name ||
-                    !merchandiseForm.price ||
-                    !merchandiseForm.quantity_available ||
+                    (!editingMerchandiseId && !merchandiseForm.merchandise_id) ||
                     createMerchandiseMutation.isPending ||
                     updateMerchandiseMutation.isPending
                   }

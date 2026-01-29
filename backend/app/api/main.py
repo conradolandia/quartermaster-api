@@ -10,6 +10,7 @@ from app.api.routes import (
     launches,
     locations,
     login,
+    merchandise,
     missions,
     payments,
     private,
@@ -28,6 +29,7 @@ api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(locations.router)
+api_router.include_router(merchandise.router)
 api_router.include_router(jurisdictions.router)
 api_router.include_router(providers.router)
 api_router.include_router(launches.router)

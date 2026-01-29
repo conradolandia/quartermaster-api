@@ -24,6 +24,7 @@ import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutRefundsImport } from './routes/_layout/refunds'
 import { Route as LayoutProvidersImport } from './routes/_layout/providers'
 import { Route as LayoutMissionsImport } from './routes/_layout/missions'
+import { Route as LayoutMerchandiseImport } from './routes/_layout/merchandise'
 import { Route as LayoutLocationsImport } from './routes/_layout/locations'
 import { Route as LayoutLaunchesImport } from './routes/_layout/launches'
 import { Route as LayoutJurisdictionsImport } from './routes/_layout/jurisdictions'
@@ -98,6 +99,11 @@ const LayoutProvidersRoute = LayoutProvidersImport.update({
 
 const LayoutMissionsRoute = LayoutMissionsImport.update({
   path: '/missions',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutMerchandiseRoute = LayoutMerchandiseImport.update({
+  path: '/merchandise',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -214,6 +220,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutLocationsImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/merchandise': {
+      preLoaderRoute: typeof LayoutMerchandiseImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/missions': {
       preLoaderRoute: typeof LayoutMissionsImport
       parentRoute: typeof LayoutImport
@@ -254,6 +264,7 @@ export const routeTree = rootRoute.addChildren([
     LayoutJurisdictionsRoute,
     LayoutLaunchesRoute,
     LayoutLocationsRoute,
+    LayoutMerchandiseRoute,
     LayoutMissionsRoute,
     LayoutProvidersRoute,
     LayoutRefundsRoute,

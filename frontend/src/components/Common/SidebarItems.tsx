@@ -13,6 +13,7 @@ import {
   FaRocket,
   FaRoute,
   FaShip,
+  FaShoppingBag,
   FaSpaceShuttle,
   FaTicketAlt,
 } from "react-icons/fa"
@@ -55,6 +56,7 @@ const defaultItems = [
   { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FaShip, title: "Boats", path: "/boats" },
   { icon: FaAnchor, title: "Boat Providers", path: "/providers" },
+  { icon: FaShoppingBag, title: "Merchandise", path: "/merchandise" },
   { icon: FiTag, title: "Discount Codes", path: "/discount-codes" },
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]

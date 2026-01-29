@@ -14,6 +14,7 @@ import { FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
+import useCustomToast from "@/hooks/useCustomToast"
 import PendingBookings from "@/components/Pending/PendingBookings"
 import {
   PaginationItems,
@@ -31,8 +32,16 @@ interface BookingsTableProps {
 }
 
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
+  const { showSuccessToast } = useCustomToast()
   const [missionId, setMissionId] = useState<string | undefined>(undefined)
   const [searchParams, setSearchParams] = useState(new URLSearchParams(window.location.search))
+
+  const copyConfirmationCode = (e: React.MouseEvent, code: string) => {
+    e.stopPropagation()
+    void navigator.clipboard.writeText(code).then(() => {
+      showSuccessToast("Confirmation code copied to clipboard")
+    })
+  }
 
   // Parse search params
   const page = parseInt(searchParams.get("page") || "1")
@@ -292,7 +301,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               <Table.Row key={booking.id}>
                 <Table.Cell
                   cursor="pointer"
-                  onClick={() => onBookingClick(booking.confirmation_code)}
+                  onClick={(e) => copyConfirmationCode(e, booking.confirmation_code)}
+                  title="Click to copy"
                 >
                   <Text fontFamily="mono" fontWeight="bold" color="accent.default">
                     {booking.confirmation_code}

@@ -733,13 +733,68 @@ class TripPricingPublic(TripPricingBase):
     updated_at: datetime
 
 
-# TripMerchandise models
-class TripMerchandiseBase(SQLModel):
-    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+# Merchandise (catalog) models
+class MerchandiseBase(SQLModel):
     name: str = Field(max_length=255)
     description: str | None = Field(default=None, max_length=1000)
     price: float = Field(ge=0)
     quantity_available: int = Field(ge=0)
+
+
+class MerchandiseCreate(MerchandiseBase):
+    pass
+
+
+class MerchandiseUpdate(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    price: float | None = Field(default=None, ge=0)
+    quantity_available: int | None = Field(default=None, ge=0)
+
+
+class Merchandise(MerchandiseBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+
+
+class MerchandisePublic(MerchandiseBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime_utc(self, dt: datetime):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
+
+class MerchandisesPublic(SQLModel):
+    data: list[MerchandisePublic]
+    count: int
+
+
+# TripMerchandise (link trip <-> merchandise with optional overrides)
+class TripMerchandiseBase(SQLModel):
+    trip_id: uuid.UUID = Field(foreign_key="trip.id")
+    merchandise_id: uuid.UUID = Field(foreign_key="merchandise.id")
+    quantity_available_override: int | None = Field(default=None, ge=0)
+    price_override: float | None = Field(default=None, ge=0)
 
 
 class TripMerchandiseCreate(TripMerchandiseBase):
@@ -747,10 +802,8 @@ class TripMerchandiseCreate(TripMerchandiseBase):
 
 
 class TripMerchandiseUpdate(SQLModel):
-    name: str | None = Field(default=None, max_length=255)
-    description: str | None = Field(default=None, max_length=1000)
-    price: float | None = Field(default=None, ge=0)
-    quantity_available: int | None = Field(default=None, ge=0)
+    quantity_available_override: int | None = Field(default=None, ge=0)
+    price_override: float | None = Field(default=None, ge=0)
 
 
 class TripMerchandise(TripMerchandiseBase, table=True):
@@ -771,14 +824,27 @@ class TripMerchandise(TripMerchandiseBase, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    # Relationships
     trip: "Trip" = Relationship(back_populates="merchandise")
+    merchandise: "Merchandise" = Relationship()
 
 
-class TripMerchandisePublic(TripMerchandiseBase):
+# Response shape for API: effective name, description, price, quantity_available (from join + overrides)
+class TripMerchandisePublic(SQLModel):
     id: uuid.UUID
+    trip_id: uuid.UUID
+    merchandise_id: uuid.UUID
+    name: str
+    description: str | None
+    price: float
+    quantity_available: int
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime_utc(self, dt: datetime):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
 
 # --- Booking Mode Enum ---
