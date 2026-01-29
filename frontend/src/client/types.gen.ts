@@ -262,6 +262,7 @@ export type LaunchPublic = {
   id: string
   created_at: string
   updated_at: string
+  timezone?: string
 }
 
 export type LaunchUpdate = {
@@ -337,6 +338,7 @@ export type MissionPublic = {
   id: string
   created_at: string
   updated_at: string
+  timezone?: string
 }
 
 export type MissionsPublic = {
@@ -368,6 +370,7 @@ export type MissionWithStats = {
   id: string
   created_at: string
   updated_at: string
+  timezone?: string
   total_bookings?: number
   total_sales?: number
 }
@@ -510,6 +513,7 @@ export type TripPublic = {
   created_at: string
   updated_at: string
   trip_boats?: Array<TripBoatPublic>
+  timezone?: string
 }
 
 export type TripsPublic = {

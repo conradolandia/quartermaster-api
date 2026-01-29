@@ -7,7 +7,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
@@ -18,7 +18,12 @@ import {
   LaunchesService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseApiDate } from "@/utils"
+import {
+  formatInLocationTimezone,
+  handleError,
+  parseApiDate,
+  parseLocationTimeToUtc,
+} from "@/utils"
 import { LocationDropdown } from "../Common/LocationDropdown"
 import {
   DialogBody,
@@ -55,13 +60,37 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
     criteriaMode: "all",
     defaultValues: {
       name: launch.name,
-      launch_timestamp: parseApiDate(launch.launch_timestamp)
-        .toISOString()
-        .slice(0, 16),
+      launch_timestamp: formatInLocationTimezone(
+        parseApiDate(launch.launch_timestamp),
+        launch.timezone ?? "UTC",
+      ),
       summary: launch.summary,
       location_id: launch.location_id,
     },
   })
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        name: launch.name,
+        launch_timestamp: formatInLocationTimezone(
+          parseApiDate(launch.launch_timestamp),
+          launch.timezone ?? "UTC",
+        ),
+        summary: launch.summary,
+        location_id: launch.location_id,
+      })
+    }
+  }, [
+    isOpen,
+    launch.id,
+    launch.name,
+    launch.launch_timestamp,
+    launch.timezone,
+    launch.summary,
+    launch.location_id,
+    reset,
+  ])
 
   const mutation = useMutation({
     mutationFn: (data: LaunchUpdate) =>
@@ -83,7 +112,14 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
   })
 
   const onSubmit: SubmitHandler<LaunchUpdate> = async (data) => {
-    mutation.mutate(data)
+    // datetime-local value is in location timezone; convert to UTC ISO for API
+    const tz = launch.timezone ?? "UTC"
+    mutation.mutate({
+      ...data,
+      launch_timestamp: data.launch_timestamp
+        ? parseLocationTimeToUtc(data.launch_timestamp, tz)
+        : undefined,
+    })
   }
 
   return (
@@ -128,12 +164,12 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                 <Field
                   invalid={!!errors.launch_timestamp}
                   errorText={errors.launch_timestamp?.message}
-                  label="Launch Date & Time"
+                  label={`Launch Date & Time (${launch.timezone ?? "UTC"})`}
                 >
                   <Input
                     id="launch_timestamp"
                     {...register("launch_timestamp")}
-                    placeholder="Launch date and time"
+                    placeholder={`Enter time in ${launch.timezone ?? "UTC"}`}
                     type="datetime-local"
                     disabled={isPast}
                   />

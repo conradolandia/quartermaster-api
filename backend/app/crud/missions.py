@@ -118,13 +118,16 @@ def get_missions_with_stats(
     Returns dictionaries with mission data plus total_bookings and total_sales.
     """
 
-    # Get all missions using raw SQL to avoid relationship loading
+    # Get all missions with location timezone (mission->launch->location)
     missions_result = session.exec(
         text(
             """
-            SELECT id, name, launch_id, active, booking_mode, sales_open_at, refund_cutoff_hours, created_at, updated_at
-            FROM mission
-            ORDER BY created_at DESC
+            SELECT m.id, m.name, m.launch_id, m.active, m.booking_mode, m.sales_open_at,
+                   m.refund_cutoff_hours, m.created_at, m.updated_at, loc.timezone
+            FROM mission m
+            JOIN launch l ON m.launch_id = l.id
+            JOIN location loc ON l.location_id = loc.id
+            ORDER BY m.created_at DESC
             LIMIT :limit OFFSET :skip
         """
         ).params(limit=limit, skip=skip)
@@ -132,15 +135,16 @@ def get_missions_with_stats(
 
     result = []
     for mission_row in missions_result:
-        mission_id = mission_row[0]  # id
-        mission_name = mission_row[1]  # name
-        launch_id = mission_row[2]  # launch_id
-        active = mission_row[3]  # active
-        booking_mode = mission_row[4]  # booking_mode
-        sales_open_at = mission_row[5]  # sales_open_at
-        refund_cutoff_hours = mission_row[6]  # refund_cutoff_hours
-        created_at = mission_row[7]  # created_at
-        updated_at = mission_row[8]  # updated_at
+        mission_id = mission_row[0]
+        mission_name = mission_row[1]
+        launch_id = mission_row[2]
+        active = mission_row[3]
+        booking_mode = mission_row[4]
+        sales_open_at = mission_row[5]
+        refund_cutoff_hours = mission_row[6]
+        created_at = mission_row[7]
+        updated_at = mission_row[8]
+        timezone_val = mission_row[9] or "UTC"
 
         # Get all trips for this mission (just IDs to avoid relationship loading)
         trips_statement = select(Trip.id).where(Trip.mission_id == mission_id)
@@ -185,6 +189,7 @@ def get_missions_with_stats(
                 "refund_cutoff_hours": refund_cutoff_hours,
                 "created_at": created_at,
                 "updated_at": updated_at,
+                "timezone": timezone_val,
                 "total_bookings": total_bookings,
                 "total_sales": float(total_sales),
             }

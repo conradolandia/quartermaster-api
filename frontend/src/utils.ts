@@ -1,3 +1,7 @@
+import { enUS } from "date-fns/locale/en-US"
+import { formatInTimeZone } from "date-fns-tz/formatInTimeZone"
+import { toDate } from "date-fns-tz/toDate"
+
 import type { ApiError } from "./client"
 import useCustomToast from "./hooks/useCustomToast"
 
@@ -11,6 +15,77 @@ export function parseApiDate(isoString: string | null | undefined): Date {
   if (isoString == null || isoString === "") return new Date(NaN)
   const hasTimezone = isoString.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(isoString)
   return new Date(hasTimezone ? isoString : `${isoString}Z`)
+}
+
+/**
+ * Format a Date for an HTML datetime-local input (YYYY-MM-DDTHH:mm).
+ * Uses the browser's local timezone so the input shows the same time as
+ * toLocaleString() / list display.
+ */
+export function toDateTimeLocalString(date: Date): string {
+  if (Number.isNaN(date.getTime())) return ""
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  const h = String(date.getHours()).padStart(2, "0")
+  const min = String(date.getMinutes()).padStart(2, "0")
+  return `${y}-${m}-${d}T${h}:${min}`
+}
+
+/**
+ * Format a UTC date in a location's timezone for datetime-local (YYYY-MM-DDTHH:mm).
+ * Use when the event time is in the location's timezone (e.g. launch at Kennedy = America/New_York).
+ */
+export function formatInLocationTimezone(
+  utcDate: Date,
+  timezone: string,
+): string {
+  if (Number.isNaN(utcDate.getTime()) || !timezone) return ""
+  return formatInTimeZone(utcDate, timezone, "yyyy-MM-dd'T'HH:mm")
+}
+
+/**
+ * Parse a datetime-local value (YYYY-MM-DDTHH:mm) as being in the location's timezone;
+ * return UTC ISO string for the API.
+ */
+export function parseLocationTimeToUtc(
+  localString: string | null | undefined,
+  timezone: string,
+): string {
+  if (!localString?.trim() || !timezone) return ""
+  const d = toDate(localString, { timeZone: timezone })
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toISOString()
+}
+
+/**
+ * Format a UTC date for display in a location's timezone, with IANA timezone name
+ * (e.g. "Dec 31, 2027, 11:00 PM America/New_York"). Matches location.timezone format.
+ */
+export function formatInLocationTimezoneDisplay(
+  utcDate: Date,
+  timezone: string,
+): string {
+  if (Number.isNaN(utcDate.getTime()) || !timezone) return ""
+  const formatted = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
+    locale: enUS,
+  })
+  return `${formatted} ${timezone}`
+}
+
+/**
+ * Same as formatInLocationTimezoneDisplay but returns date/time and timezone separately
+ * so the timezone can be styled (e.g. smaller, muted).
+ */
+export function formatInLocationTimezoneDisplayParts(
+  utcDate: Date,
+  timezone: string,
+): { dateTime: string; timezone: string } | null {
+  if (Number.isNaN(utcDate.getTime()) || !timezone) return null
+  const dateTime = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
+    locale: enUS,
+  })
+  return { dateTime, timezone }
 }
 
 export const emailPattern = {

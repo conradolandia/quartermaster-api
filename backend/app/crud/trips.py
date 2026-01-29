@@ -37,9 +37,14 @@ def get_trips_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, mission_id, type, active, check_in_time, boarding_time, departure_time, created_at, updated_at
-            FROM trip
-            ORDER BY check_in_time DESC
+            SELECT t.id, t.mission_id, t.type, t.active, t.check_in_time,
+                   t.boarding_time, t.departure_time, t.created_at, t.updated_at,
+                   loc.timezone
+            FROM trip t
+            JOIN mission m ON t.mission_id = m.id
+            JOIN launch l ON m.launch_id = l.id
+            JOIN location loc ON l.location_id = loc.id
+            ORDER BY t.check_in_time DESC
             LIMIT :limit OFFSET :skip
         """
         ).params(limit=limit, skip=skip)
@@ -49,15 +54,16 @@ def get_trips_no_relationships(
     for row in result:
         trips_data.append(
             {
-                "id": row[0],  # id
-                "mission_id": row[1],  # mission_id
-                "type": row[2],  # type
-                "active": row[3],  # active
-                "check_in_time": row[4],  # check_in_time
-                "boarding_time": row[5],  # boarding_time
-                "departure_time": row[6],  # departure_time
-                "created_at": row[7],  # created_at
-                "updated_at": row[8],  # updated_at
+                "id": row[0],
+                "mission_id": row[1],
+                "type": row[2],
+                "active": row[3],
+                "check_in_time": row[4],
+                "boarding_time": row[5],
+                "departure_time": row[6],
+                "created_at": row[7],
+                "updated_at": row[8],
+                "timezone": row[9] or "UTC",
             }
         )
 

@@ -31,6 +31,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/launches", tags=["launches"])
 
 
+def _launch_to_public(session: Session, launch: Launch) -> LaunchPublic:
+    """Build LaunchPublic with timezone from launch's location."""
+    location = crud.get_location(session=session, location_id=launch.location_id)
+    tz = location.timezone if location else "UTC"
+    data = launch.model_dump(mode="json", exclude={"location"})
+    return LaunchPublic(**data, timezone=tz)
+
+
 @router.get(
     "/",
     response_model=LaunchesPublic,
@@ -84,7 +92,7 @@ def create_launch(
         )
 
     launch = crud.create_launch(session=session, launch_in=launch_in)
-    return launch
+    return _launch_to_public(session, launch)
 
 
 @router.get(
@@ -106,7 +114,7 @@ def read_launch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Launch with ID {launch_id} not found",
         )
-    return launch
+    return _launch_to_public(session, launch)
 
 
 @router.put(
@@ -166,7 +174,7 @@ def update_launch(
             f"Superuser override: Launch {launch_id} was edited despite being in the past"
         )
 
-    return launch
+    return _launch_to_public(session, launch)
 
 
 @router.delete(
@@ -220,7 +228,7 @@ def read_launches_by_location(
     )
     count = len(launches)
 
-    # Convert to dictionaries to break the ORM relationship chain
+    # Convert to dicts with location timezone (same for all in this list)
     launch_dicts = [
         {
             "id": launch.id,
@@ -230,6 +238,7 @@ def read_launches_by_location(
             "location_id": launch.location_id,
             "created_at": launch.created_at,
             "updated_at": launch.updated_at,
+            "timezone": location.timezone or "UTC",
         }
         for launch in launches
     ]
@@ -269,7 +278,7 @@ def read_public_launch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Launch with ID {launch_id} not found",
         )
-    return launch
+    return _launch_to_public(session, launch)
 
 
 @router.post(
@@ -311,7 +320,7 @@ def import_launch_from_yaml(
         importer = YamlImporter(session)
         launch = importer.import_launch(yaml_content)
 
-        return launch
+        return _launch_to_public(session, launch)
 
     except YamlValidationError as e:
         raise HTTPException(

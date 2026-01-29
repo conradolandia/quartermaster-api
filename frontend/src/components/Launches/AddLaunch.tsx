@@ -1,5 +1,5 @@
 import { Button, Input, VStack } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
 import {
@@ -12,8 +12,9 @@ import {
   DialogTitle,
 } from "../ui/dialog"
 
-import { type LaunchCreate, LaunchesService } from "@/client"
+import { type LaunchCreate, LaunchesService, LocationsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { parseLocationTimeToUtc } from "@/utils"
 import { LocationDropdown } from "../Common/LocationDropdown"
 import { Field } from "../ui/field"
 
@@ -32,6 +33,14 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const queryClient = useQueryClient()
   const contentRef = useRef(null)
+
+  const { data: locationsResponse } = useQuery({
+    queryKey: ["locations-dropdown"],
+    queryFn: () => LocationsService.readLocations(),
+    enabled: isOpen,
+  })
+  const selectedLocation = locationsResponse?.data?.find((l) => l.id === locationId)
+  const timezone = selectedLocation?.timezone ?? null
 
   // Use mutation for creating launch
   const mutation = useMutation({
@@ -59,9 +68,10 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
   const handleSubmit = async () => {
     if (!name || !launchTimestamp || !summary || !locationId) return
 
+    const tz = timezone ?? "UTC"
     mutation.mutate({
       name,
-      launch_timestamp: new Date(launchTimestamp).toISOString(),
+      launch_timestamp: parseLocationTimeToUtc(launchTimestamp, tz) || new Date(launchTimestamp).toISOString(),
       summary,
       location_id: locationId,
     })
@@ -88,13 +98,18 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
                   placeholder="Launch name"
                 />
               </Field>
-              <Field label="Launch Date & Time" required>
+              <Field
+                label={timezone ? `Launch Date & Time (${timezone})` : "Launch Date & Time"}
+                required
+              >
                 <Input
                   id="launch_timestamp"
                   type="datetime-local"
                   value={launchTimestamp}
                   onChange={(e) => setLaunchTimestamp(e.target.value)}
-                  placeholder="Launch date and time"
+                  placeholder={
+                    timezone ? `Enter time in ${timezone}` : "Select location for timezone"
+                  }
                 />
               </Field>
               <Field label="Summary" required>

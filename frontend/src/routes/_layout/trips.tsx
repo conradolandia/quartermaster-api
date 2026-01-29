@@ -8,11 +8,11 @@ import {
   Heading,
   Icon,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { format } from "date-fns"
 import { useEffect, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
@@ -34,7 +34,10 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { parseApiDate } from "@/utils"
+import {
+  formatInLocationTimezoneDisplayParts,
+  parseApiDate,
+} from "@/utils"
 
 // Define sortable columns
 type SortableColumn =
@@ -218,6 +221,28 @@ function TripsTable() {
     )
   }
 
+  const renderTripDate = (dateString: string, timezone?: string | null) => {
+    const d = parseApiDate(dateString)
+    const parts = timezone ? formatInLocationTimezoneDisplayParts(d, timezone) : null
+    if (parts) {
+      return (
+        <>
+          {parts.dateTime}
+          <Text as="span" display="block" fontSize="xs" opacity={0.7}>
+            {parts.timezone}
+          </Text>
+        </>
+      )
+    }
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   return (
     <>
       <Box overflowX="auto">
@@ -306,10 +331,10 @@ function TripsTable() {
                   {mission?.name || "Unknown"}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {format(parseApiDate(trip.check_in_time), "MMM d, yyyy h:mm a")}
+                  {renderTripDate(trip.check_in_time, trip.timezone)}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {format(parseApiDate(trip.departure_time), "MMM d, yyyy h:mm a")}
+                  {renderTripDate(trip.departure_time, trip.timezone)}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
                   {boatCount} boat{boatCount !== 1 ? "s" : ""}

@@ -11,7 +11,6 @@ import {
 } from "@chakra-ui/react"
 import { NativeSelect } from "@/components/ui/native-select"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { format } from "date-fns"
 import { useEffect, useRef, useState } from "react"
 import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
 
@@ -38,7 +37,12 @@ import {
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseApiDate } from "@/utils"
+import {
+  formatInLocationTimezone,
+  handleError,
+  parseApiDate,
+  parseLocationTimeToUtc,
+} from "@/utils"
 import TripPricingManager from "./TripPricingManager"
 
 interface EditTripProps {
@@ -51,16 +55,17 @@ const EditTrip = ({ trip }: EditTripProps) => {
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
 
+  const tz = trip.timezone ?? "UTC"
   // Check if trip is in the past (parse API datetime as UTC for correct comparison)
   const isPast = parseApiDate(trip.departure_time) < new Date()
   const [checkInTime, setCheckInTime] = useState(
-    format(parseApiDate(trip.check_in_time), "yyyy-MM-dd'T'HH:mm"),
+    formatInLocationTimezone(parseApiDate(trip.check_in_time), tz),
   )
   const [boardingTime, setBoardingTime] = useState(
-    format(parseApiDate(trip.boarding_time), "yyyy-MM-dd'T'HH:mm"),
+    formatInLocationTimezone(parseApiDate(trip.boarding_time), tz),
   )
   const [departureTime, setDepartureTime] = useState(
-    format(parseApiDate(trip.departure_time), "yyyy-MM-dd'T'HH:mm"),
+    formatInLocationTimezone(parseApiDate(trip.departure_time), tz),
   )
   const [boatsData, setBoatsData] = useState<any[]>([])
   const [tripBoats, setTripBoats] = useState<any[]>([])
@@ -121,6 +126,22 @@ const EditTrip = ({ trip }: EditTripProps) => {
       setTripBoats(Array.isArray(tripBoatsData) ? (tripBoatsData as any[]) : [])
     }
   }, [tripBoatsData])
+
+  // Sync datetime inputs when dialog opens or trip changes (location timezone)
+  useEffect(() => {
+    if (isOpen) {
+      const zone = trip.timezone ?? "UTC"
+      setCheckInTime(
+        formatInLocationTimezone(parseApiDate(trip.check_in_time), zone),
+      )
+      setBoardingTime(
+        formatInLocationTimezone(parseApiDate(trip.boarding_time), zone),
+      )
+      setDepartureTime(
+        formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
+      )
+    }
+  }, [isOpen, trip.id, trip.check_in_time, trip.boarding_time, trip.departure_time, trip.timezone])
 
   // Create a map of boat ids to boat objects for quick lookup
   const boatsMap = new Map<string, any>()
@@ -189,9 +210,9 @@ const EditTrip = ({ trip }: EditTripProps) => {
       mission_id: missionId,
       type: type,
       active: active,
-      check_in_time: new Date(checkInTime).toISOString(),
-      boarding_time: new Date(boardingTime).toISOString(),
-      departure_time: new Date(departureTime).toISOString(),
+      check_in_time: parseLocationTimeToUtc(checkInTime, tz),
+      boarding_time: parseLocationTimeToUtc(boardingTime, tz),
+      departure_time: parseLocationTimeToUtc(departureTime, tz),
     })
   }
 
@@ -265,32 +286,44 @@ const EditTrip = ({ trip }: EditTripProps) => {
                       </NativeSelect>
                     </Field>
 
-                    <Field label="Check-in Time" required>
+                    <Field
+                      label={`Check-in Time (${tz})`}
+                      required
+                    >
                       <Input
                         id="check_in_time"
                         type="datetime-local"
                         value={checkInTime}
                         onChange={(e) => setCheckInTime(e.target.value)}
+                        placeholder={`Enter time in ${tz}`}
                         disabled={mutation.isPending || isPast}
                       />
                     </Field>
 
-                    <Field label="Boarding Time" required>
+                    <Field
+                      label={`Boarding Time (${tz})`}
+                      required
+                    >
                       <Input
                         id="boarding_time"
                         type="datetime-local"
                         value={boardingTime}
                         onChange={(e) => setBoardingTime(e.target.value)}
+                        placeholder={`Enter time in ${tz}`}
                         disabled={mutation.isPending || isPast}
                       />
                     </Field>
 
-                    <Field label="Departure Time" required>
+                    <Field
+                      label={`Departure Time (${tz})`}
+                      required
+                    >
                       <Input
                         id="departure_time"
                         type="datetime-local"
                         value={departureTime}
                         onChange={(e) => setDepartureTime(e.target.value)}
+                        placeholder={`Enter time in ${tz}`}
                         disabled={mutation.isPending || isPast}
                       />
                     </Field>

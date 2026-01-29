@@ -31,6 +31,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trips", tags=["trips"])
 
 
+def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
+    """Build TripPublic with timezone from trip's mission->launch->location."""
+    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+    tz = "UTC"
+    if mission:
+        launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+        if launch:
+            location = crud.get_location(
+                session=session, location_id=launch.location_id
+            )
+            if location:
+                tz = location.timezone
+    data = trip.model_dump(mode="json", exclude={"mission"})
+    data.setdefault("trip_boats", [])
+    return TripPublic(**data, timezone=tz)
+
+
 @router.get(
     "/",
     response_model=TripsPublic,
@@ -45,7 +62,7 @@ def read_trips(
     """
     Retrieve trips.
     """
-    trips = crud.get_trips(session=session, skip=skip, limit=limit)
+    trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
     count = crud.get_trips_count(session=session)
     return TripsPublic(data=trips, count=count)
 
@@ -100,7 +117,7 @@ def create_trip(
         )
 
     trip = crud.create_trip(session=session, trip_in=trip_in)
-    return trip
+    return _trip_to_public(session, trip)
 
 
 @router.get(
@@ -122,7 +139,7 @@ def read_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    return trip
+    return _trip_to_public(session, trip)
 
 
 @router.put(
@@ -210,7 +227,7 @@ def update_trip(
             f"Superuser override: Trip {trip_id} was edited despite being in the past"
         )
 
-    return trip
+    return _trip_to_public(session, trip)
 
 
 @router.delete(
@@ -232,8 +249,17 @@ def delete_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    # Build response before delete; after delete the trip is detached and
-    # relationships (trip_boats, etc.) cannot be loaded
+    # Build response before delete; after delete the trip is detached
+    tz = "UTC"
+    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+    if mission:
+        launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+        if launch:
+            location = crud.get_location(
+                session=session, location_id=launch.location_id
+            )
+            if location:
+                tz = location.timezone
     response_data = TripPublic(
         id=trip.id,
         mission_id=trip.mission_id,
@@ -245,6 +271,7 @@ def delete_trip(
         created_at=trip.created_at,
         updated_at=trip.updated_at,
         trip_boats=[],
+        timezone=tz,
     )
     crud.delete_trip(session=session, trip_id=trip_id)
     return response_data
@@ -273,8 +300,14 @@ def read_trips_by_mission(
             detail=f"Mission with ID {mission_id} not found",
         )
 
-    # Get trips by mission and add unique() to handle eagerly loaded collections
-    # Sort by check_in_time (future first)
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    location = (
+        crud.get_location(session=session, location_id=launch.location_id)
+        if launch
+        else None
+    )
+    tz = location.timezone if location else "UTC"
+
     statement = (
         select(Trip)
         .where(Trip.mission_id == mission_id)
@@ -285,7 +318,6 @@ def read_trips_by_mission(
     trips = session.exec(statement).unique().all()
     count = len(trips)
 
-    # Convert to dictionaries to break the ORM relationship chain
     trip_dicts = [
         {
             "id": trip.id,
@@ -297,6 +329,7 @@ def read_trips_by_mission(
             "departure_time": trip.departure_time,
             "created_at": trip.created_at,
             "updated_at": trip.updated_at,
+            "timezone": tz,
         }
         for trip in trips
     ]
@@ -653,7 +686,7 @@ def read_public_trip(
                 detail="Error validating access code",
             )
 
-    return trip
+    return _trip_to_public(session, trip)
 
 
 @router.post(
@@ -697,7 +730,7 @@ def import_trip_from_yaml(
         importer = YamlImporter(session)
         trip = importer.import_trip(yaml_content)
 
-        return trip
+        return _trip_to_public(session, trip)
 
     except YamlValidationError as e:
         raise HTTPException(

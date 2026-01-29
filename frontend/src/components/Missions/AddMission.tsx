@@ -9,10 +9,10 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
-import { MissionsService } from "@/client"
+import { LaunchesService, MissionsService } from "@/client"
 import { Switch } from "../ui/switch"
 
 import {
@@ -26,7 +26,7 @@ import {
 } from "../ui/dialog"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, parseLocationTimeToUtc } from "@/utils"
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
@@ -55,6 +55,13 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const { showSuccessToast } = useCustomToast()
   const queryClient = useQueryClient()
   const contentRef = useRef(null)
+
+  const { data: launchData } = useQuery({
+    queryKey: ["launch-for-add-mission", launchId],
+    queryFn: () => LaunchesService.readLaunch({ launchId }),
+    enabled: !!launchId && isOpen,
+  })
+  const timezone = launchData?.timezone ?? null
 
   // Use mutation for creating mission
   const mutation = useMutation({
@@ -87,7 +94,9 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       launch_id: launchId,
       active,
       booking_mode: bookingMode,
-      sales_open_at: salesOpenAt ? new Date(salesOpenAt).toISOString() : null,
+      sales_open_at: salesOpenAt
+        ? parseLocationTimeToUtc(salesOpenAt, timezone ?? "UTC")
+        : null,
       refund_cutoff_hours: refundCutoffHours,
     })
   }
@@ -122,13 +131,23 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   portalRef={contentRef}
                 />
               </Field>
-              <Field label="Sales Open Date & Time">
+              <Field
+                label={
+                  timezone
+                    ? `Sales Open Date & Time (${timezone})`
+                    : "Sales Open Date & Time"
+                }
+              >
                 <Input
                   id="sales_open_at"
                   type="datetime-local"
                   value={salesOpenAt}
                   onChange={(e) => setSalesOpenAt(e.target.value)}
-                  placeholder="Sales open date and time"
+                  placeholder={
+                    timezone
+                      ? `Enter time in ${timezone}`
+                      : "Select launch for timezone"
+                  }
                 />
               </Field>
               <Field label="Refund Cutoff Hours" required>

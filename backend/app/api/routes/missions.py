@@ -25,6 +25,18 @@ from app.services.yaml_validator import YamlValidationError
 router = APIRouter(prefix="/missions", tags=["missions"])
 
 
+def _mission_to_public(session: Session, mission: Mission) -> MissionPublic:
+    """Build MissionPublic with timezone from mission's launch->location."""
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    tz = "UTC"
+    if launch:
+        location = crud.get_location(session=session, location_id=launch.location_id)
+        if location:
+            tz = location.timezone
+    data = mission.model_dump(mode="json", exclude={"launch"})
+    return MissionPublic(**data, timezone=tz)
+
+
 @router.get(
     "/",
     response_model=MissionsWithStatsPublic,
@@ -77,7 +89,7 @@ def create_mission(
         )
 
     mission = crud.create_mission(session=session, mission_in=mission_in)
-    return mission
+    return _mission_to_public(session, mission)
 
 
 @router.get(
@@ -99,7 +111,7 @@ def read_mission(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Mission with ID {mission_id} not found",
         )
-    return mission
+    return _mission_to_public(session, mission)
 
 
 @router.put(
@@ -175,7 +187,7 @@ def update_mission(
             f"Superuser override: Mission {mission_id} was edited despite launch being in the past"
         )
 
-    return mission
+    return _mission_to_public(session, mission)
 
 
 @router.delete(
@@ -223,13 +235,14 @@ def read_missions_by_launch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Launch with ID {launch_id} not found",
         )
+    location = crud.get_location(session=session, location_id=launch.location_id)
+    tz = location.timezone if location else "UTC"
 
     missions = crud.get_missions_by_launch(
         session=session, launch_id=launch_id, skip=skip, limit=limit
     )
     count = len(missions)
 
-    # Convert to dictionaries to break the ORM relationship chain
     mission_dicts = [
         {
             "id": mission.id,
@@ -241,6 +254,7 @@ def read_missions_by_launch(
             "refund_cutoff_hours": mission.refund_cutoff_hours,
             "created_at": mission.created_at,
             "updated_at": mission.updated_at,
+            "timezone": tz,
         }
         for mission in missions
     ]
@@ -265,21 +279,29 @@ def read_active_missions(
     missions = crud.get_active_missions(session=session, skip=skip, limit=limit)
     count = len(missions)
 
-    # Convert to dictionaries to break the ORM relationship chain
-    mission_dicts = [
-        {
-            "id": mission.id,
-            "name": mission.name,
-            "launch_id": mission.launch_id,
-            "active": mission.active,
-            "booking_mode": mission.booking_mode,
-            "sales_open_at": mission.sales_open_at,
-            "refund_cutoff_hours": mission.refund_cutoff_hours,
-            "created_at": mission.created_at,
-            "updated_at": mission.updated_at,
-        }
-        for mission in missions
-    ]
+    mission_dicts = []
+    for mission in missions:
+        launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+        location = (
+            crud.get_location(session=session, location_id=launch.location_id)
+            if launch
+            else None
+        )
+        tz = location.timezone if location else "UTC"
+        mission_dicts.append(
+            {
+                "id": mission.id,
+                "name": mission.name,
+                "launch_id": mission.launch_id,
+                "active": mission.active,
+                "booking_mode": mission.booking_mode,
+                "sales_open_at": mission.sales_open_at,
+                "refund_cutoff_hours": mission.refund_cutoff_hours,
+                "created_at": mission.created_at,
+                "updated_at": mission.updated_at,
+                "timezone": tz,
+            }
+        )
 
     return MissionsPublic(data=mission_dicts, count=count)
 
@@ -297,21 +319,29 @@ def read_public_missions(
     missions = crud.get_public_missions(session=session, skip=skip, limit=limit)
     count = len(missions)
 
-    # Convert to dictionaries to break the ORM relationship chain
-    mission_dicts = [
-        {
-            "id": mission.id,
-            "name": mission.name,
-            "launch_id": mission.launch_id,
-            "active": mission.active,
-            "booking_mode": mission.booking_mode,
-            "sales_open_at": mission.sales_open_at,
-            "refund_cutoff_hours": mission.refund_cutoff_hours,
-            "created_at": mission.created_at,
-            "updated_at": mission.updated_at,
-        }
-        for mission in missions
-    ]
+    mission_dicts = []
+    for mission in missions:
+        launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+        location = (
+            crud.get_location(session=session, location_id=launch.location_id)
+            if launch
+            else None
+        )
+        tz = location.timezone if location else "UTC"
+        mission_dicts.append(
+            {
+                "id": mission.id,
+                "name": mission.name,
+                "launch_id": mission.launch_id,
+                "active": mission.active,
+                "booking_mode": mission.booking_mode,
+                "sales_open_at": mission.sales_open_at,
+                "refund_cutoff_hours": mission.refund_cutoff_hours,
+                "created_at": mission.created_at,
+                "updated_at": mission.updated_at,
+                "timezone": tz,
+            }
+        )
 
     return MissionsPublic(data=mission_dicts, count=count)
 
@@ -353,7 +383,7 @@ def import_mission_from_yaml(
         importer = YamlImporter(session)
         mission = importer.import_mission(yaml_content)
 
-        return mission
+        return _mission_to_public(session, mission)
 
     except YamlValidationError as e:
         raise HTTPException(

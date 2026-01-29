@@ -16,6 +16,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   BoatsService,
+  MissionsService,
   TripBoatsService,
   TripMerchandiseService,
   TripPricingService,
@@ -36,7 +37,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, parseLocationTimeToUtc } from "@/utils"
 
 // Props interface
 interface AddTripProps {
@@ -112,6 +113,13 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     queryFn: () => BoatsService.readBoats({ limit: 100 }),
     enabled: isOpen,
   })
+
+  const { data: missionData } = useQuery({
+    queryKey: ["mission-for-add-trip", missionId],
+    queryFn: () => MissionsService.readMission({ missionId }),
+    enabled: !!missionId && isOpen,
+  })
+  const timezone = missionData?.timezone ?? null
 
   // Update boats data when fetched
   useEffect(() => {
@@ -336,13 +344,14 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       return
     }
 
+    const tz = timezone ?? "UTC"
     mutation.mutate({
       mission_id: missionId,
       type: type,
       active: active,
-      check_in_time: new Date(checkInTime).toISOString(),
-      boarding_time: new Date(boardingTime).toISOString(),
-      departure_time: new Date(departureTime).toISOString(),
+      check_in_time: parseLocationTimeToUtc(checkInTime, tz),
+      boarding_time: parseLocationTimeToUtc(boardingTime, tz),
+      departure_time: parseLocationTimeToUtc(departureTime, tz),
     })
   }
 
@@ -390,31 +399,64 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       <option value="pre_launch">Pre-Launch</option>
                     </NativeSelect>
                   </Field>
-                  <Field label="Check-in Time" required>
+                  <Field
+                    label={
+                      timezone
+                        ? `Check-in Time (${timezone})`
+                        : "Check-in Time"
+                    }
+                    required
+                  >
                     <Input
                       id="check_in_time"
                       type="datetime-local"
                       value={checkInTime}
                       onChange={(e) => setCheckInTime(e.target.value)}
-                      placeholder="Check-in time"
+                      placeholder={
+                        timezone
+                          ? `Enter time in ${timezone}`
+                          : "Select mission for timezone"
+                      }
                     />
                   </Field>
-                  <Field label="Boarding Time" required>
+                  <Field
+                    label={
+                      timezone
+                        ? `Boarding Time (${timezone})`
+                        : "Boarding Time"
+                    }
+                    required
+                  >
                     <Input
                       id="boarding_time"
                       type="datetime-local"
                       value={boardingTime}
                       onChange={(e) => setBoardingTime(e.target.value)}
-                      placeholder="Boarding time"
+                      placeholder={
+                        timezone
+                          ? `Enter time in ${timezone}`
+                          : "Select mission for timezone"
+                      }
                     />
                   </Field>
-                  <Field label="Departure Time" required>
+                  <Field
+                    label={
+                      timezone
+                        ? `Departure Time (${timezone})`
+                        : "Departure Time"
+                    }
+                    required
+                  >
                     <Input
                       id="departure_time"
                       type="datetime-local"
                       value={departureTime}
                       onChange={(e) => setDepartureTime(e.target.value)}
-                      placeholder="Departure time"
+                      placeholder={
+                        timezone
+                          ? `Enter time in ${timezone}`
+                          : "Select mission for timezone"
+                      }
                     />
                   </Field>
                   <Field>

@@ -352,6 +352,7 @@ class LaunchPublic(LaunchBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    timezone: str = "UTC"  # IANA name from launch's location; for display
 
     @field_serializer("launch_timestamp", "created_at", "updated_at")
     def serialize_datetime_utc(self, dt: datetime):
@@ -420,6 +421,7 @@ class MissionPublic(MissionBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    timezone: str = "UTC"  # IANA name from mission's launch location; for display
 
 
 class MissionWithStats(MissionPublic):
@@ -619,6 +621,9 @@ class TripPublic(TripBase):
     created_at: datetime
     updated_at: datetime
     trip_boats: list["TripBoatPublic"] = Field(default_factory=list)
+    timezone: str = (
+        "UTC"  # IANA name from trip's mission->launch->location; for display
+    )
 
     @field_serializer(
         "check_in_time", "boarding_time", "departure_time", "created_at", "updated_at"

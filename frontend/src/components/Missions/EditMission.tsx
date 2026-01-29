@@ -19,7 +19,12 @@ import { FaExchangeAlt } from "react-icons/fa"
 import { Switch } from "../ui/switch"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseApiDate } from "@/utils"
+import {
+  formatInLocationTimezone,
+  handleError,
+  parseApiDate,
+  parseLocationTimeToUtc,
+} from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -43,6 +48,7 @@ interface Mission {
   refund_cutoff_hours: number
   created_at: string
   updated_at: string
+  timezone?: string
 }
 
 const bookingModeOptions = createListCollection({
@@ -88,7 +94,10 @@ const EditMission = ({ mission }: EditMissionProps) => {
       active: mission.active,
       booking_mode: mission.booking_mode || "private",
       sales_open_at: mission.sales_open_at
-        ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
+        ? formatInLocationTimezone(
+            parseApiDate(mission.sales_open_at),
+            mission.timezone ?? "UTC",
+          )
         : "",
       refund_cutoff_hours: mission.refund_cutoff_hours,
     },
@@ -120,7 +129,10 @@ const EditMission = ({ mission }: EditMissionProps) => {
         active: mission.active,
         booking_mode: mission.booking_mode || "private",
         sales_open_at: mission.sales_open_at
-          ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
+          ? formatInLocationTimezone(
+              parseApiDate(mission.sales_open_at),
+              mission.timezone ?? "UTC",
+            )
           : "",
         refund_cutoff_hours: mission.refund_cutoff_hours,
       })
@@ -130,13 +142,14 @@ const EditMission = ({ mission }: EditMissionProps) => {
   const onSubmit: SubmitHandler<any> = async (data) => {
     // Format the data before sending
     // Use local state for active switch
+    const tz = mission.timezone ?? "UTC"
     const formattedData: any = {
       name: data.name,
       launch_id: data.launch_id,
       active: active,
       booking_mode: data.booking_mode || "private",
       sales_open_at: data.sales_open_at
-        ? new Date(data.sales_open_at).toISOString()
+        ? parseLocationTimeToUtc(data.sales_open_at, tz)
         : null,
       refund_cutoff_hours: data.refund_cutoff_hours,
     }
@@ -210,12 +223,12 @@ const EditMission = ({ mission }: EditMissionProps) => {
                 <Field
                   invalid={!!errors.sales_open_at}
                   errorText={errors.sales_open_at?.message}
-                  label="Sales Open Date & Time"
+                  label={`Sales Open Date & Time (${mission.timezone ?? "UTC"})`}
                 >
                   <Input
                     id="sales_open_at"
                     {...register("sales_open_at")}
-                    placeholder="Sales open date and time"
+                    placeholder={`Enter time in ${mission.timezone ?? "UTC"}`}
                     type="datetime-local"
                     disabled={isPast}
                   />

@@ -52,9 +52,11 @@ def get_launches_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, name, summary, launch_timestamp, location_id, created_at, updated_at
-            FROM launch
-            ORDER BY created_at DESC
+            SELECT l.id, l.name, l.summary, l.launch_timestamp, l.location_id,
+                   l.created_at, l.updated_at, loc.timezone
+            FROM launch l
+            JOIN location loc ON l.location_id = loc.id
+            ORDER BY l.created_at DESC
             LIMIT :limit OFFSET :skip
         """
         ).params(limit=limit, skip=skip)
@@ -64,13 +66,14 @@ def get_launches_no_relationships(
     for row in result:
         launches_data.append(
             {
-                "id": row[0],  # id
-                "name": row[1],  # name
-                "summary": row[2],  # summary
-                "launch_timestamp": row[3],  # launch_timestamp
-                "location_id": row[4],  # location_id
-                "created_at": row[5],  # created_at
-                "updated_at": row[6],  # updated_at
+                "id": row[0],
+                "name": row[1],
+                "summary": row[2],
+                "launch_timestamp": row[3],
+                "location_id": row[4],
+                "created_at": row[5],
+                "updated_at": row[6],
+                "timezone": row[7] or "UTC",
             }
         )
 

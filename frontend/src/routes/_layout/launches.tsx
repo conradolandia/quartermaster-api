@@ -7,6 +7,7 @@ import {
   Heading,
   Icon,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -27,7 +28,10 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { parseApiDate } from "@/utils"
+import {
+  formatInLocationTimezoneDisplayParts,
+  parseApiDate,
+} from "@/utils"
 
 // Define sortable columns
 type SortableColumn = "name" | "launch_timestamp" | "summary" | "location_id"
@@ -186,9 +190,27 @@ function LaunchesTable() {
     )
   }
 
-  // Format date for display (parse API datetime as UTC for correct local display)
-  const formatDate = (dateString: string) => {
-    return parseApiDate(dateString).toLocaleString()
+  // Format date in location timezone; timezone part can be styled (smaller, muted)
+  const renderLaunchDate = (dateString: string, timezone?: string | null) => {
+    const d = parseApiDate(dateString)
+    const parts = timezone ? formatInLocationTimezoneDisplayParts(d, timezone) : null
+    if (parts) {
+      return (
+        <>
+          {parts.dateTime}
+          <Text as="span" display="block" fontSize="xs" opacity={0.7}>
+            {parts.timezone}
+          </Text>
+        </>
+      )
+    }
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   return (
@@ -256,7 +278,7 @@ function LaunchesTable() {
                 {launch.name}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {formatDate(launch.launch_timestamp)}
+                {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {launch.summary}

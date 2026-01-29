@@ -16,26 +16,29 @@ import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
 import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
+import {
+  formatInLocationTimezoneDisplayParts,
+  parseApiDate,
+} from "@/utils"
 import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
 import YamlImportForm from "@/components/Common/YamlImportForm"
 import AddMission from "@/components/Missions/AddMission"
 import { YamlImportService } from "@/services/yamlImportService"
 import PendingMissions from "@/components/Pending/PendingMissions"
 
-// Define sortable columns
+// Define sortable columns (must match MissionWithStats keys)
 type SortableColumn =
   | "name"
   | "launch_id"
   | "sales_open_at"
   | "active"
-  | "public"
   | "total_bookings"
   | "total_sales"
 type SortDirection = "asc" | "desc"
 
 const missionsSearchSchema = z.object({
   sortBy: z
-    .enum(["name", "launch_id", "sales_open_at", "active", "public", "total_bookings", "total_sales"])
+    .enum(["name", "launch_id", "sales_open_at", "active", "total_bookings", "total_sales"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
@@ -49,13 +52,13 @@ const sortMissions = (
   if (!sortBy || !sortDirection) return missions
 
   return [...missions].sort((a, b) => {
-    let aValue: any = a[sortBy]
-    let bValue: any = b[sortBy]
+    let aValue: unknown = a[sortBy]
+    let bValue: unknown = b[sortBy]
 
-    // Special handling for dates
+    // Special handling for dates (parse as UTC for correct ordering)
     if (sortBy === "sales_open_at") {
-      aValue = a.sales_open_at ? new Date(a.sales_open_at).getTime() : 0
-      bValue = b.sales_open_at ? new Date(b.sales_open_at).getTime() : 0
+      aValue = a.sales_open_at ? parseApiDate(a.sales_open_at).getTime() : 0
+      bValue = b.sales_open_at ? parseApiDate(b.sales_open_at).getTime() : 0
     }
 
     // Handle booleans
@@ -154,6 +157,29 @@ function Missions() {
         boxSize={4}
       />
     )
+  }
+
+  const renderSalesOpenAt = (dateString: string | null | undefined, timezone?: string | null) => {
+    if (!dateString) return "Not set"
+    const d = parseApiDate(dateString)
+    const parts = timezone ? formatInLocationTimezoneDisplayParts(d, timezone) : null
+    if (parts) {
+      return (
+        <>
+          {parts.dateTime}
+          <Text as="span" display="block" fontSize="xs" opacity={0.7}>
+            {parts.timezone}
+          </Text>
+        </>
+      )
+    }
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   return (
@@ -264,9 +290,7 @@ function Missions() {
                     mission.launch_id}
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
-                  {mission.sales_open_at
-                    ? new Date(mission.sales_open_at).toLocaleString()
-                    : "Not set"}
+                  {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   <Text fontWeight="medium">{mission.total_bookings || 0}</Text>
