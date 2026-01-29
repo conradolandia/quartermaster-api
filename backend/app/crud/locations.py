@@ -42,7 +42,7 @@ def get_locations_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, name, state, created_at, updated_at
+            SELECT id, name, state, timezone, created_at, updated_at
             FROM location
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
@@ -54,11 +54,12 @@ def get_locations_no_relationships(
     for row in result:
         locations_data.append(
             {
-                "id": row[0],  # id
-                "name": row[1],  # name
-                "state": row[2],  # state
-                "created_at": row[3],  # created_at
-                "updated_at": row[4],  # updated_at
+                "id": row[0],
+                "name": row[1],
+                "state": row[2],
+                "timezone": row[3],
+                "created_at": row[4],
+                "updated_at": row[5],
             }
         )
 

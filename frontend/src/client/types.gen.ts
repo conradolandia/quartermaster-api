@@ -291,11 +291,13 @@ export type LaunchUpdateResponse = {
 export type LocationCreate = {
   name: string
   state: string
+  timezone?: string
 }
 
 export type LocationPublic = {
   name: string
   state: string
+  timezone?: string
   id: string
   created_at: string
   updated_at: string
@@ -309,6 +311,7 @@ export type LocationsPublic = {
 export type LocationUpdate = {
   name?: string | null
   state?: string | null
+  timezone?: string | null
 }
 
 export type Message = {

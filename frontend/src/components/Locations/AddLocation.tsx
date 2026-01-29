@@ -47,6 +47,7 @@ export const AddLocation = ({
     defaultValues: {
       name: "",
       state: "",
+      timezone: "UTC",
     },
   })
 
@@ -124,6 +125,19 @@ export const AddLocation = ({
                         portalRef={contentRef}
                       />
                     )}
+                  />
+                </Field>
+                <Field
+                  label="Timezone"
+                  invalid={!!errors.timezone}
+                  errorText={errors.timezone?.message}
+                >
+                  <Input
+                    id="timezone"
+                    {...register("timezone", {
+                      maxLength: { value: 64, message: "Max 64 characters" },
+                    })}
+                    placeholder="e.g. America/New_York"
                   />
                 </Field>
               </VStack>

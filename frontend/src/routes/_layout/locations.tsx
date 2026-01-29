@@ -27,12 +27,12 @@ import {
 } from "@/components/ui/pagination.tsx"
 
 // Define sortable columns
-type SortableColumn = "name" | "state" | "id"
+type SortableColumn = "name" | "state" | "timezone" | "id"
 type SortDirection = "asc" | "desc"
 
 const locationsSearchSchema = z.object({
   page: z.number().catch(1),
-  sortBy: z.enum(["name", "state", "id"]).optional(),
+  sortBy: z.enum(["name", "state", "timezone", "id"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
@@ -182,6 +182,18 @@ function LocationsTable() {
                   <SortIcon column="state" />
                 </Flex>
               </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("timezone")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Timezone
+                  <SortIcon column="timezone" />
+                </Flex>
+              </Table.ColumnHeader>
             <Table.ColumnHeader
               w="sm"
               fontWeight="bold"
@@ -207,6 +219,9 @@ function LocationsTable() {
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {location.state}
+              </Table.Cell>
+              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
+                {location.timezone ?? "UTC"}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {location.id}

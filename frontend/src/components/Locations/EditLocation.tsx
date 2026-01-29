@@ -7,7 +7,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FaExchangeAlt } from "react-icons/fa"
 
@@ -53,8 +53,19 @@ const EditLocation = ({ location }: EditLocationProps) => {
     defaultValues: {
       name: location.name,
       state: location.state,
+      timezone: location.timezone ?? "UTC",
     },
   })
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        name: location.name,
+        state: location.state,
+        timezone: location.timezone ?? "UTC",
+      })
+    }
+  }, [isOpen, location.id, location.name, location.state, location.timezone, reset])
 
   const mutation = useMutation({
     mutationFn: (data: LocationUpdate) =>
@@ -148,6 +159,19 @@ const EditLocation = ({ location }: EditLocationProps) => {
                         portalRef={contentRef}
                       />
                     )}
+                  />
+                </Field>
+                <Field
+                  label="Timezone"
+                  invalid={!!errors.timezone}
+                  errorText={errors.timezone?.message}
+                >
+                  <Input
+                    id="timezone"
+                    {...register("timezone", {
+                      maxLength: { value: 64, message: "Max 64 characters" },
+                    })}
+                    placeholder="e.g. America/New_York"
                   />
                 </Field>
               </VStack>
