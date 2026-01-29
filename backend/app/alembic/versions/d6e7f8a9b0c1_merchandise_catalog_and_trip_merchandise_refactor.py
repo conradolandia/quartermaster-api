@@ -12,6 +12,7 @@ import uuid
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 revision = "d6e7f8a9b0c1"
@@ -21,6 +22,12 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    # Skip if already applied (e.g. table created manually or by a previous run)
+    if inspector.has_table("merchandise"):
+        return
+
     # 1. Create merchandise table
     op.create_table(
         "merchandise",
