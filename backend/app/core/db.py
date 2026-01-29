@@ -16,6 +16,8 @@ from app.models import (
     LocationCreate,
     Mission,
     MissionCreate,
+    Provider,
+    ProviderCreate,
     Trip,
     TripBoat,
     TripBoatCreate,
@@ -89,6 +91,21 @@ def init_db(session: Session) -> None:
         )
     print(f"Jurisdiction created: {jurisdiction}")
 
+    # Create default provider if it doesn't exist
+    provider = session.exec(
+        select(Provider).where(Provider.name == "Default Provider")
+    ).first()
+    if not provider:
+        provider_in = ProviderCreate(
+            name="Default Provider",
+            location="Cape Canaveral",
+            address="123 Main St, Cape Canaveral, FL 32920",
+            jurisdiction_id=jurisdiction.id,
+            map_link="https://maps.example.com/boaty",
+        )
+        provider = crud.create_provider(session=session, provider_in=provider_in)
+    print(f"Provider created: {provider}")
+
     # Create default launch if it doesn't exist
     launch = session.exec(select(Launch).where(Launch.name == "Default Launch")).first()
     if not launch:
@@ -129,11 +146,7 @@ def init_db(session: Session) -> None:
         boat_in = BoatCreate(
             name="Boaty McBoatface",
             capacity=150,
-            provider_name="Default Provider",
-            provider_location="Cape Canaveral",
-            provider_address="123 Main St, Cape Canaveral, FL 32920",
-            jurisdiction_id=jurisdiction.id,
-            map_link="https://maps.example.com/boaty",
+            provider_id=provider.id,
         )
         boat = crud.create_boat(session=session, boat_in=boat_in)
     print(f"Boat created: {boat}")

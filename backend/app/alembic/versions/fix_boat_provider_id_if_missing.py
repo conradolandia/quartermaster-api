@@ -1,19 +1,23 @@
-"""create_provider_model_and_refactor_boats
+"""fix boat provider_id if missing
 
-Revision ID: 99839ca7089e
-Revises: 26a5becb4e42
-Create Date: 2026-01-28 14:36:57.925004
+One-off: run boat refactor when provider table exists but boat still has old
+columns (provider_name, etc.) and no provider_id. Handles DBs where migration
+99839ca7089e was skipped (provider already existed) so boat was never updated.
+
+Revision ID: fix_boat_provider_id
+Revises: d6e7f8a9b0c1
+Create Date: 2026-01-29
 
 """
+import uuid
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
-import uuid
 
 
-# revision identifiers, used by Alembic.
-revision = '99839ca7089e'
-down_revision = '26a5becb4e42'
+revision = "fix_boat_provider_id"
+down_revision = "d6e7f8a9b0c1"
 branch_labels = None
 depends_on = None
 
@@ -25,11 +29,15 @@ def _boat_has_provider_id(inspector) -> bool:
     return "provider_id" in cols
 
 
-def _run_boat_refactor(connection, op) -> None:
-    """Add provider_id to boat, migrate data from old columns, drop old columns."""
+def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    if _boat_has_provider_id(inspector):
+        return
+
     op.add_column("boat", sa.Column("provider_id", sa.UUID(), nullable=True))
 
-    result = connection.execute(sa.text("""
+    result = conn.execute(sa.text("""
         SELECT DISTINCT
             COALESCE(provider_name, '') as provider_name,
             provider_location,
@@ -40,7 +48,6 @@ def _run_boat_refactor(connection, op) -> None:
     """))
 
     provider_map = {}
-
     for row in result:
         provider_name = row[0] or "Unknown Provider"
         provider_location = row[1]
@@ -56,8 +63,7 @@ def _run_boat_refactor(connection, op) -> None:
         )
 
         if provider_key not in provider_map:
-            # Find existing provider or create one
-            existing = connection.execute(
+            existing = conn.execute(
                 sa.text("""
                 SELECT id FROM provider
                 WHERE name = :name AND (location IS NOT DISTINCT FROM :loc)
@@ -77,7 +83,7 @@ def _run_boat_refactor(connection, op) -> None:
                 provider_map[provider_key] = str(existing[0])
             else:
                 provider_id = str(uuid.uuid4())
-                connection.execute(
+                conn.execute(
                     sa.text("""
                     INSERT INTO provider (id, name, location, address, jurisdiction_id, map_link, created_at, updated_at)
                     VALUES (:id, :name, :location, :address, :jurisdiction_id, :map_link, NOW(), NOW())
@@ -115,7 +121,7 @@ def _run_boat_refactor(connection, op) -> None:
         else:
             conditions.append("map_link IS NULL")
         where_clause = " AND ".join(conditions)
-        connection.execute(
+        conn.execute(
             sa.text(f"UPDATE boat SET provider_id = :provider_id WHERE {where_clause}"),
             params,
         )
@@ -128,62 +134,6 @@ def _run_boat_refactor(connection, op) -> None:
     op.drop_column("boat", "jurisdiction_id")
 
 
-def upgrade():
-    conn = op.get_bind()
-    inspector = inspect(conn)
-    provider_exists = inspector.has_table("provider")
-    boat_done = _boat_has_provider_id(inspector)
-
-    if boat_done:
-        return
-
-    if not provider_exists:
-        op.create_table(
-            "provider",
-            sa.Column("id", sa.UUID(), nullable=False),
-            sa.Column("name", sa.VARCHAR(length=255), nullable=False),
-            sa.Column("location", sa.VARCHAR(length=255), nullable=True),
-            sa.Column("address", sa.VARCHAR(length=500), nullable=True),
-            sa.Column("jurisdiction_id", sa.UUID(), nullable=False),
-            sa.Column("map_link", sa.VARCHAR(length=2000), nullable=True),
-            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-            sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-            sa.ForeignKeyConstraint(["jurisdiction_id"], ["jurisdiction.id"]),
-            sa.PrimaryKeyConstraint("id"),
-        )
-
-    connection = op.get_bind()
-    _run_boat_refactor(connection, op)
-
-
 def downgrade():
-    # Re-add old columns to boat table
-    op.add_column('boat', sa.Column('jurisdiction_id', sa.UUID(), nullable=True))
-    op.add_column('boat', sa.Column('map_link', sa.VARCHAR(length=2000), nullable=True))
-    op.add_column('boat', sa.Column('provider_address', sa.VARCHAR(length=500), nullable=True))
-    op.add_column('boat', sa.Column('provider_location', sa.VARCHAR(length=255), nullable=True))
-    op.add_column('boat', sa.Column('provider_name', sa.VARCHAR(length=255), nullable=True))
-
-    # Migrate data back: Copy provider data to boat columns
-    connection = op.get_bind()
-    # Use PostgreSQL-specific UPDATE ... FROM syntax
-    connection.execute(sa.text("""
-        UPDATE boat
-        SET
-            provider_name = p.name,
-            provider_location = p.location,
-            provider_address = p.address,
-            jurisdiction_id = p.jurisdiction_id,
-            map_link = p.map_link
-        FROM provider p
-        WHERE boat.provider_id = p.id
-    """))
-
-    # Make provider_id nullable
-    op.alter_column('boat', 'provider_id', nullable=True)
-
-    # Drop provider_id column
-    op.drop_column('boat', 'provider_id')
-
-    # Drop provider table
-    op.drop_table('provider')
+    # Not reversible without restoring old boat columns; leave no-op or optional
+    pass
