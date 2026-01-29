@@ -71,6 +71,7 @@ interface SelectedMerchandise {
 
 const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [missionId, setMissionId] = useState("")
+  const [name, setName] = useState("")
   const [type, setType] = useState("launch_viewing")
   const [active, setActive] = useState(true)
   const [checkInTime, setCheckInTime] = useState("")
@@ -131,6 +132,13 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   // Reset form on close
   useEffect(() => {
     if (!isOpen) {
+      setMissionId("")
+      setName("")
+      setType("launch_viewing")
+      setActive(true)
+      setCheckInTime("")
+      setBoardingTime("")
+      setDepartureTime("")
       setSelectedBoats([])
       setSelectedBoatId("")
       setMaxCapacity(undefined)
@@ -347,6 +355,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     const tz = timezone ?? "UTC"
     mutation.mutate({
       mission_id: missionId,
+      name: name || null,
       type: type,
       active: active,
       check_in_time: parseLocationTimeToUtc(checkInTime, tz),
@@ -385,6 +394,14 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       onChange={setMissionId}
                       isDisabled={mutation.isPending}
                       portalRef={contentRef}
+                    />
+                  </Field>
+                  <Field label="Name" helperText="Optional custom label for this trip">
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Trip name (optional)"
                     />
                   </Field>
                   <Field label="Type" required>

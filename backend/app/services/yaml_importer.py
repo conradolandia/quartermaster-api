@@ -121,6 +121,7 @@ class YamlImporter:
             # Convert to TripCreate
             trip_data = TripCreate(
                 mission_id=data["mission_id"],
+                name=data.get("name"),
                 type=data["type"],
                 active=data.get("active", True),
                 check_in_time=datetime.fromisoformat(

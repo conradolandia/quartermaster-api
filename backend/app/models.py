@@ -553,6 +553,7 @@ class BoatsPublic(SQLModel):
 # Trip models
 class TripBase(SQLModel):
     mission_id: uuid.UUID = Field(foreign_key="mission.id")
+    name: str | None = Field(default=None, max_length=255)  # custom label
     type: str = Field(max_length=50)  # launch_viewing or pre_launch
     active: bool = Field(default=True)
     check_in_time: datetime
@@ -566,6 +567,7 @@ class TripCreate(TripBase):
 
 class TripUpdate(SQLModel):
     mission_id: uuid.UUID | None = None
+    name: str | None = Field(default=None, max_length=255)
     type: str | None = Field(default=None, max_length=50)
     active: bool | None = None
     check_in_time: datetime | None = None

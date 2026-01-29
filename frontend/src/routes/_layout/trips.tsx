@@ -41,6 +41,7 @@ import {
 
 // Define sortable columns
 type SortableColumn =
+  | "name"
   | "type"
   | "mission_id"
   | "check_in_time"
@@ -51,7 +52,7 @@ type SortDirection = "asc" | "desc"
 const tripsSearchSchema = z.object({
   page: z.number().catch(1),
   sortBy: z
-    .enum(["type", "mission_id", "check_in_time", "departure_time", "active"])
+    .enum(["name", "type", "mission_id", "check_in_time", "departure_time", "active"])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
 })
@@ -171,6 +172,12 @@ function TripsTable() {
       bValue = bValue ? 1 : 0
     }
 
+    // Handle null/undefined for name (treat null as empty string for sorting)
+    if (effectiveSortBy === "name") {
+      aValue = aValue ?? ""
+      bValue = bValue ?? ""
+    }
+
     // Handle string sorting
     if (typeof aValue === "string" && typeof bValue === "string") {
       return effectiveSortDirection === "asc"
@@ -253,7 +260,19 @@ function TripsTable() {
                 w="sm"
                 fontWeight="bold"
                 cursor="pointer"
+                onClick={() => handleSort("name")}
+              >
+                <Flex align="center">
+                  Name
+                  <SortIcon column="name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
                 onClick={() => handleSort("type")}
+                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Trip Type
@@ -265,7 +284,7 @@ function TripsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_id")}
-                display={{ base: "none", md: "table-cell" }}
+                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Mission
@@ -323,11 +342,14 @@ function TripsTable() {
             return (
               <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                 <Table.Cell truncate maxW="sm">
+                  {trip.name || "—"}
+                </Table.Cell>
+                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                   {trip.type === "launch_viewing"
                     ? "Launch Viewing"
                     : "Pre-Launch"}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {mission?.name || "Unknown"}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>

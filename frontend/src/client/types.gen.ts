@@ -449,6 +449,7 @@ export type TripBoatUpdate = {
 
 export type TripCreate = {
   mission_id: string
+  name?: string | null
   type: string
   active?: boolean
   check_in_time: string
@@ -504,6 +505,7 @@ export type TripPricingUpdate = {
 
 export type TripPublic = {
   mission_id: string
+  name?: string | null
   type: string
   active?: boolean
   check_in_time: string
@@ -523,6 +525,7 @@ export type TripsPublic = {
 
 export type TripUpdate = {
   mission_id?: string | null
+  name?: string | null
   type?: string | null
   active?: boolean | null
   check_in_time?: string | null

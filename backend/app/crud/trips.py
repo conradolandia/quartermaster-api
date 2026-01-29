@@ -37,7 +37,7 @@ def get_trips_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT t.id, t.mission_id, t.type, t.active, t.check_in_time,
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.check_in_time,
                    t.boarding_time, t.departure_time, t.created_at, t.updated_at,
                    loc.timezone
             FROM trip t
@@ -56,14 +56,15 @@ def get_trips_no_relationships(
             {
                 "id": row[0],
                 "mission_id": row[1],
-                "type": row[2],
-                "active": row[3],
-                "check_in_time": row[4],
-                "boarding_time": row[5],
-                "departure_time": row[6],
-                "created_at": row[7],
-                "updated_at": row[8],
-                "timezone": row[9] or "UTC",
+                "name": row[2],
+                "type": row[3],
+                "active": row[4],
+                "check_in_time": row[5],
+                "boarding_time": row[6],
+                "departure_time": row[7],
+                "created_at": row[8],
+                "updated_at": row[9],
+                "timezone": row[10] or "UTC",
             }
         )
 

@@ -151,6 +151,7 @@ def init_db(session: Session) -> None:
 
         trip_in = TripCreate(
             mission_id=mission.id,
+            name=None,
             type="launch_viewing",
             active=True,
             check_in_time=check_in_time,

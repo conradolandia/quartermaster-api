@@ -52,6 +52,7 @@ interface EditTripProps {
 const EditTrip = ({ trip }: EditTripProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [missionId, setMissionId] = useState(trip.mission_id)
+  const [name, setName] = useState(trip.name ?? "")
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
 
@@ -127,10 +128,14 @@ const EditTrip = ({ trip }: EditTripProps) => {
     }
   }, [tripBoatsData])
 
-  // Sync datetime inputs when dialog opens or trip changes (location timezone)
+  // Sync inputs when dialog opens or trip changes (location timezone)
   useEffect(() => {
     if (isOpen) {
       const zone = trip.timezone ?? "UTC"
+      setMissionId(trip.mission_id)
+      setName(trip.name ?? "")
+      setType(trip.type)
+      setActive(trip.active ?? true)
       setCheckInTime(
         formatInLocationTimezone(parseApiDate(trip.check_in_time), zone),
       )
@@ -141,7 +146,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
         formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
       )
     }
-  }, [isOpen, trip.id, trip.check_in_time, trip.boarding_time, trip.departure_time, trip.timezone])
+  }, [isOpen, trip.id, trip.mission_id, trip.name, trip.type, trip.active, trip.check_in_time, trip.boarding_time, trip.departure_time, trip.timezone])
 
   // Create a map of boat ids to boat objects for quick lookup
   const boatsMap = new Map<string, any>()
@@ -208,6 +213,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
 
     mutation.mutate({
       mission_id: missionId,
+      name: name || null,
       type: type,
       active: active,
       check_in_time: parseLocationTimeToUtc(checkInTime, tz),
@@ -269,6 +275,16 @@ const EditTrip = ({ trip }: EditTripProps) => {
                         onChange={setMissionId}
                         isDisabled={mutation.isPending || isPast}
                         portalRef={contentRef}
+                      />
+                    </Field>
+
+                    <Field label="Name" helperText="Optional custom label for this trip">
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Trip name (optional)"
+                        disabled={mutation.isPending || isPast}
                       />
                     </Field>
 

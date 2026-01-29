@@ -263,6 +263,7 @@ def delete_trip(
     response_data = TripPublic(
         id=trip.id,
         mission_id=trip.mission_id,
+        name=trip.name,
         type=trip.type,
         active=trip.active,
         check_in_time=trip.check_in_time,
