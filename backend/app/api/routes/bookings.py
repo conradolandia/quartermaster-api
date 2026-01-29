@@ -669,7 +669,7 @@ def update_booking(
                     "confirmed",
                     "cancelled",
                 ],  # Allow draft -> confirmed for admin bookings
-                "pending_payment": ["confirmed", "cancelled"],
+                "pending_payment": ["confirmed", "cancelled", "completed"],
                 "confirmed": ["checked_in", "cancelled", "refunded"],
                 "checked_in": ["completed", "refunded"],
                 "completed": ["refunded"],

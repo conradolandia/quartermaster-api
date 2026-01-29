@@ -164,8 +164,12 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     }
   }
 
-  const canRefund = currentBooking &&
-    ["confirmed", "checked_in", "completed"].includes(currentBooking.status || "unknown")
+  const canRefund =
+    currentBooking &&
+    ["confirmed", "checked_in", "completed"].includes(
+      currentBooking.status || "unknown",
+    )
+  const isRefunded = currentBooking?.status === "refunded"
 
   return (
     <VStack gap={6} align="stretch">
@@ -361,6 +365,40 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                 </VStack>
               </Card.Body>
             </Card.Root>
+          ) : isRefunded ? (
+            <Card.Root bg="bg.panel" borderColor="green.200">
+              <Card.Body>
+                <VStack gap={4} align="stretch">
+                  <Text color="green.600" fontWeight="medium">
+                    Refund completed
+                  </Text>
+                  <Text color="text.muted">
+                    This booking has been refunded. Items above show refunded status.
+                  </Text>
+                  {(() => {
+                    const itemWithDetails = currentBooking.items?.find(
+                      (i) => i.refund_reason || i.refund_notes,
+                    )
+                    if (!itemWithDetails) return null
+                    return (
+                      <VStack gap={2} align="stretch">
+                        <Text fontWeight="medium" fontSize="sm">
+                          Refund details
+                        </Text>
+                        <Box fontSize="sm" color="text.muted">
+                          {itemWithDetails.refund_reason && (
+                            <Text>Reason: {itemWithDetails.refund_reason}</Text>
+                          )}
+                          {itemWithDetails.refund_notes && (
+                            <Text>Notes: {itemWithDetails.refund_notes}</Text>
+                          )}
+                        </Box>
+                      </VStack>
+                    )
+                  })()}
+                </VStack>
+              </Card.Body>
+            </Card.Root>
           ) : (
             <Card.Root bg="bg.panel" borderColor="red.200">
               <Card.Body>
@@ -369,8 +407,11 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                     This booking cannot be refunded
                   </Text>
                   <Text color="text.muted" textAlign="center">
-                    Only bookings with status "confirmed", "checked_in", or "completed" can be refunded.
-                    Current status: {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
+                    Only bookings with status "confirmed", "checked_in", or
+                    "completed" can be refunded. Current status:{" "}
+                    {(currentBooking.status || "unknown")
+                      .replace("_", " ")
+                      .toUpperCase()}
                   </Text>
                   <Button variant="outline" onClick={handleReset}>
                     <FiX />
