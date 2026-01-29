@@ -7,6 +7,7 @@ Create Date: 2026-01-28 14:36:57.925004
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 import uuid
 
 
@@ -18,6 +19,12 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    # Skip if already applied (e.g. table created manually or by a previous run)
+    if inspector.has_table("provider"):
+        return
+
     # Create provider table
     op.create_table(
         'provider',
