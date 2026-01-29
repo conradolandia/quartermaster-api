@@ -63,6 +63,15 @@ from .missions import (
     get_public_missions,
     update_mission,
 )
+from .providers import (
+    create_provider,
+    delete_provider,
+    get_provider,
+    get_providers,
+    get_providers_by_jurisdiction,
+    get_providers_count,
+    update_provider,
+)
 from .trip_boats import (
     create_trip_boat,
     delete_trip_boat,
@@ -124,6 +133,14 @@ __all__ = [
     "get_jurisdictions_by_location",
     "get_jurisdictions_count",
     "update_jurisdiction",
+    # Providers
+    "create_provider",
+    "delete_provider",
+    "get_provider",
+    "get_providers",
+    "get_providers_by_jurisdiction",
+    "get_providers_count",
+    "update_provider",
     # Launches
     "create_launch",
     "delete_launch",

@@ -232,8 +232,22 @@ def delete_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    trip = crud.delete_trip(session=session, trip_id=trip_id)
-    return trip
+    # Build response before delete; after delete the trip is detached and
+    # relationships (trip_boats, etc.) cannot be loaded
+    response_data = TripPublic(
+        id=trip.id,
+        mission_id=trip.mission_id,
+        type=trip.type,
+        active=trip.active,
+        check_in_time=trip.check_in_time,
+        boarding_time=trip.boarding_time,
+        departure_time=trip.departure_time,
+        created_at=trip.created_at,
+        updated_at=trip.updated_at,
+        trip_boats=[],
+    )
+    crud.delete_trip(session=session, trip_id=trip_id)
+    return response_data
 
 
 @router.get(
@@ -260,8 +274,13 @@ def read_trips_by_mission(
         )
 
     # Get trips by mission and add unique() to handle eagerly loaded collections
+    # Sort by check_in_time (future first)
     statement = (
-        select(Trip).where(Trip.mission_id == mission_id).offset(skip).limit(limit)
+        select(Trip)
+        .where(Trip.mission_id == mission_id)
+        .order_by(Trip.check_in_time.desc())
+        .offset(skip)
+        .limit(limit)
     )
     trips = session.exec(statement).unique().all()
     count = len(trips)
@@ -458,6 +477,17 @@ def read_public_trips(
                 f"Trip {trip_id} ({trip_name}) included: booking_mode is public"
             )
             public_trips.append(trip)
+
+    # Sort trips by check_in_time (future first)
+    # Trips without check_in_time go to the end
+    public_trips.sort(
+        key=lambda t: (
+            ensure_aware(t.get("check_in_time"))
+            if t.get("check_in_time")
+            else datetime.min.replace(tzinfo=timezone.utc)
+        ),
+        reverse=True,
+    )
 
     logger.info(
         f"Returning {len(public_trips)} public trips (access_code: {access_code})"

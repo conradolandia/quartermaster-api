@@ -38,7 +38,7 @@ class YamlValidator:
             "name": {"type": "string", "minLength": 1},
             "launch_id": {"type": "string", "format": "uuid"},
             "active": {"type": "boolean"},
-            "public": {"type": "boolean"},
+            "booking_mode": {"type": "string", "maxLength": 20},
             "sales_open_at": {"type": "string", "format": "date-time"},
             "refund_cutoff_hours": {"type": "integer", "minimum": 0, "maximum": 72},
         },

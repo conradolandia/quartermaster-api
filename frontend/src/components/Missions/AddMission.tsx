@@ -49,7 +49,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const [name, setName] = useState("")
   const [launchId, setLaunchId] = useState("")
   const [active, setActive] = useState(true)
-  const [isPublic, setIsPublic] = useState(false)
   const [bookingMode, setBookingMode] = useState("private")
   const [salesOpenAt, setSalesOpenAt] = useState("")
   const [refundCutoffHours, setRefundCutoffHours] = useState(12)
@@ -68,7 +67,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       setName("")
       setLaunchId("")
       setActive(true)
-      setIsPublic(false)
       setBookingMode("private")
       setSalesOpenAt("")
       setRefundCutoffHours(12)
@@ -88,7 +86,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       name,
       launch_id: launchId,
       active,
-      public: isPublic,
       booking_mode: bookingMode,
       sales_open_at: salesOpenAt ? new Date(salesOpenAt).toISOString() : null,
       refund_cutoff_hours: refundCutoffHours,
@@ -163,26 +160,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                     <Switch
                       checked={active}
                       inputProps={{ id: "active" }}
-                    />
-                  </Box>
-                </Flex>
-              </Field>
-              <Field>
-                <Flex
-                  alignItems="center"
-                  justifyContent="space-between"
-                  width="100%"
-                >
-                  <Text>Public</Text>
-                  <Box
-                    onClick={() => {
-                      setIsPublic(!isPublic)
-                    }}
-                    cursor="pointer"
-                  >
-                    <Switch
-                      checked={isPublic}
-                      inputProps={{ id: "public" }}
                     />
                   </Box>
                 </Flex>

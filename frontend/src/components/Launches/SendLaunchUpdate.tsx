@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 
@@ -35,14 +36,20 @@ interface SendUpdateResponse {
   recipients: string[]
 }
 
+interface SendUpdateData {
+  message: string
+  priority: boolean
+}
+
 const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState("")
+  const [priority, setPriority] = useState(false)
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const contentRef = useRef(null)
 
   const sendUpdateMutation = useMutation({
-    mutationFn: async (updateMessage: string) => {
+    mutationFn: async (data: SendUpdateData) => {
       const response = await fetch(
         `/api/v1/launches/${launch.id}/send-update`,
         {
@@ -51,7 +58,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
-          body: JSON.stringify({ message: updateMessage }),
+          body: JSON.stringify({ message: data.message, priority: data.priority }),
         }
       )
       if (!response.ok) {
@@ -66,7 +73,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
         )
       } else {
         showSuccessToast(
-          "No customers with launch update preference found for this launch."
+          "No customers found for this launch."
         )
       }
       if (data.emails_failed > 0) {
@@ -74,6 +81,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
       }
       setIsOpen(false)
       setMessage("")
+      setPriority(false)
     },
     onError: () => {
       showErrorToast("Failed to send launch update. Please try again.")
@@ -82,7 +90,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
 
   const handleSend = () => {
     if (message.trim()) {
-      sendUpdateMutation.mutate(message)
+      sendUpdateMutation.mutate({ message, priority })
     }
   }
 
@@ -105,8 +113,8 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              Send an update to all customers with confirmed bookings for this
-              launch who have opted in to receive launch updates.
+              Send an update to customers with confirmed bookings for this launch.
+              {!priority && " Only customers who have opted in to receive launch updates will be notified."}
             </Text>
             <VStack gap={4}>
               <Field label="Launch">
@@ -121,6 +129,15 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
                   rows={6}
                 />
               </Field>
+
+              <Checkbox
+                checked={priority}
+                onCheckedChange={({ checked }) =>
+                  setPriority(checked === true)
+                }
+              >
+                Priority update (override customer preferences - send to all customers)
+              </Checkbox>
             </VStack>
           </DialogBody>
 

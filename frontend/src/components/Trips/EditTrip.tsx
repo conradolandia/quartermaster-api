@@ -38,7 +38,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, parseApiDate } from "@/utils"
 import TripPricingManager from "./TripPricingManager"
 
 interface EditTripProps {
@@ -51,16 +51,16 @@ const EditTrip = ({ trip }: EditTripProps) => {
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
 
-  // Check if trip is in the past
-  const isPast = new Date(trip.departure_time) < new Date()
+  // Check if trip is in the past (parse API datetime as UTC for correct comparison)
+  const isPast = parseApiDate(trip.departure_time) < new Date()
   const [checkInTime, setCheckInTime] = useState(
-    format(new Date(trip.check_in_time), "yyyy-MM-dd'T'HH:mm"),
+    format(parseApiDate(trip.check_in_time), "yyyy-MM-dd'T'HH:mm"),
   )
   const [boardingTime, setBoardingTime] = useState(
-    format(new Date(trip.boarding_time), "yyyy-MM-dd'T'HH:mm"),
+    format(parseApiDate(trip.boarding_time), "yyyy-MM-dd'T'HH:mm"),
   )
   const [departureTime, setDepartureTime] = useState(
-    format(new Date(trip.departure_time), "yyyy-MM-dd'T'HH:mm"),
+    format(parseApiDate(trip.departure_time), "yyyy-MM-dd'T'HH:mm"),
   )
   const [boatsData, setBoatsData] = useState<any[]>([])
   const [tripBoats, setTripBoats] = useState<any[]>([])

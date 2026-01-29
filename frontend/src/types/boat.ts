@@ -4,11 +4,13 @@ export interface Boat {
   name: string
   slug?: string
   capacity: number
-  provider_name: string
-  provider_location: string
-  provider_address: string
-  jurisdiction_id: string
-  map_link: string | null
+  provider_id: string
   created_at: string
   updated_at: string
+  // Provider data (loaded from relationship)
+  provider_name?: string
+  provider_location?: string
+  provider_address?: string
+  jurisdiction_id?: string
+  map_link?: string | null
 }

@@ -281,8 +281,20 @@ function Missions() {
                     <Badge colorScheme={mission.active ? "green" : "red"}>
                       {mission.active ? "Active" : "Inactive"}
                     </Badge>
-                    <Badge colorScheme={mission.public ? "blue" : "gray"}>
-                      {mission.public ? "Public" : "Private"}
+                    <Badge
+                      colorScheme={
+                        mission.booking_mode === "public"
+                          ? "blue"
+                          : mission.booking_mode === "early_bird"
+                            ? "purple"
+                            : "gray"
+                      }
+                    >
+                      {mission.booking_mode === "public"
+                        ? "Public"
+                        : mission.booking_mode === "early_bird"
+                          ? "Early Bird"
+                          : "Private"}
                     </Badge>
                   </Flex>
                 </Table.Cell>
@@ -291,7 +303,6 @@ function Missions() {
                     mission={{
                       ...mission,
                       active: mission.active ?? false,
-                      public: mission.public ?? false,
                       booking_mode: mission.booking_mode ?? "private",
                       sales_open_at: mission.sales_open_at ?? null,
                       refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,

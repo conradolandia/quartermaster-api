@@ -1,33 +1,38 @@
-import { MissionsService } from "@/client"
+import { ProvidersService } from "@/client"
 import { Portal, Select, createListCollection } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import type { RefObject } from "react"
 
-interface MissionDropdownProps {
+interface ProviderDropdownProps {
   value: string
   onChange: (value: string) => void
   id?: string
+  jurisdictionId?: string
   isDisabled?: boolean
   portalRef?: RefObject<HTMLElement>
   [key: string]: any // For other props
 }
 
-export const MissionDropdown = ({
+export const ProviderDropdown = ({
   value,
   onChange,
   id,
+  jurisdictionId,
   isDisabled,
   portalRef,
   ...props
-}: MissionDropdownProps) => {
-  // Use authenticated endpoint so admins see all missions (private, early_bird, public)
-  const { data: missionsResponse, isLoading } = useQuery({
-    queryKey: ["missions-dropdown"],
+}: ProviderDropdownProps) => {
+  // Use React Query to fetch providers
+  const { data: providersResponse, isLoading } = useQuery({
+    queryKey: ["providers-dropdown", jurisdictionId],
     queryFn: () => {
       try {
-        return MissionsService.readMissions({ limit: 500 })
+        return ProvidersService.readProviders({
+          limit: 100,
+          jurisdictionId,
+        })
       } catch (error) {
-        console.error("Error fetching missions:", error)
+        console.error("Error fetching providers:", error)
         throw error
       }
     },
@@ -36,17 +41,17 @@ export const MissionDropdown = ({
   })
 
   // Create a collection from the API response
-  const missionsCollection = createListCollection({
+  const providersCollection = createListCollection({
     items:
-      missionsResponse?.data?.map((mission) => ({
-        label: mission.name,
-        value: mission.id,
+      providersResponse?.data?.map((provider) => ({
+        label: provider.name,
+        value: provider.id,
       })) || [],
   })
 
   return (
     <Select.Root
-      collection={missionsCollection}
+      collection={providersCollection}
       size="md"
       value={value ? [value] : []}
       onValueChange={(e) => onChange(e.value[0] || "")}
@@ -56,7 +61,7 @@ export const MissionDropdown = ({
       <Select.HiddenSelect id={id} />
       <Select.Control width="100%">
         <Select.Trigger>
-          <Select.ValueText placeholder="Select mission" />
+          <Select.ValueText placeholder="Select provider" />
         </Select.Trigger>
         <Select.IndicatorGroup>
           <Select.Indicator />
@@ -65,12 +70,15 @@ export const MissionDropdown = ({
       <Portal container={portalRef}>
         <Select.Positioner>
           <Select.Content minWidth="300px">
-            {missionsResponse?.data?.map((mission) => (
+            {providersResponse?.data?.map((provider) => (
               <Select.Item
-                key={mission.id}
-                item={{ value: mission.id, label: mission.name }}
+                key={provider.id}
+                item={{
+                  value: provider.id,
+                  label: provider.name,
+                }}
               >
-                {mission.name}
+                {provider.name}
                 <Select.ItemIndicator />
               </Select.Item>
             ))}
@@ -81,4 +89,4 @@ export const MissionDropdown = ({
   )
 }
 
-export default MissionDropdown
+export default ProviderDropdown

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import EmailStr, field_validator
+from pydantic import EmailStr, field_serializer, field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.constants import VALID_US_STATES
@@ -288,6 +288,13 @@ class LaunchPublic(LaunchBase):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer("launch_timestamp", "created_at", "updated_at")
+    def serialize_datetime_utc(self, dt: datetime):
+        """Serialize datetimes with Z so clients parse as UTC and display in local time."""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
 
 class LaunchesPublic(SQLModel):
     data: list[LaunchPublic]
@@ -299,7 +306,6 @@ class MissionBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     launch_id: uuid.UUID = Field(foreign_key="launch.id")
     active: bool = Field(default=True)
-    public: bool = Field(default=False)
     booking_mode: str = Field(
         default="private", max_length=20
     )  # private, early_bird, public
@@ -315,7 +321,6 @@ class MissionUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     launch_id: uuid.UUID | None = None
     active: bool | None = None
-    public: bool | None = None
     booking_mode: str | None = Field(default=None, max_length=20)
     sales_open_at: datetime | None = None
     refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
@@ -353,17 +358,58 @@ class MissionsWithStatsPublic(SQLModel):
     count: int
 
 
+# Provider models
+class ProviderBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    location: str | None = Field(default=None, max_length=255)
+    address: str | None = Field(default=None, max_length=500)
+    jurisdiction_id: uuid.UUID = Field(foreign_key="jurisdiction.id")
+    map_link: str | None = Field(default=None, max_length=2000)
+
+
+class ProviderCreate(ProviderBase):
+    pass
+
+
+class ProviderUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    location: str | None = Field(default=None, max_length=255)
+    address: str | None = Field(default=None, max_length=500)
+    jurisdiction_id: uuid.UUID | None = None
+    map_link: str | None = Field(default=None, max_length=2000)
+
+
+class Provider(ProviderBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+    )
+    # Unidirectional relationship - provider knows its jurisdiction
+    jurisdiction: "Jurisdiction" = Relationship()
+
+
+class ProviderPublic(ProviderBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    # Include jurisdiction data for API responses
+    jurisdiction: Optional["JurisdictionPublic"] = None
+
+
+class ProvidersPublic(SQLModel):
+    data: list[ProviderPublic]
+    count: int
+
+
 # Boat models
 class BoatBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     # Definimos slug como opcional con un valor predeterminado vacío
     slug: str = Field(default="", max_length=255, index=True)
     capacity: int = Field(ge=1)
-    provider_name: str | None = Field(default=None, max_length=255)
-    provider_location: str | None = Field(default=None, max_length=255)
-    provider_address: str | None = Field(default=None, max_length=500)
-    jurisdiction_id: uuid.UUID = Field(foreign_key="jurisdiction.id")
-    map_link: str | None = Field(default=None, max_length=2000)
+    provider_id: uuid.UUID = Field(foreign_key="provider.id")
 
 
 class BoatCreate(BoatBase):
@@ -374,11 +420,7 @@ class BoatUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     # El slug se generará automáticamente en crud.update_boat si el nombre cambia
     capacity: int | None = Field(default=None, ge=1)
-    provider_name: str | None = Field(default=None, max_length=255)
-    provider_location: str | None = Field(default=None, max_length=255)
-    provider_address: str | None = Field(default=None, max_length=500)
-    jurisdiction_id: uuid.UUID | None = None
-    map_link: str | None = Field(default=None, max_length=2000)
+    provider_id: uuid.UUID | None = None
 
 
 class Boat(BoatBase, table=True):
@@ -388,14 +430,16 @@ class Boat(BoatBase, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
     )
-    # Unidirectional relationship - boat knows its jurisdiction but jurisdiction doesn't track boats
-    jurisdiction: "Jurisdiction" = Relationship()
+    # Relationship to provider
+    provider: "Provider" = Relationship()
 
 
 class BoatPublic(BoatBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    # Include provider data for API responses
+    provider: Optional["ProviderPublic"] = None
 
 
 class BoatsPublic(SQLModel):
@@ -454,6 +498,15 @@ class TripPublic(TripBase):
     created_at: datetime
     updated_at: datetime
     trip_boats: list["TripBoatPublic"] = Field(default_factory=list)
+
+    @field_serializer(
+        "check_in_time", "boarding_time", "departure_time", "created_at", "updated_at"
+    )
+    def serialize_datetime_utc(self, dt: datetime):
+        """Serialize datetimes with Z so clients parse as UTC and display in local time."""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
 
 class TripsPublic(SQLModel):

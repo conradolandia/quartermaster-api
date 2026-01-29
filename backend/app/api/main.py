@@ -13,6 +13,7 @@ from app.api.routes import (
     missions,
     payments,
     private,
+    providers,
     trip_boats,
     trip_merchandise,
     trip_pricing,
@@ -28,6 +29,7 @@ api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(locations.router)
 api_router.include_router(jurisdictions.router)
+api_router.include_router(providers.router)
 api_router.include_router(launches.router)
 api_router.include_router(missions.router)
 api_router.include_router(boats.router)

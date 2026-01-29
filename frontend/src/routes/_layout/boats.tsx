@@ -7,7 +7,6 @@ import {
   Heading,
   Icon,
   Table,
-  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -19,8 +18,6 @@ import { z } from "zod"
 import {
   type BoatPublic,
   BoatsService,
-  JurisdictionsService,
-  LocationsService,
 } from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
 import BoatActionsMenu from "@/components/Common/BoatActionsMenu"
@@ -34,14 +31,14 @@ import {
 import type { Boat } from "@/types/boat"
 
 // Define sortable columns
-type SortableColumn = "name" | "capacity" | "provider_name" | "jurisdiction_id"
+type SortableColumn = "name" | "capacity" | "provider_id"
 type SortDirection = "asc" | "desc"
 
 const boatsSearchSchema = z.object({
   page: z.number().catch(1),
   jurisdictionId: z.string().optional(),
   sortBy: z
-    .enum(["name", "capacity", "provider_name", "jurisdiction_id"])
+    .enum(["name", "capacity", "provider_id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
@@ -50,11 +47,19 @@ const PER_PAGE = 5
 
 // Helper function to convert BoatPublic to Boat
 const convertToBoat = (boatPublic: BoatPublic): Boat => ({
-  ...boatPublic,
-  provider_name: boatPublic.provider_name ?? "",
-  provider_location: boatPublic.provider_location ?? "",
-  provider_address: boatPublic.provider_address ?? "",
-  map_link: boatPublic.map_link ?? null,
+  id: boatPublic.id,
+  name: boatPublic.name,
+  slug: boatPublic.slug,
+  capacity: boatPublic.capacity,
+  provider_id: boatPublic.provider_id,
+  created_at: boatPublic.created_at,
+  updated_at: boatPublic.updated_at,
+  // Provider data from relationship or from get_boats_no_relationships
+  provider_name: (boatPublic as any).provider_name || boatPublic.provider?.name || "",
+  provider_location: (boatPublic as any).provider_location || boatPublic.provider?.location || "",
+  provider_address: (boatPublic as any).provider_address || boatPublic.provider?.address || "",
+  jurisdiction_id: (boatPublic as any).jurisdiction_id || boatPublic.provider?.jurisdiction_id || "",
+  map_link: (boatPublic as any).map_link || boatPublic.provider?.map_link || null,
 })
 
 // Helper function to sort boats
@@ -69,10 +74,10 @@ const sortBoats = (
     let aValue = a[sortBy]
     let bValue = b[sortBy]
 
-    // Handle jurisdiction sorting by name
-    if (sortBy === "jurisdiction_id") {
-      aValue = a.jurisdiction_id
-      bValue = b.jurisdiction_id
+    // Handle provider_id sorting by provider name
+    if (sortBy === "provider_id") {
+      aValue = a.provider_name || a.provider_id || ""
+      bValue = b.provider_name || b.provider_id || ""
     }
 
     // Handle numeric sorting for capacity
@@ -139,34 +144,6 @@ function BoatsTable() {
     placeholderData: (prevData) => prevData,
   })
 
-  // Get all jurisdictions for display purposes
-  const { data: jurisdictionsData } = useQuery({
-    queryKey: ["jurisdictions-for-boats"],
-    queryFn: () => JurisdictionsService.readJurisdictions({ limit: 100 }),
-  })
-
-  // Get all locations for state lookup
-  const { data: locationsData } = useQuery({
-    queryKey: ["locations-for-boats"],
-    queryFn: () => LocationsService.readLocations({ limit: 100 }),
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-  })
-
-  // Create a map of jurisdictions for easy lookup
-  const jurisdictionsMap = new Map()
-  if (jurisdictionsData?.data) {
-    jurisdictionsData.data.forEach((jurisdiction) => {
-      jurisdictionsMap.set(jurisdiction.id, jurisdiction)
-    })
-  }
-
-  // Create a map of locations for state lookup
-  const locationsMap = new Map()
-  if (locationsData?.data) {
-    locationsData.data.forEach((location) => {
-      locationsMap.set(location.id, location)
-    })
-  }
 
   const setPage = (newPage: number) =>
     navigate({
@@ -247,24 +224,12 @@ function BoatsTable() {
                 w="sm"
                 fontWeight="bold"
                 cursor="pointer"
-                onClick={() => handleSort("provider_name")}
+                onClick={() => handleSort("provider_id")}
                 display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Provider
-                  <SortIcon column="provider_name" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("jurisdiction_id")}
-                display={{ base: "none", lg: "table-cell" }}
-              >
-                <Flex align="center">
-                  Jurisdiction
-                  <SortIcon column="jurisdiction_id" />
+                  <SortIcon column="provider_id" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader w="sm" fontWeight="bold">
@@ -273,10 +238,7 @@ function BoatsTable() {
             </Table.Row>
           </Table.Header>
         <Table.Body>
-          {boats.map((boat) => {
-            const jurisdiction = jurisdictionsMap.get(boat.jurisdiction_id)
-
-            return (
+          {boats.map((boat) => (
               <Table.Row key={boat.id} opacity={isPlaceholderData ? 0.5 : 1}>
                 <Table.Cell truncate maxW="sm">
                   {boat.name}
@@ -285,28 +247,13 @@ function BoatsTable() {
                   {boat.capacity}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {boat.provider_name}
-                </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {jurisdiction ? (
-                    <Flex direction="column">
-                      <Text fontWeight="medium">{jurisdiction.name}</Text>
-                      <Text fontSize="xs" color="gray.600">
-                        {jurisdiction.location?.state ||
-                          locationsMap.get(jurisdiction.location_id)?.state ||
-                          "N/A"}
-                      </Text>
-                    </Flex>
-                  ) : (
-                    boat.jurisdiction_id
-                  )}
+                  {boat.provider_name || "—"}
                 </Table.Cell>
                 <Table.Cell>
                   <BoatActionsMenu boat={boat} />
                 </Table.Cell>
               </Table.Row>
-            )
-          })}
+            ))}
         </Table.Body>
         </Table.Root>
       </Box>

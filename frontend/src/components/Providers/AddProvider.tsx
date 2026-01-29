@@ -1,6 +1,8 @@
-import { type ApiError, type BoatCreate, BoatsService } from "@/client"
-import ProviderDropdown from "@/components/Common/ProviderDropdown"
+import useCustomToast from "@/hooks/useCustomToast"
+import { Button, ButtonGroup, Input, VStack } from "@chakra-ui/react"
+import { useRef } from "react"
 import {
+  DialogActionTrigger,
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -8,32 +10,30 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Field } from "@/components/ui/field"
-import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
-import {
-  Button,
-  ButtonGroup,
-  DialogActionTrigger,
-  Input,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRef } from "react"
-import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+} from "../ui/dialog"
 
-interface AddBoatProps {
+import { type ProviderCreate, ProvidersService } from "@/client"
+import { handleError } from "@/utils"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import JurisdictionDropdown from "../Common/JurisdictionDropdown"
+import { Field } from "../ui/field"
+
+// Props interface
+interface AddProviderProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
 }
 
-const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
-  const contentRef = useRef(null)
-  const queryClient = useQueryClient()
+export const AddProvider = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddProviderProps) => {
   const { showSuccessToast } = useCustomToast()
+  const queryClient = useQueryClient()
+  const contentRef = useRef(null)
 
   const {
     register,
@@ -41,36 +41,34 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<BoatCreate>({
+  } = useForm<ProviderCreate>({
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
       name: "",
-      capacity: 1,
-      provider_id: "",
+      address: "",
+      jurisdiction_id: "",
+      map_link: "",
     },
   })
 
+  // Use mutation for creating provider
   const mutation = useMutation({
-    mutationFn: (data: BoatCreate) =>
-      BoatsService.createBoat({
-        requestBody: data,
-      }),
+    mutationFn: (data: ProviderCreate) =>
+      ProvidersService.createProvider({ requestBody: data }),
     onSuccess: () => {
-      showSuccessToast("Boat created successfully.")
+      showSuccessToast("Provider was successfully added")
       reset()
+      queryClient.invalidateQueries({ queryKey: ["providers"] })
       onSuccess()
       onClose()
     },
-    onError: (err: ApiError) => {
-      handleError(err)
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["boats"] })
+    onError: (error: any) => {
+      handleError(error)
     },
   })
 
-  const onSubmit: SubmitHandler<BoatCreate> = async (data) => {
+  const onSubmit: SubmitHandler<ProviderCreate> = (data) => {
     mutation.mutate(data)
   }
 
@@ -84,85 +82,83 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
       <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Add Boat</DialogTitle>
+              <DialogTitle>Add Provider</DialogTitle>
             </DialogHeader>
             <DialogBody>
-              <Text mb={4}>Add a new boat by filling out the form below.</Text>
               <VStack gap={4}>
                 <Field
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
                   label="Name"
                   required
+                  invalid={!!errors.name}
+                  errorText={errors.name?.message}
                 >
                   <Input
                     id="name"
                     {...register("name", {
                       required: "Name is required",
-                      minLength: { value: 1, message: "Name is required" },
                       maxLength: {
                         value: 255,
                         message: "Name cannot exceed 255 characters",
                       },
                     })}
-                    placeholder="Name"
-                    type="text"
+                    placeholder="Provider name"
                   />
                 </Field>
-
                 <Field
-                  invalid={!!errors.capacity}
-                  errorText={errors.capacity?.message}
-                  label="Capacity"
-                  required
+                  label="Address"
+                  invalid={!!errors.address}
+                  errorText={errors.address?.message}
                 >
-                  <Controller
-                    name="capacity"
-                    control={control}
-                    rules={{
-                      required: "Capacity is required",
-                      min: { value: 1, message: "Capacity must be at least 1" },
-                    }}
-                    render={({ field }) => (
-                      <Input
-                        id="capacity"
-                        type="number"
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(Number.parseInt(e.target.value) || 1)
-                        }
-                        min={1}
-                        disabled={isSubmitting}
-                        placeholder="Capacity"
-                      />
-                    )}
+                  <Input
+                    id="address"
+                    {...register("address", {
+                      maxLength: {
+                        value: 500,
+                        message: "Address cannot exceed 500 characters",
+                      },
+                    })}
+                    placeholder="Provider address"
                   />
                 </Field>
-
                 <Field
-                  invalid={!!errors.provider_id}
-                  errorText={errors.provider_id?.message}
-                  label="Provider"
+                  label="Jurisdiction"
                   required
+                  invalid={!!errors.jurisdiction_id}
+                  errorText={errors.jurisdiction_id?.message}
                 >
                   <Controller
-                    name="provider_id"
+                    name="jurisdiction_id"
                     control={control}
-                    rules={{ required: "Provider is required" }}
+                    rules={{ required: "Jurisdiction is required" }}
                     render={({ field }) => (
-                      <ProviderDropdown
-                        id="provider_id"
-                        value={field.value || ""}
+                      <JurisdictionDropdown
+                        value={field.value}
                         onChange={field.onChange}
+                        id="jurisdiction_id"
                         isDisabled={isSubmitting}
                         portalRef={contentRef}
                       />
                     )}
                   />
                 </Field>
+                <Field
+                  label="Map Link"
+                  invalid={!!errors.map_link}
+                  errorText={errors.map_link?.message}
+                >
+                  <Input
+                    id="map_link"
+                    {...register("map_link", {
+                      maxLength: {
+                        value: 2000,
+                        message: "Map link cannot exceed 2000 characters",
+                      },
+                    })}
+                    placeholder="Map link URL"
+                  />
+                </Field>
               </VStack>
             </DialogBody>
-
             <DialogFooter gap={2}>
               <ButtonGroup>
                 <DialogActionTrigger asChild>
@@ -175,7 +171,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   </Button>
                 </DialogActionTrigger>
                 <Button variant="solid" type="submit" loading={isSubmitting}>
-                  Add Boat
+                  Add
                 </Button>
               </ButtonGroup>
             </DialogFooter>
@@ -186,4 +182,4 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
   )
 }
 
-export default AddBoat
+export default AddProvider

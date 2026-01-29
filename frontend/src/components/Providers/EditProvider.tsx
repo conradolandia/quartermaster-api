@@ -13,13 +13,13 @@ import { FaExchangeAlt } from "react-icons/fa"
 
 import {
   type ApiError,
-  type LaunchPublic,
-  type LaunchUpdate,
-  LaunchesService,
+  type ProviderPublic,
+  type ProviderUpdate,
+  ProvidersService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseApiDate } from "@/utils"
-import { LocationDropdown } from "../Common/LocationDropdown"
+import { handleError } from "@/utils"
+import JurisdictionDropdown from "../Common/JurisdictionDropdown"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -32,45 +32,40 @@ import {
 } from "../ui/dialog"
 import { Field } from "../ui/field"
 
-interface EditLaunchProps {
-  launch: LaunchPublic
+interface EditProviderProps {
+  provider: ProviderPublic
 }
 
-const EditLaunch = ({ launch }: EditLaunchProps) => {
+const EditProvider = ({ provider }: EditProviderProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
-
-  // Check if launch is in the past
-  const isPast = parseApiDate(launch.launch_timestamp) < new Date()
   const {
     register,
     handleSubmit,
     reset,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<LaunchUpdate>({
+  } = useForm<ProviderUpdate>({
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
-      name: launch.name,
-      launch_timestamp: parseApiDate(launch.launch_timestamp)
-        .toISOString()
-        .slice(0, 16),
-      summary: launch.summary,
-      location_id: launch.location_id,
+      name: provider.name,
+      address: provider.address || "",
+      jurisdiction_id: provider.jurisdiction_id,
+      map_link: provider.map_link || "",
     },
   })
 
   const mutation = useMutation({
-    mutationFn: (data: LaunchUpdate) =>
-      LaunchesService.updateLaunch({
-        launchId: launch.id,
+    mutationFn: (data: ProviderUpdate) =>
+      ProvidersService.updateProvider({
+        providerId: provider.id,
         requestBody: data,
       }),
     onSuccess: () => {
-      showSuccessToast("Launch updated successfully.")
+      showSuccessToast("Provider updated successfully.")
       reset()
       setIsOpen(false)
     },
@@ -78,11 +73,11 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
       handleError(err)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["launches"] })
+      queryClient.invalidateQueries({ queryKey: ["providers"] })
     },
   })
 
-  const onSubmit: SubmitHandler<LaunchUpdate> = async (data) => {
+  const onSubmit: SubmitHandler<ProviderUpdate> = async (data) => {
     mutation.mutate(data)
   }
 
@@ -94,82 +89,92 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" disabled={isPast} title={isPast ? "This launch has already occurred and cannot be edited" : ""}>
+        <Button variant="ghost">
           <FaExchangeAlt fontSize="16px" />
-          Edit Launch
+          Edit Provider
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Edit Launch</DialogTitle>
+              <DialogTitle>Edit Provider</DialogTitle>
             </DialogHeader>
             <DialogBody>
-              {isPast && (
-                <Text mb={4} color="orange.500">
-                  This launch has already occurred and cannot be edited. Contact a system administrator if you need to make changes to past launches.
-                </Text>
-              )}
-              {!isPast && <Text mb={4}>Update the launch details below.</Text>}
+              <Text mb={4}>Update the provider details below.</Text>
               <VStack gap={4}>
                 <Field
                   invalid={!!errors.name}
                   errorText={errors.name?.message}
                   label="Name"
+                  required
                 >
                   <Input
                     id="name"
-                    {...register("name")}
-                    placeholder="Launch name"
+                    {...register("name", {
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
+                    })}
+                    placeholder="Name"
                     type="text"
                   />
                 </Field>
 
                 <Field
-                  invalid={!!errors.launch_timestamp}
-                  errorText={errors.launch_timestamp?.message}
-                  label="Launch Date & Time"
+                  invalid={!!errors.address}
+                  errorText={errors.address?.message}
+                  label="Address"
                 >
                   <Input
-                    id="launch_timestamp"
-                    {...register("launch_timestamp")}
-                    placeholder="Launch date and time"
-                    type="datetime-local"
-                    disabled={isPast}
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.summary}
-                  errorText={errors.summary?.message}
-                  label="Summary"
-                >
-                  <Input
-                    id="summary"
-                    {...register("summary")}
-                    placeholder="Launch summary"
+                    id="address"
+                    {...register("address", {
+                      maxLength: {
+                        value: 500,
+                        message: "Address cannot exceed 500 characters",
+                      },
+                    })}
+                    placeholder="Address"
                     type="text"
-                    disabled={isPast}
                   />
                 </Field>
 
                 <Field
-                  invalid={!!errors.location_id}
-                  errorText={errors.location_id?.message}
-                  label="Location"
+                  invalid={!!errors.jurisdiction_id}
+                  errorText={errors.jurisdiction_id?.message}
+                  label="Jurisdiction"
+                  required
                 >
                   <Controller
-                    name="location_id"
+                    name="jurisdiction_id"
                     control={control}
                     render={({ field }) => (
-                      <LocationDropdown
-                        id="location_id"
+                      <JurisdictionDropdown
+                        id="jurisdiction_id"
                         value={field.value || ""}
                         onChange={field.onChange}
-                        isDisabled={isSubmitting || isPast}
+                        isDisabled={isSubmitting}
                         portalRef={contentRef}
                       />
                     )}
+                  />
+                </Field>
+
+                <Field
+                  invalid={!!errors.map_link}
+                  errorText={errors.map_link?.message}
+                  label="Map Link"
+                >
+                  <Input
+                    id="map_link"
+                    {...register("map_link", {
+                      maxLength: {
+                        value: 2000,
+                        message: "Map link cannot exceed 2000 characters",
+                      },
+                    })}
+                    placeholder="Map link URL"
+                    type="text"
                   />
                 </Field>
               </VStack>
@@ -186,7 +191,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                     Cancel
                   </Button>
                 </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting} disabled={isPast}>
+                <Button variant="solid" type="submit" loading={isSubmitting}>
                   Save
                 </Button>
               </ButtonGroup>
@@ -198,4 +203,4 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
   )
 }
 
-export default EditLaunch
+export default EditProvider

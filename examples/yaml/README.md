@@ -33,7 +33,7 @@ Missions are bookable events tied to a Launch. A single Launch can have multiple
 | `name` | string | Yes | - | Mission name |
 | `launch_id` | UUID | Yes | - | Reference to an existing Launch |
 | `active` | boolean | No | `true` | Whether the mission is active |
-| `public` | boolean | No | `false` | Whether the mission is publicly visible |
+| `booking_mode` | string | No | `private` | Who can book: `private`, `early_bird`, or `public` |
 | `sales_open_at` | datetime | No | - | When ticket sales open (ISO 8601) |
 | `refund_cutoff_hours` | integer | No | `12` | Hours before launch when refunds close (0-72) |
 

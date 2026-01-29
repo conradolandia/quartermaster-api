@@ -132,6 +132,22 @@ import type {
   PaymentsStripeWebhookResponse,
   PrivateCreateUserData,
   PrivateCreateUserResponse,
+  ProvidersReadPublicProvidersData,
+  ProvidersReadPublicProvidersResponse,
+  ProvidersReadProvidersData,
+  ProvidersReadProvidersResponse,
+  ProvidersCreateProviderData,
+  ProvidersCreateProviderResponse,
+  ProvidersReadProviderData,
+  ProvidersReadProviderResponse,
+  ProvidersUpdateProviderData,
+  ProvidersUpdateProviderResponse,
+  ProvidersDeleteProviderData,
+  ProvidersDeleteProviderResponse,
+  ProvidersReadProvidersByJurisdictionData,
+  ProvidersReadProvidersByJurisdictionResponse,
+  ProvidersReadPublicProviderData,
+  ProvidersReadPublicProviderResponse,
   TripBoatsCreateTripBoatData,
   TripBoatsCreateTripBoatResponse,
   TripBoatsReadTripBoatsByTripData,
@@ -1280,6 +1296,9 @@ export class LaunchesService {
    * Send Launch Update
    * Send a launch update email to all customers with confirmed bookings
    * for this launch who have opted in to receive launch updates.
+   *
+   * If priority is True, sends to all customers regardless of their
+   * launch_updates_pref setting.
    * @param data The data for the request.
    * @param data.launchId
    * @param data.requestBody
@@ -1864,6 +1883,209 @@ export class PrivateService {
       url: "/api/v1/private/users/",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
+export class ProvidersService {
+  /**
+   * Read Public Providers
+   * Retrieve providers with optional filtering by jurisdiction (public endpoint).
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @param data.jurisdictionId
+   * @returns ProvidersPublic Successful Response
+   * @throws ApiError
+   */
+  public static readPublicProviders(
+    data: ProvidersReadPublicProvidersData = {},
+  ): CancelablePromise<ProvidersReadPublicProvidersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/providers/public/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        jurisdiction_id: data.jurisdictionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Providers
+   * Retrieve providers with optional filtering by jurisdiction.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @param data.jurisdictionId
+   * @returns ProvidersPublic Successful Response
+   * @throws ApiError
+   */
+  public static readProviders(
+    data: ProvidersReadProvidersData = {},
+  ): CancelablePromise<ProvidersReadProvidersResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/providers/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        jurisdiction_id: data.jurisdictionId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Provider
+   * Create new provider.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns ProviderPublic Successful Response
+   * @throws ApiError
+   */
+  public static createProvider(
+    data: ProvidersCreateProviderData,
+  ): CancelablePromise<ProvidersCreateProviderResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/providers/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Provider
+   * Get provider by ID.
+   * @param data The data for the request.
+   * @param data.providerId
+   * @returns ProviderPublic Successful Response
+   * @throws ApiError
+   */
+  public static readProvider(
+    data: ProvidersReadProviderData,
+  ): CancelablePromise<ProvidersReadProviderResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/providers/{provider_id}",
+      path: {
+        provider_id: data.providerId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Provider
+   * Update a provider.
+   * @param data The data for the request.
+   * @param data.providerId
+   * @param data.requestBody
+   * @returns ProviderPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateProvider(
+    data: ProvidersUpdateProviderData,
+  ): CancelablePromise<ProvidersUpdateProviderResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/providers/{provider_id}",
+      path: {
+        provider_id: data.providerId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Provider
+   * Delete a provider.
+   * @param data The data for the request.
+   * @param data.providerId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteProvider(
+    data: ProvidersDeleteProviderData,
+  ): CancelablePromise<ProvidersDeleteProviderResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/providers/{provider_id}",
+      path: {
+        provider_id: data.providerId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Providers By Jurisdiction
+   * Retrieve providers for a specific jurisdiction.
+   * @param data The data for the request.
+   * @param data.jurisdictionId
+   * @param data.skip
+   * @param data.limit
+   * @returns ProvidersPublic Successful Response
+   * @throws ApiError
+   */
+  public static readProvidersByJurisdiction(
+    data: ProvidersReadProvidersByJurisdictionData,
+  ): CancelablePromise<ProvidersReadProvidersByJurisdictionResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/providers/jurisdiction/{jurisdiction_id}",
+      path: {
+        jurisdiction_id: data.jurisdictionId,
+      },
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Public Provider
+   * Get provider by ID for public access.
+   * No authentication required.
+   * @param data The data for the request.
+   * @param data.providerId
+   * @returns ProviderPublic Successful Response
+   * @throws ApiError
+   */
+  public static readPublicProvider(
+    data: ProvidersReadPublicProviderData,
+  ): CancelablePromise<ProvidersReadPublicProviderResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/providers/public/{provider_id}",
+      path: {
+        provider_id: data.providerId,
+      },
       errors: {
         422: "Validation Error",
       },

@@ -19,7 +19,7 @@ import { FaExchangeAlt } from "react-icons/fa"
 import { Switch } from "../ui/switch"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, parseApiDate } from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -38,7 +38,6 @@ interface Mission {
   name: string
   launch_id: string
   active: boolean
-  public: boolean
   booking_mode: string
   sales_open_at: string | null
   refund_cutoff_hours: number
@@ -61,7 +60,6 @@ interface EditMissionProps {
 const EditMission = ({ mission }: EditMissionProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [active, setActive] = useState(mission.active)
-  const [isPublic, setIsPublic] = useState(mission.public)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -74,7 +72,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
   })
 
   // Check if mission's launch is in the past
-  const isPast = launchData ? new Date(launchData.launch_timestamp) < new Date() : false
+  const isPast = launchData ? parseApiDate(launchData.launch_timestamp) < new Date() : false
   const {
     register,
     handleSubmit,
@@ -88,7 +86,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
       name: mission.name,
       launch_id: mission.launch_id,
       active: mission.active,
-      public: mission.public,
       booking_mode: mission.booking_mode || "private",
       sales_open_at: mission.sales_open_at
         ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
@@ -117,12 +114,10 @@ const EditMission = ({ mission }: EditMissionProps) => {
   useEffect(() => {
     if (isOpen) {
       setActive(mission.active)
-      setIsPublic(mission.public)
       reset({
         name: mission.name,
         launch_id: mission.launch_id,
         active: mission.active,
-        public: mission.public,
         booking_mode: mission.booking_mode || "private",
         sales_open_at: mission.sales_open_at
           ? new Date(mission.sales_open_at).toISOString().slice(0, 16)
@@ -134,12 +129,11 @@ const EditMission = ({ mission }: EditMissionProps) => {
 
   const onSubmit: SubmitHandler<any> = async (data) => {
     // Format the data before sending
-    // Use local state for active and public switches
+    // Use local state for active switch
     const formattedData: any = {
       name: data.name,
       launch_id: data.launch_id,
       active: active,
-      public: isPublic,
       booking_mode: data.booking_mode || "private",
       sales_open_at: data.sales_open_at
         ? new Date(data.sales_open_at).toISOString()
@@ -262,28 +256,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
                       <Switch
                         checked={active}
                         inputProps={{ id: "active" }}
-                      />
-                    </Box>
-                  </Flex>
-                </Field>
-
-                <Field>
-                  <Flex
-                    alignItems="center"
-                    justifyContent="space-between"
-                    width="100%"
-                  >
-                    <Text>Public</Text>
-                    <Box
-                      onClick={() => {
-                        if (!isPast) setIsPublic(!isPublic)
-                      }}
-                      cursor={isPast ? "not-allowed" : "pointer"}
-                      opacity={isPast ? 0.5 : 1}
-                    >
-                      <Switch
-                        checked={isPublic}
-                        inputProps={{ id: "public" }}
                       />
                     </Box>
                   </Flex>

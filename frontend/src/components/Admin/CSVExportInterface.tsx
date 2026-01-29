@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiDownload, FiFilter } from "react-icons/fi"
 import { Checkbox } from "@/components/ui/checkbox"
+import { parseApiDate } from "@/utils"
 
 import {
   BookingsService,
@@ -92,7 +93,7 @@ const CSVExportInterface = () => {
 
   const tripsCollection = createListCollection({
     items: filteredTrips.map((trip: TripPublic) => ({
-      label: `${trip.type} - ${new Date(trip.departure_time).toLocaleDateString()}`,
+      label: `${trip.type} - ${parseApiDate(trip.departure_time).toLocaleDateString()}`,
       value: trip.id,
     })),
   })

@@ -34,6 +34,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { parseApiDate } from "@/utils"
 
 // Define sortable columns
 type SortableColumn =
@@ -48,8 +49,8 @@ const tripsSearchSchema = z.object({
   page: z.number().catch(1),
   sortBy: z
     .enum(["type", "mission_id", "check_in_time", "departure_time", "active"])
-    .optional(),
-  sortDirection: z.enum(["asc", "desc"]).optional(),
+    .catch("check_in_time"),
+  sortDirection: z.enum(["asc", "desc"]).catch("desc"),
 })
 
 const PER_PAGE = 5
@@ -73,8 +74,10 @@ function TripsTable() {
 
   // Handle sorting
   const handleSort = (column: SortableColumn) => {
+    const currentSortBy = sortBy || "check_in_time"
+    const currentSortDirection = sortDirection || "desc"
     const newDirection: SortDirection =
-      sortBy === column && sortDirection === "asc" ? "desc" : "asc"
+      currentSortBy === column && currentSortDirection === "desc" ? "asc" : "desc"
 
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
@@ -139,42 +142,46 @@ function TripsTable() {
     setPage(details.page)
   }
 
-  // Sort trips if needed
+  // Sort trips - defaults to check_in_time DESC (future first)
+  // Backend already sorts by check_in_time DESC, but we apply client-side sorting
+  // to allow users to change the sort order
   let tripsToShow = [...tripsData]
   const count = data?.count ?? 0
 
-  if (sortBy && sortDirection) {
-    tripsToShow = tripsToShow.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof TripPublic]
-      let bValue: any = b[sortBy as keyof TripPublic]
+  // Use defaults if not specified (check_in_time DESC = future at top)
+  const effectiveSortBy = sortBy || "check_in_time"
+  const effectiveSortDirection = sortDirection || "desc"
 
-      // Handle date sorting
-      if (sortBy === "check_in_time" || sortBy === "departure_time") {
-        aValue = new Date(aValue as string).getTime()
-        bValue = new Date(bValue as string).getTime()
+  tripsToShow = tripsToShow.sort((a, b) => {
+    let aValue: any = a[effectiveSortBy as keyof TripPublic]
+    let bValue: any = b[effectiveSortBy as keyof TripPublic]
+
+    // Handle date sorting
+      if (effectiveSortBy === "check_in_time" || effectiveSortBy === "departure_time") {
+        aValue = parseApiDate(aValue as string).getTime()
+        bValue = parseApiDate(bValue as string).getTime()
       }
 
-      // Handle boolean sorting
-      if (sortBy === "active") {
-        aValue = aValue ? 1 : 0
-        bValue = bValue ? 1 : 0
-      }
+    // Handle boolean sorting
+    if (effectiveSortBy === "active") {
+      aValue = aValue ? 1 : 0
+      bValue = bValue ? 1 : 0
+    }
 
-      // Handle string sorting
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortDirection === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
-      }
+    // Handle string sorting
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return effectiveSortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue)
+    }
 
-      // Handle numeric sorting
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
-      }
+    // Handle numeric sorting
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return effectiveSortDirection === "asc" ? aValue - bValue : bValue - aValue
+    }
 
-      return 0
-    })
-  }
+    return 0
+  })
 
   if (isLoading) {
     return <PendingTrips />
@@ -199,10 +206,12 @@ function TripsTable() {
   }
 
   const SortIcon = ({ column }: { column: SortableColumn }) => {
-    if (sortBy !== column) return null
+    const currentSortBy = sortBy || "check_in_time"
+    const currentSortDirection = sortDirection || "desc"
+    if (currentSortBy !== column) return null
     return (
       <Icon
-        as={sortDirection === "asc" ? FiArrowUp : FiArrowDown}
+        as={currentSortDirection === "asc" ? FiArrowUp : FiArrowDown}
         ml={2}
         boxSize={4}
       />
@@ -297,10 +306,10 @@ function TripsTable() {
                   {mission?.name || "Unknown"}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {format(new Date(trip.check_in_time), "MMM d, yyyy h:mm a")}
+                  {format(parseApiDate(trip.check_in_time), "MMM d, yyyy h:mm a")}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                  {format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}
+                  {format(parseApiDate(trip.departure_time), "MMM d, yyyy h:mm a")}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
                   {boatCount} boat{boatCount !== 1 ? "s" : ""}

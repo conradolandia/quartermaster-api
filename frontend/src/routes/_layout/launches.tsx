@@ -27,6 +27,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { parseApiDate } from "@/utils"
 
 // Define sortable columns
 type SortableColumn = "name" | "launch_timestamp" | "summary" | "location_id"
@@ -62,8 +63,8 @@ const sortLaunches = (
 
     // Handle date sorting
     if (sortBy === "launch_timestamp") {
-      aValue = new Date(aValue).getTime()
-      bValue = new Date(bValue).getTime()
+      aValue = parseApiDate(aValue).getTime()
+      bValue = parseApiDate(bValue).getTime()
     }
 
     // Handle string sorting
@@ -185,10 +186,9 @@ function LaunchesTable() {
     )
   }
 
-  // Format date for display
+  // Format date for display (parse API datetime as UTC for correct local display)
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString()
+    return parseApiDate(dateString).toLocaleString()
   }
 
   return (

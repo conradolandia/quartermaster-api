@@ -17,7 +17,13 @@ def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
 
 def get_trips(*, session: Session, skip: int = 0, limit: int = 100) -> list[Trip]:
     """Get multiple trips."""
-    return session.exec(select(Trip).offset(skip).limit(limit)).unique().all()
+    return (
+        session.exec(
+            select(Trip).order_by(Trip.check_in_time.desc()).offset(skip).limit(limit)
+        )
+        .unique()
+        .all()
+    )
 
 
 def get_trips_no_relationships(
@@ -33,7 +39,7 @@ def get_trips_no_relationships(
             """
             SELECT id, mission_id, type, active, check_in_time, boarding_time, departure_time, created_at, updated_at
             FROM trip
-            ORDER BY created_at DESC
+            ORDER BY check_in_time DESC
             LIMIT :limit OFFSET :skip
         """
         ).params(limit=limit, skip=skip)
@@ -69,7 +75,11 @@ def get_trips_by_mission(
 ) -> list[Trip]:
     """Get trips by mission."""
     return session.exec(
-        select(Trip).where(Trip.mission_id == mission_id).offset(skip).limit(limit)
+        select(Trip)
+        .where(Trip.mission_id == mission_id)
+        .order_by(Trip.check_in_time.desc())
+        .offset(skip)
+        .limit(limit)
     ).all()
 
 
@@ -106,31 +116,26 @@ def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
     if not trip:
         return None
 
-    # Delete all related data
-    # Delete trip boats
-    session.exec(select(TripBoat).where(TripBoat.trip_id == trip_id)).all()
-    for trip_boat in session.exec(select(TripBoat).where(TripBoat.trip_id == trip_id)):
-        session.delete(trip_boat)
-
-    # Delete trip pricing
-    for trip_pricing in session.exec(
-        select(TripPricing).where(TripPricing.trip_id == trip_id)
-    ):
-        session.delete(trip_pricing)
-
-    # Delete trip merchandise
-    for trip_merchandise in session.exec(
-        select(TripMerchandise).where(TripMerchandise.trip_id == trip_id)
-    ):
-        session.delete(trip_merchandise)
-
-    # Delete booking items
+    # Delete in dependency order: BookingItem references trip_merchandise_id and trip_id,
+    # so delete booking items first, then trip merchandise/pricing/boats, then trip.
     for booking_item in session.exec(
         select(BookingItem).where(BookingItem.trip_id == trip_id)
     ):
         session.delete(booking_item)
 
-    # Finally delete the trip
+    for trip_merchandise in session.exec(
+        select(TripMerchandise).where(TripMerchandise.trip_id == trip_id)
+    ):
+        session.delete(trip_merchandise)
+
+    for trip_pricing in session.exec(
+        select(TripPricing).where(TripPricing.trip_id == trip_id)
+    ):
+        session.delete(trip_pricing)
+
+    for trip_boat in session.exec(select(TripBoat).where(TripBoat.trip_id == trip_id)):
+        session.delete(trip_boat)
+
     session.delete(trip)
     session.commit()
     return trip

@@ -31,7 +31,7 @@ def read_boats(
     """
     Retrieve boats.
     """
-    boats = crud.get_boats_no_relationships(session=session, skip=skip, limit=limit)
+    boats = crud.get_boats(session=session, skip=skip, limit=limit)
     count = crud.get_boats_count(session=session)
     return BoatsPublic(data=boats, count=count)
 
@@ -50,17 +50,13 @@ def create_boat(
     """
     Create new boat.
     """
-    # Verify that the jurisdiction exists
-    jurisdiction = crud.get_jurisdiction(
-        session=session, jurisdiction_id=boat_in.jurisdiction_id
-    )
-    if not jurisdiction:
+    try:
+        boat = crud.create_boat(session=session, boat_in=boat_in)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Jurisdiction with ID {boat_in.jurisdiction_id} not found",
+            detail=str(e),
         )
-
-    boat = crud.create_boat(session=session, boat_in=boat_in)
     return boat
 
 
@@ -107,18 +103,13 @@ def update_boat(
             detail=f"Boat with ID {boat_id} not found",
         )
 
-    # If jurisdiction_id is being updated, verify that the new jurisdiction exists
-    if boat_in.jurisdiction_id is not None:
-        jurisdiction = crud.get_jurisdiction(
-            session=session, jurisdiction_id=boat_in.jurisdiction_id
+    try:
+        boat = crud.update_boat(session=session, db_obj=boat, obj_in=boat_in)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
         )
-        if not jurisdiction:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Jurisdiction with ID {boat_in.jurisdiction_id} not found",
-            )
-
-    boat = crud.update_boat(session=session, db_obj=boat, obj_in=boat_in)
     return boat
 
 
@@ -176,22 +167,26 @@ def read_boats_by_jurisdiction(
     count = len(boats)
 
     # Convert to dictionaries to break the ORM relationship chain
-    boat_dicts = [
-        {
+    # Include provider data for backward compatibility
+    boat_dicts = []
+    for boat in boats:
+        boat_dict = {
             "id": boat.id,
             "name": boat.name,
             "slug": boat.slug,
             "capacity": boat.capacity,
-            "provider_name": boat.provider_name,
-            "provider_location": boat.provider_location,
-            "provider_address": boat.provider_address,
-            "jurisdiction_id": boat.jurisdiction_id,
-            "map_link": boat.map_link,
+            "provider_id": boat.provider_id,
             "created_at": boat.created_at,
             "updated_at": boat.updated_at,
         }
-        for boat in boats
-    ]
+        # Add provider data if available
+        if boat.provider:
+            boat_dict["provider_name"] = boat.provider.name
+            boat_dict["provider_location"] = boat.provider.location
+            boat_dict["provider_address"] = boat.provider.address
+            boat_dict["jurisdiction_id"] = boat.provider.jurisdiction_id
+            boat_dict["map_link"] = boat.provider.map_link
+        boat_dicts.append(boat_dict)
 
     return BoatsPublic(data=boat_dicts, count=count)
 

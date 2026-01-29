@@ -78,7 +78,7 @@ class YamlImporter:
                 name=data["name"],
                 launch_id=data["launch_id"],
                 active=data.get("active", True),
-                public=data.get("public", False),
+                booking_mode=data.get("booking_mode", "private"),
                 sales_open_at=datetime.fromisoformat(
                     data["sales_open_at"].replace("Z", "+00:00")
                 )

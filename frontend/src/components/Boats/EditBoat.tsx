@@ -1,5 +1,5 @@
 import { type ApiError, type BoatUpdate, BoatsService } from "@/client"
-import JurisdictionDropdown from "@/components/Common/JurisdictionDropdown"
+import ProviderDropdown from "@/components/Common/ProviderDropdown"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -51,11 +51,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     defaultValues: {
       name: boat.name,
       capacity: boat.capacity,
-      provider_name: boat.provider_name,
-      provider_location: boat.provider_location,
-      provider_address: boat.provider_address,
-      jurisdiction_id: boat.jurisdiction_id,
-      map_link: boat.map_link,
+      provider_id: boat.provider_id,
     },
   })
 
@@ -154,97 +150,23 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                 </Field>
 
                 <Field
-                  invalid={!!errors.provider_name}
-                  errorText={errors.provider_name?.message}
-                  label="Provider Name"
-                >
-                  <Input
-                    id="provider_name"
-                    {...register("provider_name", {
-                      maxLength: {
-                        value: 255,
-                        message: "Provider name cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Provider Name"
-                    type="text"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.provider_location}
-                  errorText={errors.provider_location?.message}
-                  label="Provider Location"
-                >
-                  <Input
-                    id="provider_location"
-                    {...register("provider_location", {
-                      maxLength: {
-                        value: 255,
-                        message:
-                          "Provider location cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Provider Location"
-                    type="text"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.provider_address}
-                  errorText={errors.provider_address?.message}
-                  label="Provider Address"
-                >
-                  <Input
-                    id="provider_address"
-                    {...register("provider_address", {
-                      maxLength: {
-                        value: 500,
-                        message:
-                          "Provider address cannot exceed 500 characters",
-                      },
-                    })}
-                    placeholder="Provider Address"
-                    type="text"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.jurisdiction_id}
-                  errorText={errors.jurisdiction_id?.message}
-                  label="Jurisdiction"
+                  invalid={!!errors.provider_id}
+                  errorText={errors.provider_id?.message}
+                  label="Provider"
                   required
                 >
                   <Controller
-                    name="jurisdiction_id"
+                    name="provider_id"
                     control={control}
                     render={({ field }) => (
-                      <JurisdictionDropdown
-                        id="jurisdiction_id"
-                        value={field.value || ""}
+                      <ProviderDropdown
+                        id="provider_id"
+                        value={field.value ? String(field.value) : ""}
                         onChange={field.onChange}
                         isDisabled={isSubmitting}
                         portalRef={contentRef}
                       />
                     )}
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.map_link}
-                  errorText={errors.map_link?.message}
-                  label="Map Link (Optional)"
-                >
-                  <Input
-                    id="map_link"
-                    {...register("map_link", {
-                      maxLength: {
-                        value: 2000,
-                        message: "Map link cannot exceed 2000 characters",
-                      },
-                    })}
-                    placeholder="Map Link"
-                    type="text"
                   />
                 </Field>
               </VStack>

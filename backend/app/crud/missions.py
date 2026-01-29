@@ -57,9 +57,12 @@ def get_active_missions(
 def get_public_missions(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> list[Mission]:
-    """Get public missions."""
+    """Get missions with booking_mode public (open to all)."""
     return session.exec(
-        select(Mission).where(Mission.public).offset(skip).limit(limit)
+        select(Mission)
+        .where(Mission.booking_mode == "public")
+        .offset(skip)
+        .limit(limit)
     ).all()
 
 
@@ -74,7 +77,7 @@ def get_missions_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, name, launch_id, active, public, sales_open_at, refund_cutoff_hours, created_at, updated_at
+            SELECT id, name, launch_id, active, booking_mode, sales_open_at, refund_cutoff_hours, created_at, updated_at
             FROM mission
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
@@ -90,7 +93,7 @@ def get_missions_no_relationships(
                 "name": row[1],  # name
                 "launch_id": row[2],  # launch_id
                 "active": row[3],  # active
-                "public": row[4],  # public
+                "booking_mode": row[4],  # booking_mode
                 "sales_open_at": row[5],  # sales_open_at
                 "refund_cutoff_hours": row[6],  # refund_cutoff_hours
                 "created_at": row[7],  # created_at
@@ -119,7 +122,7 @@ def get_missions_with_stats(
     missions_result = session.exec(
         text(
             """
-            SELECT id, name, launch_id, active, public, sales_open_at, refund_cutoff_hours, created_at, updated_at
+            SELECT id, name, launch_id, active, booking_mode, sales_open_at, refund_cutoff_hours, created_at, updated_at
             FROM mission
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
@@ -133,7 +136,7 @@ def get_missions_with_stats(
         mission_name = mission_row[1]  # name
         launch_id = mission_row[2]  # launch_id
         active = mission_row[3]  # active
-        public = mission_row[4]  # public
+        booking_mode = mission_row[4]  # booking_mode
         sales_open_at = mission_row[5]  # sales_open_at
         refund_cutoff_hours = mission_row[6]  # refund_cutoff_hours
         created_at = mission_row[7]  # created_at
@@ -177,7 +180,7 @@ def get_missions_with_stats(
                 "name": mission_name,
                 "launch_id": launch_id,
                 "active": active,
-                "public": public,
+                "booking_mode": booking_mode,
                 "sales_open_at": sales_open_at,
                 "refund_cutoff_hours": refund_cutoff_hours,
                 "created_at": created_at,

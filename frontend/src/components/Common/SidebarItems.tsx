@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react"
 import type { UserPublic } from "@/client"
 import {
   FaBalanceScale,
+  FaAnchor,
   FaMapMarked,
   FaRocket,
   FaRoute,
@@ -53,6 +54,7 @@ const defaultItems = [
   { icon: FaMapMarked, title: "Locations", path: "/locations" },
   { icon: FaBalanceScale, title: "Jurisdictions", path: "/jurisdictions" },
   { icon: FaShip, title: "Boats", path: "/boats" },
+  { icon: FaAnchor, title: "Boat Providers", path: "/providers" },
   { icon: FiTag, title: "Discount Codes", path: "/discount-codes" },
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]

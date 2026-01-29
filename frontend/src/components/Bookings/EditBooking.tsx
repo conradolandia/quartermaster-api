@@ -18,7 +18,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, parseApiDate } from "@/utils"
 import {
   Badge,
   Box,
@@ -63,7 +63,7 @@ const EditBooking = ({
   const bookingTrip = tripsData?.data?.find((t: any) =>
     booking.items?.some((item: any) => item.trip_id === t.id)
   )
-  const isPast = bookingTrip ? new Date(bookingTrip.departure_time) < new Date() : false
+  const isPast = bookingTrip ? parseApiDate(bookingTrip.departure_time) < new Date() : false
 
   // Get boats for display
   const { data: boatsData } = useQuery({
@@ -161,7 +161,7 @@ const EditBooking = ({
   const getTripName = (tripId: string) => {
     const trip = tripsData?.data.find((t) => t.id === tripId)
     return trip
-      ? `${trip.type} - ${new Date(trip.departure_time).toLocaleDateString()}`
+      ? `${trip.type} - ${parseApiDate(trip.departure_time).toLocaleDateString()}`
       : tripId
   }
 

@@ -329,6 +329,7 @@ class LaunchUpdateMessage(BaseModel):
     """Request body for sending launch update emails."""
 
     message: str
+    priority: bool = False
 
 
 class LaunchUpdateResponse(BaseModel):
@@ -353,6 +354,9 @@ def send_launch_update(
     """
     Send a launch update email to all customers with confirmed bookings
     for this launch who have opted in to receive launch updates.
+
+    If priority is True, sends to all customers regardless of their
+    launch_updates_pref setting.
     """
     # Get the launch
     launch = crud.get_launch(session=session, launch_id=launch_id)
@@ -362,18 +366,22 @@ def send_launch_update(
             detail=f"Launch with ID {launch_id} not found",
         )
 
-    # Find all bookings for this launch where launch_updates_pref is True
+    # Find all bookings for this launch
     # Path: Launch -> Mission -> Trip -> BookingItem -> Booking
+    # If priority is False, only include bookings where launch_updates_pref is True
     statement = (
         select(Booking)
         .join(BookingItem, BookingItem.booking_id == Booking.id)
         .join(Trip, Trip.id == BookingItem.trip_id)
         .join(Mission, Mission.id == Trip.mission_id)
         .where(Mission.launch_id == launch_id)
-        .where(Booking.launch_updates_pref == True)  # noqa: E712
         .where(Booking.status.in_([BookingStatus.confirmed, BookingStatus.checked_in]))
         .distinct()
     )
+
+    # Only filter by launch_updates_pref if priority is False
+    if not update_data.priority:
+        statement = statement.where(Booking.launch_updates_pref == True)  # noqa: E712
     bookings = session.exec(statement).all()
 
     emails_sent = 0

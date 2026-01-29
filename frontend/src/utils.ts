@@ -1,6 +1,18 @@
 import type { ApiError } from "./client"
 import useCustomToast from "./hooks/useCustomToast"
 
+/**
+ * Parse a datetime string from the API as UTC for correct local display.
+ * The API returns UTC; when the backend omits the "Z" suffix (naive datetimes
+ * from the DB), JS parses as local time and shows wrong times. Treat strings
+ * without timezone as UTC so format() displays in the user's locale.
+ */
+export function parseApiDate(isoString: string | null | undefined): Date {
+  if (isoString == null || isoString === "") return new Date(NaN)
+  const hasTimezone = isoString.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(isoString)
+  return new Date(hasTimezone ? isoString : `${isoString}Z`)
+}
+
 export const emailPattern = {
   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
   message: "Invalid email address",

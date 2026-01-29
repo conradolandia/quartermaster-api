@@ -19,6 +19,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
+import { parseApiDate } from "@/utils"
 import { fetchPublicLaunches, fetchPublicMissions, type PublicLaunch, type PublicMission } from "@/utils/publicApi"
 
 import type { BookingStepData } from "../PublicBookingForm"
@@ -163,7 +164,7 @@ const Step1TripSelection = ({
       activeTrips.map((trip: TripPublic) => {
         const mission = getTripMission(trip.id)
         const launch = getTripLaunch(trip.id)
-        const departureDate = new Date(trip.departure_time)
+        const departureDate = parseApiDate(trip.departure_time)
 
         return {
           label: `${launch?.name || "Unknown Launch"} - ${
@@ -222,7 +223,7 @@ const Step1TripSelection = ({
                       {activeTrips.map((trip: TripPublic) => {
                         const mission = getTripMission(trip.id)
                         const launch = getTripLaunch(trip.id)
-                        const departureDate = new Date(trip.departure_time)
+                        const departureDate = parseApiDate(trip.departure_time)
                         const label = `${launch?.name || "Unknown Launch"} - ${
                           mission?.name || "Unknown Mission"
                         } - ${
@@ -272,7 +273,7 @@ const Step1TripSelection = ({
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Check-in:</Text>
                           <Text>
-                            {new Date(
+                            {parseApiDate(
                               selectedTrip.check_in_time,
                             ).toLocaleString()}
                           </Text>
@@ -280,7 +281,7 @@ const Step1TripSelection = ({
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Boarding:</Text>
                           <Text>
-                            {new Date(
+                            {parseApiDate(
                               selectedTrip.boarding_time,
                             ).toLocaleString()}
                           </Text>
@@ -288,7 +289,7 @@ const Step1TripSelection = ({
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Departure:</Text>
                           <Text>
-                            {new Date(
+                            {parseApiDate(
                               selectedTrip.departure_time,
                             ).toLocaleString()}
                           </Text>

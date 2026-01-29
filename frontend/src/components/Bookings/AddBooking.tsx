@@ -45,6 +45,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
+import { parseApiDate } from "@/utils"
 
 // In-memory cache to avoid re-fetching boat names we already resolved
 const boatNameCache: Map<string, string> = new Map()
@@ -530,13 +531,13 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     {tripsData?.data
                       ?.filter((trip: TripPublic) => {
                         if (!trip.departure_time) return false
-                        const departureTime = new Date(trip.departure_time)
+                        const departureTime = parseApiDate(trip.departure_time)
                         return departureTime >= new Date()
                       })
                       .map((trip: TripPublic) => (
                         <option key={trip.id} value={trip.id}>
                           {trip.type} -{" "}
-                          {new Date(trip.departure_time).toLocaleDateString()}
+                          {parseApiDate(trip.departure_time).toLocaleDateString()}
                         </option>
                       ))}
                   </NativeSelect>

@@ -13,25 +13,18 @@ export type BoatCreate = {
   name: string
   slug?: string
   capacity: number
-  provider_name?: string | null
-  provider_location?: string | null
-  provider_address?: string | null
-  jurisdiction_id: string
-  map_link?: string | null
+  provider_id: string
 }
 
 export type BoatPublic = {
   name: string
   slug?: string
   capacity: number
-  provider_name?: string | null
-  provider_location?: string | null
-  provider_address?: string | null
-  jurisdiction_id: string
-  map_link?: string | null
+  provider_id: string
   id: string
   created_at: string
   updated_at: string
+  provider?: ProviderPublic | null
 }
 
 export type BoatsPublic = {
@@ -42,11 +35,7 @@ export type BoatsPublic = {
 export type BoatUpdate = {
   name?: string | null
   capacity?: number | null
-  provider_name?: string | null
-  provider_location?: string | null
-  provider_address?: string | null
-  jurisdiction_id?: string | null
-  map_link?: string | null
+  provider_id?: string | null
 }
 
 export type Body_launches_import_launch_from_yaml = {
@@ -287,6 +276,7 @@ export type LaunchUpdate = {
  */
 export type LaunchUpdateMessage = {
   message: string
+  priority?: boolean
 }
 
 /**
@@ -329,7 +319,6 @@ export type MissionCreate = {
   name: string
   launch_id: string
   active?: boolean
-  public?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
@@ -339,7 +328,6 @@ export type MissionPublic = {
   name: string
   launch_id: string
   active?: boolean
-  public?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
@@ -362,7 +350,6 @@ export type MissionUpdate = {
   name?: string | null
   launch_id?: string | null
   active?: boolean | null
-  public?: boolean | null
   booking_mode?: string | null
   sales_open_at?: string | null
   refund_cutoff_hours?: number | null
@@ -372,7 +359,6 @@ export type MissionWithStats = {
   name: string
   launch_id: string
   active?: boolean
-  public?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
@@ -393,6 +379,39 @@ export type PrivateUserCreate = {
   password: string
   full_name: string
   is_verified?: boolean
+}
+
+export type ProviderCreate = {
+  name: string
+  location?: string | null
+  address?: string | null
+  jurisdiction_id: string
+  map_link?: string | null
+}
+
+export type ProviderPublic = {
+  name: string
+  location?: string | null
+  address?: string | null
+  jurisdiction_id: string
+  map_link?: string | null
+  id: string
+  created_at: string
+  updated_at: string
+  jurisdiction?: JurisdictionPublic | null
+}
+
+export type ProvidersPublic = {
+  data: Array<ProviderPublic>
+  count: number
+}
+
+export type ProviderUpdate = {
+  name?: string | null
+  location?: string | null
+  address?: string | null
+  jurisdiction_id?: string | null
+  map_link?: string | null
 }
 
 export type Token = {
@@ -988,6 +1007,61 @@ export type PrivateCreateUserData = {
 }
 
 export type PrivateCreateUserResponse = UserPublic
+
+export type ProvidersReadPublicProvidersData = {
+  jurisdictionId?: string
+  limit?: number
+  skip?: number
+}
+
+export type ProvidersReadPublicProvidersResponse = ProvidersPublic
+
+export type ProvidersReadProvidersData = {
+  jurisdictionId?: string
+  limit?: number
+  skip?: number
+}
+
+export type ProvidersReadProvidersResponse = ProvidersPublic
+
+export type ProvidersCreateProviderData = {
+  requestBody: ProviderCreate
+}
+
+export type ProvidersCreateProviderResponse = ProviderPublic
+
+export type ProvidersReadProviderData = {
+  providerId: string
+}
+
+export type ProvidersReadProviderResponse = ProviderPublic
+
+export type ProvidersUpdateProviderData = {
+  providerId: string
+  requestBody: ProviderUpdate
+}
+
+export type ProvidersUpdateProviderResponse = ProviderPublic
+
+export type ProvidersDeleteProviderData = {
+  providerId: string
+}
+
+export type ProvidersDeleteProviderResponse = void
+
+export type ProvidersReadProvidersByJurisdictionData = {
+  jurisdictionId: string
+  limit?: number
+  skip?: number
+}
+
+export type ProvidersReadProvidersByJurisdictionResponse = ProvidersPublic
+
+export type ProvidersReadPublicProviderData = {
+  providerId: string
+}
+
+export type ProvidersReadPublicProviderResponse = ProviderPublic
 
 export type TripBoatsCreateTripBoatData = {
   requestBody: TripBoatCreate
