@@ -10,12 +10,13 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { FiArrowLeft, FiMail, FiPrinter } from "react-icons/fi";
+import { FiArrowLeft, FiCheck, FiMail, FiPrinter } from "react-icons/fi";
 
 import { BookingsService } from "@/client";
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
+import useCustomToast from "@/hooks/useCustomToast";
 import { formatDate, getStatusColor } from "./types";
 
 interface BookingDetailsProps {
@@ -26,6 +27,8 @@ export default function BookingDetails({
   confirmationCode,
 }: BookingDetailsProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { showSuccessToast, showErrorToast } = useCustomToast();
 
   const {
     data: booking,
@@ -37,6 +40,19 @@ export default function BookingDetails({
       BookingsService.getBookingByConfirmationCode({
         confirmationCode,
       }),
+  });
+
+  const checkInMutation = useMutation({
+    mutationFn: () =>
+      BookingsService.checkInBooking({ confirmationCode }),
+    onSuccess: (updated) => {
+      showSuccessToast("Booking checked in successfully");
+      queryClient.setQueryData(["booking", confirmationCode], updated);
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { body?: { detail?: string } })?.body?.detail;
+      showErrorToast(typeof detail === "string" ? detail : "Failed to check in");
+    },
   });
 
   const handleBack = () => {
@@ -124,6 +140,18 @@ export default function BookingDetails({
             <Flex align="center" gap={2}>
               <FiMail />
               Resend Email
+            </Flex>
+          </Button>
+          <Button
+            size="sm"
+            colorPalette="green"
+            onClick={() => checkInMutation.mutate()}
+            loading={checkInMutation.isPending}
+            disabled={booking.status === "checked_in"}
+          >
+            <Flex align="center" gap={2}>
+              <FiCheck />
+              {booking.status === "checked_in" ? "Already Checked In" : "Check In"}
             </Flex>
           </Button>
           <BookingActionsMenu booking={booking} />
