@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query"
 import { FiDollarSign, FiUsers, FiTrendingUp, FiCalendar } from "react-icons/fi"
 
 import { BookingsService, TripsService } from "@/client"
+import { formatCents } from "@/utils"
 
 interface DashboardStatsProps {
   selectedMissionId?: string
@@ -316,7 +317,7 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                         {(booking.status || "unknown").replace("_", " ").toUpperCase()}
                       </Badge>
                       <Text fontSize="sm" fontWeight="bold">
-                        ${booking.total_amount.toFixed(2)}
+                        ${formatCents(booking.total_amount)}
                       </Text>
                     </VStack>
                   </HStack>

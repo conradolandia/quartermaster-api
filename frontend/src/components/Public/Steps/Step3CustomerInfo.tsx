@@ -264,7 +264,7 @@ const Step3CustomerInfo = ({
               {bookingData.tip > 0 && (
                 <HStack justify="space-between">
                   <Text fontWeight="bold">Tip:</Text>
-                  <Text fontWeight="medium">${bookingData.tip.toFixed(2)}</Text>
+                  <Text fontWeight="medium">${formatCents(bookingData.tip)}</Text>
                 </HStack>
               )}
 

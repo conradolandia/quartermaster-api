@@ -208,7 +208,7 @@ const BookingLookup = () => {
                             {item.quantity}x {item.item_type.replace("_", " ")}
                           </Text>
                           <Text fontSize="sm" color="text.muted">
-                            ${item.price_per_unit.toFixed(2)} each
+                            ${formatCents(item.price_per_unit)} each
                           </Text>
                         </VStack>
                         <VStack align="end" gap={1}>
@@ -216,7 +216,7 @@ const BookingLookup = () => {
                             {item.status}
                           </Badge>
                           <Text fontWeight="bold">
-                            ${(item.quantity * item.price_per_unit).toFixed(2)}
+                            ${formatCents(item.quantity * item.price_per_unit)}
                           </Text>
                         </VStack>
                       </HStack>
@@ -238,7 +238,7 @@ const BookingLookup = () => {
                   {currentBooking.discount_amount > 0 && (
                     <HStack justify="space-between">
                       <Text color="green.600">Discount:</Text>
-                      <Text color="green.600">-${currentBooking.discount_amount.toFixed(2)}</Text>
+                      <Text color="green.600">-${formatCents(currentBooking.discount_amount)}</Text>
                     </HStack>
                   )}
                   <HStack justify="space-between">
@@ -248,7 +248,7 @@ const BookingLookup = () => {
                   {currentBooking.tip_amount > 0 && (
                     <HStack justify="space-between">
                       <Text>Tip:</Text>
-                      <Text>${currentBooking.tip_amount.toFixed(2)}</Text>
+                      <Text>${formatCents(currentBooking.tip_amount)}</Text>
                     </HStack>
                   )}
                   <HStack justify="space-between" borderTop="1px solid" borderColor="gray.200" pt={2}>

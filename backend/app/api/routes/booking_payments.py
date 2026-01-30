@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
-from app.core.stripe import create_payment_intent
+from app.core.stripe import create_payment_intent, retrieve_payment_intent
 from app.models import Booking, BookingStatus
 
 # Set up logging
@@ -85,4 +85,56 @@ def initialize_payment(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initialize payment",
+        )
+
+
+@router.get("/{confirmation_code}/resume-payment")
+def resume_payment(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> dict:
+    """
+    Return existing PaymentIntent client_secret for a pending_payment booking.
+    Allows resuming payment without creating a new booking or PaymentIntent.
+    """
+    try:
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
+
+        if not booking:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found",
+            )
+
+        if booking.status != BookingStatus.pending_payment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot resume payment for booking with status '{booking.status}'",
+            )
+
+        if not booking.payment_intent_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No payment intent for this booking",
+            )
+
+        payment_intent = retrieve_payment_intent(booking.payment_intent_id)
+        return {
+            "payment_intent_id": payment_intent.id,
+            "client_secret": payment_intent.client_secret,
+            "status": "pending_payment",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Error resuming payment for booking {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to resume payment",
         )

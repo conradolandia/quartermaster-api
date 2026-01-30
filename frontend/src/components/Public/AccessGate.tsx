@@ -77,6 +77,20 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
     enabled: !!submittedCode,
   })
 
+  // Derived after queries (safe when loading/error: optional chaining)
+  const hasTrips = (tripsData?.data?.length ?? 0) > 0
+  const accessCodeValid = accessCodeValidation?.valid === true
+
+  // Notify parent when access is granted (effect only, never during render; must run on every render to satisfy Rules of Hooks)
+  useEffect(() => {
+    if (!hasTrips) return
+    if (accessCodeValid && accessCodeValidation?.discount_code) {
+      onAccessGranted(submittedCode, accessCodeValidation.discount_code.id)
+    } else {
+      onAccessGranted(null, null)
+    }
+  }, [hasTrips, accessCodeValid, accessCodeValidation?.discount_code, submittedCode, onAccessGranted])
+
   const handleSubmitCode = () => {
     if (!accessCode.trim()) {
       setCodeError("Please enter an access code")
@@ -122,19 +136,9 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
     )
   }
 
-  const hasTrips = tripsData?.data && tripsData.data.length > 0
-  const accessCodeValid = accessCodeValidation?.valid === true
-
-  // If we have trips available, grant access
+  // If we have trips available, grant access and show children
   if (hasTrips) {
-    // Notify parent about access and discount code
-    if (accessCodeValid && accessCodeValidation?.discount_code) {
-      onAccessGranted(submittedCode, accessCodeValidation.discount_code.id)
-      return <>{children(submittedCode)}</>
-    } else {
-      onAccessGranted(null, null)
-      return <>{children(null)}</>
-    }
+    return <>{children(accessCodeValid ? submittedCode : null)}</>
   }
 
   // No trips available - check if we need an access code

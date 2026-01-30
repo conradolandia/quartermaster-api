@@ -383,7 +383,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         </Table.Root>
       </Box>
 
-      {count > effectivePageSize && (
+      {count > 0 && (
         <Flex
           justifyContent="space-between"
           align="center"
@@ -395,17 +395,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             value={effectivePageSize}
             onChange={handlePageSizeChange}
           />
-          <PaginationRoot
-            count={count}
-            pageSize={effectivePageSize}
-            onPageChange={({ page }) => handlePageChange(page)}
-          >
-            <Flex>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+          {count > effectivePageSize && (
+            <PaginationRoot
+              page={page}
+              count={count}
+              pageSize={effectivePageSize}
+              onPageChange={(p) => handlePageChange(p.page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          )}
         </Flex>
       )}
     </>

@@ -399,7 +399,7 @@ function TripsTable() {
         </Table.Root>
       </Box>
 
-      {count > effectivePageSize && (
+      {count > 0 && (
         <Flex
           justifyContent="space-between"
           align="center"
@@ -411,19 +411,21 @@ function TripsTable() {
             value={effectivePageSize}
             onChange={setPageSize}
           />
-          <PaginationRoot
-            count={count}
-            pageSize={effectivePageSize}
-            siblingCount={1}
-            page={page}
-            onPageChange={handlePageChange}
-          >
-            <Flex>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+          {count > effectivePageSize && (
+            <PaginationRoot
+              page={page}
+              count={count}
+              pageSize={effectivePageSize}
+              siblingCount={1}
+              onPageChange={handlePageChange}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          )}
         </Flex>
       )}
     </>

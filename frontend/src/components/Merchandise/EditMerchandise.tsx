@@ -53,7 +53,7 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
     defaultValues: {
       name: merchandise.name,
       description: merchandise.description ?? "",
-      price: merchandise.price,
+      price: merchandise.price / 100,
       quantity_available: merchandise.quantity_available,
     },
   })
@@ -63,7 +63,7 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
       reset({
         name: merchandise.name,
         description: merchandise.description ?? "",
-        price: merchandise.price,
+        price: merchandise.price / 100,
         quantity_available: merchandise.quantity_available,
       })
     }
@@ -97,7 +97,10 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
   })
 
   const onSubmit: SubmitHandler<MerchandiseUpdate> = async (data) => {
-    mutation.mutate(data)
+    mutation.mutate({
+      ...data,
+      price: data.price != null ? Math.round(data.price * 100) : undefined,
+    })
   }
 
   return (

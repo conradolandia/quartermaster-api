@@ -66,7 +66,7 @@ export const AddMerchandise = ({
   })
 
   const onSubmit: SubmitHandler<MerchandiseCreate> = (data) => {
-    mutation.mutate(data)
+    mutation.mutate({ ...data, price: Math.round(data.price * 100) })
   }
 
   return (

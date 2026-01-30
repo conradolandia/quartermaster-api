@@ -17,6 +17,21 @@ export function parseApiDate(isoString: string | null | undefined): Date {
   return new Date(hasTimezone ? isoString : `${isoString}Z`)
 }
 
+/** Format a Date as time without seconds (e.g. "2:30 PM") for display. */
+export function formatTimeNoSeconds(date: Date): string {
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+/** Format a Date as date + time without seconds for display. */
+export function formatDateTimeNoSeconds(date: Date): string {
+  if (Number.isNaN(date.getTime())) return ""
+  return `${date.toLocaleDateString()} ${formatTimeNoSeconds(date)}`
+}
+
 /**
  * Format a Date for an HTML datetime-local input (YYYY-MM-DDTHH:mm).
  * Uses the browser's local timezone so the input shows the same time as

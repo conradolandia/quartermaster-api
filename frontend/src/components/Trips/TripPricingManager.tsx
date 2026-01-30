@@ -24,7 +24,7 @@ import {
 } from "@/client"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { formatCents, handleError } from "@/utils"
 
 interface TripPricingManagerProps {
   tripId: string
@@ -189,7 +189,7 @@ export default function TripPricingManager({
     const data: TripPricingCreate = {
       trip_id: tripId,
       ticket_type: pricingForm.ticket_type,
-      price: Number.parseFloat(pricingForm.price),
+      price: Math.round(Number.parseFloat(pricingForm.price) * 100),
     }
 
     if (editingPricingId) {
@@ -205,7 +205,7 @@ export default function TripPricingManager({
     if (editingMerchandiseId) {
       const data: TripMerchandiseUpdate = {
         price_override: merchandiseForm.price_override
-          ? Number.parseFloat(merchandiseForm.price_override)
+          ? Math.round(Number.parseFloat(merchandiseForm.price_override) * 100)
           : null,
         quantity_available_override: merchandiseForm.quantity_available_override
           ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
@@ -217,7 +217,7 @@ export default function TripPricingManager({
         trip_id: tripId,
         merchandise_id: merchandiseForm.merchandise_id,
         price_override: merchandiseForm.price_override
-          ? Number.parseFloat(merchandiseForm.price_override)
+          ? Math.round(Number.parseFloat(merchandiseForm.price_override) * 100)
           : null,
         quantity_available_override: merchandiseForm.quantity_available_override
           ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
@@ -231,7 +231,7 @@ export default function TripPricingManager({
     setEditingPricingId(pricing.id)
     setPricingForm({
       ticket_type: pricing.ticket_type,
-      price: pricing.price.toString(),
+      price: (pricing.price / 100).toFixed(2),
     })
   }
 
@@ -240,7 +240,7 @@ export default function TripPricingManager({
     setMerchandiseForm({
       merchandise_id: merchandise.merchandise_id,
       price_override:
-        merchandise.price != null ? merchandise.price.toString() : "",
+        merchandise.price != null ? (merchandise.price / 100).toFixed(2) : "",
       quantity_available_override:
         merchandise.quantity_available != null
           ? merchandise.quantity_available.toString()
@@ -353,7 +353,7 @@ export default function TripPricingManager({
                 <Text fontWeight="medium" color={editingPricingId === pricing.id ? "white" : "inherit"}>
                   {pricing.ticket_type}
                 </Text>
-                <Text color={editingPricingId === pricing.id ? "white" : "inherit"}>${pricing.price.toFixed(2)}</Text>
+                <Text color={editingPricingId === pricing.id ? "white" : "inherit"}>${formatCents(pricing.price)}</Text>
               </HStack>
               <HStack>
                 {editingPricingId !== pricing.id && (
@@ -426,7 +426,7 @@ export default function TripPricingManager({
                       <option value="">Select merchandise</option>
                       {catalogMerchandise?.data.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.name} — ${m.price.toFixed(2)} (qty {m.quantity_available})
+                          {m.name} — ${formatCents(m.price)} (qty {m.quantity_available})
                         </option>
                       ))}
                     </NativeSelect>
@@ -518,7 +518,7 @@ export default function TripPricingManager({
                   </Text>
                 )}
                 <HStack>
-                  <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "white" : "inherit"}>${merchandise.price.toFixed(2)}</Text>
+                  <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "white" : "inherit"}>${formatCents(merchandise.price)}</Text>
                   <Text fontSize="sm" color={editingMerchandiseId === merchandise.id ? "gray.200" : "gray.500"}>
                     ({merchandise.quantity_available} available)
                   </Text>

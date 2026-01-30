@@ -19,7 +19,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
-import { parseApiDate } from "@/utils"
+import { formatDateTimeNoSeconds, parseApiDate } from "@/utils"
 import { fetchPublicLaunches, fetchPublicMissions, type PublicLaunch, type PublicMission } from "@/utils/publicApi"
 
 import type { BookingStepData } from "../PublicBookingForm"
@@ -99,18 +99,22 @@ const Step1TripSelection = ({
     enabled: !!tripBoats && tripBoats.length > 0,
   })
 
-  // Helper functions to get related data
+  // Helper functions to get related data (normalize IDs to string for comparison)
   const getTripMission = (tripId: string) => {
-    const trip = allTrips?.data?.find((t: TripPublic) => t.id === tripId)
+    const trip = allTrips?.data?.find(
+      (t: TripPublic) => String(t.id) === String(tripId),
+    )
+    if (!trip?.mission_id) return undefined
     return allMissions?.data?.find(
-      (m: PublicMission) => m.id === trip?.mission_id,
+      (m: PublicMission) => String(m.id) === String(trip.mission_id),
     )
   }
 
   const getTripLaunch = (tripId: string) => {
     const mission = getTripMission(tripId)
+    if (!mission?.launch_id) return undefined
     return allLaunches?.data?.find(
-      (l: PublicLaunch) => l.id === mission?.launch_id,
+      (l: PublicLaunch) => String(l.id) === String(mission.launch_id),
     )
   }
 
@@ -169,9 +173,7 @@ const Step1TripSelection = ({
         return {
           label: `${launch?.name || "Unknown Launch"} - ${
             mission?.name || "Unknown Mission"
-          } - ${
-            trip.type
-          } (${departureDate.toLocaleDateString()} ${departureDate.toLocaleTimeString()})`,
+          } - ${trip.type} (${formatDateTimeNoSeconds(departureDate)})`,
           value: trip.id,
         }
       }) || [],
@@ -226,9 +228,7 @@ const Step1TripSelection = ({
                         const departureDate = parseApiDate(trip.departure_time)
                         const label = `${launch?.name || "Unknown Launch"} - ${
                           mission?.name || "Unknown Mission"
-                        } - ${
-                          trip.type
-                        } (${departureDate.toLocaleDateString()} ${departureDate.toLocaleTimeString()})`
+                        } - ${trip.type} (${formatDateTimeNoSeconds(departureDate)})`
 
                         return (
                           <Select.Item
@@ -273,25 +273,25 @@ const Step1TripSelection = ({
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Check-in:</Text>
                           <Text>
-                            {parseApiDate(
-                              selectedTrip.check_in_time,
-                            ).toLocaleString()}
+                            {formatDateTimeNoSeconds(
+                              parseApiDate(selectedTrip.check_in_time),
+                            )}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Boarding:</Text>
                           <Text>
-                            {parseApiDate(
-                              selectedTrip.boarding_time,
-                            ).toLocaleString()}
+                            {formatDateTimeNoSeconds(
+                              parseApiDate(selectedTrip.boarding_time),
+                            )}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Departure:</Text>
                           <Text>
-                            {parseApiDate(
-                              selectedTrip.departure_time,
-                            ).toLocaleString()}
+                            {formatDateTimeNoSeconds(
+                              parseApiDate(selectedTrip.departure_time),
+                            )}
                           </Text>
                         </HStack>
                       </VStack>

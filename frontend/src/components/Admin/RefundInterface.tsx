@@ -237,7 +237,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Total Amount:</Text>
-                    <Text fontWeight="bold">${currentBooking.total_amount.toFixed(2)}</Text>
+                    <Text fontWeight="bold">${formatCents(currentBooking.total_amount)}</Text>
                   </HStack>
                 </VStack>
 

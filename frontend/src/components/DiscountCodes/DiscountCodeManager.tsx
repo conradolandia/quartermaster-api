@@ -23,7 +23,7 @@ import {
   type DiscountCodeUpdate,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { formatCents, handleError } from "@/utils"
 
 interface DiscountCodeManagerProps {
   // Add any props if needed
@@ -119,13 +119,22 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       code: discountCode.code,
       description: discountCode.description || "",
       discount_type: discountCode.discount_type,
-      discount_value: discountCode.discount_value,
+      discount_value:
+        discountCode.discount_type === "fixed_amount"
+          ? discountCode.discount_value / 100
+          : discountCode.discount_value,
       max_uses: discountCode.max_uses,
       is_active: discountCode.is_active,
       valid_from: discountCode.valid_from,
       valid_until: discountCode.valid_until,
-      min_order_amount: discountCode.min_order_amount,
-      max_discount_amount: discountCode.max_discount_amount,
+      min_order_amount:
+        discountCode.min_order_amount != null
+          ? discountCode.min_order_amount / 100
+          : null,
+      max_discount_amount:
+        discountCode.max_discount_amount != null
+          ? discountCode.max_discount_amount / 100
+          : null,
       is_access_code: discountCode.is_access_code || false,
       access_code_mission_id: discountCode.access_code_mission_id || null,
     })
@@ -141,11 +150,24 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     // Allow discount_value to be 0 (especially for access codes)
     if (!formData.code || formData.discount_value === undefined || formData.discount_value === null) return
 
+    // API: percentage 0-100 (e.g. 10 for 10%), fixed_amount in cents
+    const discountValue =
+      formData.discount_type === "fixed_amount"
+        ? Math.round(formData.discount_value! * 100)
+        : formData.discount_value!
     const data = {
       ...formData,
       code: formData.code!,
       discount_type: formData.discount_type!,
-      discount_value: formData.discount_value!,
+      discount_value: discountValue,
+      min_order_amount:
+        formData.min_order_amount != null
+          ? Math.round(formData.min_order_amount * 100)
+          : null,
+      max_discount_amount:
+        formData.max_discount_amount != null
+          ? Math.round(formData.max_discount_amount * 100)
+          : null,
     } as DiscountCodeCreate
 
     if (editingId) {
@@ -396,7 +418,11 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text fontSize="sm">{discountCode.discount_value}</Text>
+                  <Text fontSize="sm">
+                    {discountCode.discount_type === "percentage"
+                      ? `${(discountCode.discount_value <= 1 ? discountCode.discount_value * 100 : discountCode.discount_value).toFixed(0)}%`
+                      : `$${formatCents(discountCode.discount_value)}`}
+                  </Text>
                 </Table.Cell>
                 <Table.Cell>
                   <Text fontSize="sm">

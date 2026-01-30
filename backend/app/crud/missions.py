@@ -57,10 +57,10 @@ def get_active_missions(
 def get_public_missions(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> list[Mission]:
-    """Get missions with booking_mode public (open to all)."""
+    """Get missions visible on the public booking form: public and early_bird (so trip labels can show mission/launch names)."""
     return session.exec(
         select(Mission)
-        .where(Mission.booking_mode == "public")
+        .where(Mission.booking_mode.in_(["public", "early_bird"]))
         .offset(skip)
         .limit(limit)
     ).all()

@@ -133,15 +133,24 @@ const Step2ItemSelection = ({
       setAppliedDiscountCode(discountCodeData)
       setDiscountCodeError("")
 
-      // API: discount_value 0-1 for percentage, cents for fixed_amount; max_discount_amount in cents
+      // API: percentage = 0-100 (e.g. 10 for 10%), fixed_amount = cents (e.g. 500 for $5)
       let calculatedDiscount = 0
       if (discountCodeData.discount_type === "percentage") {
-        calculatedDiscount = Math.round(subtotal * discountCodeData.discount_value)
+        const rate =
+          discountCodeData.discount_value > 1
+            ? discountCodeData.discount_value / 100
+            : discountCodeData.discount_value
+        calculatedDiscount = Math.round(subtotal * rate)
         if (discountCodeData.max_discount_amount != null) {
           calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
         }
+        calculatedDiscount = Math.min(calculatedDiscount, subtotal)
       } else {
         calculatedDiscount = Math.round(discountCodeData.discount_value)
+        if (discountCodeData.max_discount_amount != null) {
+          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+        }
+        calculatedDiscount = Math.min(calculatedDiscount, subtotal)
       }
 
       setDiscountAmount(calculatedDiscount)
@@ -172,25 +181,35 @@ const Step2ItemSelection = ({
     enabled: !!bookingData.selectedTripId,
   })
 
-  // Calculate pricing whenever items change
+  // Calculate pricing whenever items or tax rate change (all amounts in cents)
+  // Re-run when jurisdictionsData loads so tax is applied once jurisdiction is available
   useEffect(() => {
     const subtotal = bookingData.selectedItems.reduce((sum, item) => {
       return sum + item.price_per_unit * item.quantity
     }, 0)
-
-    const taxAmount = Math.round((subtotal - discountAmount) * (taxRatePercent / 100))
-    const total = subtotal - discountAmount + taxAmount + tip
+    const discountCapped = Math.min(discountAmount, subtotal)
+    const afterDiscount = Math.max(0, subtotal - discountCapped)
+    // taxRatePercent is 0-100 (e.g. 8.5 for 8.5%); sales_tax_rate from API is 0-1
+    const taxAmount = Math.round(afterDiscount * (taxRatePercent / 100))
+    const total = afterDiscount + taxAmount + Math.max(0, tip)
 
     updateBookingData({
       subtotal,
-      discount_amount: discountAmount,
+      discount_amount: discountCapped,
       tax_rate: taxRatePercent,
       tax_amount: taxAmount,
-      tip,
+      tip: Math.max(0, tip),
       total,
       discount_code_id: appliedDiscountCode?.id || null,
     })
-  }, [bookingData.selectedItems, discountAmount, taxRatePercent, tip, appliedDiscountCode])
+  }, [
+    bookingData.selectedItems,
+    discountAmount,
+    taxRatePercent,
+    tip,
+    appliedDiscountCode,
+    jurisdictionsData,
+  ])
 
   const addTicket = (ticketType: string, price: number) => {
     const existingItem = bookingData.selectedItems.find(
@@ -320,7 +339,7 @@ const Step2ItemSelection = ({
                             .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </Text>
                         <Text fontSize="sm" color="gray.400">
-                          ${pricing.price.toFixed(2)} each
+                          ${formatCents(pricing.price)} each
                         </Text>
                       </Box>
                       <Button
@@ -357,7 +376,7 @@ const Step2ItemSelection = ({
                         )}
                         <HStack gap={2} mt={1}>
                           <Text fontSize="sm" color="gray.400">
-                            ${merchandise.price.toFixed(2)} each
+                            ${formatCents(merchandise.price)} each
                           </Text>
                           <Badge
                             colorPalette={
@@ -428,7 +447,7 @@ const Step2ItemSelection = ({
                         <Box flex={1}>
                           <Text fontWeight="medium">{itemName}</Text>
                           <Text fontSize="sm" color="gray.400">
-                            ${item.price_per_unit.toFixed(2)} × {item.quantity}
+                            ${formatCents(item.price_per_unit)} × {item.quantity}
                           </Text>
                         </Box>
                         <HStack gap={2}>
@@ -480,7 +499,7 @@ const Step2ItemSelection = ({
                 <HStack justify="space-between">
                   <Text>Subtotal:</Text>
                   <Text fontWeight="semibold">
-                    ${bookingData.subtotal.toFixed(2)}
+                    ${formatCents(bookingData.subtotal)}
                   </Text>
                 </HStack>
 
@@ -517,7 +536,7 @@ const Step2ItemSelection = ({
                         {appliedDiscountCode.code} applied
                       </Text>
                       <Text fontSize="sm" color="green.500">
-                        -${discountAmount.toFixed(2)}
+                        -${formatCents(bookingData.discount_amount)}
                       </Text>
                     </HStack>
                   )}
@@ -559,7 +578,10 @@ const Step2ItemSelection = ({
                       const currentSubtotal = bookingData.selectedItems.reduce((sum, item) => {
                         return sum + item.price_per_unit * item.quantity
                       }, 0)
-                      const suggestedAmount = (currentSubtotal - discountAmount) * (percentage / 100)
+                      const effectiveDiscount = Math.min(discountAmount, currentSubtotal)
+                      const suggestedAmount = Math.round(
+                        Math.max(0, (currentSubtotal - effectiveDiscount) * (percentage / 100)),
+                      )
                       return (
                         <Button
                           key={percentage}

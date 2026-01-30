@@ -42,6 +42,8 @@ import type {
   BookingsGetBookingByConfirmationCodeResponse,
   BookingsInitializePaymentData,
   BookingsInitializePaymentResponse,
+  BookingsResumePaymentData,
+  BookingsResumePaymentResponse,
   DiscountCodesCreateDiscountCodeData,
   DiscountCodesCreateDiscountCodeResponse,
   DiscountCodesListDiscountCodesData,
@@ -739,6 +741,30 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/bookings/{confirmation_code}/initialize-payment",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Resume Payment
+   * Return existing PaymentIntent client_secret for a pending_payment booking.
+   * Allows resuming payment without creating a new booking or PaymentIntent.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static resumePayment(
+    data: BookingsResumePaymentData,
+  ): CancelablePromise<BookingsResumePaymentResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/{confirmation_code}/resume-payment",
       path: {
         confirmation_code: data.confirmationCode,
       },

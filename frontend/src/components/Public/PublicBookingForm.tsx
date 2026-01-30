@@ -1,6 +1,8 @@
 import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSearch } from "@tanstack/react-router"
+
+import type { BookingPublic } from "@/client"
 
 // Types for the booking flow
 export interface BookingStepData {
@@ -40,6 +42,50 @@ export interface BookingStepData {
   discount_code?: string
 }
 
+/** Map API booking (e.g. from getBookingByConfirmationCode) to form step data for pre-fill when resuming. */
+function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
+  const nameParts = (booking.user_name || "").trim().split(/\s+/)
+  const first_name = nameParts[0] ?? ""
+  const last_name = nameParts.slice(1).join(" ") ?? ""
+  const items = booking.items ?? []
+  const firstItem = items[0]
+  const subtotal = booking.subtotal ?? 0
+  const tax_rate =
+    subtotal > 0 && (booking.tax_amount ?? 0) > 0
+      ? Math.round(((booking.tax_amount ?? 0) / subtotal) * 100)
+      : 0
+
+  return {
+    selectedTripId: firstItem?.trip_id ?? "",
+    selectedBoatId: firstItem?.boat_id ?? "",
+    selectedItems: items.map((item) => ({
+      trip_id: item.trip_id,
+      item_type: item.item_type,
+      quantity: item.quantity,
+      price_per_unit: item.price_per_unit,
+      trip_merchandise_id: item.trip_merchandise_id ?? undefined,
+    })),
+    customerInfo: {
+      first_name,
+      last_name,
+      email: booking.user_email ?? "",
+      phone: booking.user_phone ?? "",
+      special_requests: booking.special_requests ?? "",
+      billing_address: booking.billing_address ?? "",
+      launch_updates_pref: booking.launch_updates_pref ?? false,
+      terms_accepted: true,
+    },
+    subtotal,
+    discount_amount: booking.discount_amount ?? 0,
+    tax_rate,
+    tax_amount: booking.tax_amount ?? 0,
+    tip: booking.tip_amount ?? 0,
+    total: booking.total_amount ?? 0,
+    discount_code_id: booking.discount_code_id ?? null,
+    discount_code: booking.discount_code?.code,
+  }
+}
+
 const STEPS = [
   { id: 1, title: "Select Trip", description: "Choose your launch and trip" },
   {
@@ -62,12 +108,21 @@ interface PublicBookingFormProps {
   accessCode?: string | null
 }
 
+export type BookingResult = { booking: any; paymentData: any }
+
 const PublicBookingForm = ({
   initialDiscountCodeId,
   accessCode,
 }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
   const search = useSearch({ from: "/book" })
+  const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
+  /** Survives Step4Review remounts (e.g. Strict Mode); prevents double booking create. */
+  const createBookingStartedRef = useRef(false)
+  /** When true, don't auto-jump to step 4 when URL has code (user clicked Back from step 4). */
+  const didGoBackFromStep4Ref = useRef(false)
+  /** Code we already pre-filled form for; don't overwrite form when re-loading after user went Back. */
+  const hydratedForCodeRef = useRef<string | null>(null)
   const [bookingData, setBookingData] = useState<BookingStepData>({
     // Step 1: Trip Selection
     selectedTripId: "",
@@ -126,6 +181,17 @@ const PublicBookingForm = ({
     }
   }, [initialDiscountCodeId])
 
+  // When URL has a confirmation code, show step 4 so resume flow runs there (unless user went Back from step 4)
+  useEffect(() => {
+    if (search.code && !didGoBackFromStep4Ref.current) {
+      setCurrentStep(4)
+    }
+    if (!search.code) {
+      didGoBackFromStep4Ref.current = false
+      hydratedForCodeRef.current = null
+    }
+  }, [search.code])
+
   const nextStep = () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1)
@@ -136,6 +202,14 @@ const PublicBookingForm = ({
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
+  }
+
+  const onBackFromStep4 = () => {
+    didGoBackFromStep4Ref.current = true
+    setBookingResult(null)
+    createBookingStartedRef.current = false
+    prevStep()
+    // Keep code in URL so returning to step 4 resumes the same booking
   }
 
   const renderCurrentStep = () => {
@@ -169,7 +243,23 @@ const PublicBookingForm = ({
           />
         )
       case 4:
-        return <Step4Review bookingData={bookingData} onBack={prevStep} />
+        return (
+          <Step4Review
+            bookingData={bookingData}
+            onBack={onBackFromStep4}
+            bookingResult={bookingResult}
+            onBookingReady={setBookingResult}
+            onResumeBookingLoaded={(booking) => {
+              setBookingData(bookingPublicToStepData(booking))
+              hydratedForCodeRef.current = booking.confirmation_code
+            }}
+            skipHydrateForm={Boolean(
+              search.code && hydratedForCodeRef.current === search.code
+            )}
+            urlCode={search.code}
+            createBookingStartedRef={createBookingStartedRef}
+          />
+        )
       default:
         return <Text>Invalid step</Text>
     }

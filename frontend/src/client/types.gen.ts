@@ -754,6 +754,14 @@ export type BookingsInitializePaymentResponse = {
   [key: string]: unknown
 }
 
+export type BookingsResumePaymentData = {
+  confirmationCode: string
+}
+
+export type BookingsResumePaymentResponse = {
+  [key: string]: unknown
+}
+
 export type DiscountCodesCreateDiscountCodeData = {
   requestBody: DiscountCodeCreate
 }

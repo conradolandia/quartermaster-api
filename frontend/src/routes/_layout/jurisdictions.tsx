@@ -300,7 +300,7 @@ function JurisdictionsTable() {
         </Table.Body>
         </Table.Root>
       </Box>
-      {count > effectivePageSize && (
+      {count > 0 && (
         <Flex
           justifyContent="space-between"
           align="center"
@@ -309,17 +309,20 @@ function JurisdictionsTable() {
           mt={4}
         >
           <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
-          <PaginationRoot
-            count={count}
-            pageSize={effectivePageSize}
-            onPageChange={({ page }) => setPage(page)}
-          >
-            <Flex>
-              <PaginationPrevTrigger />
-              <PaginationItems />
-              <PaginationNextTrigger />
-            </Flex>
-          </PaginationRoot>
+          {count > effectivePageSize && (
+            <PaginationRoot
+              page={page}
+              count={count}
+              pageSize={effectivePageSize}
+              onPageChange={({ page }) => setPage(page)}
+            >
+              <Flex>
+                <PaginationPrevTrigger />
+                <PaginationItems />
+                <PaginationNextTrigger />
+              </Flex>
+            </PaginationRoot>
+          )}
         </Flex>
       )}
     </>

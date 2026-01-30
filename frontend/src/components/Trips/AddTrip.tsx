@@ -38,7 +38,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseLocationTimeToUtc } from "@/utils"
+import { formatCents, handleError, parseLocationTimeToUtc } from "@/utils"
 
 // Props interface
 interface AddTripProps {
@@ -216,7 +216,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       ...selectedPricing,
       {
         ticket_type: pricingForm.ticket_type,
-        price: Number.parseFloat(pricingForm.price),
+        price: Math.round(Number.parseFloat(pricingForm.price) * 100),
       },
     ])
 
@@ -253,7 +253,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
         merchandise_id: catalogItem.id,
         name: catalogItem.name,
         price_override: merchandiseForm.price_override
-          ? Number.parseFloat(merchandiseForm.price_override)
+          ? Math.round(Number.parseFloat(merchandiseForm.price_override) * 100)
           : null,
         quantity_available_override: merchandiseForm.quantity_available_override
           ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
@@ -714,7 +714,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             <Text fontWeight="medium">
                               {pricing.ticket_type}
                             </Text>
-                            <Text>${pricing.price.toFixed(2)}</Text>
+                            <Text>${formatCents(pricing.price)}</Text>
                           </HStack>
                           <IconButton
                             aria-label="Remove pricing"
@@ -774,7 +774,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               >
                                 {catalogMerchandise?.data.map((m) => (
                                   <option key={m.id} value={m.id}>
-                                    {m.name} — ${m.price.toFixed(2)} (qty {m.quantity_available})
+                                    {m.name} — ${formatCents(m.price)} (qty {m.quantity_available})
                                   </option>
                                 ))}
                               </NativeSelect>
@@ -849,7 +849,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             <Text fontWeight="medium">{item.name}</Text>
                             <HStack fontSize="sm" color="gray.500">
                               {item.price_override != null && (
-                                <Text>Price override: ${item.price_override.toFixed(2)}</Text>
+                                <Text>Price override: ${formatCents(item.price_override)}</Text>
                               )}
                               {item.quantity_available_override != null && (
                                 <Text>Qty override: {item.quantity_available_override}</Text>
