@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query"
 import { FiMail, FiPrinter } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
+import { formatCents } from "@/utils"
 
 interface BookingConfirmationProps {
   confirmationCode?: string
@@ -178,7 +179,7 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
               <HStack justify="space-between">
                 <Text fontWeight="medium">Total Amount:</Text>
                 <Text fontWeight="bold">
-                  ${booking.total_amount?.toFixed(2)}
+                  ${formatCents(booking.total_amount)}
                 </Text>
               </HStack>
             </VStack>

@@ -718,7 +718,7 @@ export type BookingPublicResendBookingConfirmationEmailResponse = {
 
 export type BookingsProcessRefundData = {
   confirmationCode: string
-  refundAmount?: number | null
+  refundAmountCents?: number | null
   refundNotes?: string | null
   refundReason: string
 }
@@ -791,7 +791,7 @@ export type DiscountCodesDeleteDiscountCodeResponse = {
 
 export type DiscountCodesValidateDiscountCodeData = {
   code: string
-  subtotal?: number
+  subtotalCents?: number
 }
 
 export type DiscountCodesValidateDiscountCodeResponse = DiscountCodePublic

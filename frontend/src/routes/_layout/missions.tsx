@@ -16,6 +16,7 @@ import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
 import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
+import { formatCents } from "@/utils"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -338,7 +339,7 @@ function Missions() {
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   <Text fontWeight="medium">
-                    ${(mission.total_sales || 0).toFixed(2)}
+                    ${formatCents(mission.total_sales ?? 0)}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>

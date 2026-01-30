@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react"
 import { useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { formatCents } from "@/utils"
 
 interface CustomerInfo {
   first_name: string
@@ -240,7 +241,7 @@ const Step3CustomerInfo = ({
               <HStack justify="space-between">
                 <Text fontWeight="bold">Subtotal:</Text>
                 <Text fontWeight="medium">
-                  ${bookingData.subtotal.toFixed(2)}
+                  ${formatCents(bookingData.subtotal)}
                 </Text>
               </HStack>
 
@@ -248,7 +249,7 @@ const Step3CustomerInfo = ({
                 <HStack justify="space-between">
                   <Text fontWeight="bold">Discount:</Text>
                   <Text fontWeight="medium">
-                    -${bookingData.discount_amount.toFixed(2)}
+                    -${formatCents(bookingData.discount_amount)}
                   </Text>
                 </HStack>
               )}
@@ -256,7 +257,7 @@ const Step3CustomerInfo = ({
               <HStack justify="space-between">
                 <Text fontWeight="bold">Tax:</Text>
                 <Text fontWeight="medium">
-                  ${bookingData.tax_amount.toFixed(2)}
+                  ${formatCents(bookingData.tax_amount)}
                 </Text>
               </HStack>
 
@@ -277,7 +278,7 @@ const Step3CustomerInfo = ({
                   Total:
                 </Text>
                 <Text fontWeight="bold" fontSize="lg">
-                  ${bookingData.total.toFixed(2)}
+                  ${formatCents(bookingData.total)}
                 </Text>
               </HStack>
             </VStack>

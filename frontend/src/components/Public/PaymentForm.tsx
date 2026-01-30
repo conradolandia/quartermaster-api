@@ -4,9 +4,12 @@ import type { StripeCardElementChangeEvent } from "@stripe/stripe-js"
 import type * as React from "react"
 import { useState } from "react"
 
+import { formatCents } from "@/utils"
+
 interface PaymentFormProps {
   clientSecret?: string
   paymentIntentId?: string
+  /** Amount in cents */
   amount: number
   onPaymentSuccess: (paymentIntentId: string) => void
   onPaymentError: (error: Error) => void
@@ -132,7 +135,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         <HStack justify="space-between">
           <Text fontWeight="bold">Total Amount:</Text>
           <Text fontWeight="bold" fontSize="lg">
-            ${amount.toFixed(2)}
+            ${formatCents(amount)}
           </Text>
         </HStack>
 
@@ -151,7 +154,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             !!cardError
           }
         >
-          Pay ${amount.toFixed(2)}
+          Pay ${formatCents(amount)}
         </Button>
 
         <Text fontSize="sm" color="gray.600" textAlign="center">

@@ -15,6 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { FiArrowLeft, FiCheck, FiMail, FiPrinter } from "react-icons/fi";
 
 import { BookingsService } from "@/client";
+import { formatCents } from "@/utils";
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
 import useCustomToast from "@/hooks/useCustomToast";
 import { formatDate, getStatusColor } from "./types";
@@ -267,29 +268,29 @@ export default function BookingDetails({
                 <VStack align="stretch" gap={2}>
                   <Flex justify="space-between">
                     <Text>Subtotal:</Text>
-                    <Text>${booking.subtotal?.toFixed(2) || "0.00"}</Text>
+                    <Text>${formatCents(booking.subtotal)}</Text>
                   </Flex>
                   {booking.discount_amount > 0 && (
                     <Flex justify="space-between" color="green.400">
                       <Text>Discount:</Text>
-                      <Text>-${booking.discount_amount?.toFixed(2) || "0.00"}</Text>
+                      <Text>-${formatCents(booking.discount_amount)}</Text>
                     </Flex>
                   )}
                   {booking.tax_amount > 0 && (
                     <Flex justify="space-between">
                       <Text>Tax:</Text>
-                      <Text>${booking.tax_amount?.toFixed(2) || "0.00"}</Text>
+                      <Text>${formatCents(booking.tax_amount)}</Text>
                     </Flex>
                   )}
                   {booking.tip_amount > 0 && (
                     <Flex justify="space-between">
                       <Text>Tip:</Text>
-                      <Text>${booking.tip_amount?.toFixed(2) || "0.00"}</Text>
+                      <Text>${formatCents(booking.tip_amount)}</Text>
                     </Flex>
                   )}
                   <Flex justify="space-between" fontWeight="bold" fontSize="lg" pt={2} borderTop="1px" borderColor="dark.border.secondary">
                     <Text>Total:</Text>
-                    <Text>${booking.total_amount?.toFixed(2) || "0.00"}</Text>
+                    <Text>${formatCents(booking.total_amount)}</Text>
                   </Flex>
                 </VStack>
               </Box>
@@ -332,11 +333,11 @@ export default function BookingDetails({
                         </Table.Cell>
                         <Table.Cell>{item.quantity}</Table.Cell>
                         <Table.Cell>
-                          ${item.price_per_unit?.toFixed(2) || "0.00"}
+                          ${formatCents(item.price_per_unit)}
                         </Table.Cell>
                         <Table.Cell>
                           $
-                          {((item.price_per_unit || 0) * item.quantity).toFixed(2)}
+                          {formatCents((item.price_per_unit || 0) * item.quantity)}
                         </Table.Cell>
                       </Table.Row>
                     ))}

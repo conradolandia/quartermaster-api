@@ -18,6 +18,7 @@ import {
   BookingsService,
   type BookingPublic,
 } from "@/client"
+import { formatCents } from "@/utils"
 import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useEffect } from "react"
@@ -228,7 +229,7 @@ const CheckInInterface = ({
                       <strong>Confirmation Code:</strong> {currentBooking.confirmation_code}
                     </Text>
                     <Text>
-                      <strong>Total Amount:</strong> ${currentBooking.total_amount?.toFixed(2)}
+                      <strong>Total Amount:</strong> ${formatCents(currentBooking.total_amount)}
                     </Text>
                     <Text>
                       <strong>Created:</strong>{" "}
@@ -249,7 +250,7 @@ const CheckInInterface = ({
                             <strong>{item.item_type}</strong> x {item.quantity}
                           </Text>
                           <Text fontSize="sm" color="text.muted">
-                            ${item.price_per_unit?.toFixed(2)} each
+                            ${formatCents(item.price_per_unit)} each
                           </Text>
                         </Box>
                       ))}

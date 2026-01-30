@@ -605,13 +605,14 @@ export class BookingsService {
    * Process Refund
    * Process a refund for a booking.
    *
+   * refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
    * Validates the booking and processes the refund through Stripe,
    * then updates the booking status to 'refunded'.
    * @param data The data for the request.
    * @param data.confirmationCode
    * @param data.refundReason
    * @param data.refundNotes
-   * @param data.refundAmount
+   * @param data.refundAmountCents
    * @returns BookingPublic Successful Response
    * @throws ApiError
    */
@@ -627,7 +628,7 @@ export class BookingsService {
       query: {
         refund_reason: data.refundReason,
         refund_notes: data.refundNotes,
-        refund_amount: data.refundAmount,
+        refund_amount_cents: data.refundAmountCents,
       },
       errors: {
         422: "Validation Error",
@@ -875,7 +876,7 @@ export class DiscountCodesService {
    * Validate discount code and return details if valid.
    * @param data The data for the request.
    * @param data.code
-   * @param data.subtotal
+   * @param data.subtotalCents
    * @returns DiscountCodePublic Successful Response
    * @throws ApiError
    */
@@ -889,7 +890,7 @@ export class DiscountCodesService {
         code: data.code,
       },
       query: {
-        subtotal: data.subtotal,
+        subtotal_cents: data.subtotalCents,
       },
       errors: {
         422: "Validation Error",

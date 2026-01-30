@@ -19,6 +19,7 @@ import {
   type MerchandisePublic,
   MerchandiseService,
 } from "@/client"
+import { formatCents } from "@/utils"
 import { MerchandiseActionsMenu } from "@/components/Common/MerchandiseActionsMenu"
 import AddMerchandise from "@/components/Merchandise/AddMerchandise"
 import PendingMerchandise from "@/components/Pending/PendingMerchandise"
@@ -249,7 +250,7 @@ function MerchandiseTable() {
                 >
                   {item.description ?? "—"}
                 </Table.Cell>
-                <Table.Cell>{item.price.toFixed(2)}</Table.Cell>
+                <Table.Cell>{formatCents(item.price)}</Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {item.quantity_available}
                 </Table.Cell>

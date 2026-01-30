@@ -23,6 +23,7 @@ import {
   type BookingPublic,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { formatCents } from "@/utils"
 
 interface RefundInterfaceProps {
   onBookingRefunded?: (booking: BookingPublic) => void
@@ -85,7 +86,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
         confirmationCode: code,
         refundReason: reason,
         refundNotes: notes || undefined,
-        refundAmount: amount || undefined,
+        refundAmountCents: amount ?? undefined,
       }),
     onSuccess: (booking) => {
       showSuccessToast("Refund processed successfully!")
@@ -128,7 +129,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       code: currentBooking.confirmation_code,
       reason: refundReason,
       notes: refundNotes.trim() || undefined,
-      amount: refundAmount || undefined,
+      amount: refundAmount ?? undefined,
     })
   }
 
@@ -278,10 +279,14 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         Refund Amount
                       </Text>
                       <NumberInput.Root
-                        value={(refundAmount || currentBooking.total_amount).toString()}
-                        onValueChange={(details) => setRefundAmount(Number.parseFloat(details.value) || 0)}
+                        value={((refundAmount ?? currentBooking.total_amount) / 100).toFixed(2)}
+                        onValueChange={(details) => {
+                          const dollars = Number.parseFloat(details.value || "0") || 0
+                          setRefundAmount(Math.round(dollars * 100))
+                        }}
                         min={0}
-                        max={currentBooking.total_amount}
+                        max={currentBooking.total_amount / 100}
+                        step={0.01}
                       >
                         <NumberInput.Input placeholder="0.00" />
                         <NumberInput.Control>
@@ -294,7 +299,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         </NumberInput.Control>
                       </NumberInput.Root>
                       <Text fontSize="sm" color="text.muted" mt={1}>
-                        Maximum: ${currentBooking.total_amount.toFixed(2)}
+                        Maximum: ${formatCents(currentBooking.total_amount)}
                       </Text>
                     </Box>
 

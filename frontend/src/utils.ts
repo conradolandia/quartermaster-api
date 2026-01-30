@@ -88,6 +88,15 @@ export function formatInLocationTimezoneDisplayParts(
   return { dateTime, timezone }
 }
 
+/**
+ * Format an amount in cents as dollars with two decimal places (e.g. 1234 -> "12.34").
+ * API amounts and prices are in integer cents.
+ */
+export function formatCents(cents: number | null | undefined): string {
+  if (cents == null || Number.isNaN(cents)) return "0.00"
+  return (cents / 100).toFixed(2)
+}
+
 export const emailPattern = {
   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
   message: "Invalid email address",

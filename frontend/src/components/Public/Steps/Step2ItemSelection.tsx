@@ -27,6 +27,7 @@ import {
   TripPricingService,
   TripsService,
 } from "@/client"
+import { formatCents } from "@/utils"
 
 import type { BookingStepData } from "../PublicBookingForm"
 
@@ -126,21 +127,21 @@ const Step2ItemSelection = ({
 
       const discountCodeData = await DiscountCodesService.validateDiscountCode({
         code: code.trim(),
-        subtotal: subtotal,
+        subtotalCents: subtotal,
       })
 
       setAppliedDiscountCode(discountCodeData)
       setDiscountCodeError("")
 
-      // Calculate discount amount based on code type
+      // API: discount_value 0-1 for percentage, cents for fixed_amount; max_discount_amount in cents
       let calculatedDiscount = 0
       if (discountCodeData.discount_type === "percentage") {
-        calculatedDiscount = (subtotal * discountCodeData.discount_value) / 100
-        if (discountCodeData.max_discount_amount) {
+        calculatedDiscount = Math.round(subtotal * discountCodeData.discount_value)
+        if (discountCodeData.max_discount_amount != null) {
           calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
         }
       } else {
-        calculatedDiscount = discountCodeData.discount_value
+        calculatedDiscount = Math.round(discountCodeData.discount_value)
       }
 
       setDiscountAmount(calculatedDiscount)
@@ -177,7 +178,7 @@ const Step2ItemSelection = ({
       return sum + item.price_per_unit * item.quantity
     }, 0)
 
-    const taxAmount = (subtotal - discountAmount) * (taxRatePercent / 100)
+    const taxAmount = Math.round((subtotal - discountAmount) * (taxRatePercent / 100))
     const total = subtotal - discountAmount + taxAmount + tip
 
     updateBookingData({
@@ -531,7 +532,7 @@ const Step2ItemSelection = ({
 
                 <HStack justify="space-between">
                   <Text>Tax Amount:</Text>
-                  <Text>${bookingData.tax_amount.toFixed(2)}</Text>
+                  <Text>${formatCents(bookingData.tax_amount)}</Text>
                 </HStack>
 
                 <VStack align="stretch" gap={2}>
@@ -540,10 +541,11 @@ const Step2ItemSelection = ({
                     <NumberInput.Root
                       size="sm"
                       min={0}
-                      value={tip.toString()}
-                      onValueChange={(details) =>
-                        setTip(Number.parseFloat(details.value) || 0)
-                      }
+                      value={(tip / 100).toFixed(2)}
+                      onValueChange={(details) => {
+                        const dollars = Number.parseFloat(details.value || "0") || 0
+                        setTip(Math.round(dollars * 100))
+                      }}
                       w="120px"
                     >
                       <NumberInput.Input />
@@ -586,7 +588,7 @@ const Step2ItemSelection = ({
                     Total:
                   </Text>
                   <Text fontWeight="bold" fontSize="lg">
-                    ${bookingData.total.toFixed(2)}
+                    ${formatCents(bookingData.total)}
                   </Text>
                 </HStack>
               </VStack>

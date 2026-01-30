@@ -56,8 +56,8 @@ def initialize_payment(
                 detail="Payment already initialized for this booking",
             )
 
-        # Calculate total amount in cents for Stripe
-        total_amount_cents = int(booking.total_amount * 100)
+        # Booking total_amount is already in cents
+        total_amount_cents = booking.total_amount
 
         # Create PaymentIntent
         payment_intent = create_payment_intent(total_amount_cents)

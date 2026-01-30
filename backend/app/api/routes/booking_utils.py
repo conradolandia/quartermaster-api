@@ -27,29 +27,29 @@ logger = logging.getLogger(__name__)
 
 
 def compute_booking_totals(
-    subtotal: float,
-    discount_amount: float,
+    subtotal_cents: int,
+    discount_amount_cents: int,
     tax_rate: float,
-    tip_amount: float,
-) -> tuple[float, float]:
+    tip_amount_cents: int,
+) -> tuple[int, int]:
     """
-    Compute tax_amount and total_amount from the standard pricing formula.
+    Compute tax_amount and total_amount in cents from the standard pricing formula.
 
-    Formula: (subtotal - discount_amount) * (1 + tax_rate) + tip_amount = total_amount.
+    Formula: (subtotal - discount) * (1 + tax_rate) + tip = total (all in cents).
 
     Args:
-        subtotal: Sum of item prices before discount.
-        discount_amount: Fixed discount in currency (or effective amount from percent).
+        subtotal_cents: Sum of item prices before discount (cents).
+        discount_amount_cents: Discount amount (cents).
         tax_rate: Tax rate as decimal (e.g. 0.06 for 6%).
-        tip_amount: Tip in currency.
+        tip_amount_cents: Tip amount (cents).
 
     Returns:
-        (tax_amount, total_amount)
+        (tax_amount_cents, total_amount_cents)
     """
-    after_discount = max(0.0, subtotal - discount_amount)
-    tax_amount = round(after_discount * tax_rate, 2)
-    total_amount = round(after_discount * (1 + tax_rate) + tip_amount, 2)
-    return (tax_amount, total_amount)
+    after_discount_cents = max(0, subtotal_cents - discount_amount_cents)
+    tax_amount_cents = round(after_discount_cents * tax_rate)
+    total_amount_cents = after_discount_cents + tax_amount_cents + tip_amount_cents
+    return (tax_amount_cents, total_amount_cents)
 
 
 def generate_qr_code(confirmation_code: str) -> str:
@@ -192,7 +192,8 @@ def prepare_booking_items_for_email(booking: Booking) -> list[dict]:
             {
                 "type": item.item_type.replace("_", " ").title(),
                 "quantity": item.quantity,
-                "price_per_unit": item.price_per_unit,
+                "price_per_unit": item.price_per_unit
+                / 100.0,  # cents to dollars for email display
             }
         )
     return booking_items

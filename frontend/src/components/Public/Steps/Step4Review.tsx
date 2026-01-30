@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { type BookingCreate, BookingsService } from "../../../client";
+import { formatCents } from "@/utils";
 
 import PaymentForm from "../PaymentForm";
 import type { BookingStepData } from "../PublicBookingForm";
@@ -308,7 +309,7 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
             <VStack gap={3} align="stretch">
               <HStack justify="space-between">
                 <Text>Subtotal:</Text>
-                <Text>${bookingData.subtotal.toFixed(2)}</Text>
+                <Text>${formatCents(bookingData.subtotal)}</Text>
               </HStack>
 
               {bookingData.discount_amount > 0 && (
@@ -322,7 +323,7 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
 
               <HStack justify="space-between">
                 <Text>Tax ({bookingData.tax_rate}%):</Text>
-                <Text>${bookingData.tax_amount.toFixed(2)}</Text>
+                <Text>${formatCents(bookingData.tax_amount)}</Text>
               </HStack>
 
               {bookingData.tip > 0 && (
@@ -339,7 +340,7 @@ const Step4Review = ({ bookingData, onBack }: Step4ReviewProps) => {
                   Total:
                 </Text>
                 <Text fontWeight="bold" fontSize="lg">
-                  ${bookingData.total.toFixed(2)}
+                  ${formatCents(bookingData.total)}
                 </Text>
               </HStack>
             </VStack>

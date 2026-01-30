@@ -173,10 +173,10 @@ def get_missions_with_stats(
                 .where(BookingItem.trip_id.in_(trip_ids))
                 .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
             )
-            total_sales = session.exec(sales_statement).first() or 0.0
+            total_sales = session.exec(sales_statement).first() or 0  # cents
         else:
             total_bookings = 0
-            total_sales = 0.0
+            total_sales = 0  # cents
 
         result.append(
             {

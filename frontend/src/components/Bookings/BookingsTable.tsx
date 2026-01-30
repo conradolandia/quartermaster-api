@@ -14,6 +14,7 @@ import { useEffect, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService } from "@/client"
+import { formatCents } from "@/utils"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import useCustomToast from "@/hooks/useCustomToast"
 import PendingBookings from "@/components/Pending/PendingBookings"
@@ -367,7 +368,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Table.Cell>
                 <Table.Cell>
                   <Text fontWeight="bold">
-                    ${booking.total_amount?.toFixed(2) || "0.00"}
+                    ${formatCents(booking.total_amount)}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>

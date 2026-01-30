@@ -6,6 +6,7 @@ import {
   BookingsService,
   TripsService,
 } from "@/client"
+import { formatCents } from "@/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
@@ -298,14 +299,12 @@ const EditBooking = ({
                               <Text>{item.quantity}</Text>
                             </Table.Cell>
                             <Table.Cell>
-                              <Text>${item.price_per_unit.toFixed(2)}</Text>
+                              <Text>${formatCents(item.price_per_unit)}</Text>
                             </Table.Cell>
                             <Table.Cell>
                               <Text fontWeight="medium">
                                 $
-                                {(item.quantity * item.price_per_unit).toFixed(
-                                  2,
-                                )}
+                                {formatCents(item.quantity * item.price_per_unit)}
                               </Text>
                             </Table.Cell>
                             <Table.Cell>
@@ -419,7 +418,7 @@ const EditBooking = ({
                 {/* Financial Fields */}
                 <Field label="Subtotal" helperText="This field is read-only">
                   <Input
-                    value={`$${booking.subtotal.toFixed(2)}`}
+                    value={`$${formatCents(booking.subtotal)}`}
                     readOnly
                     bg="dark.bg.accent"
                     color="text.muted"
@@ -449,10 +448,10 @@ const EditBooking = ({
                           type="number"
                           step="0.01"
                           min="0"
-                          value={field.value ?? ""}
+                          value={field.value != null ? field.value / 100 : ""}
                           onChange={(e) =>
                             field.onChange(
-                              Number.parseFloat(e.target.value) || 0,
+                              Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                             )
                           }
                           placeholder="0.00"
@@ -482,10 +481,10 @@ const EditBooking = ({
                           type="number"
                           step="0.01"
                           min="0"
-                          value={field.value ?? ""}
+                          value={field.value != null ? field.value / 100 : ""}
                           onChange={(e) =>
                             field.onChange(
-                              Number.parseFloat(e.target.value) || 0,
+                              Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                             )
                           }
                           placeholder="0.00"
@@ -517,10 +516,10 @@ const EditBooking = ({
                           type="number"
                           step="0.01"
                           min="0"
-                          value={field.value ?? ""}
+                          value={field.value != null ? field.value / 100 : ""}
                           onChange={(e) =>
                             field.onChange(
-                              Number.parseFloat(e.target.value) || 0,
+                              Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                             )
                           }
                           placeholder="0.00"
@@ -539,7 +538,7 @@ const EditBooking = ({
                       control={control}
                       render={({ field }) => (
                         <Input
-                          value={`$${(field.value || 0).toFixed(2)}`}
+                          value={`$${formatCents(field.value ?? 0)}`}
                           readOnly
                           bg="dark.bg.accent"
                           color="text.muted"

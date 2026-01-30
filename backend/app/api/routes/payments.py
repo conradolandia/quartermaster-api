@@ -35,14 +35,14 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
         mission = session.get(Mission, first_trip.mission_id)
         mission_name = mission.name if mission else "Space Mission"
 
-        # Prepare booking items for email
+        # Prepare booking items for email (price in dollars for display)
         booking_items = []
         for item in booking.items:
             booking_items.append(
                 {
                     "type": item.item_type.replace("_", " ").title(),
                     "quantity": item.quantity,
-                    "price_per_unit": item.price_per_unit,
+                    "price_per_unit": item.price_per_unit / 100.0,
                 }
             )
 
@@ -53,7 +53,7 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
             confirmation_code=booking.confirmation_code,
             mission_name=mission_name,
             booking_items=booking_items,
-            total_amount=booking.total_amount,
+            total_amount=booking.total_amount / 100.0,  # cents to dollars for display
         )
 
         send_email(

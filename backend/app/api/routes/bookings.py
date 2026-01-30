@@ -214,7 +214,7 @@ def create_booking(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"No pricing configured for ticket type '{item.item_type}'",
                 )
-            if abs(pricing.price - item.price_per_unit) > 0.0001:
+            if pricing.price != item.price_per_unit:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Ticket price mismatch",
@@ -246,7 +246,7 @@ def create_booking(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Insufficient merchandise inventory",
                 )
-            if abs(effective_price - item.price_per_unit) > 0.0001:
+            if effective_price != item.price_per_unit:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Merchandise price mismatch",
@@ -799,7 +799,8 @@ def update_booking(
                             user_name=booking.user_name,
                             confirmation_code=booking.confirmation_code,
                             mission_name=mission_name,
-                            refund_amount=booking.total_amount,
+                            refund_amount=booking.total_amount
+                            / 100.0,  # cents to dollars for display
                         )
 
                         send_email(
@@ -1031,7 +1032,7 @@ def resend_booking_confirmation_email(
             confirmation_code=booking.confirmation_code,
             mission_name=mission_name,
             booking_items=booking_items,
-            total_amount=booking.total_amount,
+            total_amount=booking.total_amount / 100.0,  # cents to dollars for display
         )
 
         send_email(
@@ -1067,11 +1068,12 @@ def process_refund(
     confirmation_code: str,
     refund_reason: str,
     refund_notes: str | None = None,
-    refund_amount: float | None = None,
+    refund_amount_cents: int | None = None,
 ) -> BookingPublic:
     """
     Process a refund for a booking.
 
+    refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
     Validates the booking and processes the refund through Stripe,
     then updates the booking status to 'refunded'.
     """
@@ -1107,8 +1109,16 @@ def process_refund(
                 detail=f"Cannot refund booking with status '{booking.status}'. Booking must be 'confirmed', 'checked_in', or 'completed'.",
             )
 
-        # Validate refund amount
-        if refund_amount is not None and refund_amount > booking.total_amount:
+        # Validate refund amount (all in cents)
+        amount_to_refund = (
+            refund_amount_cents
+            if refund_amount_cents is not None
+            else booking.total_amount
+        )
+        if (
+            refund_amount_cents is not None
+            and refund_amount_cents > booking.total_amount
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Refund amount cannot exceed the total booking amount",
@@ -1119,8 +1129,7 @@ def process_refund(
             try:
                 from app.core.stripe import refund_payment
 
-                # Convert refund amount to cents for Stripe
-                stripe_amount = int((refund_amount or booking.total_amount) * 100)
+                stripe_amount = amount_to_refund  # already cents
                 refund = refund_payment(booking.payment_intent_id, stripe_amount)
 
                 logger.info(
@@ -1171,7 +1180,7 @@ def process_refund(
                 user_name=booking.user_name,
                 confirmation_code=booking.confirmation_code,
                 mission_name=mission_name,
-                refund_amount=refund_amount or booking.total_amount,
+                refund_amount=amount_to_refund / 100.0,  # cents to dollars for display
             )
 
             send_email(
@@ -1428,7 +1437,9 @@ def export_bookings_csv(
             items = session.exec(item_query).all()
 
             # Aggregate items by type
-            tickets: dict[str, dict[str, float]] = {}  # ticket_type -> {qty, price}
+            tickets: dict[
+                str, dict[str, int]
+            ] = {}  # ticket_type -> {qty, price (cents)}
             swag_items: list[str] = []
             swag_total = 0.0
 
@@ -1466,7 +1477,10 @@ def export_bookings_csv(
                         )
                         if matched_type:
                             if matched_type not in tickets:
-                                tickets[matched_type] = {"qty": 0, "price": 0.0}
+                                tickets[matched_type] = {
+                                    "qty": 0,
+                                    "price": 0,
+                                }  # price in cents
                             tickets[matched_type]["qty"] += item.quantity
                             tickets[matched_type]["price"] += (
                                 item.price_per_unit * item.quantity
@@ -1480,13 +1494,16 @@ def export_bookings_csv(
 
                         normalized_type = normalize_ticket_type(item.item_type)
                         if normalized_type not in tickets:
-                            tickets[normalized_type] = {"qty": 0, "price": 0.0}
+                            tickets[normalized_type] = {
+                                "qty": 0,
+                                "price": 0,
+                            }  # price in cents
                         tickets[normalized_type]["qty"] += item.quantity
                         tickets[normalized_type]["price"] += (
                             item.price_per_unit * item.quantity
                         )
 
-            # Build row data based on selected fields
+            # Build row data based on selected fields (amounts in dollars for CSV display)
             row = []
             field_data = {
                 "confirmation_code": booking.confirmation_code,
@@ -1495,11 +1512,11 @@ def export_bookings_csv(
                 "phone": booking.user_phone,
                 "billing_address": booking.billing_address,
                 "status": booking.status,
-                "total_amount": booking.total_amount,
-                "subtotal": booking.subtotal,
-                "discount_amount": booking.discount_amount,
-                "tax_amount": booking.tax_amount,
-                "tip_amount": booking.tip_amount,
+                "total_amount": round(booking.total_amount / 100, 2),
+                "subtotal": round(booking.subtotal / 100, 2),
+                "discount_amount": round(booking.discount_amount / 100, 2),
+                "tax_amount": round(booking.tax_amount / 100, 2),
+                "tip_amount": round(booking.tip_amount / 100, 2),
                 "created_at": booking.created_at.isoformat(),
                 "trip_type": trip_type,
                 "boat_name": boat_name,
@@ -1518,12 +1535,12 @@ def export_bookings_csv(
                             row.append(data["qty"])
                         if include_ticket_price:
                             row.append(
-                                f"{data['price'] / data['qty']:.2f}"
+                                f"{data['price'] / data['qty'] / 100:.2f}"
                                 if data["qty"] > 0
                                 else "0.00"
                             )
                         if include_ticket_total:
-                            row.append(f"{data['price']:.2f}")
+                            row.append(f"{data['price'] / 100:.2f}")
                     else:
                         if include_ticket_quantity:
                             row.append("")
@@ -1535,7 +1552,7 @@ def export_bookings_csv(
             if include_swag_description:
                 row.append(", ".join(swag_items) if swag_items else "")
             if include_swag_total:
-                row.append(f"{swag_total:.2f}" if swag_total else "")
+                row.append(f"{swag_total / 100:.2f}" if swag_total else "")
 
             writer.writerow(row)
 

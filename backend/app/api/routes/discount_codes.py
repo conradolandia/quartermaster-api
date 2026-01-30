@@ -228,7 +228,7 @@ def validate_discount_code(
     *,
     session: Session = Depends(deps.get_db),
     code: str,
-    subtotal: float = 0,
+    subtotal_cents: int = 0,
 ) -> DiscountCodePublic:
     """
     Validate discount code and return details if valid.
@@ -275,11 +275,14 @@ def validate_discount_code(
                 detail="Discount code has reached maximum usage limit",
             )
 
-        # Check minimum order amount
-        if discount_code.min_order_amount and subtotal < discount_code.min_order_amount:
+        # Check minimum order amount (both in cents)
+        if (
+            discount_code.min_order_amount is not None
+            and subtotal_cents < discount_code.min_order_amount
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Minimum order amount of ${discount_code.min_order_amount} required for this discount code",
+                detail=f"Minimum order amount of ${discount_code.min_order_amount / 100:.2f} required for this discount code",
             )
 
         return DiscountCodePublic.model_validate(discount_code)

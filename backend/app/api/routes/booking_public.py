@@ -198,7 +198,7 @@ def resend_booking_confirmation_email(
             confirmation_code=booking.confirmation_code,
             mission_name=mission_name,
             booking_items=booking_items,
-            total_amount=booking.total_amount,
+            total_amount=booking.total_amount / 100.0,  # cents to dollars for display
         )
 
         send_email(

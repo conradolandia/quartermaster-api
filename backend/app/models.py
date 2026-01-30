@@ -426,7 +426,7 @@ class MissionPublic(MissionBase):
 
 class MissionWithStats(MissionPublic):
     total_bookings: int = 0
-    total_sales: float = 0.0
+    total_sales: int = 0  # cents (sum of booking.total_amount)
 
 
 class MissionsPublic(SQLModel):
@@ -693,7 +693,7 @@ class TripBoatPublic(TripBoatBase):
 class TripPricingBase(SQLModel):
     trip_id: uuid.UUID = Field(foreign_key="trip.id")
     ticket_type: str = Field(max_length=32)  # adult_ticket, child_ticket, infant_ticket
-    price: float = Field(ge=0)
+    price: int = Field(ge=0)  # cents
 
 
 class TripPricingCreate(TripPricingBase):
@@ -702,7 +702,7 @@ class TripPricingCreate(TripPricingBase):
 
 class TripPricingUpdate(SQLModel):
     ticket_type: str | None = Field(default=None, max_length=32)
-    price: float | None = Field(default=None, ge=0)
+    price: int | None = Field(default=None, ge=0)  # cents
 
 
 class TripPricing(TripPricingBase, table=True):
@@ -737,7 +737,7 @@ class TripPricingPublic(TripPricingBase):
 class MerchandiseBase(SQLModel):
     name: str = Field(max_length=255)
     description: str | None = Field(default=None, max_length=1000)
-    price: float = Field(ge=0)
+    price: int = Field(ge=0)  # cents
     quantity_available: int = Field(ge=0)
 
 
@@ -748,7 +748,7 @@ class MerchandiseCreate(MerchandiseBase):
 class MerchandiseUpdate(SQLModel):
     name: str | None = Field(default=None, max_length=255)
     description: str | None = Field(default=None, max_length=1000)
-    price: float | None = Field(default=None, ge=0)
+    price: int | None = Field(default=None, ge=0)  # cents
     quantity_available: int | None = Field(default=None, ge=0)
 
 
@@ -794,7 +794,7 @@ class TripMerchandiseBase(SQLModel):
     trip_id: uuid.UUID = Field(foreign_key="trip.id")
     merchandise_id: uuid.UUID = Field(foreign_key="merchandise.id")
     quantity_available_override: int | None = Field(default=None, ge=0)
-    price_override: float | None = Field(default=None, ge=0)
+    price_override: int | None = Field(default=None, ge=0)  # cents
 
 
 class TripMerchandiseCreate(TripMerchandiseBase):
@@ -803,7 +803,7 @@ class TripMerchandiseCreate(TripMerchandiseBase):
 
 class TripMerchandiseUpdate(SQLModel):
     quantity_available_override: int | None = Field(default=None, ge=0)
-    price_override: float | None = Field(default=None, ge=0)
+    price_override: int | None = Field(default=None, ge=0)  # cents
 
 
 class TripMerchandise(TripMerchandiseBase, table=True):
@@ -828,14 +828,14 @@ class TripMerchandise(TripMerchandiseBase, table=True):
     merchandise: "Merchandise" = Relationship()
 
 
-# Response shape for API: effective name, description, price, quantity_available (from join + overrides)
+# Response shape for API: effective name, description, price (cents), quantity_available (from join + overrides)
 class TripMerchandisePublic(SQLModel):
     id: uuid.UUID
     trip_id: uuid.UUID
     merchandise_id: uuid.UUID
     name: str
     description: str | None
-    price: float
+    price: int  # cents
     quantity_available: int
     created_at: datetime
     updated_at: datetime
@@ -871,7 +871,7 @@ class BookingItemBase(SQLModel):
     )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
-    price_per_unit: float = Field(ge=0)
+    price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
@@ -885,7 +885,7 @@ class BookingItemCreate(SQLModel):
     )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
-    price_per_unit: float = Field(ge=0)
+    price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
@@ -943,11 +943,11 @@ class BookingBase(SQLModel):
     user_email: str = Field(max_length=255)
     user_phone: str = Field(max_length=40)
     billing_address: str = Field(max_length=1000)
-    subtotal: float = Field(ge=0)
-    discount_amount: float = Field(ge=0)
-    tax_amount: float = Field(ge=0)
-    tip_amount: float = Field(ge=0)
-    total_amount: float = Field(ge=0)
+    subtotal: int = Field(ge=0)  # cents
+    discount_amount: int = Field(ge=0)  # cents
+    tax_amount: int = Field(ge=0)  # cents
+    tip_amount: int = Field(ge=0)  # cents
+    total_amount: int = Field(ge=0)  # cents
     payment_intent_id: str | None = Field(default=None, max_length=255)
     special_requests: str | None = Field(default=None, max_length=1000)
     status: BookingStatus = Field(default=BookingStatus.draft)
@@ -963,11 +963,11 @@ class BookingCreate(SQLModel):
     user_email: str = Field(max_length=255)
     user_phone: str = Field(max_length=40)
     billing_address: str = Field(max_length=1000)
-    subtotal: float = Field(ge=0)
-    discount_amount: float = Field(ge=0)
-    tax_amount: float = Field(ge=0)
-    tip_amount: float = Field(ge=0)
-    total_amount: float = Field(ge=0)
+    subtotal: int = Field(ge=0)  # cents
+    discount_amount: int = Field(ge=0)  # cents
+    tax_amount: int = Field(ge=0)  # cents
+    tip_amount: int = Field(ge=0)  # cents
+    total_amount: int = Field(ge=0)  # cents
     special_requests: str | None = Field(default=None, max_length=1000)
     launch_updates_pref: bool = Field(default=False)
     discount_code_id: uuid.UUID | None = Field(default=None)
@@ -977,10 +977,10 @@ class BookingCreate(SQLModel):
 class BookingUpdate(SQLModel):
     status: BookingStatus | None = None
     special_requests: str | None = None
-    tip_amount: float | None = None
-    discount_amount: float | None = None
-    tax_amount: float | None = None
-    total_amount: float | None = None
+    tip_amount: int | None = None  # cents
+    discount_amount: int | None = None  # cents
+    tax_amount: int | None = None  # cents
+    total_amount: int | None = None  # cents
     launch_updates_pref: bool | None = None
     discount_code_id: uuid.UUID | None = None
 
@@ -1046,14 +1046,14 @@ class DiscountCodeBase(SQLModel):
     code: str = Field(unique=True, index=True, max_length=50)
     description: str | None = Field(default=None, max_length=255)
     discount_type: DiscountCodeType
-    discount_value: float = Field(ge=0)
+    discount_value: float = Field(ge=0)  # percentage 0-1, or cents when fixed_amount
     max_uses: int | None = Field(default=None, ge=1)
     used_count: int = Field(default=0, ge=0)
     is_active: bool = Field(default=True)
     valid_from: datetime | None = Field(default=None)
     valid_until: datetime | None = Field(default=None)
-    min_order_amount: float | None = Field(default=None, ge=0)
-    max_discount_amount: float | None = Field(default=None, ge=0)
+    min_order_amount: int | None = Field(default=None, ge=0)  # cents
+    max_discount_amount: int | None = Field(default=None, ge=0)  # cents
     # Access code fields for early_bird booking mode
     is_access_code: bool = Field(default=False)  # Grants early_bird access
     access_code_mission_id: uuid.UUID | None = Field(
@@ -1065,13 +1065,13 @@ class DiscountCodeCreate(SQLModel):
     code: str = Field(max_length=50)
     description: str | None = Field(default=None, max_length=255)
     discount_type: DiscountCodeType
-    discount_value: float = Field(ge=0)
+    discount_value: float = Field(ge=0)  # percentage 0-1, or cents when fixed_amount
     max_uses: int | None = Field(default=None, ge=1)
     is_active: bool = Field(default=True)
     valid_from: datetime | None = Field(default=None)
     valid_until: datetime | None = Field(default=None)
-    min_order_amount: float | None = Field(default=None, ge=0)
-    max_discount_amount: float | None = Field(default=None, ge=0)
+    min_order_amount: int | None = Field(default=None, ge=0)  # cents
+    max_discount_amount: int | None = Field(default=None, ge=0)  # cents
     is_access_code: bool = Field(default=False)
     access_code_mission_id: uuid.UUID | None = Field(default=None)
 
@@ -1085,8 +1085,8 @@ class DiscountCodeUpdate(SQLModel):
     is_active: bool | None = None
     valid_from: datetime | None = Field(default=None)
     valid_until: datetime | None = Field(default=None)
-    min_order_amount: float | None = Field(default=None, ge=0)
-    max_discount_amount: float | None = Field(default=None, ge=0)
+    min_order_amount: int | None = Field(default=None, ge=0)  # cents
+    max_discount_amount: int | None = Field(default=None, ge=0)  # cents
     is_access_code: bool | None = None
     access_code_mission_id: uuid.UUID | None = Field(default=None)
 

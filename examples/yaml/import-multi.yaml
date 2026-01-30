@@ -2,8 +2,10 @@
 #
 # Use POST /api/v1/import/yaml to import this file.
 # Root keys: launches (list), missions (list), trips (list).
-# Use launch_ref / mission_ref (0-based index) to reference entities
-# created in this file instead of UUIDs.
+# Missions: use launch_ref (0-based index into launches in this file) or
+#   launch_id (UUID string) to reference an existing launch.
+# Trips: use mission_ref (0-based index into missions in this file) or
+#   mission_id (UUID string) to reference an existing mission.
 
 launches:
   - name: "SpaceX Falcon 9 - Starlink Group 6-1"

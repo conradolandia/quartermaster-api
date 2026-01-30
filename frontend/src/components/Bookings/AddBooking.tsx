@@ -29,6 +29,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
+import { formatCents } from "@/utils"
 
 // Custom type for form with optional items
 type BookingFormData = Omit<BookingCreate, "items"> & {
@@ -290,21 +291,21 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
       const discountCodeData = await DiscountCodesService.validateDiscountCode({
         code: code.trim(),
-        subtotal: subtotal,
+        subtotalCents: subtotal,
       })
 
       setAppliedDiscountCode(discountCodeData)
       setDiscountCodeError("")
 
-      // Calculate discount amount based on code type
+      // Discount: API returns discount_value as 0-1 for percentage, or cents for fixed_amount
       let calculatedDiscount = 0
       if (discountCodeData.discount_type === "percentage") {
-        calculatedDiscount = (subtotal * discountCodeData.discount_value) / 100
-        if (discountCodeData.max_discount_amount) {
+        calculatedDiscount = Math.round(subtotal * discountCodeData.discount_value)
+        if (discountCodeData.max_discount_amount != null) {
           calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
         }
       } else {
-        calculatedDiscount = discountCodeData.discount_value
+        calculatedDiscount = Math.round(discountCodeData.discount_value)
       }
 
       setDiscountInput(calculatedDiscount)
@@ -321,18 +322,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       return sum + item.quantity * item.price_per_unit
     }, 0)
 
-    // Compute discount in dollars from discount code input
+    // All amounts in cents
     const discount = discountInput || 0
-    // Sync computed discount dollars to the form field expected by backend
     setValue("discount_amount", discount)
 
-    // Formula: (subtotal - discount) * (1 + tax_rate) + tip = total
     const taxRate = (taxRatePercent || 0) / 100
     const afterDiscount = Math.max(0, calculatedSubtotal - discount)
-    const taxAmount = Number((afterDiscount * taxRate).toFixed(2))
-    const calculatedTotal = Number(
-      (afterDiscount * (1 + taxRate) + (watchedTipAmount || 0)).toFixed(2),
-    )
+    const taxAmount = Math.round(afterDiscount * taxRate)
+    const calculatedTotal = afterDiscount + taxAmount + (watchedTipAmount || 0)
 
     setValue("subtotal", calculatedSubtotal)
     setValue("tax_amount", taxAmount)
@@ -668,7 +665,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                               {pricing.ticket_type
                                 .replace("_", " ")
                                 .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
-                              - ${pricing.price}
+                              - ${formatCents(pricing.price)}
                             </Button>
                           ))}
                         </HStack>
@@ -696,7 +693,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                               disabled={merchandise.quantity_available <= 0}
                             >
                               <FiPlus style={{ marginRight: "4px" }} />
-                              {merchandise.name} - ${merchandise.price} (
+                              {merchandise.name} - ${formatCents(merchandise.price)} (
                               {merchandise.quantity_available} available)
                             </Button>
                           ))}
@@ -726,7 +723,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                                 {getItemDisplayName(item)}
                               </Text>
                               <Text fontSize="xs" color="gray.500">
-                                ${item.price_per_unit} each
+                                ${formatCents(item.price_per_unit)} each
                               </Text>
                             </VStack>
                             <HStack gap={2}>
@@ -744,9 +741,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                               />
                               <Text fontSize="sm" fontWeight="medium">
                                 $
-                                {(item.quantity * item.price_per_unit).toFixed(
-                                  2,
-                                )}
+                                {formatCents(item.quantity * item.price_per_unit)}
                               </Text>
                               <IconButton
                                 size="sm"
@@ -775,7 +770,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   <Text fontWeight="bold">Pricing Summary</Text>
                   <HStack justify="space-between" width="100%">
                     <Text>Subtotal:</Text>
-                    <Text>${watch("subtotal").toFixed(2)}</Text>
+                    <Text>${formatCents(watch("subtotal"))}</Text>
                   </HStack>
                   <VStack align="stretch" gap={2} width="100%">
                     <HStack justify="space-between">
@@ -809,25 +804,24 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                           {appliedDiscountCode.code} applied
                         </Text>
                         <Text fontSize="sm" color="green.500">
-                          -${discountInput.toFixed(2)}
+                          -${formatCents(discountInput)}
                         </Text>
                       </HStack>
                     )}
                   </VStack>
                   <HStack justify="space-between" width="100%">
-                    <Text>Discount override (optional, in dollars):</Text>
+                    <Text>Discount override (optional, $):</Text>
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      value={watch("discount_amount")}
+                      value={watch("discount_amount") / 100}
                       onChange={(e) => {
-                        const newDiscount = Number.parseFloat(e.target.value) || 0
-                        setValue("discount_amount", newDiscount)
-                        // Sync to discountInput to keep them in sync
-                        setDiscountInput(newDiscount)
-                        // Clear applied discount code if manually edited
-                        if (appliedDiscountCode && newDiscount !== discountInput) {
+                        const dollars = Number.parseFloat(e.target.value) || 0
+                        const cents = Math.round(dollars * 100)
+                        setValue("discount_amount", cents)
+                        setDiscountInput(cents)
+                        if (appliedDiscountCode && cents !== discountInput) {
                           setAppliedDiscountCode(null)
                           setDiscountCode("")
                         }
@@ -845,19 +839,19 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   </HStack>
                   <HStack justify="space-between" width="100%">
                     <Text>Tax Amount:</Text>
-                    <Text>${(watch("tax_amount") || 0).toFixed(2)}</Text>
+                    <Text>${formatCents(watch("tax_amount"))}</Text>
                   </HStack>
                   <HStack justify="space-between" width="100%">
-                    <Text>Tip:</Text>
+                    <Text>Tip ($):</Text>
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      value={watch("tip_amount")}
+                      value={watch("tip_amount") / 100}
                       onChange={(e) =>
                         setValue(
                           "tip_amount",
-                          Number.parseFloat(e.target.value) || 0,
+                          Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                         )
                       }
                       style={{ width: "100px" }}
@@ -869,7 +863,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     fontWeight="bold"
                   >
                     <Text>Total:</Text>
-                    <Text>${watch("total_amount").toFixed(2)}</Text>
+                    <Text>${formatCents(watch("total_amount"))}</Text>
                   </HStack>
                 </VStack>
 

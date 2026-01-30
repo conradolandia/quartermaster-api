@@ -14,6 +14,7 @@ import { FiSearch } from "react-icons/fi"
 
 import { BookingsService, type BookingPublic } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { formatCents } from "@/utils"
 
 const BookingLookup = () => {
   const [confirmationCode, setConfirmationCode] = useState("")
@@ -232,7 +233,7 @@ const BookingLookup = () => {
                 <VStack gap={2} align="stretch">
                   <HStack justify="space-between">
                     <Text>Subtotal:</Text>
-                    <Text>${currentBooking.subtotal.toFixed(2)}</Text>
+                    <Text>${formatCents(currentBooking.subtotal)}</Text>
                   </HStack>
                   {currentBooking.discount_amount > 0 && (
                     <HStack justify="space-between">
@@ -242,7 +243,7 @@ const BookingLookup = () => {
                   )}
                   <HStack justify="space-between">
                     <Text>Tax:</Text>
-                    <Text>${currentBooking.tax_amount.toFixed(2)}</Text>
+                    <Text>${formatCents(currentBooking.tax_amount)}</Text>
                   </HStack>
                   {currentBooking.tip_amount > 0 && (
                     <HStack justify="space-between">
@@ -252,7 +253,7 @@ const BookingLookup = () => {
                   )}
                   <HStack justify="space-between" borderTop="1px solid" borderColor="gray.200" pt={2}>
                     <Text fontWeight="bold" fontSize="lg">Total:</Text>
-                    <Text fontWeight="bold" fontSize="lg">${currentBooking.total_amount.toFixed(2)}</Text>
+                    <Text fontWeight="bold" fontSize="lg">${formatCents(currentBooking.total_amount)}</Text>
                   </HStack>
                 </VStack>
               </Box>
