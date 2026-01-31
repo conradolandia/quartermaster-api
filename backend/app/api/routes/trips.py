@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app import crud
@@ -512,9 +513,11 @@ def read_public_trips(
     if access_code:
         logger.info(f"Validating access code: {access_code}")
         try:
-            # Query the discount code - use the same pattern as validate-access endpoint
+            # Query the discount code (case-insensitive)
             discount_code_obj = session.exec(
-                select(DiscountCode).where(DiscountCode.code == access_code)
+                select(DiscountCode).where(
+                    func.lower(DiscountCode.code) == access_code.lower()
+                )
             ).first()
 
             if discount_code_obj:
@@ -752,11 +755,13 @@ def read_public_trip(
                 detail="This trip requires an access code",
             )
 
-        # Validate the access code (same logic as read_public_trips)
+        # Validate the access code (same logic as read_public_trips, case-insensitive)
         logger.info(f"Validating access code for trip {trip_id}: {access_code}")
         try:
             discount_code_obj = session.exec(
-                select(DiscountCode).where(DiscountCode.code == access_code)
+                select(DiscountCode).where(
+                    func.lower(DiscountCode.code) == access_code.lower()
+                )
             ).first()
 
             if not discount_code_obj:

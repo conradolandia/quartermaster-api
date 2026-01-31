@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app import crud
@@ -37,9 +38,11 @@ def create_discount_code(
     Create new discount code.
     """
     try:
-        # Check if discount code already exists
+        # Check if discount code already exists (case-insensitive)
         existing_code = session.exec(
-            select(DiscountCode).where(DiscountCode.code == discount_code_in.code)
+            select(DiscountCode).where(
+                func.lower(DiscountCode.code) == discount_code_in.code.lower()
+            )
         ).first()
 
         if existing_code:
@@ -154,10 +157,15 @@ def update_discount_code(
                 detail="Discount code not found",
             )
 
-        # Check if new code already exists (if code is being updated)
-        if discount_code_in.code and discount_code_in.code != discount_code.code:
+        # Check if new code already exists (if code is being updated, case-insensitive)
+        if (
+            discount_code_in.code
+            and discount_code_in.code.lower() != discount_code.code.lower()
+        ):
             existing_code = session.exec(
-                select(DiscountCode).where(DiscountCode.code == discount_code_in.code)
+                select(DiscountCode).where(
+                    func.lower(DiscountCode.code) == discount_code_in.code.lower()
+                )
             ).first()
             if existing_code:
                 raise HTTPException(
@@ -235,7 +243,7 @@ def validate_discount_code(
     """
     try:
         discount_code = session.exec(
-            select(DiscountCode).where(DiscountCode.code == code)
+            select(DiscountCode).where(func.lower(DiscountCode.code) == code.lower())
         ).first()
 
         if not discount_code:
@@ -318,7 +326,7 @@ def validate_access_code(
     """
     try:
         discount_code = session.exec(
-            select(DiscountCode).where(DiscountCode.code == code)
+            select(DiscountCode).where(func.lower(DiscountCode.code) == code.lower())
         ).first()
 
         if not discount_code:
