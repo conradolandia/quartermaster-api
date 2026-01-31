@@ -4,6 +4,16 @@ import type { CancelablePromise } from "./core/CancelablePromise"
 import { OpenAPI } from "./core/OpenAPI"
 import { request as __request } from "./core/request"
 import type {
+  BoatPricingCreateBoatPricingData,
+  BoatPricingCreateBoatPricingResponse,
+  BoatPricingListBoatPricingData,
+  BoatPricingListBoatPricingResponse,
+  BoatPricingGetBoatPricingData,
+  BoatPricingGetBoatPricingResponse,
+  BoatPricingUpdateBoatPricingData,
+  BoatPricingUpdateBoatPricingResponse,
+  BoatPricingDeleteBoatPricingData,
+  BoatPricingDeleteBoatPricingResponse,
   BoatsReadBoatsData,
   BoatsReadBoatsResponse,
   BoatsCreateBoatData,
@@ -164,6 +174,16 @@ import type {
   ProvidersReadProvidersByJurisdictionResponse,
   ProvidersReadPublicProviderData,
   ProvidersReadPublicProviderResponse,
+  TripBoatPricingCreateTripBoatPricingData,
+  TripBoatPricingCreateTripBoatPricingResponse,
+  TripBoatPricingListTripBoatPricingData,
+  TripBoatPricingListTripBoatPricingResponse,
+  TripBoatPricingGetTripBoatPricingData,
+  TripBoatPricingGetTripBoatPricingResponse,
+  TripBoatPricingUpdateTripBoatPricingData,
+  TripBoatPricingUpdateTripBoatPricingResponse,
+  TripBoatPricingDeleteTripBoatPricingData,
+  TripBoatPricingDeleteTripBoatPricingResponse,
   TripBoatsCreateTripBoatData,
   TripBoatsCreateTripBoatResponse,
   TripBoatsReadTripBoatsByTripData,
@@ -176,6 +196,8 @@ import type {
   TripBoatsDeleteTripBoatResponse,
   TripBoatsReadPublicTripBoatsByTripData,
   TripBoatsReadPublicTripBoatsByTripResponse,
+  TripBoatsReadPublicEffectivePricingData,
+  TripBoatsReadPublicEffectivePricingResponse,
   TripMerchandiseCreateTripMerchandiseData,
   TripMerchandiseCreateTripMerchandiseResponse,
   TripMerchandiseListTripMerchandiseData,
@@ -188,18 +210,6 @@ import type {
   TripMerchandiseDeleteTripMerchandiseResponse,
   TripMerchandiseListPublicTripMerchandiseData,
   TripMerchandiseListPublicTripMerchandiseResponse,
-  TripPricingCreateTripPricingData,
-  TripPricingCreateTripPricingResponse,
-  TripPricingListTripPricingData,
-  TripPricingListTripPricingResponse,
-  TripPricingGetTripPricingData,
-  TripPricingGetTripPricingResponse,
-  TripPricingUpdateTripPricingData,
-  TripPricingUpdateTripPricingResponse,
-  TripPricingDeleteTripPricingData,
-  TripPricingDeleteTripPricingResponse,
-  TripPricingListPublicTripPricingData,
-  TripPricingListPublicTripPricingResponse,
   TripsReadTripsData,
   TripsReadTripsResponse,
   TripsCreateTripData,
@@ -243,6 +253,125 @@ import type {
   UtilsHealthCheckResponse,
   UtilsGetUsStatesResponse,
 } from "./types.gen"
+
+export class BoatPricingService {
+  /**
+   * Create Boat Pricing
+   * Create boat pricing (boat-level default ticket type and price).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static createBoatPricing(
+    data: BoatPricingCreateBoatPricingData,
+  ): CancelablePromise<BoatPricingCreateBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/boat-pricing/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Boat Pricing
+   * List boat pricing, optionally by boat_id.
+   * @param data The data for the request.
+   * @param data.boatId
+   * @returns BoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static listBoatPricing(
+    data: BoatPricingListBoatPricingData = {},
+  ): CancelablePromise<BoatPricingListBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/boat-pricing/",
+      query: {
+        boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Boat Pricing
+   * Get boat pricing by ID.
+   * @param data The data for the request.
+   * @param data.boatPricingId
+   * @returns BoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static getBoatPricing(
+    data: BoatPricingGetBoatPricingData,
+  ): CancelablePromise<BoatPricingGetBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/boat-pricing/{boat_pricing_id}",
+      path: {
+        boat_pricing_id: data.boatPricingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Boat Pricing
+   * Update boat pricing.
+   * @param data The data for the request.
+   * @param data.boatPricingId
+   * @param data.requestBody
+   * @returns BoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateBoatPricing(
+    data: BoatPricingUpdateBoatPricingData,
+  ): CancelablePromise<BoatPricingUpdateBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/boat-pricing/{boat_pricing_id}",
+      path: {
+        boat_pricing_id: data.boatPricingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Boat Pricing
+   * Delete boat pricing.
+   * @param data The data for the request.
+   * @param data.boatPricingId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteBoatPricing(
+    data: BoatPricingDeleteBoatPricingData,
+  ): CancelablePromise<BoatPricingDeleteBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/boat-pricing/{boat_pricing_id}",
+      path: {
+        boat_pricing_id: data.boatPricingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
 
 export class BoatsService {
   /**
@@ -659,7 +788,7 @@ export class BookingsService {
    *
    * When ticket-type columns are requested (ticket_types, ticket_types_quantity, etc.),
    * trip_id should be provided. The ticket-type columns will be derived from that trip's
-   * TripPricing records, ensuring consistent column headers that match the trip's configuration.
+   * effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
    * Booking items will be matched to the trip's ticket types (with backward compatibility
    * for legacy naming variants like "adult" vs "adult_ticket").
    * @param data The data for the request.
@@ -2321,13 +2450,132 @@ export class ProvidersService {
   }
 }
 
+export class TripBoatPricingService {
+  /**
+   * Create Trip Boat Pricing
+   * Create trip boat pricing (per-trip, per-boat price override).
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns TripBoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static createTripBoatPricing(
+    data: TripBoatPricingCreateTripBoatPricingData,
+  ): CancelablePromise<TripBoatPricingCreateTripBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trip-boat-pricing/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Trip Boat Pricing
+   * List trip boat pricing, optionally by trip_boat_id.
+   * @param data The data for the request.
+   * @param data.tripBoatId
+   * @returns TripBoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static listTripBoatPricing(
+    data: TripBoatPricingListTripBoatPricingData = {},
+  ): CancelablePromise<TripBoatPricingListTripBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boat-pricing/",
+      query: {
+        trip_boat_id: data.tripBoatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Trip Boat Pricing
+   * Get trip boat pricing by ID.
+   * @param data The data for the request.
+   * @param data.tripBoatPricingId
+   * @returns TripBoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static getTripBoatPricing(
+    data: TripBoatPricingGetTripBoatPricingData,
+  ): CancelablePromise<TripBoatPricingGetTripBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boat-pricing/{trip_boat_pricing_id}",
+      path: {
+        trip_boat_pricing_id: data.tripBoatPricingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Trip Boat Pricing
+   * Update trip boat pricing.
+   * @param data The data for the request.
+   * @param data.tripBoatPricingId
+   * @param data.requestBody
+   * @returns TripBoatPricingPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateTripBoatPricing(
+    data: TripBoatPricingUpdateTripBoatPricingData,
+  ): CancelablePromise<TripBoatPricingUpdateTripBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/trip-boat-pricing/{trip_boat_pricing_id}",
+      path: {
+        trip_boat_pricing_id: data.tripBoatPricingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Trip Boat Pricing
+   * Delete trip boat pricing.
+   * @param data The data for the request.
+   * @param data.tripBoatPricingId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteTripBoatPricing(
+    data: TripBoatPricingDeleteTripBoatPricingData,
+  ): CancelablePromise<TripBoatPricingDeleteTripBoatPricingResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/trip-boat-pricing/{trip_boat_pricing_id}",
+      path: {
+        trip_boat_pricing_id: data.tripBoatPricingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+}
+
 export class TripBoatsService {
   /**
    * Create Trip Boat
    * Create new trip boat association.
    * @param data The data for the request.
    * @param data.requestBody
-   * @returns unknown Successful Response
+   * @returns TripBoatPublic Successful Response
    * @throws ApiError
    */
   public static createTripBoat(
@@ -2481,6 +2729,33 @@ export class TripBoatsService {
       },
     })
   }
+
+  /**
+   * Read Public Effective Pricing
+   * Get effective ticket types and prices for a (trip_id, boat_id).
+   * Boat defaults (BoatPricing) merged with per-trip overrides (TripBoatPricing).
+   * Validates trip exists and mission booking_mode allows public booking.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.boatId
+   * @returns EffectivePricingItem Successful Response
+   * @throws ApiError
+   */
+  public static readPublicEffectivePricing(
+    data: TripBoatsReadPublicEffectivePricingData,
+  ): CancelablePromise<TripBoatsReadPublicEffectivePricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boats/public/pricing",
+      query: {
+        trip_id: data.tripId,
+        boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
 }
 
 export class TripMerchandiseService {
@@ -2615,151 +2890,6 @@ export class TripMerchandiseService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/trip-merchandise/public/",
-      query: {
-        trip_id: data.tripId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class TripPricingService {
-  /**
-   * Create Trip Pricing
-   * Create new trip pricing.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns TripPricingPublic Successful Response
-   * @throws ApiError
-   */
-  public static createTripPricing(
-    data: TripPricingCreateTripPricingData,
-  ): CancelablePromise<TripPricingCreateTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/trip-pricing/",
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List Trip Pricing
-   * List trip pricing with optional filtering.
-   * @param data The data for the request.
-   * @param data.tripId
-   * @param data.ticketType
-   * @returns TripPricingPublic Successful Response
-   * @throws ApiError
-   */
-  public static listTripPricing(
-    data: TripPricingListTripPricingData = {},
-  ): CancelablePromise<TripPricingListTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/trip-pricing/",
-      query: {
-        trip_id: data.tripId,
-        ticket_type: data.ticketType,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Get Trip Pricing
-   * Get trip pricing by ID.
-   * @param data The data for the request.
-   * @param data.tripPricingId
-   * @returns TripPricingPublic Successful Response
-   * @throws ApiError
-   */
-  public static getTripPricing(
-    data: TripPricingGetTripPricingData,
-  ): CancelablePromise<TripPricingGetTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/trip-pricing/{trip_pricing_id}",
-      path: {
-        trip_pricing_id: data.tripPricingId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Update Trip Pricing
-   * Update trip pricing.
-   * @param data The data for the request.
-   * @param data.tripPricingId
-   * @param data.requestBody
-   * @returns TripPricingPublic Successful Response
-   * @throws ApiError
-   */
-  public static updateTripPricing(
-    data: TripPricingUpdateTripPricingData,
-  ): CancelablePromise<TripPricingUpdateTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "PUT",
-      url: "/api/v1/trip-pricing/{trip_pricing_id}",
-      path: {
-        trip_pricing_id: data.tripPricingId,
-      },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Delete Trip Pricing
-   * Delete trip pricing.
-   * @param data The data for the request.
-   * @param data.tripPricingId
-   * @returns void Successful Response
-   * @throws ApiError
-   */
-  public static deleteTripPricing(
-    data: TripPricingDeleteTripPricingData,
-  ): CancelablePromise<TripPricingDeleteTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "DELETE",
-      url: "/api/v1/trip-pricing/{trip_pricing_id}",
-      path: {
-        trip_pricing_id: data.tripPricingId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * List Public Trip Pricing
-   * List trip pricing for a specific trip (public endpoint for booking form).
-   * Validates that the trip's mission has public or early_bird booking_mode.
-   * @param data The data for the request.
-   * @param data.tripId
-   * @returns TripPricingPublic Successful Response
-   * @throws ApiError
-   */
-  public static listPublicTripPricing(
-    data: TripPricingListPublicTripPricingData,
-  ): CancelablePromise<TripPricingListPublicTripPricingResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/trip-pricing/public/",
       query: {
         trip_id: data.tripId,
       },

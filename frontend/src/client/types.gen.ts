@@ -16,6 +16,26 @@ export type BoatCreate = {
   provider_id: string
 }
 
+export type BoatPricingCreate = {
+  boat_id: string
+  ticket_type: string
+  price: number
+}
+
+export type BoatPricingPublic = {
+  boat_id: string
+  ticket_type: string
+  price: number
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type BoatPricingUpdate = {
+  ticket_type?: string | null
+  price?: number | null
+}
+
 export type BoatPublic = {
   name: string
   slug?: string
@@ -230,6 +250,11 @@ export type DiscountCodeUpdate = {
   max_discount_amount?: number | null
   is_access_code?: boolean | null
   access_code_mission_id?: string | null
+}
+
+export type EffectivePricingItem = {
+  ticket_type: string
+  price: number
 }
 
 export type HTTPValidationError = {
@@ -499,6 +524,26 @@ export type TripBoatCreate = {
   max_capacity?: number | null
 }
 
+export type TripBoatPricingCreate = {
+  trip_boat_id: string
+  ticket_type: string
+  price: number
+}
+
+export type TripBoatPricingPublic = {
+  trip_boat_id: string
+  ticket_type: string
+  price: number
+  id: string
+  created_at: string
+  updated_at: string
+}
+
+export type TripBoatPricingUpdate = {
+  ticket_type?: string | null
+  price?: number | null
+}
+
 export type TripBoatPublic = {
   trip_id: string
   boat_id: string
@@ -566,26 +611,6 @@ export type TripMerchandisePublic = {
 export type TripMerchandiseUpdate = {
   quantity_available_override?: number | null
   price_override?: number | null
-}
-
-export type TripPricingCreate = {
-  trip_id: string
-  ticket_type: string
-  price: number
-}
-
-export type TripPricingPublic = {
-  trip_id: string
-  ticket_type: string
-  price: number
-  id: string
-  created_at: string
-  updated_at: string
-}
-
-export type TripPricingUpdate = {
-  ticket_type?: string | null
-  price?: number | null
 }
 
 export type TripPublic = {
@@ -662,6 +687,37 @@ export type ValidationError = {
   msg: string
   type: string
 }
+
+export type BoatPricingCreateBoatPricingData = {
+  requestBody: BoatPricingCreate
+}
+
+export type BoatPricingCreateBoatPricingResponse = BoatPricingPublic
+
+export type BoatPricingListBoatPricingData = {
+  boatId?: string | null
+}
+
+export type BoatPricingListBoatPricingResponse = Array<BoatPricingPublic>
+
+export type BoatPricingGetBoatPricingData = {
+  boatPricingId: string
+}
+
+export type BoatPricingGetBoatPricingResponse = BoatPricingPublic
+
+export type BoatPricingUpdateBoatPricingData = {
+  boatPricingId: string
+  requestBody: BoatPricingUpdate
+}
+
+export type BoatPricingUpdateBoatPricingResponse = BoatPricingPublic
+
+export type BoatPricingDeleteBoatPricingData = {
+  boatPricingId: string
+}
+
+export type BoatPricingDeleteBoatPricingResponse = void
 
 export type BoatsReadBoatsData = {
   limit?: number
@@ -1211,11 +1267,43 @@ export type ProvidersReadPublicProviderData = {
 
 export type ProvidersReadPublicProviderResponse = ProviderPublic
 
+export type TripBoatPricingCreateTripBoatPricingData = {
+  requestBody: TripBoatPricingCreate
+}
+
+export type TripBoatPricingCreateTripBoatPricingResponse = TripBoatPricingPublic
+
+export type TripBoatPricingListTripBoatPricingData = {
+  tripBoatId?: string | null
+}
+
+export type TripBoatPricingListTripBoatPricingResponse =
+  Array<TripBoatPricingPublic>
+
+export type TripBoatPricingGetTripBoatPricingData = {
+  tripBoatPricingId: string
+}
+
+export type TripBoatPricingGetTripBoatPricingResponse = TripBoatPricingPublic
+
+export type TripBoatPricingUpdateTripBoatPricingData = {
+  requestBody: TripBoatPricingUpdate
+  tripBoatPricingId: string
+}
+
+export type TripBoatPricingUpdateTripBoatPricingResponse = TripBoatPricingPublic
+
+export type TripBoatPricingDeleteTripBoatPricingData = {
+  tripBoatPricingId: string
+}
+
+export type TripBoatPricingDeleteTripBoatPricingResponse = void
+
 export type TripBoatsCreateTripBoatData = {
   requestBody: TripBoatCreate
 }
 
-export type TripBoatsCreateTripBoatResponse = unknown
+export type TripBoatsCreateTripBoatResponse = TripBoatPublic
 
 export type TripBoatsReadTripBoatsByTripData = {
   limit?: number
@@ -1256,6 +1344,14 @@ export type TripBoatsReadPublicTripBoatsByTripData = {
 export type TripBoatsReadPublicTripBoatsByTripResponse =
   Array<TripBoatPublicWithAvailability>
 
+export type TripBoatsReadPublicEffectivePricingData = {
+  boatId: string
+  tripId: string
+}
+
+export type TripBoatsReadPublicEffectivePricingResponse =
+  Array<EffectivePricingItem>
+
 export type TripMerchandiseCreateTripMerchandiseData = {
   requestBody: TripMerchandiseCreate
 }
@@ -1294,44 +1390,6 @@ export type TripMerchandiseListPublicTripMerchandiseData = {
 
 export type TripMerchandiseListPublicTripMerchandiseResponse =
   Array<TripMerchandisePublic>
-
-export type TripPricingCreateTripPricingData = {
-  requestBody: TripPricingCreate
-}
-
-export type TripPricingCreateTripPricingResponse = TripPricingPublic
-
-export type TripPricingListTripPricingData = {
-  ticketType?: string | null
-  tripId?: string | null
-}
-
-export type TripPricingListTripPricingResponse = Array<TripPricingPublic>
-
-export type TripPricingGetTripPricingData = {
-  tripPricingId: string
-}
-
-export type TripPricingGetTripPricingResponse = TripPricingPublic
-
-export type TripPricingUpdateTripPricingData = {
-  requestBody: TripPricingUpdate
-  tripPricingId: string
-}
-
-export type TripPricingUpdateTripPricingResponse = TripPricingPublic
-
-export type TripPricingDeleteTripPricingData = {
-  tripPricingId: string
-}
-
-export type TripPricingDeleteTripPricingResponse = void
-
-export type TripPricingListPublicTripPricingData = {
-  tripId: string
-}
-
-export type TripPricingListPublicTripPricingResponse = Array<TripPricingPublic>
 
 export type TripsReadTripsData = {
   limit?: number

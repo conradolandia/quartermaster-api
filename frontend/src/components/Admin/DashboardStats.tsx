@@ -163,10 +163,10 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
         />
         <StatCard
           title="Revenue"
-          value={`$${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`$${formatCents(stats.totalRevenue)}`}
           icon={<FiDollarSign />}
           color="green"
-          subtitle={`Net: $${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Gross: $${stats.grossRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle={`Net: $${formatCents(stats.totalRevenue)} | Gross: $${formatCents(stats.grossRevenue)}`}
         />
         <StatCard
           title="Total Passengers"
@@ -177,7 +177,7 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
         />
         <StatCard
           title="Average Booking Value"
-          value={`$${averageBookingValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`$${formatCents(averageBookingValue)}`}
           icon={<FiTrendingUp />}
           color="orange"
           subtitle="Per booking"
@@ -284,7 +284,7 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                 <HStack justify="space-between">
                   <Text>Recent Revenue (7 days)</Text>
                   <Text fontWeight="bold">
-                    ${recentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${formatCents(recentRevenue)}
                   </Text>
                 </HStack>
               </VStack>

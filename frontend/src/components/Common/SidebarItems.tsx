@@ -188,9 +188,9 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   // Track if a drag just ended (to prevent click on the dragged item)
   const wasDragging = useRef(false)
 
-  // Build full items list (including Admin for superusers)
+  // Build full items list (including Users for superusers)
   const allItems: Item[] = currentUser?.is_superuser
-    ? [...defaultItems, { icon: FiUsers, title: "Admin", path: "/admin" }]
+    ? [...defaultItems, { icon: FiUsers, title: "Users", path: "/users" }]
     : defaultItems
 
   // State for ordered items

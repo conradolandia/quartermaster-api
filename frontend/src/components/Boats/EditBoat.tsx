@@ -1,4 +1,9 @@
-import { type ApiError, type BoatUpdate, BoatsService } from "@/client"
+import {
+  type ApiError,
+  BoatPricingService,
+  type BoatUpdate,
+  BoatsService,
+} from "@/client"
 import ProviderDropdown from "@/components/Common/ProviderDropdown"
 import {
   DialogActionTrigger,
@@ -14,21 +19,21 @@ import {
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import type { Boat } from "@/types/boat"
-import { handleError } from "@/utils"
+import { formatCents, handleError } from "@/utils"
 import {
+  Box,
   Button,
   ButtonGroup,
+  HStack,
+  IconButton,
   Input,
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import { FiEdit } from "react-icons/fi"
-
-// Este es un componente simplificado que imita la estructura del proyecto
-// En un proyecto real, incluiría formularios completos y llamadas a la API
+import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
 
 interface EditBoatProps {
   boat: Boat
@@ -36,6 +41,8 @@ interface EditBoatProps {
 
 const EditBoat = ({ boat }: EditBoatProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [isAddingPricing, setIsAddingPricing] = useState(false)
+  const [pricingForm, setPricingForm] = useState({ ticket_type: "", price: "" })
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -66,6 +73,13 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     }
   }, [isOpen, boat.name, boat.capacity, boat.provider_id, reset])
 
+  const { data: boatPricingList = [], refetch: refetchBoatPricing } = useQuery({
+    queryKey: ["boat-pricing", boat.id],
+    queryFn: () =>
+      BoatPricingService.listBoatPricing({ boatId: boat.id }),
+    enabled: isOpen && !!boat.id,
+  })
+
   const mutation = useMutation({
     mutationFn: (data: BoatUpdate) =>
       BoatsService.updateBoat({
@@ -84,6 +98,45 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       queryClient.invalidateQueries({ queryKey: ["boats"] })
     },
   })
+
+  const createPricingMutation = useMutation({
+    mutationFn: (body: { ticket_type: string; price: number }) =>
+      BoatPricingService.createBoatPricing({
+        requestBody: {
+          boat_id: boat.id,
+          ticket_type: body.ticket_type,
+          price: body.price,
+        },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Ticket type added.")
+      setPricingForm({ ticket_type: "", price: "" })
+      setIsAddingPricing(false)
+      refetchBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const deletePricingMutation = useMutation({
+    mutationFn: (boatPricingId: string) =>
+      BoatPricingService.deleteBoatPricing({ boatPricingId }),
+    onSuccess: () => {
+      showSuccessToast("Ticket type removed.")
+      refetchBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const handleAddPricing = () => {
+    const priceDollars = Number.parseFloat(pricingForm.price)
+    if (!pricingForm.ticket_type.trim() || Number.isNaN(priceDollars)) return
+    createPricingMutation.mutate({
+      ticket_type: pricingForm.ticket_type.trim(),
+      price: Math.round(priceDollars * 100),
+    })
+  }
 
   const onSubmit: SubmitHandler<BoatUpdate> = async (data) => {
     mutation.mutate(data)
@@ -180,6 +233,104 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                     )}
                   />
                 </Field>
+
+                <Box width="100%">
+                  <Text fontWeight="bold" mb={2}>
+                    Ticket types (default pricing)
+                  </Text>
+                  <Text fontSize="sm" color="gray.400" mb={2}>
+                    Default ticket types and prices for this boat. Trips can override per boat.
+                  </Text>
+                  {isAddingPricing ? (
+                    <VStack align="stretch" gap={2} mb={3} p={3} borderWidth="1px" borderRadius="md">
+                      <HStack width="100%">
+                        <Box flex={1}>
+                          <Text fontSize="sm" mb={1}>Ticket type</Text>
+                          <Input
+                            value={pricingForm.ticket_type}
+                            onChange={(e) =>
+                              setPricingForm({ ...pricingForm, ticket_type: e.target.value })
+                            }
+                            placeholder="e.g. Adult, Child"
+                          />
+                        </Box>
+                        <Box flex={1}>
+                          <Text fontSize="sm" mb={1}>Price ($)</Text>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={pricingForm.price}
+                            onChange={(e) =>
+                              setPricingForm({ ...pricingForm, price: e.target.value })
+                            }
+                            placeholder="0.00"
+                          />
+                        </Box>
+                      </HStack>
+                      <HStack width="100%" justify="flex-end">
+                        <Button size="sm" variant="ghost" onClick={() => setIsAddingPricing(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleAddPricing}
+                          loading={createPricingMutation.isPending}
+                          disabled={
+                            !pricingForm.ticket_type.trim() ||
+                            !pricingForm.price ||
+                            Number.isNaN(Number.parseFloat(pricingForm.price))
+                          }
+                        >
+                          Add
+                        </Button>
+                      </HStack>
+                    </VStack>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      mb={2}
+                      onClick={() => setIsAddingPricing(true)}
+                    >
+                      <FiPlus style={{ marginRight: "4px" }} />
+                      Add ticket type
+                    </Button>
+                  )}
+                  <VStack align="stretch" gap={2}>
+                    {boatPricingList.map((p) => (
+                      <HStack
+                        key={p.id}
+                        justify="space-between"
+                        p={2}
+                        borderWidth="1px"
+                        borderRadius="md"
+                      >
+                        <HStack>
+                          <Text fontWeight="medium">{p.ticket_type}</Text>
+                          <Text fontSize="sm" color="gray.400">
+                            ${formatCents(p.price)}
+                          </Text>
+                        </HStack>
+                        <IconButton
+                          aria-label="Remove ticket type"
+                          size="sm"
+                          variant="ghost"
+                          colorPalette="red"
+                          onClick={() => deletePricingMutation.mutate(p.id)}
+                          disabled={deletePricingMutation.isPending}
+                        >
+                          <FiTrash2 />
+                        </IconButton>
+                      </HStack>
+                    ))}
+                    {boatPricingList.length === 0 && !isAddingPricing && (
+                      <Text fontSize="sm" color="gray.500" py={2}>
+                        No ticket types. Add trip boats and pricing on each trip, or set defaults here.
+                      </Text>
+                    )}
+                  </VStack>
+                </Box>
               </VStack>
             </DialogBody>
 

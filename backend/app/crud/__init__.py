@@ -5,6 +5,13 @@ This module provides database operations organized by domain.
 """
 
 # Import all CRUD functions to maintain backward compatibility
+from .boat_pricing import (
+    create_boat_pricing,
+    delete_boat_pricing,
+    get_boat_pricing,
+    get_boat_pricing_by_boat,
+    update_boat_pricing,
+)
 from .boats import (
     create_boat,
     delete_boat,
@@ -24,6 +31,10 @@ from .booking_items import (
     get_ticket_item_count_for_trip_boat,
     reassign_trip_boat_passengers,
     update_booking_item,
+)
+from .effective_pricing import (
+    get_effective_pricing,
+    get_effective_ticket_types_for_trip,
 )
 from .jurisdictions import (
     create_jurisdiction,
@@ -83,12 +94,20 @@ from .providers import (
     get_providers_count,
     update_provider,
 )
+from .trip_boat_pricing import (
+    create_trip_boat_pricing,
+    delete_trip_boat_pricing,
+    get_trip_boat_pricing,
+    get_trip_boat_pricing_by_trip_boat,
+    update_trip_boat_pricing,
+)
 from .trip_boats import (
     create_trip_boat,
     delete_trip_boat,
     get_trip_boat,
     get_trip_boats_by_boat,
     get_trip_boats_by_trip,
+    get_trip_boats_for_trip_ids,
     update_trip_boat,
 )
 from .trip_merchandise import (
@@ -97,13 +116,6 @@ from .trip_merchandise import (
     get_trip_merchandise,
     get_trip_merchandise_by_trip,
     update_trip_merchandise,
-)
-from .trip_pricing import (
-    create_trip_pricing,
-    delete_trip_pricing,
-    get_trip_pricing,
-    get_trip_pricing_by_trip,
-    update_trip_pricing,
 )
 from .trips import (
     create_trip,
@@ -204,6 +216,7 @@ __all__ = [
     "get_trip_boat",
     "get_trip_boats_by_boat",
     "get_trip_boats_by_trip",
+    "get_trip_boats_for_trip_ids",
     "update_trip_boat",
     # Trip Merchandise
     "create_trip_merchandise",
@@ -211,12 +224,21 @@ __all__ = [
     "get_trip_merchandise",
     "get_trip_merchandise_by_trip",
     "update_trip_merchandise",
-    # Trip Pricing
-    "create_trip_pricing",
-    "delete_trip_pricing",
-    "get_trip_pricing",
-    "get_trip_pricing_by_trip",
-    "update_trip_pricing",
+    # Boat Pricing
+    "create_boat_pricing",
+    "delete_boat_pricing",
+    "get_boat_pricing",
+    "get_boat_pricing_by_boat",
+    "update_boat_pricing",
+    # Trip Boat Pricing
+    "create_trip_boat_pricing",
+    "delete_trip_boat_pricing",
+    "get_trip_boat_pricing",
+    "get_trip_boat_pricing_by_trip_boat",
+    "update_trip_boat_pricing",
+    # Effective pricing
+    "get_effective_pricing",
+    "get_effective_ticket_types_for_trip",
     # Booking Items
     "create_booking_item",
     "delete_booking_item",

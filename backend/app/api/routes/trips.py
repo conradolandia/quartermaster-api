@@ -11,8 +11,10 @@ from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    BoatPublic,
     DiscountCode,
     Trip,
+    TripBoatPublic,
     TripCreate,
     TripPublic,
     TripsPublic,
@@ -65,6 +67,24 @@ def read_trips(
     """
     trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
     count = crud.get_trips_count(session=session)
+    if trips:
+        trip_ids = [t["id"] for t in trips]
+        trip_boats_by_trip = crud.get_trip_boats_for_trip_ids(
+            session=session, trip_ids=trip_ids
+        )
+        for t in trips:
+            t["trip_boats"] = [
+                TripBoatPublic(
+                    id=tb.id,
+                    trip_id=tb.trip_id,
+                    boat_id=tb.boat_id,
+                    created_at=tb.created_at,
+                    updated_at=tb.updated_at,
+                    max_capacity=tb.max_capacity,
+                    boat=BoatPublic.model_validate(tb.boat),
+                )
+                for tb in trip_boats_by_trip.get(t["id"], [])
+            ]
     return TripsPublic(data=trips, count=count)
 
 

@@ -25,7 +25,6 @@ import {
   formatInLocationTimezoneWithAbbr,
   parseApiDate,
 } from "@/utils"
-import { fetchPublicLaunches, fetchPublicMissions, type PublicLaunch, type PublicMission } from "@/utils/publicApi"
 
 import type { BookingStepData } from "../PublicBookingForm"
 
@@ -50,18 +49,6 @@ const Step1TripSelection = ({
         limit: 100,
         accessCode: accessCode || undefined,
       }),
-  })
-
-  // Fetch all missions to get mission details
-  const { data: allMissions } = useQuery({
-    queryKey: ["public-missions"],
-    queryFn: () => fetchPublicMissions({ limit: 100 }),
-  })
-
-  // Fetch all launches to get launch details
-  const { data: allLaunches } = useQuery({
-    queryKey: ["public-launches"],
-    queryFn: () => fetchPublicLaunches({ limit: 100 }),
   })
 
   // Fetch trip boats for selected trip (using public endpoint)
@@ -102,25 +89,6 @@ const Step1TripSelection = ({
     },
     enabled: !!tripBoats && tripBoats.length > 0,
   })
-
-  // Helper functions to get related data (normalize IDs to string for comparison)
-  const getTripMission = (tripId: string) => {
-    const trip = allTrips?.data?.find(
-      (t: TripPublic) => String(t.id) === String(tripId),
-    )
-    if (!trip?.mission_id) return undefined
-    return allMissions?.data?.find(
-      (m: PublicMission) => String(m.id) === String(trip.mission_id),
-    )
-  }
-
-  const getTripLaunch = (tripId: string) => {
-    const mission = getTripMission(tripId)
-    if (!mission?.launch_id) return undefined
-    return allLaunches?.data?.find(
-      (l: PublicLaunch) => String(l.id) === String(mission.launch_id),
-    )
-  }
 
   // Auto-select the first boat when boats are available and set remaining capacity
   React.useEffect(() => {
@@ -209,19 +177,28 @@ const Step1TripSelection = ({
     return formatDateTimeNoSeconds(d)
   }
 
+  const tripTypeToLabel = (type: string): string => {
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  const formatTripOptionLabel = (trip: TripPublic): string => {
+    const readableType = tripTypeToLabel(trip.type)
+    const time = formatTripTime(trip.departure_time, trip.timezone)
+    if (trip.name?.trim()) {
+      return `${trip.name.trim()} - ${readableType} (${time})`
+    }
+    return `${readableType} (${time})`
+  }
+
   // Create collection for trip selection with full context - only active trips
   const tripsCollection = createListCollection({
     items:
-      activeTrips.map((trip: TripPublic) => {
-        const mission = getTripMission(trip.id)
-        const launch = getTripLaunch(trip.id)
-        return {
-          label: `${launch?.name || "Unknown Launch"} - ${
-            mission?.name || "Unknown Mission"
-          } - ${trip.type} (${formatTripTime(trip.departure_time, trip.timezone)})`,
-          value: trip.id,
-        }
-      }) || [],
+      activeTrips.map((trip: TripPublic) => ({
+        label: formatTripOptionLabel(trip),
+        value: trip.id,
+      })) || [],
   })
 
   const boatsCollection = createListCollection({
@@ -276,12 +253,7 @@ const Step1TripSelection = ({
                   <Select.Positioner>
                     <Select.Content minWidth="400px">
                       {activeTrips.map((trip: TripPublic) => {
-                        const mission = getTripMission(trip.id)
-                        const launch = getTripLaunch(trip.id)
-                        const label = `${launch?.name || "Unknown Launch"} - ${
-                          mission?.name || "Unknown Mission"
-                        } - ${trip.type} (${formatTripTime(trip.departure_time, trip.timezone)})`
-
+                        const label = formatTripOptionLabel(trip)
                         return (
                           <Select.Item
                             key={trip.id}
@@ -320,7 +292,7 @@ const Step1TripSelection = ({
                       <VStack align="stretch" gap={2}>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Type:</Text>
-                          <Text>{selectedTrip.type}</Text>
+                          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Check-in:</Text>

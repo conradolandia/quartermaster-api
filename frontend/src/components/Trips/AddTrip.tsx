@@ -18,9 +18,9 @@ import {
   BoatsService,
   MerchandiseService,
   MissionsService,
+  TripBoatPricingService,
   TripBoatsService,
   TripMerchandiseService,
-  TripPricingService,
   TripsService,
 } from "@/client"
 import { MissionDropdown } from "@/components/Common/MissionDropdown"
@@ -291,7 +291,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
 
       const tripId = tripResponse.id
 
-      // Create boat associations
+      // Create boat associations, then trip-boat pricing for each boat
       if (selectedBoats.length > 0) {
         const tripBoatPromises = selectedBoats.map((boat) =>
           TripBoatsService.createTripBoat({
@@ -302,21 +302,24 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
             },
           }),
         )
-        await Promise.all(tripBoatPromises)
-      }
-
-      // Create pricing
-      if (selectedPricing.length > 0) {
-        const pricingPromises = selectedPricing.map((pricing) =>
-          TripPricingService.createTripPricing({
-            requestBody: {
-              trip_id: tripId,
-              ticket_type: pricing.ticket_type,
-              price: pricing.price,
-            },
-          }),
-        )
-        await Promise.all(pricingPromises)
+        const createdTripBoats = await Promise.all(tripBoatPromises)
+        if (selectedPricing.length > 0) {
+          const pricingPromises: Promise<unknown>[] = []
+          for (const tb of createdTripBoats) {
+            for (const pricing of selectedPricing) {
+              pricingPromises.push(
+                TripBoatPricingService.createTripBoatPricing({
+                  requestBody: {
+                    trip_boat_id: tb.id,
+                    ticket_type: pricing.ticket_type,
+                    price: pricing.price,
+                  },
+                }),
+              )
+            }
+          }
+          await Promise.all(pricingPromises)
+        }
       }
 
       // Create merchandise (link catalog items to trip with optional overrides)
@@ -349,7 +352,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setSelectedMerchandise([])
       queryClient.invalidateQueries({ queryKey: ["trips"] })
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-pricing"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
       queryClient.invalidateQueries({ queryKey: ["trip-merchandise"] })
       onSuccess()
       onClose()

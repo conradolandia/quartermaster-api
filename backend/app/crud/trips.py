@@ -114,8 +114,8 @@ def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
     from app.models import (
         BookingItem,
         TripBoat,
+        TripBoatPricing,
         TripMerchandise,
-        TripPricing,
     )
 
     # Get the trip first
@@ -124,7 +124,7 @@ def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
         return None
 
     # Delete in dependency order: BookingItem references trip_merchandise_id and trip_id,
-    # so delete booking items first, then trip merchandise/pricing/boats, then trip.
+    # so delete booking items first, then trip merchandise, trip_boat_pricing, boats, then trip.
     for booking_item in session.exec(
         select(BookingItem).where(BookingItem.trip_id == trip_id)
     ):
@@ -135,12 +135,11 @@ def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
     ):
         session.delete(trip_merchandise)
 
-    for trip_pricing in session.exec(
-        select(TripPricing).where(TripPricing.trip_id == trip_id)
-    ):
-        session.delete(trip_pricing)
-
     for trip_boat in session.exec(select(TripBoat).where(TripBoat.trip_id == trip_id)):
+        for tbp in session.exec(
+            select(TripBoatPricing).where(TripBoatPricing.trip_boat_id == trip_boat.id)
+        ):
+            session.delete(tbp)
         session.delete(trip_boat)
 
     session.delete(trip)

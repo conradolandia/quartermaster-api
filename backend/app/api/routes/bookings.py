@@ -26,7 +26,6 @@ from app.models import (
     Trip,
     TripBoat,
     TripMerchandise,
-    TripPricing,
     User,
 )
 from app.services.date_validator import is_booking_past, is_trip_past
@@ -227,26 +226,23 @@ def create_booking(
         # Check if this is a ticket item (not merchandise)
         # Tickets don't have trip_merchandise_id, merchandise items do
         if item.trip_merchandise_id is None:
-            # Ticket pricing must match TripPricing
-            # Try matching item_type directly, or with "_ticket" suffix removed for backward compatibility
-            pricing = session.exec(
-                select(TripPricing).where(
-                    (TripPricing.trip_id == item.trip_id)
-                    & (
-                        (TripPricing.ticket_type == item.item_type)
-                        | (
-                            TripPricing.ticket_type
-                            == item.item_type.replace("_ticket", "")
-                        )
-                    )
-                )
-            ).first()
-            if not pricing:
+            # Ticket pricing must match effective pricing for (trip_id, boat_id)
+            effective = crud.get_effective_pricing(
+                session=session,
+                trip_id=item.trip_id,
+                boat_id=item.boat_id,
+            )
+            by_type = {p.ticket_type: p.price for p in effective}
+            # Match item_type or with "_ticket" suffix removed for backward compatibility
+            price = by_type.get(item.item_type) or by_type.get(
+                item.item_type.replace("_ticket", "")
+            )
+            if price is None:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"No pricing configured for ticket type '{item.item_type}'",
                 )
-            if pricing.price != item.price_per_unit:
+            if price != item.price_per_unit:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Ticket price mismatch",
@@ -1315,7 +1311,7 @@ def export_bookings_csv(
 
     When ticket-type columns are requested (ticket_types, ticket_types_quantity, etc.),
     trip_id should be provided. The ticket-type columns will be derived from that trip's
-    TripPricing records, ensuring consistent column headers that match the trip's configuration.
+    effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
     Booking items will be matched to the trip's ticket types (with backward compatibility
     for legacy naming variants like "adult" vs "adult_ticket").
     """
@@ -1365,13 +1361,11 @@ def export_bookings_csv(
             or (not fields)
         )  # Default includes ticket_types
 
-        # Determine ticket types: from TripPricing if trip_id provided, else from booking items
+        # Determine ticket types: from effective pricing if trip_id provided, else from booking items
         if trip_id and will_include_ticket_types:
-            # Option A: Derive ticket types from the selected trip's TripPricing
-            trip_pricings = session.exec(
-                select(TripPricing).where(TripPricing.trip_id == trip_id)
-            ).all()
-            sorted_ticket_types = sorted([tp.ticket_type for tp in trip_pricings])
+            sorted_ticket_types = crud.get_effective_ticket_types_for_trip(
+                session=session, trip_id=trip_id
+            )
         else:
             # Fallback: collect from booking items (for exports without trip selection)
             def normalize_ticket_type(raw: str) -> str:

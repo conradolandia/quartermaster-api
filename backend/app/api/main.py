@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    boat_pricing,
     boats,
     booking_payments,
     booking_public,
@@ -16,9 +17,9 @@ from app.api.routes import (
     payments,
     private,
     providers,
+    trip_boat_pricing,
     trip_boats,
     trip_merchandise,
-    trip_pricing,
     trips,
     users,
     utils,
@@ -36,10 +37,11 @@ api_router.include_router(providers.router)
 api_router.include_router(launches.router)
 api_router.include_router(missions.router)
 api_router.include_router(boats.router)
+api_router.include_router(boat_pricing.router)
 api_router.include_router(trips.router)
 api_router.include_router(imports.router)
 api_router.include_router(trip_boats.router)
-api_router.include_router(trip_pricing.router)
+api_router.include_router(trip_boat_pricing.router)
 api_router.include_router(trip_merchandise.router)
 api_router.include_router(discount_codes.router)
 api_router.include_router(bookings.router)

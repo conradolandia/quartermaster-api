@@ -9,7 +9,9 @@ from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
     BoatPublic,
+    EffectivePricingItem,
     TripBoatCreate,
+    TripBoatPublic,
     TripBoatPublicWithAvailability,
     TripBoatUpdate,
 )
@@ -19,6 +21,7 @@ router = APIRouter(prefix="/trip-boats", tags=["trip-boats"])
 
 @router.post(
     "/",
+    response_model=TripBoatPublic,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(get_current_active_superuser)],
 )
@@ -26,7 +29,7 @@ def create_trip_boat(
     *,
     session: Session = Depends(deps.get_db),
     trip_boat_in: TripBoatCreate,
-) -> Any:
+) -> TripBoatPublic:
     """
     Create new trip boat association.
     """
@@ -64,7 +67,15 @@ def create_trip_boat(
             )
 
     trip_boat = crud.create_trip_boat(session=session, trip_boat_in=trip_boat_in)
-    return trip_boat
+    return TripBoatPublic(
+        id=trip_boat.id,
+        trip_id=trip_boat.trip_id,
+        boat_id=trip_boat.boat_id,
+        max_capacity=trip_boat.max_capacity,
+        created_at=trip_boat.created_at,
+        updated_at=trip_boat.updated_at,
+        boat=BoatPublic.model_validate(boat),
+    )
 
 
 @router.get(
@@ -307,3 +318,38 @@ def read_public_trip_boats_by_trip(
             )
         )
     return result
+
+
+@router.get(
+    "/public/pricing",
+    response_model=list[EffectivePricingItem],
+)
+def read_public_effective_pricing(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+    boat_id: uuid.UUID,
+) -> list[EffectivePricingItem]:
+    """
+    Get effective ticket types and prices for a (trip_id, boat_id).
+    Boat defaults (BoatPricing) merged with per-trip overrides (TripBoatPricing).
+    Validates trip exists and mission booking_mode allows public booking.
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mission not found",
+        )
+    if mission.booking_mode == "private":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tickets are not yet available for this trip",
+        )
+    return crud.get_effective_pricing(session=session, trip_id=trip_id, boat_id=boat_id)

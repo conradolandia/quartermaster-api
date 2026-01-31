@@ -17,18 +17,44 @@ def get_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat | No
 def get_trip_boats_by_trip(
     *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[TripBoat]:
-    """Get trip boats by trip."""
+    """Get trip boats by trip, ordered by created_at then id (stable order when created_at ties)."""
     return session.exec(
-        select(TripBoat).where(TripBoat.trip_id == trip_id).offset(skip).limit(limit)
+        select(TripBoat)
+        .where(TripBoat.trip_id == trip_id)
+        .order_by(TripBoat.created_at.asc(), TripBoat.id.asc())
+        .offset(skip)
+        .limit(limit)
     ).all()
+
+
+def get_trip_boats_for_trip_ids(
+    *, session: Session, trip_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[TripBoat]]:
+    """Get trip boats for multiple trip ids, grouped by trip_id. Boat is loaded.
+    Each trip's list is ordered by created_at then id (stable when created_at ties)."""
+    if not trip_ids:
+        return {}
+    trip_boats_list = session.exec(
+        select(TripBoat)
+        .where(TripBoat.trip_id.in_(trip_ids))
+        .order_by(TripBoat.trip_id, TripBoat.created_at.asc(), TripBoat.id.asc())
+    ).all()
+    result: dict[uuid.UUID, list[TripBoat]] = {tid: [] for tid in trip_ids}
+    for tb in trip_boats_list:
+        result[tb.trip_id].append(tb)
+    return result
 
 
 def get_trip_boats_by_boat(
     *, session: Session, boat_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[TripBoat]:
-    """Get trip boats by boat."""
+    """Get trip boats by boat, ordered by created_at then id (stable order when created_at ties)."""
     return session.exec(
-        select(TripBoat).where(TripBoat.boat_id == boat_id).offset(skip).limit(limit)
+        select(TripBoat)
+        .where(TripBoat.boat_id == boat_id)
+        .order_by(TripBoat.created_at.asc(), TripBoat.id.asc())
+        .offset(skip)
+        .limit(limit)
     ).all()
 
 

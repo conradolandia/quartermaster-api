@@ -25,7 +25,6 @@ import {
   MissionsService,
   TripBoatsService,
   TripMerchandiseService,
-  TripPricingService,
   type TripPublic,
   TripsService,
 } from "@/client"
@@ -57,9 +56,8 @@ interface AddBookingProps {
   onSuccess: () => void
 }
 
-// Interface for trip pricing data
+// Effective pricing per (trip, boat) - ticket_type and price
 interface TripPricingData {
-  id: string
   ticket_type: string
   price: number
 }
@@ -141,12 +139,15 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     enabled: !!launchData?.location_id,
   })
 
-  // Get trip pricing when trip is selected
+  // Get effective pricing when trip and boat are selected
   const { data: pricingData } = useQuery({
-    queryKey: ["trip-pricing", selectedTripId],
+    queryKey: ["effective-pricing", selectedTripId, selectedBoatId],
     queryFn: () =>
-      TripPricingService.listTripPricing({ tripId: selectedTripId }),
-    enabled: !!selectedTripId,
+      TripBoatsService.readPublicEffectivePricing({
+        tripId: selectedTripId,
+        boatId: selectedBoatId,
+      }),
+    enabled: !!selectedTripId && !!selectedBoatId,
   })
 
   // Get trip merchandise when trip is selected
@@ -227,12 +228,12 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       })
   }, [selectedTripId])
 
-  // Update pricing and merchandise when data is fetched
+  // Update pricing when (trip, boat) effective pricing is fetched; clear when boat unset
   useEffect(() => {
-    if (pricingData) {
-      setTripPricing(pricingData)
-    }
-  }, [pricingData])
+    setTripPricing(
+      selectedBoatId && pricingData ? pricingData : [],
+    )
+  }, [pricingData, selectedBoatId])
 
   useEffect(() => {
     if (merchandiseData) {

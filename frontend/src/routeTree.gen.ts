@@ -33,7 +33,7 @@ import { Route as LayoutDiscountCodesImport } from './routes/_layout/discount-co
 import { Route as LayoutCheckInImport } from './routes/_layout/check-in'
 import { Route as LayoutBookingsImport } from './routes/_layout/bookings'
 import { Route as LayoutBoatsImport } from './routes/_layout/boats'
-import { Route as LayoutAdminImport } from './routes/_layout/admin'
+import { Route as LayoutUsersImport } from './routes/_layout/users'
 
 // Create/Update Routes
 
@@ -147,8 +147,8 @@ const LayoutBoatsRoute = LayoutBoatsImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
-const LayoutAdminRoute = LayoutAdminImport.update({
-  path: '/admin',
+const LayoutUsersRoute = LayoutUsersImport.update({
+  path: '/users',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -184,8 +184,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordImport
       parentRoute: typeof rootRoute
     }
-    '/_layout/admin': {
-      preLoaderRoute: typeof LayoutAdminImport
+    '/_layout/users': {
+      preLoaderRoute: typeof LayoutUsersImport
       parentRoute: typeof LayoutImport
     }
     '/_layout/boats': {
@@ -255,7 +255,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren([
   LayoutRoute.addChildren([
-    LayoutAdminRoute,
+    LayoutUsersRoute,
     LayoutBoatsRoute,
     LayoutBookingsRoute,
     LayoutCheckInRoute,

@@ -3,6 +3,7 @@ import {
   Button,
   ButtonGroup,
   Flex,
+  HStack,
   IconButton,
   Input,
   Tabs,
@@ -12,12 +13,16 @@ import {
 import { NativeSelect } from "@/components/ui/native-select"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiEdit, FiPlus, FiTrash2, FiUsers } from "react-icons/fi"
+import { FiDollarSign, FiEdit, FiPlus, FiSliders, FiTrash2, FiUsers } from "react-icons/fi"
 
 import {
   type ApiError,
+  BoatPricingService,
   BoatsService,
+  MerchandiseService,
+  TripBoatPricingService,
   TripBoatsService,
+  TripMerchandiseService,
   type TripPublic,
   type TripUpdate,
   TripsService,
@@ -38,19 +43,28 @@ import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
+  formatCents,
   formatInLocationTimezone,
   formatLocationTimezoneDisplay,
   handleError,
   parseApiDate,
   parseLocationTimeToUtc,
 } from "@/utils"
-import TripPricingManager from "./TripPricingManager"
+type EditTripTab = "basic-info" | "boats" | "pricing"
 
 interface EditTripProps {
   trip: TripPublic
+  /** When set, dialog opens on this tab (e.g. "boats" for Manage Boats). */
+  initialTab?: EditTripTab
+  /** When set, trigger button shows this label instead of "Edit Trip". */
+  triggerLabel?: string
 }
 
-const EditTrip = ({ trip }: EditTripProps) => {
+const EditTrip = ({
+  trip,
+  initialTab = "basic-info",
+  triggerLabel = "Edit Trip",
+}: EditTripProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [missionId, setMissionId] = useState(trip.mission_id)
   const [name, setName] = useState(trip.name ?? "")
@@ -81,6 +95,26 @@ const EditTrip = ({ trip }: EditTripProps) => {
   } | null>(null)
   const [reassignToBoatId, setReassignToBoatId] = useState("")
   const [isReassignSubmitting, setIsReassignSubmitting] = useState(false)
+  const [isAddingMerchandise, setIsAddingMerchandise] = useState(false)
+  const [merchandiseForm, setMerchandiseForm] = useState({
+    merchandise_id: "",
+    price_override: "",
+    quantity_available_override: "",
+  })
+  const [selectedTripBoatForPricing, setSelectedTripBoatForPricing] = useState<{
+    id: string
+    boatId: string
+    boatName: string
+  } | null>(null)
+  const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null)
+  const [editingOverridePrice, setEditingOverridePrice] = useState("")
+  const [editingCapacityTripBoatId, setEditingCapacityTripBoatId] = useState<string | null>(null)
+  const [capacityInputValue, setCapacityInputValue] = useState("")
+  const [tripBoatPricingForm, setTripBoatPricingForm] = useState({
+    ticket_type: "",
+    price: "",
+  })
+  const [isAddingTripBoatPricing, setIsAddingTripBoatPricing] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -103,6 +137,57 @@ const EditTrip = ({ trip }: EditTripProps) => {
     },
   })
 
+  const createMerchandiseMutation = useMutation({
+    mutationFn: (body: {
+      trip_id: string
+      merchandise_id: string
+      price_override?: number | null
+      quantity_available_override?: number | null
+    }) =>
+      TripMerchandiseService.createTripMerchandise({
+        requestBody: body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trip-merchandise", trip.id] })
+      setIsAddingMerchandise(false)
+      setMerchandiseForm({
+        merchandise_id: "",
+        price_override: "",
+        quantity_available_override: "",
+      })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const deleteMerchandiseMutation = useMutation({
+    mutationFn: (tripMerchandiseId: string) =>
+      TripMerchandiseService.deleteTripMerchandise({
+        tripMerchandiseId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trip-merchandise", trip.id] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const handleAddMerchandise = () => {
+    if (!merchandiseForm.merchandise_id) return
+    createMerchandiseMutation.mutate({
+      trip_id: trip.id,
+      merchandise_id: merchandiseForm.merchandise_id,
+      price_override: merchandiseForm.price_override
+        ? Math.round(Number.parseFloat(merchandiseForm.price_override) * 100)
+        : null,
+      quantity_available_override: merchandiseForm.quantity_available_override
+        ? Number.parseInt(merchandiseForm.quantity_available_override, 10)
+        : null,
+    })
+  }
+
+  const handleRemoveMerchandise = (tripMerchandiseId: string) => {
+    deleteMerchandiseMutation.mutate(tripMerchandiseId)
+  }
+
   // Fetch boats
   const { data: allBoats } = useQuery({
     queryKey: ["boats-for-edit-trip"],
@@ -122,6 +207,134 @@ const EditTrip = ({ trip }: EditTripProps) => {
     enabled: isOpen,
   })
 
+  // Fetch trip merchandise (Merchandise tab)
+  const { data: tripMerchandiseList } = useQuery({
+    queryKey: ["trip-merchandise", trip.id],
+    queryFn: () =>
+      TripMerchandiseService.listTripMerchandise({ tripId: trip.id }),
+    enabled: isOpen,
+  })
+
+  // Catalog for adding merchandise
+  const { data: catalogMerchandise } = useQuery({
+    queryKey: ["merchandise-catalog"],
+    queryFn: () =>
+      MerchandiseService.readMerchandiseList({ limit: 500, skip: 0 }),
+    enabled: isOpen && isAddingMerchandise,
+  })
+
+  // Boat defaults (BoatPricing) for the boat whose pricing panel is open
+  const { data: boatDefaultsList = [] } = useQuery({
+    queryKey: ["boat-pricing", selectedTripBoatForPricing?.boatId],
+    queryFn: () =>
+      BoatPricingService.listBoatPricing({
+        boatId: selectedTripBoatForPricing!.boatId,
+      }),
+    enabled: isOpen && !!selectedTripBoatForPricing?.boatId,
+  })
+
+  // Trip boat pricing overrides (when a boat is selected in Boats tab)
+  const { data: tripBoatPricingList = [], refetch: refetchTripBoatPricing } =
+    useQuery({
+      queryKey: ["trip-boat-pricing", selectedTripBoatForPricing?.id],
+      queryFn: () =>
+        TripBoatPricingService.listTripBoatPricing({
+          tripBoatId: selectedTripBoatForPricing!.id,
+        }),
+      enabled: isOpen && !!selectedTripBoatForPricing?.id,
+    })
+
+  const createTripBoatPricingMutation = useMutation({
+    mutationFn: (body: { ticket_type: string; price: number }) =>
+      TripBoatPricingService.createTripBoatPricing({
+        requestBody: {
+          trip_boat_id: selectedTripBoatForPricing!.id,
+          ticket_type: body.ticket_type,
+          price: body.price,
+        },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Pricing override added.")
+      setTripBoatPricingForm({ ticket_type: "", price: "" })
+      setIsAddingTripBoatPricing(false)
+      refetchTripBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const deleteTripBoatPricingMutation = useMutation({
+    mutationFn: (tripBoatPricingId: string) =>
+      TripBoatPricingService.deleteTripBoatPricing({ tripBoatPricingId }),
+    onSuccess: () => {
+      showSuccessToast("Pricing override removed.")
+      refetchTripBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const updateTripBoatPricingMutation = useMutation({
+    mutationFn: (body: {
+      tripBoatPricingId: string
+      price: number
+    }) =>
+      TripBoatPricingService.updateTripBoatPricing({
+        tripBoatPricingId: body.tripBoatPricingId,
+        requestBody: { price: body.price },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Override updated.")
+      setEditingOverrideId(null)
+      setEditingOverridePrice("")
+      refetchTripBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const handleAddTripBoatPricing = () => {
+    const priceDollars = Number.parseFloat(tripBoatPricingForm.price)
+    if (
+      !selectedTripBoatForPricing ||
+      !tripBoatPricingForm.ticket_type.trim() ||
+      Number.isNaN(priceDollars)
+    )
+      return
+    createTripBoatPricingMutation.mutate({
+      ticket_type: tripBoatPricingForm.ticket_type.trim(),
+      price: Math.round(priceDollars * 100),
+    })
+  }
+
+  const updateTripBoatMutation = useMutation({
+    mutationFn: (body: { tripBoatId: string; max_capacity: number | null }) =>
+      TripBoatsService.updateTripBoat({
+        tripBoatId: body.tripBoatId,
+        requestBody: { max_capacity: body.max_capacity },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Capacity updated.")
+      setEditingCapacityTripBoatId(null)
+      setCapacityInputValue("")
+      refetchTripBoats()
+      queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trips"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const handleSaveCapacity = (tripBoatId: string) => {
+    const trimmed = capacityInputValue.trim()
+    if (trimmed === "") {
+      updateTripBoatMutation.mutate({ tripBoatId, max_capacity: null })
+      return
+    }
+    const num = Number.parseInt(trimmed, 10)
+    if (Number.isNaN(num) || num < 1) return
+    updateTripBoatMutation.mutate({ tripBoatId, max_capacity: num })
+  }
+
   // Update boats data when fetched
   useEffect(() => {
     if (allBoats?.data) {
@@ -135,6 +348,12 @@ const EditTrip = ({ trip }: EditTripProps) => {
       setTripBoats(Array.isArray(tripBoatsData) ? (tripBoatsData as any[]) : [])
     }
   }, [tripBoatsData])
+
+  // Clear override edit state when switching to another boat
+  useEffect(() => {
+    setEditingOverrideId(null)
+    setEditingOverridePrice("")
+  }, [selectedTripBoatForPricing?.id])
 
   // Sync inputs when dialog opens or trip changes (location timezone)
   useEffect(() => {
@@ -273,7 +492,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
           title={isPast ? "This trip has already departed and cannot be edited" : ""}
         >
           <FiEdit fontSize="16px" />
-          Edit Trip
+          {triggerLabel}
         </Button>
       </DialogTrigger>
 
@@ -294,13 +513,13 @@ const EditTrip = ({ trip }: EditTripProps) => {
                   This trip has already departed and cannot be edited. Contact a system administrator if you need to make changes to past trips.
                 </Text>
               )}
-              <Tabs.Root defaultValue="basic-info" variant="subtle">
+              <Tabs.Root defaultValue={initialTab} variant="subtle">
                 <Tabs.List>
                   <Tabs.Trigger value="basic-info">Basic Info</Tabs.Trigger>
                   <Tabs.Trigger value="boats">Boats</Tabs.Trigger>
-                  <Tabs.Trigger value="pricing">
-                    Pricing & Merchandise
-                  </Tabs.Trigger>
+                    <Tabs.Trigger value="pricing">
+                      Merchandise
+                    </Tabs.Trigger>
                 </Tabs.List>
 
                 <Tabs.Content value="basic-info">
@@ -427,59 +646,588 @@ const EditTrip = ({ trip }: EditTripProps) => {
                               : maxCap
                           const used = maxCap - remaining
                           const hasBookings = remaining < maxCap
+                          const isPricingOpen =
+                            selectedTripBoatForPricing?.id === tripBoat.id
                           return (
-                            <Flex
-                              key={tripBoat.id}
-                              justify="space-between"
-                              align="center"
-                              p={2}
-                              borderWidth="1px"
-                              borderRadius="md"
-                            >
-                              <Box>
-                                <Text>{boat?.name || "Unknown"}</Text>
-                                <Text
-                                  fontSize="xs"
-                                  color="gray.400"
-                                  mt={0.5}
-                                  lineHeight="1.2"
-                                >
-                                  {used} of {maxCap} seats taken ({remaining} remaining)
-                                </Text>
-                              </Box>
-                              <Flex gap={1} align="center">
-                                {hasBookings && (
-                                  <Button
+                            <Box key={tripBoat.id}>
+                              <Flex
+                                justify="space-between"
+                                align="center"
+                                p={2}
+                                borderWidth="1px"
+                                borderRadius="md"
+                              >
+                                <Box>
+                                  <Text>{boat?.name || "Unknown"}</Text>
+                                  <Text
+                                    fontSize="xs"
+                                    color="gray.400"
+                                    mt={0.5}
+                                    lineHeight="1.2"
+                                  >
+                                    {used} of {maxCap} seats taken ({remaining} remaining)
+                                  </Text>
+                                </Box>
+                                <Flex gap={1} align="center">
+                                  {hasBookings && (
+                                    <IconButton
+                                      aria-label="Reassign passengers"
+                                      title="Reassign"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setReassignFrom({
+                                          boat_id: tripBoat.boat_id,
+                                          boatName: boat?.name || "Unknown",
+                                          used,
+                                        })
+                                      }
+                                    >
+                                      <FiUsers />
+                                    </IconButton>
+                                  )}
+                                  <IconButton
+                                    aria-label="Pricing overrides"
+                                    title="Pricing"
                                     size="sm"
                                     variant="ghost"
                                     onClick={() =>
-                                      setReassignFrom({
-                                        boat_id: tripBoat.boat_id,
-                                        boatName: boat?.name || "Unknown",
-                                        used,
-                                      })
+                                      setSelectedTripBoatForPricing(
+                                        isPricingOpen
+                                          ? null
+                                          : {
+                                              id: tripBoat.id,
+                                              boatId: tripBoat.boat_id,
+                                              boatName: boat?.name || "Unknown",
+                                            },
+                                      )
                                     }
                                   >
-                                    <FiUsers style={{ marginRight: "4px" }} />
-                                    Reassign
-                                  </Button>
-                                )}
-                                <IconButton
-                                  aria-label="Remove boat"
-                                  children={<FiTrash2 />}
-                                  size="sm"
-                                  variant="ghost"
-                                  colorScheme="red"
-                                  disabled={hasBookings}
-                                  title={
-                                    hasBookings
-                                      ? "Cannot remove: boat has booked passengers."
-                                      : undefined
-                                  }
-                                  onClick={() => handleRemoveBoat(tripBoat.id)}
-                                />
+                                    <FiDollarSign />
+                                  </IconButton>
+                                  <IconButton
+                                    aria-label="Capacity override"
+                                    title="Capacity"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const isCapacityOpen =
+                                        editingCapacityTripBoatId === tripBoat.id
+                                      if (isCapacityOpen) {
+                                        setEditingCapacityTripBoatId(null)
+                                        setCapacityInputValue("")
+                                      } else {
+                                        setEditingCapacityTripBoatId(tripBoat.id)
+                                        setCapacityInputValue(
+                                          tripBoat.max_capacity != null
+                                            ? String(tripBoat.max_capacity)
+                                            : boat?.capacity != null
+                                              ? String(boat.capacity)
+                                              : "",
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    <FiSliders />
+                                  </IconButton>
+                                  <IconButton
+                                    aria-label="Remove boat"
+                                    children={<FiTrash2 />}
+                                    size="sm"
+                                    variant="ghost"
+                                    colorScheme="red"
+                                    disabled={hasBookings}
+                                    title={
+                                      hasBookings
+                                        ? "Cannot remove: boat has booked passengers."
+                                        : undefined
+                                    }
+                                    onClick={() => {
+                                      if (tripBoat.id === selectedTripBoatForPricing?.id) {
+                                        setSelectedTripBoatForPricing(null)
+                                      }
+                                      if (tripBoat.id === editingCapacityTripBoatId) {
+                                        setEditingCapacityTripBoatId(null)
+                                      }
+                                      handleRemoveBoat(tripBoat.id)
+                                    }}
+                                  />
+                                </Flex>
                               </Flex>
-                            </Flex>
+                              {editingCapacityTripBoatId === tripBoat.id && (
+                                <Box
+                                  mt={2}
+                                  ml={2}
+                                  p={3}
+                                  borderWidth="1px"
+                                  borderRadius="md"
+                                  borderColor="gray.400"
+                                  _dark={{ borderColor: "gray.600" }}
+                                >
+                                  <Text fontWeight="bold" mb={2} fontSize="sm">
+                                    Capacity override for {boat?.name || "Unknown"}
+                                  </Text>
+                                  <Text fontSize="sm" color="gray.500" mb={2}>
+                                    Boat default: {boat?.capacity ?? "—"} seats. Set a lower limit for this trip or leave default.
+                                  </Text>
+                                  <HStack gap={2} align="center" flexWrap="wrap">
+                                    <Input
+                                      type="number"
+                                      min={used}
+                                      size="sm"
+                                      width="24"
+                                      placeholder={String(boat?.capacity ?? "")}
+                                      value={capacityInputValue}
+                                      onChange={(e) =>
+                                        setCapacityInputValue(e.target.value)
+                                      }
+                                    />
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        updateTripBoatMutation.mutate({
+                                          tripBoatId: tripBoat.id,
+                                          max_capacity: null,
+                                        })
+                                      }}
+                                      loading={updateTripBoatMutation.isPending}
+                                    >
+                                      Use default
+                                    </Button>
+                                    <Button
+                                      size="xs"
+                                      onClick={() => handleSaveCapacity(tripBoat.id)}
+                                      loading={updateTripBoatMutation.isPending}
+                                      disabled={
+                                        capacityInputValue.trim() === "" ||
+                                        (() => {
+                                          const n = Number.parseInt(
+                                            capacityInputValue.trim(),
+                                            10,
+                                          )
+                                          return (
+                                            Number.isNaN(n) ||
+                                            n < 1 ||
+                                            n < used
+                                          )
+                                        })()
+                                      }
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditingCapacityTripBoatId(null)
+                                        setCapacityInputValue("")
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </HStack>
+                                </Box>
+                              )}
+                              {isPricingOpen && (
+                                <Box
+                                  mt={2}
+                                  ml={2}
+                                  p={3}
+                                  borderWidth="1px"
+                                  borderRadius="md"
+                                  borderColor="gray.400"
+                                  _dark={{ borderColor: "gray.600" }}
+                                >
+                                  <HStack justify="space-between" mb={2}>
+                                    <Text fontWeight="bold">
+                                      Pricing overrides for{" "}
+                                      {boat?.name || "Unknown"}
+                                    </Text>
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setSelectedTripBoatForPricing(null)
+                                        setIsAddingTripBoatPricing(false)
+                                        setEditingOverrideId(null)
+                                        setEditingOverridePrice("")
+                                      }}
+                                    >
+                                      Close
+                                    </Button>
+                                  </HStack>
+                                  <Text fontSize="sm" color="gray.400" mb={2}>
+                                    Boat defaults apply unless you add an
+                                    override for this trip. Overrides replace
+                                    the default price for that ticket type.
+                                  </Text>
+                                  {/* Boat defaults (read-only) */}
+                                  <Box mb={3}>
+                                    <Text
+                                      fontSize="sm"
+                                      fontWeight="bold"
+                                      mb={2}
+                                      color="gray.500"
+                                    >
+                                      Boat defaults (Edit Boat to change)
+                                    </Text>
+                                    {boatDefaultsList.length > 0 ? (
+                                      <VStack align="stretch" gap={1}>
+                                        {boatDefaultsList.map((bp) => (
+                                          <HStack
+                                            key={bp.id}
+                                            justify="space-between"
+                                            p={2}
+                                            borderWidth="1px"
+                                            borderRadius="md"
+                                            borderColor="gray.400"
+                                            _dark={{ borderColor: "gray.600", bg: "gray.800" }}
+                                          >
+                                            <Text fontSize="sm">
+                                              {bp.ticket_type}
+                                            </Text>
+                                            <Text fontSize="sm" color="gray.500">
+                                              ${formatCents(bp.price)} (default)
+                                            </Text>
+                                          </HStack>
+                                        ))}
+                                      </VStack>
+                                    ) : (
+                                      <Text fontSize="sm" color="gray.500">
+                                        No defaults. Add ticket types in Edit
+                                        Boat.
+                                      </Text>
+                                    )}
+                                  </Box>
+                                  {/* Overrides for this trip */}
+                                  <Text
+                                    fontSize="sm"
+                                    fontWeight="bold"
+                                    mb={2}
+                                    color="gray.700"
+                                    _dark={{ color: "gray.300" }}
+                                  >
+                                    Overrides for this trip
+                                  </Text>
+                                  <VStack align="stretch" gap={2}>
+                                    {tripBoatPricingList.map((p) => {
+                                      const isEditing =
+                                        editingOverrideId === p.id
+                                      return (
+                                        <HStack
+                                          key={p.id}
+                                          justify="space-between"
+                                          p={2}
+                                          borderWidth="1px"
+                                          borderRadius="md"
+                                          borderColor="gray.600"
+                                        >
+                                          <HStack flex={1} gap={2}>
+                                            <Text fontWeight="medium">
+                                              {p.ticket_type}
+                                            </Text>
+                                            {isEditing ? (
+                                              <>
+                                                <Input
+                                                  type="number"
+                                                  step="0.01"
+                                                  min="0"
+                                                  size="sm"
+                                                  width="24"
+                                                  value={editingOverridePrice}
+                                                  onChange={(e) =>
+                                                    setEditingOverridePrice(
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  placeholder="0.00"
+                                                />
+                                                <Text fontSize="sm">$</Text>
+                                                <Button
+                                                  size="xs"
+                                                  onClick={() => {
+                                                    const cents = Math.round(
+                                                      Number.parseFloat(
+                                                        editingOverridePrice,
+                                                      ) * 100,
+                                                    )
+                                                    if (
+                                                      !Number.isNaN(cents) &&
+                                                      cents >= 0
+                                                    ) {
+                                                      updateTripBoatPricingMutation.mutate(
+                                                        {
+                                                          tripBoatPricingId:
+                                                            p.id,
+                                                          price: cents,
+                                                        },
+                                                      )
+                                                    }
+                                                  }}
+                                                  loading={
+                                                    updateTripBoatPricingMutation.isPending
+                                                  }
+                                                  disabled={
+                                                    !editingOverridePrice ||
+                                                    Number.isNaN(
+                                                      Number.parseFloat(
+                                                        editingOverridePrice,
+                                                      ),
+                                                    )
+                                                  }
+                                                >
+                                                  Save
+                                                </Button>
+                                                <Button
+                                                  size="xs"
+                                                  variant="ghost"
+                                                  onClick={() => {
+                                                    setEditingOverrideId(null)
+                                                    setEditingOverridePrice("")
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </Button>
+                                              </>
+                                            ) : (
+                                              <Text fontSize="sm" color="gray.500">
+                                                ${formatCents(p.price)} (override)
+                                              </Text>
+                                            )}
+                                          </HStack>
+                                          {!isEditing && (
+                                            <HStack gap={1}>
+                                              <Button
+                                                size="xs"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                  setEditingOverrideId(p.id)
+                                                  setEditingOverridePrice(
+                                                    (p.price / 100).toFixed(2),
+                                                  )
+                                                }}
+                                              >
+                                                <FiEdit fontSize="12px" />
+                                                Edit
+                                              </Button>
+                                              <IconButton
+                                                aria-label="Remove override"
+                                                size="sm"
+                                                variant="ghost"
+                                                colorScheme="red"
+                                                onClick={() =>
+                                                  deleteTripBoatPricingMutation.mutate(
+                                                    p.id,
+                                                  )
+                                                }
+                                                disabled={
+                                                  deleteTripBoatPricingMutation.isPending
+                                                }
+                                              >
+                                                <FiTrash2 />
+                                              </IconButton>
+                                            </HStack>
+                                          )}
+                                        </HStack>
+                                      )
+                                    })}
+                                    {tripBoatPricingList.length === 0 &&
+                                      !isAddingTripBoatPricing && (
+                                        <Text
+                                          fontSize="sm"
+                                          color="gray.500"
+                                          py={2}
+                                        >
+                                          No overrides. Boat default pricing
+                                          applies.
+                                        </Text>
+                                      )}
+                                  </VStack>
+                                  {isAddingTripBoatPricing ? (
+                                    <VStack
+                                      align="stretch"
+                                      gap={2}
+                                      mt={3}
+                                      p={2}
+                                      borderWidth="1px"
+                                      borderRadius="md"
+                                    >
+                                      <HStack width="100%" align="flex-end">
+                                        <Box flex={1}>
+                                          <Text fontSize="sm" mb={1}>
+                                            Ticket type
+                                          </Text>
+                                          <NativeSelect
+                                            value={(() => {
+                                              const defaultsNotOverridden =
+                                                boatDefaultsList.filter(
+                                                  (bp) =>
+                                                    !tripBoatPricingList.some(
+                                                      (p) =>
+                                                        p.ticket_type ===
+                                                        bp.ticket_type,
+                                                    ),
+                                                )
+                                              const isDefault =
+                                                defaultsNotOverridden.some(
+                                                  (bp) =>
+                                                    bp.ticket_type ===
+                                                    tripBoatPricingForm.ticket_type,
+                                                )
+                                              if (isDefault)
+                                                return tripBoatPricingForm.ticket_type
+                                              if (
+                                                tripBoatPricingForm.ticket_type
+                                              )
+                                                return "__other__"
+                                              return ""
+                                            })()}
+                                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                              const v = e.target.value
+                                              setTripBoatPricingForm((prev) => ({
+                                                ...prev,
+                                                ticket_type:
+                                                  v === "__other__" ? "" : v,
+                                              }))
+                                            }}
+                                          >
+                                            <option value="">
+                                              Select type
+                                            </option>
+                                            {boatDefaultsList
+                                              .filter(
+                                                (bp) =>
+                                                  !tripBoatPricingList.some(
+                                                    (p) =>
+                                                      p.ticket_type ===
+                                                      bp.ticket_type,
+                                                  ),
+                                              )
+                                              .map((bp) => (
+                                                <option
+                                                  key={bp.id}
+                                                  value={bp.ticket_type}
+                                                >
+                                                  {bp.ticket_type} (default $
+                                                  {formatCents(bp.price)})
+                                                </option>
+                                              ))}
+                                            <option value="__other__">
+                                              Other (type below)
+                                            </option>
+                                          </NativeSelect>
+                                          {(() => {
+                                            const defaultsNotOverridden =
+                                              boatDefaultsList.filter(
+                                                (bp) =>
+                                                  !tripBoatPricingList.some(
+                                                    (p) =>
+                                                      p.ticket_type ===
+                                                      bp.ticket_type,
+                                                  ),
+                                              )
+                                            const isDefault =
+                                              tripBoatPricingForm.ticket_type &&
+                                              defaultsNotOverridden.some(
+                                                (bp) =>
+                                                  bp.ticket_type ===
+                                                  tripBoatPricingForm.ticket_type,
+                                              )
+                                            return !isDefault ? (
+                                              <Input
+                                                mt={2}
+                                                size="sm"
+                                                value={
+                                                  tripBoatPricingForm.ticket_type
+                                                }
+                                                onChange={(e) =>
+                                                  setTripBoatPricingForm(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      ticket_type:
+                                                        e.target.value,
+                                                    }),
+                                                  )
+                                                }
+                                                placeholder="e.g. VIP, Premium"
+                                              />
+                                            ) : null
+                                          })()}
+                                        </Box>
+                                        <Box flex={1}>
+                                          <Text fontSize="sm" mb={1}>
+                                            Price ($)
+                                          </Text>
+                                          <Input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={tripBoatPricingForm.price}
+                                            onChange={(e) =>
+                                              setTripBoatPricingForm({
+                                                ...tripBoatPricingForm,
+                                                price: e.target.value,
+                                              })
+                                            }
+                                            placeholder="0.00"
+                                          />
+                                        </Box>
+                                      </HStack>
+                                      <HStack width="100%" justify="flex-end">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            setIsAddingTripBoatPricing(false)
+                                          }
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={handleAddTripBoatPricing}
+                                          loading={
+                                            createTripBoatPricingMutation.isPending
+                                          }
+                                          disabled={
+                                            !tripBoatPricingForm.ticket_type.trim() ||
+                                            !tripBoatPricingForm.price ||
+                                            Number.isNaN(
+                                              Number.parseFloat(
+                                                tripBoatPricingForm.price,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          Add override
+                                        </Button>
+                                      </HStack>
+                                    </VStack>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      mt={2}
+                                      onClick={() =>
+                                        setIsAddingTripBoatPricing(true)
+                                      }
+                                    >
+                                      <FiPlus style={{ marginRight: "4px" }} />
+                                      Add pricing override
+                                    </Button>
+                                  )}
+                                  {tripBoatPricingList.length > 0 &&
+                                    isAddingTripBoatPricing && (
+                                      <Text fontSize="xs" color="gray.500" mt={1}>
+                                        To change a ticket type already in the
+                                        list, edit it above instead of adding
+                                        again.
+                                      </Text>
+                                    )}
+                                </Box>
+                              )}
+                            </Box>
                           )
                         })}
                       </VStack>
@@ -559,9 +1307,149 @@ const EditTrip = ({ trip }: EditTripProps) => {
                   </Box>
                 </Tabs.Content>
 
-                {/* Pricing & Merchandise Tab */}
+                {/* Merchandise tab */}
                 <Tabs.Content value="pricing">
-                  <TripPricingManager tripId={trip.id} />
+                  <VStack gap={3} align="stretch">
+                    <Box>
+                      <VStack align="stretch" gap={2}>
+                        {tripMerchandiseList?.map((item) => (
+                          <HStack
+                            key={item.id}
+                            justify="space-between"
+                            p={3}
+                            borderWidth="1px"
+                            borderRadius="md"
+                          >
+                            <VStack align="start" flex={1}>
+                              <Text fontWeight="medium">{item.name}</Text>
+                              <HStack fontSize="sm" color="gray.500">
+                                <Text>${formatCents(item.price)} each</Text>
+                                <Text>Qty: {item.quantity_available}</Text>
+                              </HStack>
+                            </VStack>
+                            <IconButton
+                              aria-label="Remove merchandise"
+                              size="sm"
+                              variant="ghost"
+                              colorPalette="red"
+                              onClick={() =>
+                                handleRemoveMerchandise(item.id)
+                              }
+                              disabled={deleteMerchandiseMutation.isPending}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                          </HStack>
+                        ))}
+                        {(!tripMerchandiseList ||
+                          tripMerchandiseList.length === 0) &&
+                          !isAddingMerchandise && (
+                            <Text color="gray.500" textAlign="center" py={3}>
+                              No merchandise configured for this trip
+                            </Text>
+                          )}
+                      </VStack>
+                      {isAddingMerchandise ? (
+                        <Box
+                          mt={2}
+                          p={3}
+                          borderWidth="1px"
+                          borderRadius="md"
+                        >
+                          <VStack gap={3}>
+                            <HStack width="100%">
+                              <Box flex={1}>
+                                <Text fontSize="sm" mb={1}>
+                                  Catalog item
+                                </Text>
+                                <NativeSelect
+                                  value={merchandiseForm.merchandise_id}
+                                  onChange={(e) =>
+                                    setMerchandiseForm({
+                                      ...merchandiseForm,
+                                      merchandise_id: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Select merchandise"
+                                >
+                                  {catalogMerchandise?.data?.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name} — ${formatCents(m.price)} (qty{" "}
+                                      {m.quantity_available})
+                                    </option>
+                                  ))}
+                                </NativeSelect>
+                              </Box>
+                              <Box flex={1}>
+                                <Text fontSize="sm" mb={1}>
+                                  Price override ($, optional)
+                                </Text>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={merchandiseForm.price_override}
+                                  onChange={(e) =>
+                                    setMerchandiseForm({
+                                      ...merchandiseForm,
+                                      price_override: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Use catalog price"
+                                />
+                              </Box>
+                              <Box flex={1}>
+                                <Text fontSize="sm" mb={1}>
+                                  Quantity override (optional)
+                                </Text>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={merchandiseForm.quantity_available_override}
+                                  onChange={(e) =>
+                                    setMerchandiseForm({
+                                      ...merchandiseForm,
+                                      quantity_available_override: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Use catalog qty"
+                                />
+                              </Box>
+                            </HStack>
+                            <HStack width="100%" justify="flex-end">
+                              <Button
+                                size="sm"
+                                onClick={() => setIsAddingMerchandise(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                colorPalette="blue"
+                                onClick={handleAddMerchandise}
+                                disabled={
+                                  !merchandiseForm.merchandise_id ||
+                                  createMerchandiseMutation.isPending
+                                }
+                              >
+                                Add Merchandise
+                              </Button>
+                            </HStack>
+                          </VStack>
+                        </Box>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          mt={2}
+                          onClick={() => setIsAddingMerchandise(true)}
+                        >
+                          <FiPlus style={{ marginRight: "4px" }} />
+                          Add Merchandise
+                        </Button>
+                      )}
+                    </Box>
+                  </VStack>
                 </Tabs.Content>
               </Tabs.Root>
             </DialogBody>

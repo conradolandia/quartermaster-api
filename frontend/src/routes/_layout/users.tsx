@@ -40,8 +40,8 @@ function getUsersQueryOptions({
   }
 }
 
-export const Route = createFileRoute("/_layout/admin")({
-  component: Admin,
+export const Route = createFileRoute("/_layout/users")({
+  component: UsersPage,
   validateSearch: (search) => usersSearchSchema.parse(search),
 })
 
@@ -150,7 +150,7 @@ function UsersTable() {
   )
 }
 
-function Admin() {
+function UsersPage() {
   return (
     <Container maxW="full">
       <Heading size="lg" pt={12}>

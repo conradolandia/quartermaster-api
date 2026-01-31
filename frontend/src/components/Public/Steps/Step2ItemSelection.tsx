@@ -23,10 +23,10 @@ import {
   MissionsService,
   type TripMerchandisePublic,
   TripMerchandiseService,
-  type TripPricingPublic,
-  TripPricingService,
+  TripBoatsService,
   TripsService,
 } from "@/client"
+import type { EffectivePricingItem } from "@/client"
 import { formatCents } from "@/utils"
 
 import type { BookingStepData } from "../PublicBookingForm"
@@ -166,14 +166,19 @@ const Step2ItemSelection = ({
     }
   }
 
-  // Fetch trip pricing (using public endpoint)
+  // Fetch effective pricing for selected trip + boat (public endpoint)
   const { data: tripPricing } = useQuery({
-    queryKey: ["public-trip-pricing", bookingData.selectedTripId],
+    queryKey: [
+      "public-effective-pricing",
+      bookingData.selectedTripId,
+      bookingData.selectedBoatId,
+    ],
     queryFn: () =>
-      TripPricingService.listPublicTripPricing({
+      TripBoatsService.readPublicEffectivePricing({
         tripId: bookingData.selectedTripId,
+        boatId: bookingData.selectedBoatId,
       }),
-    enabled: !!bookingData.selectedTripId,
+    enabled: !!bookingData.selectedTripId && !!bookingData.selectedBoatId,
   })
 
   // Fetch trip merchandise (using public endpoint)
@@ -390,8 +395,8 @@ const Step2ItemSelection = ({
                   Tickets
                 </Heading>
                 <VStack gap={3} align="stretch">
-                  {tripPricing.map((pricing: TripPricingPublic) => (
-                    <HStack key={pricing.id} justify="space-between">
+                  {tripPricing.map((pricing: EffectivePricingItem) => (
+                    <HStack key={pricing.ticket_type} justify="space-between">
                       <Box>
                         <Text fontWeight="medium">
                           {pricing.ticket_type

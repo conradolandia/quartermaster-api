@@ -535,6 +535,8 @@ class Boat(BoatBase, table=True):
     )
     # Relationship to provider
     provider: "Provider" = Relationship()
+    # Relationship to BoatPricing (boat-level default ticket types/prices)
+    pricing: list["BoatPricing"] = Relationship(back_populates="boat")
 
 
 class BoatPublic(BoatBase):
@@ -608,10 +610,6 @@ class Trip(TripBase, table=True):
     trip_boats: list["TripBoat"] = Relationship(
         back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
     )
-    # Relationship to TripPricing
-    pricing: list["TripPricing"] = Relationship(
-        back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
-    )
     # Relationship to TripMerchandise
     merchandise: list["TripMerchandise"] = Relationship(
         back_populates="trip", sa_relationship_kwargs={"lazy": "joined"}
@@ -680,6 +678,8 @@ class TripBoat(TripBoatBase, table=True):
     # Relationships
     trip: "Trip" = Relationship(back_populates="trip_boats")
     boat: "Boat" = Relationship()
+    # Per-trip, per-boat price overrides
+    pricing: list["TripBoatPricing"] = Relationship(back_populates="trip_boat")
 
 
 class TripBoatPublic(TripBoatBase):
@@ -696,23 +696,23 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
     remaining_capacity: int  # max_capacity minus paid ticket count for this trip/boat
 
 
-# TripPricing models
-class TripPricingBase(SQLModel):
-    trip_id: uuid.UUID = Field(foreign_key="trip.id")
-    ticket_type: str = Field(max_length=32)  # adult_ticket, child_ticket, infant_ticket
+# BoatPricing models (boat-level default ticket types and prices)
+class BoatPricingBase(SQLModel):
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    ticket_type: str = Field(max_length=32)
     price: int = Field(ge=0)  # cents
 
 
-class TripPricingCreate(TripPricingBase):
+class BoatPricingCreate(BoatPricingBase):
     pass
 
 
-class TripPricingUpdate(SQLModel):
+class BoatPricingUpdate(SQLModel):
     ticket_type: str | None = Field(default=None, max_length=32)
-    price: int | None = Field(default=None, ge=0)  # cents
+    price: int | None = Field(default=None, ge=0)
 
 
-class TripPricing(TripPricingBase, table=True):
+class BoatPricing(BoatPricingBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -730,14 +730,62 @@ class TripPricing(TripPricingBase, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
-    # Relationships
-    trip: "Trip" = Relationship(back_populates="pricing")
+    boat: "Boat" = Relationship(back_populates="pricing")
 
 
-class TripPricingPublic(TripPricingBase):
+class BoatPricingPublic(BoatPricingBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+# TripBoatPricing models (per-trip, per-boat price overrides)
+class TripBoatPricingBase(SQLModel):
+    trip_boat_id: uuid.UUID = Field(foreign_key="tripboat.id")
+    ticket_type: str = Field(max_length=32)
+    price: int = Field(ge=0)  # cents
+
+
+class TripBoatPricingCreate(TripBoatPricingBase):
+    pass
+
+
+class TripBoatPricingUpdate(SQLModel):
+    ticket_type: str | None = Field(default=None, max_length=32)
+    price: int | None = Field(default=None, ge=0)
+
+
+class TripBoatPricing(TripBoatPricingBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    trip_boat: "TripBoat" = Relationship(back_populates="pricing")
+
+
+class TripBoatPricingPublic(TripBoatPricingBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+# Effective pricing for public API (ticket_type + price per boat for a trip)
+class EffectivePricingItem(SQLModel):
+    ticket_type: str
+    price: int  # cents
 
 
 # Merchandise (catalog) models
