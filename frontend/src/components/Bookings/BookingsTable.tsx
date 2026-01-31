@@ -13,8 +13,9 @@ import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiX } from "react-icons/fi"
 
-import { BookingsService, MissionsService } from "@/client"
-import { formatCents } from "@/utils"
+import { BookingsService, MissionsService, TripsService } from "@/client"
+import type { TripPublic } from "@/client"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import useCustomToast from "@/hooks/useCustomToast"
 import PendingBookings from "@/components/Pending/PendingBookings"
@@ -34,10 +35,29 @@ interface BookingsTableProps {
   onBookingClick: (confirmationCode: string) => void
 }
 
+const BOOKING_STATUSES = [
+  "draft",
+  "pending_payment",
+  "confirmed",
+  "checked_in",
+  "completed",
+  "cancelled",
+  "refunded",
+] as const
+
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const { showSuccessToast } = useCustomToast()
-  const [missionId, setMissionId] = useState<string | undefined>(undefined)
-  const [searchParams, setSearchParams] = useState(new URLSearchParams(window.location.search))
+  const initialSearch = new URLSearchParams(window.location.search)
+  const [missionId, setMissionId] = useState<string | undefined>(
+    initialSearch.get("missionId") || undefined,
+  )
+  const [tripId, setTripId] = useState<string | undefined>(
+    initialSearch.get("tripId") || undefined,
+  )
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    initialSearch.get("status") || undefined,
+  )
+  const [searchParams, setSearchParams] = useState(initialSearch)
 
   const copyConfirmationCode = (e: React.MouseEvent, code: string) => {
     e.stopPropagation()
@@ -64,18 +84,29 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  // Fetch bookings with mission filter and sorting
+  // Fetch bookings with mission, trip, status filters and sorting
   const {
     data: bookingsData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["bookings", page, effectivePageSize, missionId, sortBy, sortDirection],
+    queryKey: [
+      "bookings",
+      page,
+      effectivePageSize,
+      missionId,
+      tripId,
+      statusFilter,
+      sortBy,
+      sortDirection,
+    ],
     queryFn: () =>
       BookingsService.listBookings({
         skip: (page - 1) * effectivePageSize,
         limit: effectivePageSize,
-        missionId: missionId ? missionId : undefined,
+        missionId: missionId || undefined,
+        tripId: tripId || undefined,
+        status: statusFilter || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
       }),
@@ -87,6 +118,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     queryFn: () => MissionsService.readMissions({ limit: 100 }),
   })
 
+  // Fetch trips for filter dropdown
+  const { data: tripsData } = useQuery({
+    queryKey: ["trips"],
+    queryFn: () => TripsService.readTrips({ limit: 500 }),
+  })
+
   // Fetch all bookings to determine which missions have bookings
   const { data: allBookingsData } = useQuery({
     queryKey: ["all-bookings-for-missions"],
@@ -96,11 +133,17 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const bookings = bookingsData?.data || []
   const count = bookingsData?.total || 0
   const missions = missionsData?.data || []
+  const trips = tripsData?.data || []
 
   // Filter missions to only show those with existing bookings
   const missionsWithBookings = missions.filter((mission: any) =>
     allBookingsData?.data?.some((booking: any) => booking.mission_id === mission.id)
   )
+
+  // Filter trips by selected mission
+  const filteredTrips = missionId
+    ? (trips as TripPublic[]).filter((t) => t.mission_id === missionId)
+    : (trips as TripPublic[])
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -116,19 +159,46 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   }
 
 
-  const handleMissionFilter = (selectedMissionId?: string) => {
-    setMissionId(selectedMissionId)
+  const updateFiltersInUrl = (updates: {
+    missionId?: string
+    tripId?: string
+    status?: string
+  }) => {
     const params = new URLSearchParams(window.location.search)
-    if (selectedMissionId) {
-      params.set("missionId", selectedMissionId)
-    } else {
-      params.delete("missionId")
+    if (updates.missionId !== undefined) {
+      if (updates.missionId) params.set("missionId", updates.missionId)
+      else params.delete("missionId")
+    }
+    if (updates.tripId !== undefined) {
+      if (updates.tripId) params.set("tripId", updates.tripId)
+      else params.delete("tripId")
+    }
+    if (updates.status !== undefined) {
+      if (updates.status) params.set("status", updates.status)
+      else params.delete("status")
     }
     params.set("page", "1")
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
-
-    // Update local state to trigger re-render
     setSearchParams(new URLSearchParams(params.toString()))
+  }
+
+  const handleMissionFilter = (selectedMissionId?: string) => {
+    setMissionId(selectedMissionId)
+    setTripId(undefined)
+    updateFiltersInUrl({
+      missionId: selectedMissionId,
+      tripId: undefined,
+    })
+  }
+
+  const handleTripFilter = (selectedTripId?: string) => {
+    setTripId(selectedTripId)
+    updateFiltersInUrl({ tripId: selectedTripId })
+  }
+
+  const handleStatusFilter = (selectedStatus?: string) => {
+    setStatusFilter(selectedStatus)
+    updateFiltersInUrl({ status: selectedStatus })
   }
 
   const handlePageChange = (newPage: number) => {
@@ -179,11 +249,46 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
+  const tripTypeToLabel = (type: string): string => {
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  const formatTripFilterLabel = (trip: TripPublic): string => {
+    const readableType = tripTypeToLabel(trip.type)
+    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+    if (trip.name?.trim()) {
+      return `${trip.name.trim()} - ${readableType} (${time})`
+    }
+    return `${readableType} (${time})`
+  }
+
+  const tripsCollection = createListCollection({
+    items: [
+      { label: "All Trips", value: "" },
+      ...filteredTrips.map((trip: TripPublic) => ({
+        label: formatTripFilterLabel(trip),
+        value: trip.id,
+      })),
+    ],
+  })
+
+  const statusCollection = createListCollection({
+    items: [
+      { label: "All Statuses", value: "" },
+      ...BOOKING_STATUSES.map((s) => ({
+        label: s.replace(/_/g, " "),
+        value: s,
+      })),
+    ],
+  })
+
   return (
     <>
-      <Flex mb={4} gap={3} align="center">
+      <Flex mb={4} gap={3} align="center" flexWrap="wrap">
         <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Filter by Mission:
+          Mission:
         </Text>
         <Select.Root
           collection={missionsCollection}
@@ -208,15 +313,76 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             </Select.Content>
           </Select.Positioner>
         </Select.Root>
-        {missionId && (
+        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+          Trip:
+        </Text>
+        <Select.Root
+          collection={tripsCollection}
+          size="xs"
+          width="280px"
+          borderColor="white"
+          value={tripId ? [tripId] : [""]}
+          onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
+        >
+          <Select.Control width="100%">
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Trips" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content minWidth="320px">
+              {tripsCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+          Status:
+        </Text>
+        <Select.Root
+          collection={statusCollection}
+          size="xs"
+          width="160px"
+          borderColor="white"
+          value={statusFilter ? [statusFilter] : [""]}
+          onValueChange={(e) => handleStatusFilter(e.value[0] || undefined)}
+        >
+          <Select.Control width="100%">
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Statuses" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content minWidth="180px">
+              {statusCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+        {(missionId || tripId || statusFilter) && (
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleMissionFilter(undefined)}
+            onClick={() => {
+              setMissionId(undefined)
+              setTripId(undefined)
+              setStatusFilter(undefined)
+              updateFiltersInUrl({
+                missionId: undefined,
+                tripId: undefined,
+                status: undefined,
+              })
+            }}
           >
             <Flex align="center" gap={1}>
               <FiX />
-              Clear filter
+              Clear filters
             </Flex>
           </Button>
         )}

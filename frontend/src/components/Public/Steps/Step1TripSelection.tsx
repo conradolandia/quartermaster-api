@@ -390,6 +390,41 @@ const Step1TripSelection = ({
                   </Card.Body>
                 </Card.Root>
               )}
+
+            {/* Ticket types for selected boat (when trip + boat selected) */}
+            {bookingData.selectedTripId &&
+              bookingData.selectedBoatId &&
+              tripBoats &&
+              tripBoats.length > 0 &&
+              (() => {
+                const selectedTb = tripBoats.find(
+                  (tb) =>
+                    String(tb.boat_id) === String(bookingData.selectedBoatId),
+                )
+                const pricing = selectedTb?.pricing
+                if (!pricing || pricing.length === 0) return null
+                return (
+                  <Card.Root bg="bg.panel">
+                    <Card.Body>
+                      <Text fontSize="sm" fontWeight="bold" mb={2}>
+                        Ticket types
+                      </Text>
+                      <VStack align="stretch" gap={1}>
+                        {pricing.map((p) => (
+                          <Text
+                            key={p.ticket_type}
+                            fontSize="sm"
+                            color="text.muted"
+                          >
+                            {p.ticket_type.replace(/_/g, " ")}: $
+                            {(p.price / 100).toFixed(2)} ({p.remaining} left)
+                          </Text>
+                        ))}
+                      </VStack>
+                    </Card.Body>
+                  </Card.Root>
+                )
+              })()}
           </VStack>
         </Card.Body>
       </Card.Root>

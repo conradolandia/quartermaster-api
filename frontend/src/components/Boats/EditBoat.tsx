@@ -42,7 +42,11 @@ interface EditBoatProps {
 const EditBoat = ({ boat }: EditBoatProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAddingPricing, setIsAddingPricing] = useState(false)
-  const [pricingForm, setPricingForm] = useState({ ticket_type: "", price: "" })
+  const [pricingForm, setPricingForm] = useState({
+    ticket_type: "",
+    price: "",
+    capacity: "",
+  })
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -100,17 +104,18 @@ const EditBoat = ({ boat }: EditBoatProps) => {
   })
 
   const createPricingMutation = useMutation({
-    mutationFn: (body: { ticket_type: string; price: number }) =>
+    mutationFn: (body: { ticket_type: string; price: number; capacity: number }) =>
       BoatPricingService.createBoatPricing({
         requestBody: {
           boat_id: boat.id,
           ticket_type: body.ticket_type,
           price: body.price,
+          capacity: body.capacity,
         },
       }),
     onSuccess: () => {
       showSuccessToast("Ticket type added.")
-      setPricingForm({ ticket_type: "", price: "" })
+      setPricingForm({ ticket_type: "", price: "", capacity: "" })
       setIsAddingPricing(false)
       refetchBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
@@ -131,10 +136,18 @@ const EditBoat = ({ boat }: EditBoatProps) => {
 
   const handleAddPricing = () => {
     const priceDollars = Number.parseFloat(pricingForm.price)
-    if (!pricingForm.ticket_type.trim() || Number.isNaN(priceDollars)) return
+    const cap = Number.parseInt(pricingForm.capacity, 10)
+    if (
+      !pricingForm.ticket_type.trim() ||
+      Number.isNaN(priceDollars) ||
+      Number.isNaN(cap) ||
+      cap < 0
+    )
+      return
     createPricingMutation.mutate({
       ticket_type: pricingForm.ticket_type.trim(),
       price: Math.round(priceDollars * 100),
+      capacity: cap,
     })
   }
 
@@ -243,8 +256,8 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   </Text>
                   {isAddingPricing ? (
                     <VStack align="stretch" gap={2} mb={3} p={3} borderWidth="1px" borderRadius="md">
-                      <HStack width="100%">
-                        <Box flex={1}>
+                      <HStack width="100%" gap={2} flexWrap="wrap">
+                        <Box flex={1} minW="120px">
                           <Text fontSize="sm" mb={1}>Ticket type</Text>
                           <Input
                             value={pricingForm.ticket_type}
@@ -254,7 +267,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                             placeholder="e.g. Adult, Child"
                           />
                         </Box>
-                        <Box flex={1}>
+                        <Box flex={1} minW="80px">
                           <Text fontSize="sm" mb={1}>Price ($)</Text>
                           <Input
                             type="number"
@@ -267,7 +280,22 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                             placeholder="0.00"
                           />
                         </Box>
+                        <Box flex={1} minW="80px">
+                          <Text fontSize="sm" mb={1}>Capacity</Text>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={pricingForm.capacity}
+                            onChange={(e) =>
+                              setPricingForm({ ...pricingForm, capacity: e.target.value })
+                            }
+                            placeholder="0"
+                          />
+                        </Box>
                       </HStack>
+                      <Text fontSize="xs" color="gray.500">
+                        Sum of ticket-type capacities must not exceed boat capacity ({boat.capacity}).
+                      </Text>
                       <HStack width="100%" justify="flex-end">
                         <Button size="sm" variant="ghost" onClick={() => setIsAddingPricing(false)}>
                           Cancel
@@ -279,7 +307,10 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                           disabled={
                             !pricingForm.ticket_type.trim() ||
                             !pricingForm.price ||
-                            Number.isNaN(Number.parseFloat(pricingForm.price))
+                            !pricingForm.capacity ||
+                            Number.isNaN(Number.parseFloat(pricingForm.price)) ||
+                            Number.isNaN(Number.parseInt(pricingForm.capacity, 10)) ||
+                            Number.parseInt(pricingForm.capacity, 10) < 0
                           }
                         >
                           Add
@@ -309,7 +340,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                         <HStack>
                           <Text fontWeight="medium">{p.ticket_type}</Text>
                           <Text fontSize="sm" color="gray.400">
-                            ${formatCents(p.price)}
+                            ${formatCents(p.price)} ({p.capacity} seats)
                           </Text>
                         </HStack>
                         <IconButton

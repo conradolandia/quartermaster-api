@@ -28,11 +28,13 @@ from .booking_items import (
     get_booking_item,
     get_booking_items_by_trip,
     get_paid_ticket_count_per_boat_for_trip,
+    get_paid_ticket_count_per_boat_per_item_type_for_trip,
     get_ticket_item_count_for_trip_boat,
     reassign_trip_boat_passengers,
     update_booking_item,
 )
 from .effective_pricing import (
+    get_effective_capacity_per_ticket_type,
     get_effective_pricing,
     get_effective_ticket_types_for_trip,
 )
@@ -237,6 +239,7 @@ __all__ = [
     "get_trip_boat_pricing_by_trip_boat",
     "update_trip_boat_pricing",
     # Effective pricing
+    "get_effective_capacity_per_ticket_type",
     "get_effective_pricing",
     "get_effective_ticket_types_for_trip",
     # Booking Items
@@ -245,6 +248,7 @@ __all__ = [
     "get_booking_item",
     "get_booking_items_by_trip",
     "get_paid_ticket_count_per_boat_for_trip",
+    "get_paid_ticket_count_per_boat_per_item_type_for_trip",
     "get_ticket_item_count_for_trip_boat",
     "reassign_trip_boat_passengers",
     "update_booking_item",

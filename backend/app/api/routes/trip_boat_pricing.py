@@ -12,6 +12,7 @@ from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    Boat,
     TripBoat,
     TripBoatPricing,
     TripBoatPricingCreate,
@@ -60,6 +61,25 @@ def create_trip_boat_pricing(
     obj = crud.create_trip_boat_pricing(
         session=session, trip_boat_pricing_in=trip_boat_pricing_in
     )
+    session.refresh(trip_boat)
+    boat = session.get(Boat, trip_boat.boat_id)
+    effective_max = (
+        trip_boat.max_capacity
+        if trip_boat.max_capacity is not None
+        else (boat.capacity if boat else 0)
+    )
+    capacities = crud.get_effective_capacity_per_ticket_type(
+        session=session, trip_id=trip_boat.trip_id, boat_id=trip_boat.boat_id
+    )
+    if sum(capacities.values()) > effective_max:
+        crud.delete_trip_boat_pricing(session=session, trip_boat_pricing_id=obj.id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Sum of ticket-type capacities ({sum(capacities.values())}) would exceed "
+                f"trip/boat max capacity ({effective_max})"
+            ),
+        )
     return TripBoatPricingPublic.model_validate(obj)
 
 
@@ -143,6 +163,52 @@ def update_trip_boat_pricing(
                     "already exists for this trip/boat"
                 ),
             )
+    trip_boat = obj.trip_boat
+    boat = session.get(Boat, trip_boat.boat_id)
+    effective_max = (
+        trip_boat.max_capacity
+        if trip_boat.max_capacity is not None
+        else (boat.capacity if boat else 0)
+    )
+    boat_pricing = crud.get_boat_pricing_by_boat(
+        session=session, boat_id=trip_boat.boat_id
+    )
+    tbp_list = crud.get_trip_boat_pricing_by_trip_boat(
+        session=session, trip_boat_id=obj.trip_boat_id
+    )
+    by_boat = {bp.ticket_type: bp.capacity for bp in boat_pricing}
+    by_trip: dict[str, int] = {}
+    for tbp in tbp_list:
+        if tbp.id == trip_boat_pricing_id:
+            key = trip_boat_pricing_in.ticket_type or tbp.ticket_type
+            val = (
+                trip_boat_pricing_in.capacity
+                if trip_boat_pricing_in.capacity is not None
+                else tbp.capacity
+            )
+        else:
+            key = tbp.ticket_type
+            val = (
+                tbp.capacity
+                if tbp.capacity is not None
+                else by_boat.get(tbp.ticket_type)
+            )
+        if val is not None:
+            by_trip[key] = val
+    all_types = set(by_boat) | set(by_trip)
+    total = sum(
+        by_trip.get(t) or by_boat.get(t) or 0
+        for t in all_types
+        if (by_trip.get(t) or by_boat.get(t)) is not None
+    )
+    if total > effective_max:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Sum of ticket-type capacities ({total}) would exceed "
+                f"trip/boat max capacity ({effective_max})"
+            ),
+        )
     obj = crud.update_trip_boat_pricing(
         session=session, db_obj=obj, obj_in=trip_boat_pricing_in
     )

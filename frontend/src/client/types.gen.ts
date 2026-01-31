@@ -20,12 +20,14 @@ export type BoatPricingCreate = {
   boat_id: string
   ticket_type: string
   price: number
+  capacity: number
 }
 
 export type BoatPricingPublic = {
   boat_id: string
   ticket_type: string
   price: number
+  capacity: number
   id: string
   created_at: string
   updated_at: string
@@ -34,6 +36,7 @@ export type BoatPricingPublic = {
 export type BoatPricingUpdate = {
   ticket_type?: string | null
   price?: number | null
+  capacity?: number | null
 }
 
 export type BoatPublic = {
@@ -255,6 +258,8 @@ export type DiscountCodeUpdate = {
 export type EffectivePricingItem = {
   ticket_type: string
   price: number
+  capacity: number
+  remaining: number
 }
 
 export type HTTPValidationError = {
@@ -528,12 +533,14 @@ export type TripBoatPricingCreate = {
   trip_boat_id: string
   ticket_type: string
   price: number
+  capacity?: number | null
 }
 
 export type TripBoatPricingPublic = {
   trip_boat_id: string
   ticket_type: string
   price: number
+  capacity?: number | null
   id: string
   created_at: string
   updated_at: string
@@ -542,6 +549,7 @@ export type TripBoatPricingPublic = {
 export type TripBoatPricingUpdate = {
   ticket_type?: string | null
   price?: number | null
+  capacity?: number | null
 }
 
 export type TripBoatPublic = {
@@ -555,7 +563,7 @@ export type TripBoatPublic = {
 }
 
 /**
- * Trip boat with effective max capacity and remaining passenger slots.
+ * Trip boat with effective max capacity, remaining slots, and per-ticket-type pricing/availability.
  */
 export type TripBoatPublicWithAvailability = {
   trip_id: string
@@ -566,6 +574,7 @@ export type TripBoatPublicWithAvailability = {
   updated_at: string
   boat: BoatPublic
   remaining_capacity: number
+  pricing?: Array<EffectivePricingItem>
 }
 
 export type TripBoatUpdate = {
@@ -784,6 +793,8 @@ export type BookingsListBookingsData = {
   skip?: number
   sortBy?: string
   sortDirection?: string
+  status?: string | null
+  tripId?: string | null
 }
 
 export type BookingsListBookingsResponse = BookingsPaginatedResponse

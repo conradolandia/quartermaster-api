@@ -280,37 +280,50 @@ def create_booking(
                     detail="Merchandise price mismatch",
                 )
 
-    # Validate boat capacity: total ticket count per (trip_id, boat_id) must not exceed capacity
-    ticket_quantity_by_trip_boat: dict[tuple[uuid.UUID, uuid.UUID], int] = defaultdict(
-        int
-    )
+    # Validate per-ticket-type capacity: for each (trip_id, boat_id, item_type) check capacity
+    ticket_quantity_by_trip_boat_type: dict[
+        tuple[uuid.UUID, uuid.UUID, str], int
+    ] = defaultdict(int)
     for item in booking_in.items:
         if item.trip_merchandise_id is None:
-            ticket_quantity_by_trip_boat[(item.trip_id, item.boat_id)] += item.quantity
-    for (trip_id, boat_id), new_quantity in ticket_quantity_by_trip_boat.items():
-        trip_boat = session.exec(
-            select(TripBoat).where(
-                (TripBoat.trip_id == trip_id) & (TripBoat.boat_id == boat_id)
-            )
-        ).first()
-        if not trip_boat:
-            continue
-        boat = session.get(Boat, boat_id)
-        effective_max = (
-            trip_boat.max_capacity
-            if trip_boat.max_capacity is not None
-            else boat.capacity
+            ticket_quantity_by_trip_boat_type[
+                (item.trip_id, item.boat_id, item.item_type)
+            ] += item.quantity
+    trip_ids = {i.trip_id for i in booking_in.items if i.trip_merchandise_id is None}
+    paid_by_trip: dict[uuid.UUID, dict[tuple[uuid.UUID, str], int]] = {
+        tid: crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+            session=session, trip_id=tid
         )
-        paid = crud.get_paid_ticket_count_per_boat_for_trip(
-            session=session, trip_id=trip_id
-        ).get(boat_id, 0)
-        total_after = paid + new_quantity
-        if total_after > effective_max:
+        for tid in trip_ids
+    }
+    for (
+        trip_id,
+        boat_id,
+        item_type,
+    ), new_quantity in ticket_quantity_by_trip_boat_type.items():
+        capacities = crud.get_effective_capacity_per_ticket_type(
+            session=session, trip_id=trip_id, boat_id=boat_id
+        )
+        capacity = capacities.get(item_type)
+        if capacity is None:
+            boat = session.get(Boat, boat_id)
             boat_name = boat.name if boat else str(boat_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
-                    f"Boat '{boat_name}' has {effective_max} passenger capacity "
+                    f"No capacity configured for ticket type '{item_type}' on boat '{boat_name}'"
+                ),
+            )
+        paid_by_type = paid_by_trip.get(trip_id, {})
+        paid = paid_by_type.get((boat_id, item_type), 0)
+        total_after = paid + new_quantity
+        if total_after > capacity:
+            boat = session.get(Boat, boat_id)
+            boat_name = boat.name if boat else str(boat_id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Boat '{boat_name}' has {capacity} seat(s) for '{item_type}' "
                     f"with {paid} already booked; requested {new_quantity} would exceed capacity"
                 ),
             )
@@ -429,12 +442,14 @@ def list_bookings(
     skip: int = 0,
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
+    trip_id: uuid.UUID | None = None,
+    status: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id.
+    Optionally filter by mission_id, trip_id, or status.
     """
     try:
         # Parameter validation
@@ -459,28 +474,46 @@ def list_bookings(
         # Build base query
         base_query = select(Booking)
 
-        # Apply mission filter if provided
-        if mission_id:
-            # Filter bookings by mission through BookingItem -> Trip -> Mission
-            base_query = (
-                base_query.join(BookingItem, BookingItem.booking_id == Booking.id)
-                .join(Trip, Trip.id == BookingItem.trip_id)
-                .where(Trip.mission_id == mission_id)
-                .distinct()
+        # Apply mission/trip filter if provided (join via BookingItem, optionally Trip)
+        if mission_id or trip_id:
+            base_query = base_query.join(
+                BookingItem, BookingItem.booking_id == Booking.id
             )
-            logger.info(f"Filtering bookings by mission_id: {mission_id}")
+            if mission_id:
+                base_query = base_query.join(
+                    Trip, Trip.id == BookingItem.trip_id
+                ).where(Trip.mission_id == mission_id)
+            if trip_id:
+                base_query = base_query.where(BookingItem.trip_id == trip_id)
+            base_query = base_query.distinct()
+            if mission_id:
+                logger.info(f"Filtering bookings by mission_id: {mission_id}")
+            if trip_id:
+                logger.info(f"Filtering bookings by trip_id: {trip_id}")
+
+        # Apply status filter if provided
+        if status:
+            base_query = base_query.where(Booking.status == status)
+            logger.info(f"Filtering bookings by status: {status}")
 
         # Get total count first
         total_count = 0
         try:
             count_query = select(func.count(Booking.id.distinct()))
-            if mission_id:
-                count_query = (
-                    count_query.select_from(Booking)
-                    .join(BookingItem, BookingItem.booking_id == Booking.id)
-                    .join(Trip, Trip.id == BookingItem.trip_id)
-                    .where(Trip.mission_id == mission_id)
+            if mission_id or trip_id:
+                count_query = count_query.select_from(Booking).join(
+                    BookingItem, BookingItem.booking_id == Booking.id
                 )
+                if mission_id:
+                    count_query = count_query.join(
+                        Trip, Trip.id == BookingItem.trip_id
+                    ).where(Trip.mission_id == mission_id)
+                if trip_id:
+                    count_query = count_query.where(BookingItem.trip_id == trip_id)
+            if status:
+                if not (mission_id or trip_id):
+                    count_query = count_query.select_from(Booking)
+                count_query = count_query.where(Booking.status == status)
             total_count = session.exec(count_query).first()
             logger.info(f"Total bookings count: {total_count}")
         except Exception as e:

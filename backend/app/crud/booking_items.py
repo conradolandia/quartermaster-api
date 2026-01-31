@@ -126,6 +126,38 @@ def get_paid_ticket_count_per_boat_for_trip(
     return {boat_id: int(total) for boat_id, total in rows}
 
 
+def get_paid_ticket_count_per_boat_per_item_type_for_trip(
+    *, session: Session, trip_id: uuid.UUID
+) -> dict[tuple[uuid.UUID, str], int]:
+    """
+    Sum ticket quantities per (boat_id, item_type) for paid bookings on this trip.
+    Counts only ticket items (trip_merchandise_id IS NULL) with status active,
+    for bookings with status confirmed, checked_in, or completed.
+    Returns dict (boat_id, item_type) -> count.
+    """
+    from sqlalchemy import func
+
+    paid_statuses = (
+        BookingStatus.confirmed,
+        BookingStatus.checked_in,
+        BookingStatus.completed,
+    )
+    rows = session.exec(
+        select(
+            BookingItem.boat_id,
+            BookingItem.item_type,
+            func.sum(BookingItem.quantity).label("total"),
+        )
+        .join(Booking, Booking.id == BookingItem.booking_id)
+        .where(BookingItem.trip_id == trip_id)
+        .where(BookingItem.trip_merchandise_id.is_(None))
+        .where(BookingItem.status == BookingItemStatus.active)
+        .where(Booking.status.in_(paid_statuses))
+        .group_by(BookingItem.boat_id, BookingItem.item_type)
+    ).all()
+    return {(boat_id, item_type): int(total) for boat_id, item_type, total in rows}
+
+
 def create_booking_item(
     *, session: Session, booking_item_in: BookingItemCreate
 ) -> BookingItem:

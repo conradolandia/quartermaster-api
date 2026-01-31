@@ -56,6 +56,18 @@ def create_boat_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Boat not found",
         )
+    existing_rows = crud.get_boat_pricing_by_boat(
+        session=session, boat_id=boat_pricing_in.boat_id
+    )
+    total_capacity = sum(bp.capacity for bp in existing_rows) + boat_pricing_in.capacity
+    if total_capacity > boat.capacity:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Sum of ticket-type capacities ({total_capacity}) would exceed "
+                f"boat capacity ({boat.capacity})"
+            ),
+        )
     obj = crud.create_boat_pricing(session=session, boat_pricing_in=boat_pricing_in)
     return BoatPricingPublic.model_validate(obj)
 
@@ -134,6 +146,26 @@ def update_boat_pricing(
                     "already exists for this boat"
                 ),
             )
+    new_capacity = (
+        boat_pricing_in.capacity
+        if boat_pricing_in.capacity is not None
+        else obj.capacity
+    )
+    other_rows = [
+        bp
+        for bp in crud.get_boat_pricing_by_boat(session=session, boat_id=obj.boat_id)
+        if bp.id != boat_pricing_id
+    ]
+    total_capacity = sum(bp.capacity for bp in other_rows) + new_capacity
+    boat = session.get(Boat, obj.boat_id)
+    if boat and total_capacity > boat.capacity:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Sum of ticket-type capacities ({total_capacity}) would exceed "
+                f"boat capacity ({boat.capacity})"
+            ),
+        )
     obj = crud.update_boat_pricing(session=session, db_obj=obj, obj_in=boat_pricing_in)
     return BoatPricingPublic.model_validate(obj)
 

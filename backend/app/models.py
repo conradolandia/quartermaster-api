@@ -690,17 +690,19 @@ class TripBoatPublic(TripBoatBase):
 
 
 class TripBoatPublicWithAvailability(TripBoatPublic):
-    """Trip boat with effective max capacity and remaining passenger slots."""
+    """Trip boat with effective max capacity, remaining slots, and per-ticket-type pricing/availability."""
 
     max_capacity: int  # Effective capacity (TripBoat.max_capacity or Boat.capacity)
     remaining_capacity: int  # max_capacity minus paid ticket count for this trip/boat
+    pricing: list["EffectivePricingItem"] = Field(default_factory=list)
 
 
-# BoatPricing models (boat-level default ticket types and prices)
+# BoatPricing models (boat-level default ticket types, prices, and capacity per type)
 class BoatPricingBase(SQLModel):
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
     ticket_type: str = Field(max_length=32)
     price: int = Field(ge=0)  # cents
+    capacity: int = Field(ge=0)  # max seats for this ticket type on this boat
 
 
 class BoatPricingCreate(BoatPricingBase):
@@ -710,6 +712,7 @@ class BoatPricingCreate(BoatPricingBase):
 class BoatPricingUpdate(SQLModel):
     ticket_type: str | None = Field(default=None, max_length=32)
     price: int | None = Field(default=None, ge=0)
+    capacity: int | None = Field(default=None, ge=0)
 
 
 class BoatPricing(BoatPricingBase, table=True):
@@ -739,11 +742,14 @@ class BoatPricingPublic(BoatPricingBase):
     updated_at: datetime
 
 
-# TripBoatPricing models (per-trip, per-boat price overrides)
+# TripBoatPricing models (per-trip, per-boat price and capacity overrides)
 class TripBoatPricingBase(SQLModel):
     trip_boat_id: uuid.UUID = Field(foreign_key="tripboat.id")
     ticket_type: str = Field(max_length=32)
     price: int = Field(ge=0)  # cents
+    capacity: int | None = Field(
+        default=None, ge=0
+    )  # override boat-level capacity for this type
 
 
 class TripBoatPricingCreate(TripBoatPricingBase):
@@ -753,6 +759,7 @@ class TripBoatPricingCreate(TripBoatPricingBase):
 class TripBoatPricingUpdate(SQLModel):
     ticket_type: str | None = Field(default=None, max_length=32)
     price: int | None = Field(default=None, ge=0)
+    capacity: int | None = Field(default=None, ge=0)
 
 
 class TripBoatPricing(TripBoatPricingBase, table=True):
@@ -782,10 +789,12 @@ class TripBoatPricingPublic(TripBoatPricingBase):
     updated_at: datetime
 
 
-# Effective pricing for public API (ticket_type + price per boat for a trip)
+# Effective pricing for public API (ticket_type + price + capacity + remaining per boat for a trip)
 class EffectivePricingItem(SQLModel):
     ticket_type: str
     price: int  # cents
+    capacity: int  # max seats for this type on this trip/boat
+    remaining: int  # capacity minus paid count for this type
 
 
 # Merchandise (catalog) models

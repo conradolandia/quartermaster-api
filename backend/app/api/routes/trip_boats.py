@@ -105,6 +105,9 @@ def read_trip_boats_by_trip(
     paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
         session=session, trip_id=trip_id
     )
+    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -112,6 +115,12 @@ def read_trip_boats_by_trip(
         )
         booked = paid_counts.get(tb.boat_id, 0)
         remaining = max(0, effective_max - booked)
+        pricing = crud.get_effective_pricing(
+            session=session,
+            trip_id=trip_id,
+            boat_id=tb.boat_id,
+            paid_by_type=paid_by_type,
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -122,6 +131,7 @@ def read_trip_boats_by_trip(
                 boat=BoatPublic.model_validate(tb.boat),
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
+                pricing=pricing,
             )
         )
     return result
@@ -298,6 +308,9 @@ def read_public_trip_boats_by_trip(
     paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
         session=session, trip_id=trip_id
     )
+    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -305,6 +318,12 @@ def read_public_trip_boats_by_trip(
         )
         booked = paid_counts.get(tb.boat_id, 0)
         remaining = max(0, effective_max - booked)
+        pricing = crud.get_effective_pricing(
+            session=session,
+            trip_id=trip_id,
+            boat_id=tb.boat_id,
+            paid_by_type=paid_by_type,
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -315,6 +334,7 @@ def read_public_trip_boats_by_trip(
                 boat=BoatPublic.model_validate(tb.boat),
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
+                pricing=pricing,
             )
         )
     return result
@@ -352,4 +372,12 @@ def read_public_effective_pricing(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",
         )
-    return crud.get_effective_pricing(session=session, trip_id=trip_id, boat_id=boat_id)
+    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
+    return crud.get_effective_pricing(
+        session=session,
+        trip_id=trip_id,
+        boat_id=boat_id,
+        paid_by_type=paid_by_type,
+    )

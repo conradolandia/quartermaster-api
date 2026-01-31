@@ -623,6 +623,8 @@ export class BookingsService {
         mission_id: data.missionId,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
+        status: data.status,
+        trip_id: data.tripId,
       },
       errors: {
         422: "Validation Error",

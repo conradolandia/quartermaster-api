@@ -108,11 +108,13 @@ const EditTrip = ({
   } | null>(null)
   const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null)
   const [editingOverridePrice, setEditingOverridePrice] = useState("")
+  const [editingOverrideCapacity, setEditingOverrideCapacity] = useState("")
   const [editingCapacityTripBoatId, setEditingCapacityTripBoatId] = useState<string | null>(null)
   const [capacityInputValue, setCapacityInputValue] = useState("")
   const [tripBoatPricingForm, setTripBoatPricingForm] = useState({
     ticket_type: "",
     price: "",
+    capacity: "",
   })
   const [isAddingTripBoatPricing, setIsAddingTripBoatPricing] = useState(false)
   const queryClient = useQueryClient()
@@ -245,17 +247,22 @@ const EditTrip = ({
     })
 
   const createTripBoatPricingMutation = useMutation({
-    mutationFn: (body: { ticket_type: string; price: number }) =>
+    mutationFn: (body: {
+      ticket_type: string
+      price: number
+      capacity?: number | null
+    }) =>
       TripBoatPricingService.createTripBoatPricing({
         requestBody: {
           trip_boat_id: selectedTripBoatForPricing!.id,
           ticket_type: body.ticket_type,
           price: body.price,
+          capacity: body.capacity ?? undefined,
         },
       }),
     onSuccess: () => {
       showSuccessToast("Pricing override added.")
-      setTripBoatPricingForm({ ticket_type: "", price: "" })
+      setTripBoatPricingForm({ ticket_type: "", price: "", capacity: "" })
       setIsAddingTripBoatPricing(false)
       refetchTripBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
@@ -278,15 +285,20 @@ const EditTrip = ({
     mutationFn: (body: {
       tripBoatPricingId: string
       price: number
+      capacity?: number | null
     }) =>
       TripBoatPricingService.updateTripBoatPricing({
         tripBoatPricingId: body.tripBoatPricingId,
-        requestBody: { price: body.price },
+        requestBody: {
+          price: body.price,
+          capacity: body.capacity ?? undefined,
+        },
       }),
     onSuccess: () => {
       showSuccessToast("Override updated.")
       setEditingOverrideId(null)
       setEditingOverridePrice("")
+      setEditingOverrideCapacity("")
       refetchTripBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
     },
@@ -295,15 +307,20 @@ const EditTrip = ({
 
   const handleAddTripBoatPricing = () => {
     const priceDollars = Number.parseFloat(tripBoatPricingForm.price)
+    const cap = tripBoatPricingForm.capacity.trim()
+      ? Number.parseInt(tripBoatPricingForm.capacity, 10)
+      : null
     if (
       !selectedTripBoatForPricing ||
       !tripBoatPricingForm.ticket_type.trim() ||
       Number.isNaN(priceDollars)
     )
       return
+    if (cap !== null && (Number.isNaN(cap) || cap < 0)) return
     createTripBoatPricingMutation.mutate({
       ticket_type: tripBoatPricingForm.ticket_type.trim(),
       price: Math.round(priceDollars * 100),
+      capacity: cap ?? undefined,
     })
   }
 
@@ -648,6 +665,10 @@ const EditTrip = ({
                           const hasBookings = remaining < maxCap
                           const isPricingOpen =
                             selectedTripBoatForPricing?.id === tripBoat.id
+                          const pricing =
+                            "pricing" in tripBoat && Array.isArray((tripBoat as { pricing?: unknown[] }).pricing)
+                              ? (tripBoat as { pricing: Array<{ ticket_type: string; price: number; capacity: number; remaining: number }> }).pricing
+                              : []
                           return (
                             <Box key={tripBoat.id}>
                               <Flex
@@ -658,15 +679,24 @@ const EditTrip = ({
                                 borderRadius="md"
                               >
                                 <Box>
-                                  <Text>{boat?.name || "Unknown"}</Text>
+                                  <Text color="gray.100" fontWeight="medium">{boat?.name || "Unknown"}</Text>
                                   <Text
                                     fontSize="xs"
-                                    color="gray.400"
+                                    color="gray.300"
                                     mt={0.5}
                                     lineHeight="1.2"
                                   >
                                     {used} of {maxCap} seats taken ({remaining} remaining)
                                   </Text>
+                                  {pricing.length > 0 && (
+                                    <VStack align="start" gap={0}>
+                                      {pricing.map((p) => (
+                                        <Text key={p.ticket_type} fontSize="xs" color="gray.500" lineHeight="1.2">
+                                          {p.ticket_type}: ${formatCents(p.price)} ({p.remaining}/{p.capacity} left)
+                                        </Text>
+                                      ))}
+                                    </VStack>
+                                  )}
                                 </Box>
                                 <Flex gap={1} align="center">
                                   {hasBookings && (
@@ -852,12 +882,13 @@ const EditTrip = ({
                                         setIsAddingTripBoatPricing(false)
                                         setEditingOverrideId(null)
                                         setEditingOverridePrice("")
+                                        setEditingOverrideCapacity("")
                                       }}
                                     >
                                       Close
                                     </Button>
                                   </HStack>
-                                  <Text fontSize="sm" color="gray.400" mb={2}>
+                                  <Text fontSize="xs" color="gray.400" mb={2}>
                                     Boat defaults apply unless you add an
                                     override for this trip. Overrides replace
                                     the default price for that ticket type.
@@ -944,6 +975,20 @@ const EditTrip = ({
                                                   placeholder="0.00"
                                                 />
                                                 <Text fontSize="sm">$</Text>
+                                                <Input
+                                                  type="number"
+                                                  min="0"
+                                                  size="sm"
+                                                  width="16"
+                                                  value={editingOverrideCapacity}
+                                                  onChange={(e) =>
+                                                    setEditingOverrideCapacity(
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  placeholder="Cap"
+                                                  title="Capacity override (optional)"
+                                                />
                                                 <Button
                                                   size="xs"
                                                   onClick={() => {
@@ -956,11 +1001,24 @@ const EditTrip = ({
                                                       !Number.isNaN(cents) &&
                                                       cents >= 0
                                                     ) {
+                                                      const cap = editingOverrideCapacity.trim()
+                                                        ? Number.parseInt(
+                                                            editingOverrideCapacity,
+                                                            10,
+                                                          )
+                                                        : null
+                                                      if (
+                                                        cap !== null &&
+                                                        (Number.isNaN(cap) ||
+                                                          cap < 0)
+                                                      )
+                                                        return
                                                       updateTripBoatPricingMutation.mutate(
                                                         {
                                                           tripBoatPricingId:
                                                             p.id,
                                                           price: cents,
+                                                          capacity: cap ?? undefined,
                                                         },
                                                       )
                                                     }
@@ -985,6 +1043,7 @@ const EditTrip = ({
                                                   onClick={() => {
                                                     setEditingOverrideId(null)
                                                     setEditingOverridePrice("")
+                                                    setEditingOverrideCapacity("")
                                                   }}
                                                 >
                                                   Cancel
@@ -993,6 +1052,9 @@ const EditTrip = ({
                                             ) : (
                                               <Text fontSize="sm" color="gray.500">
                                                 ${formatCents(p.price)} (override)
+                                                {p.capacity != null
+                                                  ? `, ${p.capacity} seats`
+                                                  : ""}
                                               </Text>
                                             )}
                                           </HStack>
@@ -1001,12 +1063,17 @@ const EditTrip = ({
                                               <Button
                                                 size="xs"
                                                 variant="ghost"
-                                                onClick={() => {
-                                                  setEditingOverrideId(p.id)
-                                                  setEditingOverridePrice(
-                                                    (p.price / 100).toFixed(2),
-                                                  )
-                                                }}
+                                              onClick={() => {
+                                                setEditingOverrideId(p.id)
+                                                setEditingOverridePrice(
+                                                  (p.price / 100).toFixed(2),
+                                                )
+                                                setEditingOverrideCapacity(
+                                                  p.capacity != null
+                                                    ? String(p.capacity)
+                                                    : "",
+                                                )
+                                              }}
                                               >
                                                 <FiEdit fontSize="12px" />
                                                 Edit
@@ -1171,6 +1238,23 @@ const EditTrip = ({
                                               })
                                             }
                                             placeholder="0.00"
+                                          />
+                                        </Box>
+                                        <Box flex={1}>
+                                          <Text fontSize="sm" mb={1}>
+                                            Capacity (optional)
+                                          </Text>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            value={tripBoatPricingForm.capacity}
+                                            onChange={(e) =>
+                                              setTripBoatPricingForm({
+                                                ...tripBoatPricingForm,
+                                                capacity: e.target.value,
+                                              })
+                                            }
+                                            placeholder="Override seats"
                                           />
                                         </Box>
                                       </HStack>
