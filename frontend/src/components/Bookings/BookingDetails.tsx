@@ -186,7 +186,7 @@ export default function BookingDetails({
                 <Box flex="1">
                   <Flex gap={4} mb={2} alignItems="baseline">
                     <Text fontWeight="bold">Status:</Text>
-                    <Badge colorScheme={getStatusColor(booking.status || "")}>
+                    <Badge colorPalette={getStatusColor(booking.status || "")}>
                       {booking.status?.replace("_", " ").toUpperCase() ||
                         "UNKNOWN"}
                     </Badge>
@@ -322,7 +322,7 @@ export default function BookingDetails({
                         </Table.Cell>
                         <Table.Cell>
                           <Badge
-                            colorScheme={
+                            colorPalette={
                               item.status === "active" ? "green" :
                               item.status === "refunded" ? "red" :
                               item.status === "fulfilled" ? "blue" : "gray"

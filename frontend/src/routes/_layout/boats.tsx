@@ -42,10 +42,8 @@ const boatsSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   jurisdictionId: z.string().optional(),
-  sortBy: z
-    .enum(["name", "capacity", "provider_id"])
-    .optional(),
-  sortDirection: z.enum(["asc", "desc"]).optional(),
+  sortBy: z.enum(["name", "capacity", "provider_id"]).default("name"),
+  sortDirection: z.enum(["asc", "desc"]).default("asc"),
 })
 
 // Helper function to convert BoatPublic to Boat

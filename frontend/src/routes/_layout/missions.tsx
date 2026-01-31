@@ -344,11 +344,11 @@ function Missions() {
                 </Table.Cell>
                 <Table.Cell>
                   <Flex gap={2}>
-                    <Badge colorScheme={mission.active ? "green" : "red"}>
+                    <Badge colorPalette={mission.active ? "green" : "red"}>
                       {mission.active ? "Active" : "Inactive"}
                     </Badge>
                     <Badge
-                      colorScheme={
+                      colorPalette={
                         mission.booking_mode === "public"
                           ? "blue"
                           : mission.booking_mode === "early_bird"

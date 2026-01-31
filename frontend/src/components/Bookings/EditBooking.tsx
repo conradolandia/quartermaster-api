@@ -310,7 +310,7 @@ const EditBooking = ({
                             <Table.Cell>
                               <Badge
                                 size="sm"
-                                colorScheme={
+                                colorPalette={
                                   item.status === "active"
                                     ? "green"
                                     : item.status === "refunded"

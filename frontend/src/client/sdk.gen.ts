@@ -210,6 +210,8 @@ import type {
   TripsUpdateTripResponse,
   TripsDeleteTripData,
   TripsDeleteTripResponse,
+  TripsReassignTripBoatData,
+  TripsReassignTripBoatResponse,
   TripsReadTripCapacityData,
   TripsReadTripCapacityResponse,
   TripsReadTripsByMissionData,
@@ -316,6 +318,8 @@ export class BoatsService {
   /**
    * Update Boat
    * Update a boat.
+   * Rejects reducing capacity below the number of passengers already booked
+   * on any trip that uses this boat's default capacity.
    * @param data The data for the request.
    * @param data.boatId
    * @param data.requestBody
@@ -2427,6 +2431,7 @@ export class TripBoatsService {
   /**
    * Delete Trip Boat
    * Delete a trip boat association.
+   * Fails if the boat has any ticket bookings (draft or paid); reassign or cancel those first.
    * @param data The data for the request.
    * @param data.tripBoatId
    * @returns unknown Successful Response
@@ -2883,6 +2888,33 @@ export class TripsService {
       path: {
         trip_id: data.tripId,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Reassign Trip Boat
+   * Move all passengers from one boat to another on this trip.
+   * Both boats must be on the trip; target boat must have enough capacity.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.requestBody
+   * @returns ReassignBoatResponse Successful Response
+   * @throws ApiError
+   */
+  public static reassignTripBoat(
+    data: TripsReassignTripBoatData,
+  ): CancelablePromise<TripsReassignTripBoatResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/{trip_id}/reassign-boat",
+      path: {
+        trip_id: data.tripId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

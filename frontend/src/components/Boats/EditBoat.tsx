@@ -23,7 +23,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { FiEdit } from "react-icons/fi"
 
@@ -54,6 +54,17 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       provider_id: boat.provider_id,
     },
   })
+
+  // Sync form to current boat when dialog opens so we show latest data after refetch
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        name: boat.name,
+        capacity: boat.capacity,
+        provider_id: boat.provider_id,
+      })
+    }
+  }, [isOpen, boat.name, boat.capacity, boat.provider_id, reset])
 
   const mutation = useMutation({
     mutationFn: (data: BoatUpdate) =>

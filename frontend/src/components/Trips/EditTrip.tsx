@@ -12,7 +12,7 @@ import {
 import { NativeSelect } from "@/components/ui/native-select"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
+import { FiEdit, FiPlus, FiTrash2, FiUsers } from "react-icons/fi"
 
 import {
   type ApiError,
@@ -74,6 +74,13 @@ const EditTrip = ({ trip }: EditTripProps) => {
   const [selectedBoatId, setSelectedBoatId] = useState("")
   const [maxCapacity, setMaxCapacity] = useState<number | undefined>(undefined)
   const [isAddingBoat, setIsAddingBoat] = useState(false)
+  const [reassignFrom, setReassignFrom] = useState<{
+    boat_id: string
+    boatName: string
+    used: number
+  } | null>(null)
+  const [reassignToBoatId, setReassignToBoatId] = useState("")
+  const [isReassignSubmitting, setIsReassignSubmitting] = useState(false)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -209,6 +216,34 @@ const EditTrip = ({ trip }: EditTripProps) => {
     }
   }
 
+  // Reassign passengers from one boat to another
+  const handleReassignConfirm = async () => {
+    if (!reassignFrom || !reassignToBoatId) return
+    setIsReassignSubmitting(true)
+    try {
+      const res = await TripsService.reassignTripBoat({
+        tripId: trip.id,
+        requestBody: {
+          from_boat_id: reassignFrom.boat_id,
+          to_boat_id: reassignToBoatId,
+        },
+      })
+      showSuccessToast(
+        `Moved ${res.moved} passenger(s) to the selected boat.`,
+      )
+      setReassignFrom(null)
+      setReassignToBoatId("")
+      refetchTripBoats()
+      queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trips"] })
+    } catch (error) {
+      console.error("Error reassigning passengers:", error)
+      handleError(error as ApiError)
+    } finally {
+      setIsReassignSubmitting(false)
+    }
+  }
+
   const handleSubmit = () => {
     if (!missionId || !checkInTime || !boardingTime || !departureTime) return
 
@@ -224,6 +259,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
   }
 
   return (
+    <>
     <DialogRoot
       size={{ base: "xs", md: "md" }}
       placement="center"
@@ -382,6 +418,15 @@ const EditTrip = ({ trip }: EditTripProps) => {
                       <VStack align="stretch" mb={4} gap={2}>
                         {tripBoats.map((tripBoat) => {
                           const boat = boatsMap.get(tripBoat.boat_id)
+                          const maxCap =
+                            tripBoat.max_capacity ?? boat?.capacity ?? 0
+                          const remaining =
+                            "remaining_capacity" in tripBoat
+                              ? (tripBoat as { remaining_capacity: number })
+                                  .remaining_capacity
+                              : maxCap
+                          const used = maxCap - remaining
+                          const hasBookings = remaining < maxCap
                           return (
                             <Flex
                               key={tripBoat.id}
@@ -391,21 +436,49 @@ const EditTrip = ({ trip }: EditTripProps) => {
                               borderWidth="1px"
                               borderRadius="md"
                             >
-                              <Text>
-                                {boat?.name || "Unknown"} (Capacity:{" "}
-                                {tripBoat.max_capacity ||
-                                  boat?.capacity ||
-                                  "Unknown"}
-                                )
-                              </Text>
-                              <IconButton
-                                aria-label="Remove boat"
-                                children={<FiTrash2 />}
-                                size="sm"
-                                variant="ghost"
-                                colorScheme="red"
-                                onClick={() => handleRemoveBoat(tripBoat.id)}
-                              />
+                              <Box>
+                                <Text>{boat?.name || "Unknown"}</Text>
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.400"
+                                  mt={0.5}
+                                  lineHeight="1.2"
+                                >
+                                  {used} of {maxCap} seats taken ({remaining} remaining)
+                                </Text>
+                              </Box>
+                              <Flex gap={1} align="center">
+                                {hasBookings && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setReassignFrom({
+                                        boat_id: tripBoat.boat_id,
+                                        boatName: boat?.name || "Unknown",
+                                        used,
+                                      })
+                                    }
+                                  >
+                                    <FiUsers style={{ marginRight: "4px" }} />
+                                    Reassign
+                                  </Button>
+                                )}
+                                <IconButton
+                                  aria-label="Remove boat"
+                                  children={<FiTrash2 />}
+                                  size="sm"
+                                  variant="ghost"
+                                  colorScheme="red"
+                                  disabled={hasBookings}
+                                  title={
+                                    hasBookings
+                                      ? "Cannot remove: boat has booked passengers."
+                                      : undefined
+                                  }
+                                  onClick={() => handleRemoveBoat(tripBoat.id)}
+                                />
+                              </Flex>
                             </Flex>
                           )
                         })}
@@ -524,6 +597,86 @@ const EditTrip = ({ trip }: EditTripProps) => {
           </form>
         </DialogContent>
     </DialogRoot>
+
+    {/* Reassign passengers dialog */}
+    <DialogRoot
+      size="xs"
+      placement="center"
+      open={reassignFrom != null}
+      onOpenChange={({ open }) => {
+        if (!open) {
+          setReassignFrom(null)
+          setReassignToBoatId("")
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reassign passengers</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          {reassignFrom && (() => {
+            const from = reassignFrom
+            return (
+            <VStack align="stretch" gap={4}>
+              <Text>
+                Move {from.used} passenger(s) from{" "}
+                <strong>{from.boatName}</strong> to:
+              </Text>
+              <Field label="Target boat" required>
+                <NativeSelect
+                  value={reassignToBoatId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setReassignToBoatId(e.target.value)
+                  }
+                  disabled={isReassignSubmitting}
+                >
+                  <option value="">Select a boat</option>
+                  {tripBoats
+                    .filter((tb) => tb.boat_id !== from.boat_id)
+                    .map((tb) => {
+                      const b = boatsMap.get(tb.boat_id)
+                      const rem =
+                        "remaining_capacity" in tb
+                          ? (tb as { remaining_capacity: number })
+                              .remaining_capacity
+                          : null
+                      return (
+                        <option key={tb.boat_id} value={tb.boat_id}>
+                          {b?.name || "Unknown"}
+                          {rem != null ? ` (${rem} spots left)` : ""}
+                        </option>
+                      )
+                    })}
+                </NativeSelect>
+              </Field>
+            </VStack>
+            )
+          })()}
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setReassignFrom(null)
+              setReassignToBoatId("")
+            }}
+            disabled={isReassignSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleReassignConfirm}
+            loading={isReassignSubmitting}
+            disabled={!reassignToBoatId}
+          >
+            Move passengers
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
+  </>
   )
 }
 

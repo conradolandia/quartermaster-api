@@ -362,7 +362,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge colorScheme={getStatusColor(booking.status || "")}>
+                  <Badge colorPalette={getStatusColor(booking.status || "")}>
                     {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
                   </Badge>
                 </Table.Cell>

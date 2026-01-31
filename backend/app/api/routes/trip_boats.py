@@ -46,6 +46,23 @@ def create_trip_boat(
             detail=f"Boat with ID {trip_boat_in.boat_id} not found",
         )
 
+    # If setting custom capacity, it must not be below already booked on this trip/boat
+    if trip_boat_in.max_capacity is not None:
+        booked = crud.get_ticket_item_count_for_trip_boat(
+            session=session,
+            trip_id=trip_boat_in.trip_id,
+            boat_id=trip_boat_in.boat_id,
+        )
+        if trip_boat_in.max_capacity < booked:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less "
+                    f"than passengers already booked on this trip for this boat ({booked}). "
+                    "Reassign passengers to another boat or cancel bookings first."
+                ),
+            )
+
     trip_boat = crud.create_trip_boat(session=session, trip_boat_in=trip_boat_in)
     return trip_boat
 
@@ -159,6 +176,33 @@ def update_trip_boat(
                 detail=f"Boat with ID {trip_boat_in.boat_id} not found",
             )
 
+    # If setting custom capacity, it must not be below already booked on this trip/boat
+    if trip_boat_in.max_capacity is not None:
+        trip_id = (
+            trip_boat_in.trip_id
+            if trip_boat_in.trip_id is not None
+            else trip_boat.trip_id
+        )
+        boat_id = (
+            trip_boat_in.boat_id
+            if trip_boat_in.boat_id is not None
+            else trip_boat.boat_id
+        )
+        booked = crud.get_ticket_item_count_for_trip_boat(
+            session=session,
+            trip_id=trip_id,
+            boat_id=boat_id,
+        )
+        if trip_boat_in.max_capacity < booked:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less "
+                    f"than passengers already booked on this trip for this boat ({booked}). "
+                    "Reassign passengers to another boat or cancel bookings first."
+                ),
+            )
+
     trip_boat = crud.update_trip_boat(
         session=session, db_obj=trip_boat, obj_in=trip_boat_in
     )
@@ -173,12 +217,27 @@ def delete_trip_boat(
 ) -> Any:
     """
     Delete a trip boat association.
+    Fails if the boat has any ticket bookings (draft or paid); reassign or cancel those first.
     """
     trip_boat = crud.get_trip_boat(session=session, trip_boat_id=trip_boat_id)
     if not trip_boat:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip Boat with ID {trip_boat_id} not found",
+        )
+    booked = crud.get_ticket_item_count_for_trip_boat(
+        session=session,
+        trip_id=trip_boat.trip_id,
+        boat_id=trip_boat.boat_id,
+    )
+    if booked > 0:
+        boat_name = trip_boat.boat.name if trip_boat.boat else str(trip_boat.boat_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Cannot remove boat '{boat_name}': it has {booked} passenger(s) booked. "
+                "Reassign them to another boat or cancel the bookings first."
+            ),
         )
     trip_boat = crud.delete_trip_boat(session=session, trip_boat_id=trip_boat_id)
     return trip_boat

@@ -23,19 +23,19 @@ import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiAnchor, FiTrash2 } from "react-icons/fi"
 
-import { BoatsService, TripBoatsService, type TripPublic } from "@/client"
+import {
+  type ApiError,
+  BoatsService,
+  TripBoatsService,
+  type TripBoatPublicWithAvailability,
+  type TripPublic,
+} from "@/client"
 import { toaster } from "@/components/ui/toaster"
 
 interface ManageTripBoatsProps {
   trip: TripPublic
 }
 
-interface TripBoat {
-  id: string
-  trip_id: string
-  boat_id: string
-  max_capacity?: number | null
-}
 
 interface Boat {
   id: string
@@ -57,20 +57,16 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
     enabled: isOpen,
   })
 
-  // Get trip boats - handle the response as unknown and use a type assertion
   const { data, refetch: refetchTripBoats } = useQuery({
     queryKey: ["trip-boats", trip.id],
-    queryFn: async () => {
-      const response = await TripBoatsService.readTripBoatsByTrip({
+    queryFn: () =>
+      TripBoatsService.readTripBoatsByTrip({
         tripId: trip.id,
-      })
-      return response as unknown as TripBoat[]
-    },
+      }),
     enabled: isOpen,
   })
 
-  // Safely access the trip boats data
-  const tripBoatsData: TripBoat[] = data || []
+  const tripBoatsData: TripBoatPublicWithAvailability[] = data ?? []
 
   // Map to quickly access boat details
   const boatsMap = new Map<string, Boat>()
@@ -149,9 +145,20 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
       queryClient.invalidateQueries({ queryKey: ["trips"] })
     } catch (error) {
       console.error("Error removing boat from trip:", error)
+      const body = (error as ApiError)?.body
+      const detail =
+        body && typeof body === "object" && "detail" in body
+          ? (body as { detail?: string | { msg?: string }[] }).detail
+          : null
+      const description =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail) && detail.length > 0 && detail[0]?.msg
+            ? detail[0].msg
+            : "Failed to remove boat from trip. Please try again."
       toaster.create({
         title: "Error",
-        description: "Failed to remove boat from trip. Please try again.",
+        description,
         type: "error",
       })
     }
@@ -199,6 +206,8 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                     <Table.Body>
                       {tripBoatsData.map((tripBoat) => {
                         const boat = boatsMap.get(tripBoat.boat_id)
+                        const hasBookings =
+                          tripBoat.remaining_capacity < tripBoat.max_capacity
                         return (
                           <Table.Row key={tripBoat.id}>
                             <Table.Cell>{boat?.name || "Unknown"}</Table.Cell>
@@ -214,6 +223,12 @@ const ManageTripBoats = ({ trip }: ManageTripBoatsProps) => {
                                 size="sm"
                                 variant="ghost"
                                 colorScheme="red"
+                                disabled={hasBookings}
+                                title={
+                                  hasBookings
+                                    ? "Cannot remove: boat has booked passengers."
+                                    : undefined
+                                }
                                 onClick={() => handleRemoveBoat(tripBoat.id)}
                               >
                                 <FiTrash2 />

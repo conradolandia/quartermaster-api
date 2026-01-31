@@ -143,6 +143,97 @@ def read_trip(
     return _trip_to_public(session, trip)
 
 
+class ReassignBoatBody(BaseModel):
+    from_boat_id: uuid.UUID
+    to_boat_id: uuid.UUID
+
+
+class ReassignBoatResponse(BaseModel):
+    moved: int
+
+
+@router.post(
+    "/{trip_id}/reassign-boat",
+    response_model=ReassignBoatResponse,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def reassign_trip_boat(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+    body: ReassignBoatBody,
+) -> Any:
+    """
+    Move all passengers from one boat to another on this trip.
+    Both boats must be on the trip; target boat must have enough capacity.
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    from_boat_id = body.from_boat_id
+    to_boat_id = body.to_boat_id
+    if from_boat_id == to_boat_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Source and target boat must be different",
+        )
+    trip_boats = crud.get_trip_boats_by_trip(session=session, trip_id=trip_id)
+    boat_ids_on_trip = [tb.boat_id for tb in trip_boats]
+    if from_boat_id not in boat_ids_on_trip or to_boat_id not in boat_ids_on_trip:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both boats must be assigned to this trip",
+        )
+    # Load boat for effective capacity when TripBoat.max_capacity is null
+    for tb in trip_boats:
+        if tb.boat_id == to_boat_id:
+            tb_to = tb
+            break
+    else:
+        tb_to = None
+    boat_to = crud.get_boat(session=session, boat_id=to_boat_id)
+    if not boat_to:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target boat not found",
+        )
+    effective_max_to = (
+        tb_to.max_capacity
+        if tb_to and tb_to.max_capacity is not None
+        else boat_to.capacity
+    )
+    current_on_to = crud.get_ticket_item_count_for_trip_boat(
+        session=session, trip_id=trip_id, boat_id=to_boat_id
+    )
+    total_to_move = crud.get_ticket_item_count_for_trip_boat(
+        session=session, trip_id=trip_id, boat_id=from_boat_id
+    )
+    if total_to_move == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No passengers to move from the source boat",
+        )
+    if current_on_to + total_to_move > effective_max_to:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Target boat has capacity for {effective_max_to - current_on_to} more "
+                f"passenger(s), but {total_to_move} would be moved. Free up capacity or "
+                "choose another boat."
+            ),
+        )
+    moved = crud.reassign_trip_boat_passengers(
+        session=session,
+        trip_id=trip_id,
+        from_boat_id=from_boat_id,
+        to_boat_id=to_boat_id,
+    )
+    return ReassignBoatResponse(moved=moved)
+
+
 class TripCapacityResponse(BaseModel):
     total_capacity: int
     used_capacity: int

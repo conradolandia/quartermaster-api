@@ -95,6 +95,8 @@ def update_boat(
 ) -> Any:
     """
     Update a boat.
+    Rejects reducing capacity below the number of passengers already booked
+    on any trip that uses this boat's default capacity.
     """
     boat = crud.get_boat(session=session, boat_id=boat_id)
     if not boat:
@@ -102,6 +104,28 @@ def update_boat(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Boat with ID {boat_id} not found",
         )
+
+    # If capacity is being updated, ensure it is not below booked passengers
+    # for any trip-boat that uses the boat's default capacity (max_capacity is null)
+    if boat_in.capacity is not None:
+        trip_boats = crud.get_trip_boats_by_boat(session=session, boat_id=boat_id)
+        for tb in trip_boats:
+            if tb.max_capacity is None:
+                booked = crud.get_ticket_item_count_for_trip_boat(
+                    session=session,
+                    trip_id=tb.trip_id,
+                    boat_id=boat_id,
+                )
+                if booked > boat_in.capacity:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            "This boat has passengers booked on trip(s) that use "
+                            "its default capacity. Move them to another boat on "
+                            "the trip (Reassign), or set a custom capacity for "
+                            "the trip, before reducing the boat's capacity."
+                        ),
+                    )
 
     try:
         boat = crud.update_boat(session=session, db_obj=boat, obj_in=boat_in)

@@ -35,6 +35,69 @@ def get_booking_items_by_trip(
     ).all()
 
 
+def get_ticket_items_by_trip_boat(
+    *, session: Session, trip_id: uuid.UUID, boat_id: uuid.UUID
+) -> list[BookingItem]:
+    """
+    All ticket items (trip_merchandise_id IS NULL) for this (trip_id, boat_id).
+    Used for reassigning passengers to another boat.
+    """
+    return list(
+        session.exec(
+            select(BookingItem).where(
+                BookingItem.trip_id == trip_id,
+                BookingItem.boat_id == boat_id,
+                BookingItem.trip_merchandise_id.is_(None),
+            )
+        ).all()
+    )
+
+
+def reassign_trip_boat_passengers(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    from_boat_id: uuid.UUID,
+    to_boat_id: uuid.UUID,
+) -> int:
+    """
+    Set boat_id to to_boat_id on all ticket items for (trip_id, from_boat_id).
+    Caller must validate capacity and that both boats are on the trip.
+    Returns the number of passenger slots moved (sum of quantities).
+    """
+    items = get_ticket_items_by_trip_boat(
+        session=session, trip_id=trip_id, boat_id=from_boat_id
+    )
+    total = 0
+    for item in items:
+        item.boat_id = to_boat_id
+        total += item.quantity
+        session.add(item)
+    if items:
+        session.commit()
+    return total
+
+
+def get_ticket_item_count_for_trip_boat(
+    *, session: Session, trip_id: uuid.UUID, boat_id: uuid.UUID
+) -> int:
+    """
+    Total ticket quantity for this (trip_id, boat_id).
+    Counts all ticket items (trip_merchandise_id IS NULL) regardless of booking status.
+    Used to block boat removal when any bookings reference it.
+    """
+    from sqlalchemy import func
+
+    row = session.exec(
+        select(func.coalesce(func.sum(BookingItem.quantity), 0)).where(
+            BookingItem.trip_id == trip_id,
+            BookingItem.boat_id == boat_id,
+            BookingItem.trip_merchandise_id.is_(None),
+        )
+    ).first()
+    return int(row) if row is not None else 0
+
+
 def get_paid_ticket_count_per_boat_for_trip(
     *, session: Session, trip_id: uuid.UUID
 ) -> dict[uuid.UUID, int]:

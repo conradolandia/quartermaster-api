@@ -479,6 +479,15 @@ export type ProviderUpdate = {
   map_link?: string | null
 }
 
+export type ReassignBoatBody = {
+  from_boat_id: string
+  to_boat_id: string
+}
+
+export type ReassignBoatResponse = {
+  moved: number
+}
+
 export type Token = {
   access_token: string
   token_type?: string
@@ -1356,6 +1365,13 @@ export type TripsDeleteTripData = {
 }
 
 export type TripsDeleteTripResponse = TripPublic
+
+export type TripsReassignTripBoatData = {
+  requestBody: ReassignBoatBody
+  tripId: string
+}
+
+export type TripsReassignTripBoatResponse = ReassignBoatResponse
 
 export type TripsReadTripCapacityData = {
   tripId: string

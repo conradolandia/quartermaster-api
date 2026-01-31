@@ -11,9 +11,9 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useQueries, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
@@ -124,29 +124,25 @@ function TripsTable() {
     })
   }
 
-  // Store trip boats with capacity (per boat) per trip
-  const [tripBoatsByTrip, setTripBoatsByTrip] = useState<
-    Record<string, TripBoatPublicWithAvailability[]>
-  >({})
-
   // Get trips from data
   const tripsData = data?.data ?? []
 
-  // Fetch trip boats (with capacity per boat) for each trip when trips change
-  useEffect(() => {
-    tripsData.forEach((trip) => {
-      TripBoatsService.readTripBoatsByTrip({ tripId: trip.id })
-        .then((boats) => {
-          setTripBoatsByTrip((prev) => ({
-            ...prev,
-            [trip.id]: Array.isArray(boats) ? boats : [],
-          }))
-        })
-        .catch((error) => {
-          console.error(`Error fetching boats for trip ${trip.id}:`, error)
-        })
-    })
-  }, [tripsData])
+  // Fetch trip boats (with capacity per boat) per trip via React Query so
+  // invalidation after reassign/add/remove boat refreshes the table
+  const tripBoatsQueries = useQueries({
+    queries: tripsData.map((trip) => ({
+      queryKey: ["trip-boats", trip.id],
+      queryFn: () => TripBoatsService.readTripBoatsByTrip({ tripId: trip.id }),
+    })),
+  })
+
+  const tripBoatsByTrip: Record<string, TripBoatPublicWithAvailability[]> =
+    Object.fromEntries(
+      tripsData.map((trip, i) => [
+        trip.id,
+        Array.isArray(tripBoatsQueries[i]?.data) ? tripBoatsQueries[i].data! : [],
+      ]),
+    )
 
   const setPage = (newPage: number) =>
     navigate({
@@ -277,11 +273,11 @@ function TripsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size={{ base: "sm", md: "md", lg: "lg" }}>
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="sm"
+                w={{ base: "sm", lg: "300px" }}
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -365,47 +361,92 @@ function TripsTable() {
 
             return (
               <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
-                <Table.Cell truncate maxW="sm">
-                  {trip.name || "—"}
+                <Table.Cell
+                  maxW={{ base: "sm", lg: "500px" }}
+                  verticalAlign="top"
+                  whiteSpace="normal"
+                  wordBreak="break-word"
+                >
+                  <Text fontSize="2xl" fontWeight="200" minW="200px">
+                    {trip.name || "—"}
+                  </Text>
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                  verticalAlign="top"
+                >
                   {trip.type === "launch_viewing"
                     ? "Launch Viewing"
                     : "Pre-Launch"}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                  verticalAlign="top"
+                >
                   {mission?.name || "Unknown"}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                  verticalAlign="top"
+                >
                   {renderTripDate(trip.check_in_time, trip.timezone)}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                  verticalAlign="top"
+                >
                   {renderTripDate(trip.departure_time, trip.timezone)}
                 </Table.Cell>
-                <Table.Cell maxW="sm">
+                <Table.Cell maxW="sm" verticalAlign="top">
                   {boats != null && boats.length > 0 ? (
-                    <VStack align="stretch" gap={1} fontSize="xs" textTransform="uppercase">
+                    <VStack align="stretch" gap={2}>
                       {boats.map((tb) => {
                         const used = tb.max_capacity - tb.remaining_capacity
                         const name = tb.boat?.name ?? "Boat"
+                        const remaining = tb.remaining_capacity
+                        const maxCap = tb.max_capacity
                         return (
-                          <Text key={tb.boat_id} truncate title={`${name}: ${used} / ${tb.max_capacity}`}>
-                            {name}: {used} / {tb.max_capacity}
-                          </Text>
+                          <Box key={tb.boat_id}>
+                            <Text fontSize="sm" truncate>
+                              {name}
+                            </Text>
+                            <Text
+                              fontSize="xs"
+                              color="gray.400"
+                              mt={0.5}
+                              lineHeight="1"
+                            >
+                              {used} of {maxCap} seats taken ({remaining} remaining)
+                            </Text>
+                          </Box>
                         )
                       })}
                     </VStack>
                   ) : (
-                    "—"
+                    <Text fontSize="sm" color="gray.400">
+                      No boats assigned to this trip yet.
+                    </Text>
                   )}
                 </Table.Cell>
-                <Table.Cell>
-                  <Badge colorScheme={trip.active ? "green" : "red"}>
-                    {trip.active ? "Active" : "Inactive"}
-                  </Badge>
+                <Table.Cell verticalAlign="top" paddingY="6">
+                  <Flex justify="center">
+                    <Badge colorPalette={trip.active ? "green" : "red"}>
+                      {trip.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </Flex>
                 </Table.Cell>
-                <Table.Cell>
-                  <TripActionsMenu trip={trip} />
+                <Table.Cell verticalAlign="top" paddingY="3">
+                  <Flex justify="center">
+                    <TripActionsMenu trip={trip} />
+                  </Flex>
                 </Table.Cell>
               </Table.Row>
             )
