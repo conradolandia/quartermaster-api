@@ -19,12 +19,14 @@ import {
   type BookingCreate,
   type BookingItemCreate,
   BookingsService,
+  type EffectivePricingItem,
   DiscountCodesService,
   JurisdictionsService,
   LaunchesService,
   MissionsService,
   TripBoatsService,
   TripMerchandiseService,
+  type TripBoatPublicWithAvailability,
   type TripPublic,
   TripsService,
 } from "@/client"
@@ -56,11 +58,6 @@ interface AddBookingProps {
   onSuccess: () => void
 }
 
-// Effective pricing per (trip, boat) - ticket_type and price
-interface TripPricingData {
-  ticket_type: string
-  price: number
-}
 
 // Interface for trip merchandise data
 interface TripMerchandiseData {
@@ -87,12 +84,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
   // State for trip-based pricing
   const [selectedTripId, setSelectedTripId] = useState<string>("")
-  const [tripPricing, setTripPricing] = useState<TripPricingData[]>([])
+  const [tripPricing, setTripPricing] = useState<EffectivePricingItem[]>([])
   const [tripMerchandise, setTripMerchandise] = useState<TripMerchandiseData[]>(
     [],
   )
   const [selectedItems, setSelectedItems] = useState<SelectedBookingItem[]>([])
-  const [tripBoats, setTripBoats] = useState<{ boat_id: string }[]>([])
+  const [tripBoats, setTripBoats] = useState<TripBoatPublicWithAvailability[]>(
+    [],
+  )
   const [boatNames, setBoatNames] = useState<Record<string, string>>({})
   const [selectedBoatId, setSelectedBoatId] = useState<string>("")
   const [discountInput, setDiscountInput] = useState<number>(0)
@@ -158,7 +157,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     enabled: !!selectedTripId,
   })
 
-  // Get trip boats when trip is selected
+  // Get trip boats when trip is selected (returns TripBoatPublicWithAvailability with remaining_capacity)
   useEffect(() => {
     if (!selectedTripId) {
       setTripBoats([])
@@ -167,59 +166,48 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       return
     }
     TripBoatsService.readTripBoatsByTrip({ tripId: selectedTripId })
-      .then((res: any) => {
-        const rows = Array.isArray(res) ? res : []
-        // Normalize to array of { boat_id }
-        const normalized: { boat_id: string }[] = rows
-          .map((r: any) => ({
-            boat_id: r.boat_id || r.boatId || r.boat?.id || "",
-          }))
-          .filter((r: { boat_id: string }) => !!r.boat_id)
-        setTripBoats(normalized)
+      .then((rows: TripBoatPublicWithAvailability[]) => {
+        const list = Array.isArray(rows) ? rows : []
+        setTripBoats(list)
 
-        // Resolve boat names using a simple cache to minimize requests
-        const uniqueBoatIds = Array.from(
-          new Set(normalized.map((b) => b.boat_id)),
-        )
-        const cachedPairs: { id: string; name: string }[] = []
+        const map: Record<string, string> = {}
         const idsToFetch: string[] = []
-        uniqueBoatIds.forEach((id) => {
-          const cached = boatNameCache.get(id)
-          if (cached) {
-            cachedPairs.push({ id, name: cached })
+        list.forEach((tb) => {
+          const id = tb.boat_id
+          const name = tb.boat?.name ?? boatNameCache.get(id)
+          if (name) {
+            map[id] = name
+            boatNameCache.set(id, name)
           } else {
             idsToFetch.push(id)
           }
         })
-
-        const fetchPromises = idsToFetch.map((id: string) =>
-          BoatsService.readBoat({ boatId: id }).then((boat: any) => {
-            const name = boat.name
-            boatNameCache.set(id, name)
-            return { id, name }
-          }),
+        if (idsToFetch.length === 0) {
+          setBoatNames(map)
+          if (!selectedBoatId && list.length > 0) {
+            setSelectedBoatId(list[0].boat_id)
+          }
+          return
+        }
+        Promise.all(
+          idsToFetch.map((id) =>
+            BoatsService.readBoat({ boatId: id }).then((boat) => {
+              const name = boat.name
+              boatNameCache.set(id, name)
+              return { id, name }
+            }),
+          ),
         )
-
-        Promise.all(fetchPromises)
-          .then((fetchedPairs) => {
-            const allPairs = [...cachedPairs, ...fetchedPairs]
-            const map: Record<string, string> = {}
-            allPairs.forEach((p) => {
+          .then((pairs) => {
+            pairs.forEach((p) => {
               map[p.id] = p.name
             })
             setBoatNames(map)
-            // Auto-select first if none selected
-            if (!selectedBoatId && uniqueBoatIds.length > 0) {
-              setSelectedBoatId(uniqueBoatIds[0])
+            if (!selectedBoatId && list.length > 0) {
+              setSelectedBoatId(list[0].boat_id)
             }
           })
-          .catch(() => {
-            const map: Record<string, string> = {}
-            cachedPairs.forEach((p) => {
-              map[p.id] = p.name
-            })
-            setBoatNames(map)
-          })
+          .catch(() => setBoatNames(map))
       })
       .catch(() => {
         setTripBoats([])
@@ -230,10 +218,23 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
   // Update pricing when (trip, boat) effective pricing is fetched; clear when boat unset
   useEffect(() => {
-    setTripPricing(
-      selectedBoatId && pricingData ? pricingData : [],
-    )
+    setTripPricing(selectedBoatId && pricingData ? pricingData : [])
   }, [pricingData, selectedBoatId])
+
+  const tripTypeToLabel = (type: string): string => {
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  const formatTripOptionLabel = (trip: TripPublic): string => {
+    const readableType = tripTypeToLabel(trip.type)
+    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+    if (trip.name?.trim()) {
+      return `${trip.name.trim()} - ${readableType} (${time})`
+    }
+    return `${readableType} (${time})`
+  }
 
   useEffect(() => {
     if (merchandiseData) {
@@ -424,42 +425,106 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     setSelectedBoatId("")
   }
 
-  // Add ticket item
+  const remainingForType = (ticketType: string) =>
+    tripPricing.find((p) => p.ticket_type === ticketType)?.remaining ?? 0
+  const currentQtyForTicketType = (ticketType: string) =>
+    selectedItems
+      .filter((item) => !item.merchandise_id && item.item_type === ticketType)
+      .reduce((sum, item) => sum + item.quantity, 0)
+  const ticketCapacityReachedForType = (ticketType: string) =>
+    currentQtyForTicketType(ticketType) >= remainingForType(ticketType)
+
+  // Add ticket item (merge into existing line by ticket type; item_type = ticket_type for API)
   const addTicketItem = (ticketType: string) => {
+    if (ticketCapacityReachedForType(ticketType)) return
     const pricing = tripPricing.find((p) => p.ticket_type === ticketType)
-    if (!pricing) return
+    if (!pricing || remainingForType(ticketType) <= 0) return
 
-    const newItem: SelectedBookingItem = {
-      trip_id: selectedTripId,
-      item_type: `${ticketType}_ticket`,
-      quantity: 1,
-      price_per_unit: pricing.price,
+    const existingItem = selectedItems.find(
+      (item) => item.item_type === ticketType && !item.merchandise_id,
+    )
+    if (existingItem) {
+      const newQty = currentQtyForTicketType(ticketType) + 1
+      if (newQty > remainingForType(ticketType)) return
+      setSelectedItems(
+        selectedItems.map((item) =>
+          item === existingItem ? { ...item, quantity: item.quantity + 1 } : item,
+        ),
+      )
+    } else {
+      setSelectedItems([
+        ...selectedItems,
+        {
+          trip_id: selectedTripId,
+          item_type: ticketType,
+          quantity: 1,
+          price_per_unit: pricing.price,
+        },
+      ])
     }
-
-    setSelectedItems([...selectedItems, newItem])
   }
 
   // Add merchandise item
   const addMerchandiseItem = (merchandiseId: string) => {
     const merchandise = tripMerchandise.find((m) => m.id === merchandiseId)
-    if (!merchandise) return
+    if (!merchandise || merchandise.quantity_available <= 0) return
 
-    const newItem: SelectedBookingItem = {
-      trip_id: selectedTripId,
-      item_type: merchandise.name,
-      quantity: 1,
-      price_per_unit: merchandise.price,
-      merchandise_id: merchandiseId,
+    const existingItem = selectedItems.find(
+      (item) => item.merchandise_id === merchandiseId,
+    )
+    if (existingItem) {
+      if (existingItem.quantity >= merchandise.quantity_available) return
+      setSelectedItems(
+        selectedItems.map((item) =>
+          item === existingItem
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
+        ),
+      )
+    } else {
+      setSelectedItems([
+        ...selectedItems,
+        {
+          trip_id: selectedTripId,
+          item_type: merchandise.name,
+          quantity: 1,
+          price_per_unit: merchandise.price,
+          merchandise_id: merchandiseId,
+        },
+      ])
     }
-
-    setSelectedItems([...selectedItems, newItem])
   }
 
-  // Update item quantity
+  // Update item quantity (cap ticket quantity by remaining per ticket type)
   const updateItemQuantity = (index: number, quantity: number) => {
-    const updatedItems = [...selectedItems]
-    updatedItems[index].quantity = quantity
-    setSelectedItems(updatedItems)
+    if (quantity <= 0) {
+      setSelectedItems(selectedItems.filter((_, i) => i !== index))
+      return
+    }
+    const item = selectedItems[index]
+    let cappedQuantity = quantity
+    if (item && !item.merchandise_id) {
+      const pricing = tripPricing.find(
+        (p) => p.ticket_type === item.item_type,
+      )
+      if (pricing) {
+        const otherSameType = selectedItems
+          .filter(
+            (x, i) =>
+              i !== index && !x.merchandise_id && x.item_type === item.item_type,
+          )
+          .reduce((sum, x) => sum + x.quantity, 0)
+        cappedQuantity = Math.min(
+          quantity,
+          Math.max(0, pricing.remaining - otherSameType),
+        )
+      }
+    }
+    setSelectedItems(
+      selectedItems.map((it, i) =>
+        i === index ? { ...it, quantity: cappedQuantity } : it,
+      ),
+    )
   }
 
   // Remove item
@@ -468,7 +533,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     setSelectedItems(updatedItems)
   }
 
-  // Get display name for item type
   const getItemDisplayName = (item: SelectedBookingItem) => {
     if (item.merchandise_id) {
       const merchandise = tripMerchandise.find(
@@ -476,8 +540,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       )
       return merchandise?.name || "Merchandise"
     }
-
     return item.item_type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
   // Reset form on close
@@ -530,8 +595,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       })
                       .map((trip: TripPublic) => (
                         <option key={trip.id} value={trip.id}>
-                          {trip.type} -{" "}
-                          {formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}
+                          {formatTripOptionLabel(trip)}
                         </option>
                       ))}
                   </NativeSelect>
@@ -545,7 +609,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     >
                       {tripBoats.map((tb, idx) => (
                         <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
-                          {boatNames[tb.boat_id] || tb.boat_id}
+                          {boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id}{" "}
+                          ({tb.remaining_capacity} spots left)
                         </option>
                       ))}
                     </NativeSelect>
@@ -655,18 +720,26 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       >
                         <Text fontWeight="medium">Tickets</Text>
                         <HStack gap={2} flexWrap="wrap">
-                          {tripPricing.map((pricing) => (
+                          {tripPricing.map((pricing: EffectivePricingItem) => (
                             <Button
                               key={pricing.ticket_type}
                               size="sm"
                               variant="outline"
-                              onClick={() => addTicketItem(pricing.ticket_type)}
+                              disabled={ticketCapacityReachedForType(
+                                pricing.ticket_type,
+                              )}
+                              onClick={() =>
+                                addTicketItem(pricing.ticket_type)
+                              }
                             >
                               <FiPlus style={{ marginRight: "4px" }} />
                               {pricing.ticket_type
                                 .replace("_", " ")
                                 .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
                               - ${formatCents(pricing.price)}
+                              {pricing.remaining >= 0 && (
+                                <> ({pricing.remaining} left)</>
+                              )}
                             </Button>
                           ))}
                         </HStack>
@@ -730,12 +803,40 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                             <HStack gap={2}>
                               <Input
                                 type="number"
-                                min="1"
+                                min={0}
+                                max={
+                                  item.merchandise_id
+                                    ? tripMerchandise.find(
+                                        (m) => m.id === item.merchandise_id,
+                                      )?.quantity_available ?? 999
+                                    : (() => {
+                                        const pricing = tripPricing.find(
+                                          (p) =>
+                                            p.ticket_type === item.item_type,
+                                        )
+                                        if (!pricing) return 999
+                                        const otherSameType = selectedItems
+                                          .filter(
+                                            (x, i) =>
+                                              i !== index &&
+                                              !x.merchandise_id &&
+                                              x.item_type === item.item_type,
+                                          )
+                                          .reduce(
+                                            (sum, x) => sum + x.quantity,
+                                            0,
+                                          )
+                                        return Math.max(
+                                          0,
+                                          pricing.remaining - otherSameType,
+                                        )
+                                      })()
+                                }
                                 value={item.quantity}
                                 onChange={(e) =>
                                   updateItemQuantity(
                                     index,
-                                    Number.parseInt(e.target.value) || 1,
+                                    Number.parseInt(e.target.value) || 0,
                                   )
                                 }
                                 style={{ width: "60px" }}
