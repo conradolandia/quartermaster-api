@@ -56,6 +56,26 @@ def retrieve_payment_intent(payment_intent_id: str) -> stripe.PaymentIntent:
         )
 
 
+def update_payment_intent_amount(
+    payment_intent_id: str, amount: int, currency: str = "usd"
+) -> stripe.PaymentIntent | None:
+    """
+    Update a PaymentIntent's amount. Only works when the PaymentIntent is in a
+    mutable state (e.g. requires_payment_method, requires_confirmation).
+
+    Returns:
+        The updated PaymentIntent, or None if the update failed (e.g. PI not mutable).
+    """
+    try:
+        return stripe.PaymentIntent.modify(
+            payment_intent_id,
+            amount=amount,
+            currency=currency,
+        )
+    except stripe.error.StripeError:
+        return None
+
+
 def refund_payment(payment_intent_id: str, amount: int | None = None) -> stripe.Refund:
     """
     Refund a payment through Stripe.

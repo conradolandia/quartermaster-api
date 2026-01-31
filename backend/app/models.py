@@ -985,6 +985,22 @@ class BookingUpdate(SQLModel):
     discount_code_id: uuid.UUID | None = None
 
 
+class BookingDraftUpdate(SQLModel):
+    """Public PATCH for draft/pending_payment bookings by confirmation code."""
+
+    user_name: str | None = Field(default=None, max_length=255)
+    user_email: str | None = Field(default=None, max_length=255)
+    user_phone: str | None = Field(default=None, max_length=40)
+    billing_address: str | None = Field(default=None, max_length=1000)
+    special_requests: str | None = None
+    launch_updates_pref: bool | None = None
+    tip_amount: int | None = None  # cents
+    subtotal: int | None = None  # cents
+    discount_amount: int | None = None  # cents
+    tax_amount: int | None = None  # cents
+    total_amount: int | None = None  # cents
+
+
 class Booking(BookingBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(

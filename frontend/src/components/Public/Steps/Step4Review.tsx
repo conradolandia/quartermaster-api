@@ -79,8 +79,28 @@ const Step4Review = ({
         return;
       }
       try {
+        let bookingToUse = booking;
         if (!skipHydrateForm) {
           onResumeBookingLoaded?.(booking);
+        } else {
+          // User edited the form; persist to backend so payment/confirmation use updated details
+          const updated = await BookingsService.bookingPublicUpdateDraftBooking({
+            confirmationCode: code,
+            requestBody: {
+              user_name: `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`.trim() || undefined,
+              user_email: bookingData.customerInfo.email || undefined,
+              user_phone: bookingData.customerInfo.phone || undefined,
+              billing_address: bookingData.customerInfo.billing_address || undefined,
+              special_requests: bookingData.customerInfo.special_requests || undefined,
+              launch_updates_pref: bookingData.customerInfo.launch_updates_pref ?? undefined,
+              tip_amount: bookingData.tip ?? undefined,
+              subtotal: bookingData.subtotal,
+              discount_amount: bookingData.discount_amount,
+              tax_amount: bookingData.tax_amount,
+              total_amount: bookingData.total,
+            },
+          });
+          bookingToUse = updated;
         }
         const paymentData =
           status === "draft"
@@ -90,7 +110,7 @@ const Step4Review = ({
             : await BookingsService.resumePayment({
                 confirmationCode: code,
               });
-        onBookingReady({ booking, paymentData });
+        onBookingReady({ booking: bookingToUse, paymentData });
       } catch {
         navigate({
           to: "/book",

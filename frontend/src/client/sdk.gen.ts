@@ -38,6 +38,8 @@ import type {
   BookingsExportBookingsCsvResponse,
   BookingsGetBookingQrCodeData,
   BookingsGetBookingQrCodeResponse,
+  BookingPublicUpdateDraftBookingData,
+  BookingPublicUpdateDraftBookingResponse,
   BookingsGetBookingByConfirmationCodeData,
   BookingsGetBookingByConfirmationCodeResponse,
   BookingsInitializePaymentData,
@@ -697,6 +699,33 @@ export class BookingsService {
       path: {
         confirmation_code: data.confirmationCode,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Draft Booking By Confirmation Code
+   * Update a draft or pending_payment booking by confirmation code (public).
+   * Only customer details and optional pricing fields can be updated.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static bookingPublicUpdateDraftBooking(
+    data: BookingPublicUpdateDraftBookingData,
+  ): CancelablePromise<BookingPublicUpdateDraftBookingResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

@@ -80,6 +80,23 @@ export type BookingCreate = {
   items: Array<BookingItemCreate>
 }
 
+/**
+ * Public PATCH for draft/pending_payment bookings by confirmation code.
+ */
+export type BookingDraftUpdate = {
+  user_name?: string | null
+  user_email?: string | null
+  user_phone?: string | null
+  billing_address?: string | null
+  special_requests?: string | null
+  launch_updates_pref?: boolean | null
+  tip_amount?: number | null
+  subtotal?: number | null
+  discount_amount?: number | null
+  tax_amount?: number | null
+  total_amount?: number | null
+}
+
 export type BookingItemCreate = {
   trip_id: string
   boat_id: string
@@ -739,6 +756,13 @@ export type BookingsGetBookingQrCodeData = {
 }
 
 export type BookingsGetBookingQrCodeResponse = unknown
+
+export type BookingPublicUpdateDraftBookingData = {
+  confirmationCode: string
+  requestBody: BookingDraftUpdate
+}
+
+export type BookingPublicUpdateDraftBookingResponse = BookingPublic
 
 export type BookingsGetBookingByConfirmationCodeData = {
   confirmationCode: string

@@ -15,8 +15,10 @@ from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.config import settings
+from app.core.stripe import update_payment_intent_amount
 from app.models import (
     Booking,
+    BookingDraftUpdate,
     BookingItem,
     BookingItemPublic,
     BookingPublic,
@@ -94,6 +96,110 @@ def get_booking_qr_code(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred generating QR code.",
+        )
+
+
+@router.patch(
+    "/{confirmation_code}",
+    response_model=BookingPublic,
+    operation_id="booking_public_update_draft_booking",
+)
+def update_draft_booking_by_confirmation_code(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+    booking_in: BookingDraftUpdate,
+) -> BookingPublic:
+    """
+    Update a draft or pending_payment booking by confirmation code (public).
+    Only customer details and optional pricing fields can be updated.
+    """
+    try:
+        validate_confirmation_code(confirmation_code)
+        update_data = booking_in.model_dump(exclude_unset=True)
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No update data provided",
+            )
+
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
+        if not booking:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found with the provided confirmation code",
+            )
+        if booking.status not in (
+            BookingStatus.draft,
+            BookingStatus.pending_payment,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot update booking with status '{booking.status}'",
+            )
+
+        if "tip_amount" in update_data and update_data["tip_amount"] is not None:
+            if update_data["tip_amount"] < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Tip amount cannot be negative",
+                )
+        for amount_field in (
+            "subtotal",
+            "discount_amount",
+            "tax_amount",
+            "total_amount",
+        ):
+            if amount_field in update_data and update_data[amount_field] is not None:
+                if update_data[amount_field] < 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"{amount_field} cannot be negative",
+                    )
+
+        for key, value in update_data.items():
+            setattr(booking, key, value)
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
+
+        # Sync amount to Stripe when total changed and payment already initialized
+        if (
+            "total_amount" in update_data
+            and booking.payment_intent_id
+            and booking.status == BookingStatus.pending_payment
+            and booking.total_amount >= 50
+        ):
+            updated_pi = update_payment_intent_amount(
+                booking.payment_intent_id, booking.total_amount
+            )
+            if not updated_pi:
+                logger.warning(
+                    "Could not update PaymentIntent %s amount to %s (e.g. not mutable)",
+                    booking.payment_intent_id,
+                    booking.total_amount,
+                )
+
+        items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+        booking_public = BookingPublic.model_validate(booking)
+        booking_public.items = [
+            BookingItemPublic.model_validate(item) for item in items
+        ]
+        return booking_public
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error updating draft booking {confirmation_code}: {e}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later.",
         )
 
 
