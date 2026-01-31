@@ -103,13 +103,18 @@ const Step2ItemSelection = ({
     !isLoadingJurisdictions &&
     (!jurisdictionsData?.data || jurisdictionsData.data.length === 0)
 
-  // Auto-validate discount code if it was pre-filled from URL
+  // Auto-validate discount code when pre-filled from URL (or when code changes). Run when we have
+  // a code that is not yet applied (e.g. Step2 just mounted with ?discount=LOL67).
   useEffect(() => {
-    if (bookingData.discount_code && bookingData.discount_code !== discountCode) {
-      setDiscountCode(bookingData.discount_code)
-      validateDiscountCode(bookingData.discount_code)
+    const codeFromUrl = bookingData.discount_code?.trim()
+    if (!codeFromUrl) return
+    if (discountCode !== codeFromUrl) {
+      setDiscountCode(codeFromUrl)
     }
-  }, [bookingData.discount_code])
+    if (appliedDiscountCode?.code !== codeFromUrl) {
+      validateDiscountCode(codeFromUrl)
+    }
+  }, [bookingData.discount_code, appliedDiscountCode?.code])
 
   // Validate discount code
   const validateDiscountCode = async (code: string) => {
@@ -181,17 +186,50 @@ const Step2ItemSelection = ({
     enabled: !!bookingData.selectedTripId,
   })
 
+  // Compute discount from applied code and current subtotal (so discount updates when items change)
+  const discountFromCode = (
+    codeData: { discount_type: string; discount_value: number; max_discount_amount?: number | null },
+    subtotal: number,
+  ): number => {
+    if (subtotal <= 0) return 0
+    let calculated = 0
+    if (codeData.discount_type === "percentage") {
+      const rate =
+        codeData.discount_value > 1 ? codeData.discount_value / 100 : codeData.discount_value
+      calculated = Math.round(subtotal * rate)
+      if (codeData.max_discount_amount != null) {
+        calculated = Math.min(calculated, codeData.max_discount_amount)
+      }
+      calculated = Math.min(calculated, subtotal)
+    } else {
+      calculated = Math.round(codeData.discount_value)
+      if (codeData.max_discount_amount != null) {
+        calculated = Math.min(calculated, codeData.max_discount_amount)
+      }
+      calculated = Math.min(calculated, subtotal)
+    }
+    return calculated
+  }
+
   // Calculate pricing whenever items or tax rate change (all amounts in cents)
   // Re-run when jurisdictionsData loads so tax is applied once jurisdiction is available
   useEffect(() => {
     const subtotal = bookingData.selectedItems.reduce((sum, item) => {
       return sum + item.price_per_unit * item.quantity
     }, 0)
-    const discountCapped = Math.min(discountAmount, subtotal)
+    const effectiveDiscount = appliedDiscountCode
+      ? discountFromCode(appliedDiscountCode, subtotal)
+      : discountAmount
+    const discountCapped = Math.min(effectiveDiscount, subtotal)
     const afterDiscount = Math.max(0, subtotal - discountCapped)
     // taxRatePercent is 0-100 (e.g. 8.5 for 8.5%); sales_tax_rate from API is 0-1
     const taxAmount = Math.round(afterDiscount * (taxRatePercent / 100))
     const total = afterDiscount + taxAmount + Math.max(0, tip)
+
+    // Keep discountAmount in sync when code is applied so suggested-tip and UI stay correct
+    if (appliedDiscountCode && effectiveDiscount !== discountAmount) {
+      setDiscountAmount(effectiveDiscount)
+    }
 
     updateBookingData({
       subtotal,

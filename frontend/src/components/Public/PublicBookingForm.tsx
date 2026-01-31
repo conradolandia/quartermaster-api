@@ -250,7 +250,13 @@ const PublicBookingForm = ({
             bookingData={bookingData}
             onBack={onBackFromStep4}
             bookingResult={bookingResult}
-            onBookingReady={setBookingResult}
+            onBookingReady={(result) => {
+              setBookingResult(result)
+              // Mark that we have shown this booking so returning from step 3 does not overwrite edits
+              if (result?.booking?.confirmation_code) {
+                hydratedForCodeRef.current = result.booking.confirmation_code
+              }
+            }}
             onResumeBookingLoaded={(booking) => {
               setBookingData(bookingPublicToStepData(booking))
               hydratedForCodeRef.current = booking.confirmation_code
