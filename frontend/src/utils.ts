@@ -162,33 +162,18 @@ export function formatLocationTimezoneDisplay(ianaTimezone: string): string {
 }
 
 /**
- * Common timezone abbreviations (US-centric) to IANA. Used when user enters e.g. "EST" in location form.
- * Backend stores IANA only.
+ * Valid American IANA timezones for location timezone select. Backend expects IANA names.
  */
-const ABBR_TO_IANA: Record<string, string> = {
-  UTC: "UTC",
-  EST: "America/New_York",
-  EDT: "America/New_York",
-  CST: "America/Chicago",
-  CDT: "America/Chicago",
-  MST: "America/Denver",
-  MDT: "America/Denver",
-  PST: "America/Los_Angeles",
-  PDT: "America/Los_Angeles",
-  AKST: "America/Anchorage",
-  AKDT: "America/Anchorage",
-  HST: "Pacific/Honolulu",
-}
-
-/**
- * Resolve user timezone input to IANA for API. Accepts IANA (e.g. America/New_York) or abbreviation (e.g. EST).
- */
-export function resolveTimezoneInput(input: string | null | undefined): string | null {
-  const trimmed = input?.trim()
-  if (!trimmed) return null
-  if (trimmed.includes("/")) return trimmed
-  return ABBR_TO_IANA[trimmed.toUpperCase()] ?? null
-}
+export const US_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Phoenix",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+] as const
 
 /**
  * Format an amount in cents as dollars with two decimal places (e.g. 1234 -> "12.34").

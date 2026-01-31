@@ -18,7 +18,7 @@ import {
   LocationsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, resolveTimezoneInput } from "@/utils"
+import { formatLocationTimezoneDisplay, handleError, US_TIMEZONES } from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
+import { NativeSelect } from "../ui/native-select"
 import StateDropdown from "./StateDropdown"
 
 interface EditLocationProps {
@@ -46,7 +47,6 @@ const EditLocation = ({ location }: EditLocationProps) => {
     handleSubmit,
     reset,
     control,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<LocationUpdate>({
     mode: "onBlur",
@@ -88,18 +88,7 @@ const EditLocation = ({ location }: EditLocationProps) => {
   })
 
   const onSubmit: SubmitHandler<LocationUpdate> = async (data) => {
-    if (data.timezone != null && data.timezone !== "") {
-      const resolved = resolveTimezoneInput(data.timezone)
-      if (resolved === null) {
-        setError("timezone", {
-          message: "Use IANA (e.g. America/New_York) or abbreviation (e.g. EST, PST).",
-        })
-        return
-      }
-      mutation.mutate({ ...data, timezone: resolved })
-    } else {
-      mutation.mutate(data)
-    }
+    mutation.mutate(data)
   }
 
   return (
@@ -173,17 +162,31 @@ const EditLocation = ({ location }: EditLocationProps) => {
                     )}
                   />
                 </Field>
-                <Field
-                  label="Timezone"
-                  invalid={!!errors.timezone}
-                  errorText={errors.timezone?.message}
-                >
-                  <Input
-                    id="timezone"
-                    {...register("timezone", {
-                      maxLength: { value: 64, message: "Max 64 characters" },
-                    })}
-                    placeholder="e.g. America/New_York or EST"
+                <Field label="Timezone">
+                  <Controller
+                    name="timezone"
+                    control={control}
+                    render={({ field }) => {
+                      const value = field.value ?? "UTC"
+                      const options =
+                        value && !(US_TIMEZONES as readonly string[]).includes(value)
+                          ? [value, ...US_TIMEZONES]
+                          : [...US_TIMEZONES]
+                      return (
+                        <NativeSelect
+                          id="timezone"
+                          value={value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          disabled={isSubmitting}
+                        >
+                          {options.map((tz) => (
+                            <option key={tz} value={tz}>
+                              {formatLocationTimezoneDisplay(tz)}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      )
+                    }}
                   />
                 </Field>
               </VStack>

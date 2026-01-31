@@ -372,7 +372,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  {new Date(booking.created_at).toLocaleDateString()}
+                  {new Date(booking.created_at).toLocaleString(undefined, {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
                 </Table.Cell>
                 <Table.Cell>
                   <BookingActionsMenu booking={booking} />
