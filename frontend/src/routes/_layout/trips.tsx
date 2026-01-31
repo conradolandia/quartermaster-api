@@ -384,7 +384,7 @@ function TripsTable() {
                 </Table.Cell>
                 <Table.Cell maxW="sm">
                   {boats != null && boats.length > 0 ? (
-                    <VStack align="stretch" gap={1} fontSize="sm">
+                    <VStack align="stretch" gap={1} fontSize="xs" textTransform="uppercase">
                       {boats.map((tb) => {
                         const used = tb.max_capacity - tb.remaining_capacity
                         const name = tb.boat?.name ?? "Boat"

@@ -8,8 +8,8 @@ from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    BoatPublic,
     TripBoatCreate,
-    TripBoatPublic,
     TripBoatPublicWithAvailability,
     TripBoatUpdate,
 )
@@ -84,12 +84,14 @@ def read_trip_boats_by_trip(
         )
         booked = paid_counts.get(tb.boat_id, 0)
         remaining = max(0, effective_max - booked)
-        base = TripBoatPublic.model_validate(tb)
-        base_dict = base.model_dump()
-        base_dict.pop("max_capacity", None)  # subclass uses required effective max
         result.append(
             TripBoatPublicWithAvailability(
-                **base_dict,
+                trip_id=tb.trip_id,
+                boat_id=tb.boat_id,
+                id=tb.id,
+                created_at=tb.created_at,
+                updated_at=tb.updated_at,
+                boat=BoatPublic.model_validate(tb.boat),
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
             )
@@ -233,12 +235,14 @@ def read_public_trip_boats_by_trip(
         )
         booked = paid_counts.get(tb.boat_id, 0)
         remaining = max(0, effective_max - booked)
-        base = TripBoatPublic.model_validate(tb)
-        base_dict = base.model_dump()
-        base_dict.pop("max_capacity", None)  # subclass uses required effective max
         result.append(
             TripBoatPublicWithAvailability(
-                **base_dict,
+                trip_id=tb.trip_id,
+                boat_id=tb.boat_id,
+                id=tb.id,
+                created_at=tb.created_at,
+                updated_at=tb.updated_at,
+                boat=BoatPublic.model_validate(tb.boat),
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
             )
