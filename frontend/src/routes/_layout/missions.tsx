@@ -41,6 +41,7 @@ import PendingMissions from "@/components/Pending/PendingMissions"
 type SortableColumn =
   | "name"
   | "launch_id"
+  | "trip_count"
   | "sales_open_at"
   | "active"
   | "total_bookings"
@@ -51,7 +52,15 @@ const missionsSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
-    .enum(["name", "launch_id", "sales_open_at", "active", "total_bookings", "total_sales"])
+    .enum([
+      "name",
+      "launch_id",
+      "trip_count",
+      "sales_open_at",
+      "active",
+      "total_bookings",
+      "total_sales",
+    ])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
@@ -72,6 +81,12 @@ const sortMissions = (
     if (sortBy === "sales_open_at") {
       aValue = a.sales_open_at ? parseApiDate(a.sales_open_at).getTime() : 0
       bValue = b.sales_open_at ? parseApiDate(b.sales_open_at).getTime() : 0
+    }
+
+    // Coerce optional numeric stats to 0 for sorting
+    if (sortBy === "trip_count" || sortBy === "total_bookings" || sortBy === "total_sales") {
+      aValue = typeof aValue === "number" ? aValue : 0
+      bValue = typeof bValue === "number" ? bValue : 0
     }
 
     // Handle booleans
@@ -272,6 +287,18 @@ function Missions() {
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
+                  w="xs"
+                  fontWeight="bold"
+                  cursor="pointer"
+                  onClick={() => handleSort("trip_count")}
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  <Flex align="center">
+                    Trips
+                    <SortIcon column="trip_count" />
+                  </Flex>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader
                   w="sm"
                   fontWeight="bold"
                   cursor="pointer"
@@ -330,6 +357,9 @@ function Missions() {
                 <Table.Cell display={{ base: "none", md: "table-cell" }}>
                   {launchesMap.get(mission.launch_id)?.name ||
                     mission.launch_id}
+                </Table.Cell>
+                <Table.Cell display={{ base: "none", md: "table-cell" }}>
+                  {mission.trip_count ?? 0}
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}

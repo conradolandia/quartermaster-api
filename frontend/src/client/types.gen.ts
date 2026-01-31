@@ -479,6 +479,7 @@ export type MissionWithStats = {
   created_at: string
   updated_at: string
   timezone?: string
+  trip_count?: number
   total_bookings?: number
   total_sales?: number
 }

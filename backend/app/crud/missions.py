@@ -190,6 +190,7 @@ def get_missions_with_stats(
                 "created_at": created_at,
                 "updated_at": updated_at,
                 "timezone": timezone_val,
+                "trip_count": len(trip_ids),
                 "total_bookings": total_bookings,
                 "total_sales": float(total_sales),
             }
