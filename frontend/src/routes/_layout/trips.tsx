@@ -19,8 +19,9 @@ import { z } from "zod"
 
 import {
   MissionsService,
-  TripBoatsService,
+  type TripBoatPublicWithAvailability,
   type TripPublic,
+  TripBoatsService,
   TripsService,
 } from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
@@ -123,22 +124,22 @@ function TripsTable() {
     })
   }
 
-  // Store trip boat counts
-  const [tripBoatCounts, setTripBoatCounts] = useState<Record<string, number>>(
-    {},
-  )
+  // Store trip boats with capacity (per boat) per trip
+  const [tripBoatsByTrip, setTripBoatsByTrip] = useState<
+    Record<string, TripBoatPublicWithAvailability[]>
+  >({})
 
   // Get trips from data
   const tripsData = data?.data ?? []
 
-  // Fetch boat counts for each trip when trips change
+  // Fetch trip boats (with capacity per boat) for each trip when trips change
   useEffect(() => {
     tripsData.forEach((trip) => {
       TripBoatsService.readTripBoatsByTrip({ tripId: trip.id })
-        .then((response: any) => {
-          setTripBoatCounts((prev) => ({
+        .then((boats) => {
+          setTripBoatsByTrip((prev) => ({
             ...prev,
-            [trip.id]: response.length,
+            [trip.id]: Array.isArray(boats) ? boats : [],
           }))
         })
         .catch((error) => {
@@ -360,7 +361,7 @@ function TripsTable() {
         <Table.Body>
           {tripsToShow.map((trip) => {
             const mission = missionsMap.get(trip.mission_id)
-            const boatCount = tripBoatCounts[trip.id] || 0
+            const boats = tripBoatsByTrip[trip.id]
 
             return (
               <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
@@ -381,8 +382,22 @@ function TripsTable() {
                 <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                   {renderTripDate(trip.departure_time, trip.timezone)}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
-                  {boatCount} boat{boatCount !== 1 ? "s" : ""}
+                <Table.Cell maxW="sm">
+                  {boats != null && boats.length > 0 ? (
+                    <VStack align="stretch" gap={1} fontSize="sm">
+                      {boats.map((tb) => {
+                        const used = tb.max_capacity - tb.remaining_capacity
+                        const name = tb.boat?.name ?? "Boat"
+                        return (
+                          <Text key={tb.boat_id} truncate title={`${name}: ${used} / ${tb.max_capacity}`}>
+                            {name}: {used} / {tb.max_capacity}
+                          </Text>
+                        )
+                      })}
+                    </VStack>
+                  ) : (
+                    "—"
+                  )}
                 </Table.Cell>
                 <Table.Cell>
                   <Badge colorScheme={trip.active ? "green" : "red"}>

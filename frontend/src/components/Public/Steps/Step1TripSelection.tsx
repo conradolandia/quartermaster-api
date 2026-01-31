@@ -16,6 +16,7 @@ import * as React from "react"
 import {
   BoatsService,
   TripBoatsService,
+  type TripBoatPublicWithAvailability,
   type TripPublic,
   TripsService,
 } from "@/client"
@@ -73,21 +74,20 @@ const Step1TripSelection = ({
     enabled: !!bookingData.selectedTripId,
   })
 
-  const tripBoats: Array<{ boat_id: string }> = Array.isArray(tripBoatsResponse)
+  const tripBoats: TripBoatPublicWithAvailability[] = Array.isArray(
+    tripBoatsResponse,
+  )
     ? tripBoatsResponse
     : []
 
-  // Fetch boat names for display (using public endpoint)
+  // Fetch boat names for display (fallback when boat not in response)
   const { data: boatNames, isLoading: isLoadingBoatNames } = useQuery({
-    queryKey: [
-      "public-boat-names",
-      tripBoats.map((tb: { boat_id: string }) => tb.boat_id),
-    ],
+    queryKey: ["public-boat-names", tripBoats.map((tb) => tb.boat_id)],
     queryFn: async () => {
       if (!tripBoats || tripBoats.length === 0) return {}
       const names: Record<string, string> = {}
       await Promise.all(
-        tripBoats.map(async (tripBoat: { boat_id: string }) => {
+        tripBoats.map(async (tripBoat) => {
           try {
             const boat = await BoatsService.readPublicBoat({
               boatId: tripBoat.boat_id,
@@ -122,7 +122,7 @@ const Step1TripSelection = ({
     )
   }
 
-  // Auto-select the first boat when boats are available
+  // Auto-select the first boat when boats are available and set remaining capacity
   React.useEffect(() => {
     if (
       bookingData.selectedTripId &&
@@ -130,7 +130,11 @@ const Step1TripSelection = ({
       tripBoats.length > 0 &&
       !bookingData.selectedBoatId
     ) {
-      updateBookingData({ selectedBoatId: tripBoats[0].boat_id })
+      const first = tripBoats[0]
+      updateBookingData({
+        selectedBoatId: first.boat_id,
+        boatRemainingCapacity: first.remaining_capacity,
+      })
     }
   }, [
     bookingData.selectedTripId,
@@ -139,14 +143,46 @@ const Step1TripSelection = ({
     updateBookingData,
   ])
 
+  // Keep boatRemainingCapacity in sync when selected boat or trip boats change
+  React.useEffect(() => {
+    if (!bookingData.selectedBoatId || !tripBoats?.length) return
+    const selected = tripBoats.find(
+      (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
+    )
+    if (selected && selected.remaining_capacity <= 0) {
+      updateBookingData({
+        selectedBoatId: "",
+        boatRemainingCapacity: null,
+      })
+      return
+    }
+    const remaining = selected?.remaining_capacity ?? null
+    if (remaining !== bookingData.boatRemainingCapacity) {
+      updateBookingData({ boatRemainingCapacity: remaining })
+    }
+  }, [
+    bookingData.selectedBoatId,
+    bookingData.boatRemainingCapacity,
+    tripBoats,
+    updateBookingData,
+  ])
+
   const handleTripChange = (details: { value: string[] }) => {
     const tripId = details.value[0] || ""
-    updateBookingData({ selectedTripId: tripId, selectedBoatId: "" })
+    updateBookingData({
+      selectedTripId: tripId,
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
+    })
   }
 
   const handleBoatChange = (details: { value: string[] }) => {
     const boatId = details.value[0] || ""
-    updateBookingData({ selectedBoatId: boatId })
+    const selected = tripBoats?.find((tb) => String(tb.boat_id) === String(boatId))
+    updateBookingData({
+      selectedBoatId: boatId,
+      boatRemainingCapacity: selected?.remaining_capacity ?? null,
+    })
   }
 
   // Allow proceeding if trip is selected and either boat is explicitly selected OR there's only one boat available
@@ -190,10 +226,18 @@ const Step1TripSelection = ({
 
   const boatsCollection = createListCollection({
     items:
-      tripBoats?.map((tripBoat: { boat_id: string }) => ({
-        label: boatNames?.[tripBoat.boat_id] || "Loading...",
-        value: tripBoat.boat_id,
-      })) || [],
+      tripBoats
+        ?.filter((tb) => tb.remaining_capacity > 0)
+        .map((tripBoat: TripBoatPublicWithAvailability) => {
+          const name =
+            tripBoat.boat?.name ||
+            boatNames?.[tripBoat.boat_id] ||
+            "Loading..."
+          return {
+            label: `${name} (${tripBoat.remaining_capacity} spots left)`,
+            value: tripBoat.boat_id,
+          }
+        }) || [],
   })
 
   return (
@@ -346,20 +390,27 @@ const Step1TripSelection = ({
                         </Select.Control>
                         <Select.Positioner>
                           <Select.Content minWidth="300px">
-                            {tripBoats.map((tripBoat: { boat_id: string }) => (
-                              <Select.Item
-                                key={tripBoat.boat_id}
-                                item={{
-                                  value: tripBoat.boat_id,
-                                  label:
-                                    boatNames?.[tripBoat.boat_id] ||
-                                    "Loading...",
-                                }}
-                              >
-                                {boatNames?.[tripBoat.boat_id] || "Loading..."}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
+                            {tripBoats
+                              .filter((tb) => tb.remaining_capacity > 0)
+                              .map((tripBoat: TripBoatPublicWithAvailability) => {
+                                const name =
+                                  tripBoat.boat?.name ||
+                                  boatNames?.[tripBoat.boat_id] ||
+                                  "Loading..."
+                                const label = `${name} (${tripBoat.remaining_capacity} spots left)`
+                                return (
+                                  <Select.Item
+                                    key={tripBoat.boat_id}
+                                    item={{
+                                      value: tripBoat.boat_id,
+                                      label,
+                                    }}
+                                  >
+                                    {label}
+                                    <Select.ItemIndicator />
+                                  </Select.Item>
+                                )
+                              })}
                           </Select.Content>
                         </Select.Positioner>
                       </Select.Root>
@@ -383,7 +434,11 @@ const Step1TripSelection = ({
               tripBoats &&
               tripBoats.length > 0
             ) {
-              updateBookingData({ selectedBoatId: tripBoats[0].boat_id })
+              const first = tripBoats[0]
+              updateBookingData({
+                selectedBoatId: first.boat_id,
+                boatRemainingCapacity: first.remaining_capacity,
+              })
             }
             onNext()
           }}

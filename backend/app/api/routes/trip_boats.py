@@ -9,6 +9,8 @@ from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
     TripBoatCreate,
+    TripBoatPublic,
+    TripBoatPublicWithAvailability,
     TripBoatUpdate,
 )
 
@@ -48,7 +50,11 @@ def create_trip_boat(
     return trip_boat
 
 
-@router.get("/trip/{trip_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.get(
+    "/trip/{trip_id}",
+    response_model=list[TripBoatPublicWithAvailability],
+    dependencies=[Depends(get_current_active_superuser)],
+)
 def read_trip_boats_by_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -57,20 +63,38 @@ def read_trip_boats_by_trip(
     limit: int = 100,
 ) -> Any:
     """
-    Get all boats for a specific trip.
+    Get all boats for a specific trip with capacity and remaining slots per boat.
     """
-    # Verify that the trip exists
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    return trip_boats
+    paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
+        session=session, trip_id=trip_id
+    )
+    result: list[TripBoatPublicWithAvailability] = []
+    for tb in trip_boats:
+        effective_max = (
+            tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
+        )
+        booked = paid_counts.get(tb.boat_id, 0)
+        remaining = max(0, effective_max - booked)
+        base = TripBoatPublic.model_validate(tb)
+        base_dict = base.model_dump()
+        base_dict.pop("max_capacity", None)  # subclass uses required effective max
+        result.append(
+            TripBoatPublicWithAvailability(
+                **base_dict,
+                max_capacity=effective_max,
+                remaining_capacity=remaining,
+            )
+        )
+    return result
 
 
 @router.get("/boat/{boat_id}", dependencies=[Depends(get_current_active_superuser)])
@@ -159,7 +183,10 @@ def delete_trip_boat(
 
 
 # Public endpoint (no authentication required)
-@router.get("/public/trip/{trip_id}")
+@router.get(
+    "/public/trip/{trip_id}",
+    response_model=list[TripBoatPublicWithAvailability],
+)
 def read_public_trip_boats_by_trip(
     *,
     session: Session = Depends(deps.get_db),
@@ -196,4 +223,24 @@ def read_public_trip_boats_by_trip(
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    return trip_boats
+    paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
+        session=session, trip_id=trip_id
+    )
+    result: list[TripBoatPublicWithAvailability] = []
+    for tb in trip_boats:
+        effective_max = (
+            tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
+        )
+        booked = paid_counts.get(tb.boat_id, 0)
+        remaining = max(0, effective_max - booked)
+        base = TripBoatPublic.model_validate(tb)
+        base_dict = base.model_dump()
+        base_dict.pop("max_capacity", None)  # subclass uses required effective max
+        result.append(
+            TripBoatPublicWithAvailability(
+                **base_dict,
+                max_capacity=effective_max,
+                remaining_capacity=remaining,
+            )
+        )
+    return result

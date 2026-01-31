@@ -249,19 +249,32 @@ const Step2ItemSelection = ({
     jurisdictionsData,
   ])
 
+  const boatRemainingCapacity = bookingData.boatRemainingCapacity ?? null
+  const totalTicketCount = bookingData.selectedItems
+    .filter((item) => !item.trip_merchandise_id)
+    .reduce((sum, item) => sum + item.quantity, 0)
+  const ticketCapacityReached =
+    boatRemainingCapacity !== null && totalTicketCount >= boatRemainingCapacity
+
   const addTicket = (ticketType: string, price: number) => {
+    if (ticketCapacityReached) return
     const existingItem = bookingData.selectedItems.find(
       (item) => item.item_type === ticketType && !item.trip_merchandise_id,
     )
 
     if (existingItem) {
-      // Increment quantity
+      const newTotal =
+        totalTicketCount - existingItem.quantity + (existingItem.quantity + 1)
+      if (
+        boatRemainingCapacity !== null &&
+        newTotal > boatRemainingCapacity
+      )
+        return
       const updatedItems = bookingData.selectedItems.map((item) =>
         item === existingItem ? { ...item, quantity: item.quantity + 1 } : item,
       )
       updateBookingData({ selectedItems: updatedItems })
     } else {
-      // Add new item
       const newItem = {
         trip_id: bookingData.selectedTripId,
         item_type: ticketType,
@@ -306,18 +319,27 @@ const Step2ItemSelection = ({
 
   const updateItemQuantity = (index: number, newQuantity: number) => {
     if (newQuantity <= 0) {
-      // Remove item
       const updatedItems = bookingData.selectedItems.filter(
         (_, i) => i !== index,
       )
       updateBookingData({ selectedItems: updatedItems })
-    } else {
-      // Update quantity
-      const updatedItems = bookingData.selectedItems.map((item, i) =>
-        i === index ? { ...item, quantity: newQuantity } : item,
-      )
-      updateBookingData({ selectedItems: updatedItems })
+      return
     }
+    const item = bookingData.selectedItems[index]
+    let cappedQuantity = newQuantity
+    if (item && !item.trip_merchandise_id && boatRemainingCapacity !== null) {
+      const otherTickets = bookingData.selectedItems
+        .filter((x, i) => i !== index && !x.trip_merchandise_id)
+        .reduce((sum, x) => sum + x.quantity, 0)
+      cappedQuantity = Math.min(
+        newQuantity,
+        Math.max(0, boatRemainingCapacity - otherTickets),
+      )
+    }
+    const updatedItems = bookingData.selectedItems.map((item, i) =>
+      i === index ? { ...item, quantity: cappedQuantity } : item,
+    )
+    updateBookingData({ selectedItems: updatedItems })
   }
 
   const removeItem = (index: number) => {
@@ -379,9 +401,16 @@ const Step2ItemSelection = ({
                         <Text fontSize="sm" color="gray.400">
                           ${formatCents(pricing.price)} each
                         </Text>
+                        {boatRemainingCapacity !== null && (
+                          <Text fontSize="xs" color="text.muted" mt={1}>
+                            {boatRemainingCapacity - totalTicketCount} spots left
+                            on boat
+                          </Text>
+                        )}
                       </Box>
                       <Button
                         size="sm"
+                        disabled={ticketCapacityReached}
                         onClick={() =>
                           addTicket(pricing.ticket_type, pricing.price)
                         }
@@ -493,7 +522,31 @@ const Step2ItemSelection = ({
                             size="sm"
                             min={0}
                             max={
-                              merchandise ? merchandise.quantity_available : 999
+                              merchandise
+                                ? merchandise.quantity_available
+                                : (() => {
+                                    if (
+                                      !item.trip_merchandise_id &&
+                                      boatRemainingCapacity !== null
+                                    ) {
+                                      const otherTickets =
+                                        bookingData.selectedItems
+                                          .filter(
+                                            (x, i) =>
+                                              i !== index &&
+                                              !x.trip_merchandise_id,
+                                          )
+                                          .reduce(
+                                            (sum, x) => sum + x.quantity,
+                                            0,
+                                          )
+                                      return Math.max(
+                                        0,
+                                        boatRemainingCapacity - otherTickets,
+                                      )
+                                    }
+                                    return 999
+                                  })()
                             }
                             value={item.quantity.toString()}
                             onValueChange={(details) =>

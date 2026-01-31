@@ -9,6 +9,8 @@ export interface BookingStepData {
   // Step 1: Trip Selection
   selectedTripId: string
   selectedBoatId: string
+  /** Remaining passenger capacity for the selected boat (from API). */
+  boatRemainingCapacity: number | null
 
   // Step 2: Item Selection
   selectedItems: Array<{
@@ -58,6 +60,7 @@ function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
   return {
     selectedTripId: firstItem?.trip_id ?? "",
     selectedBoatId: firstItem?.boat_id ?? "",
+    boatRemainingCapacity: null,
     selectedItems: items.map((item) => ({
       trip_id: item.trip_id,
       item_type: item.item_type,
@@ -129,6 +132,7 @@ const PublicBookingForm = ({
     // Step 1: Trip Selection
     selectedTripId: "",
     selectedBoatId: "",
+    boatRemainingCapacity: null,
 
     // Step 2: Item Selection
     selectedItems: [],

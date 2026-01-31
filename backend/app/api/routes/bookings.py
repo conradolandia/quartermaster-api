@@ -1,11 +1,13 @@
 import logging
 import uuid
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlmodel import Session, func, select
 
+from app import crud
 from app.api import deps
 from app.core.config import settings
 from app.models import (
@@ -281,6 +283,41 @@ def create_booking(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Merchandise price mismatch",
                 )
+
+    # Validate boat capacity: total ticket count per (trip_id, boat_id) must not exceed capacity
+    ticket_quantity_by_trip_boat: dict[tuple[uuid.UUID, uuid.UUID], int] = defaultdict(
+        int
+    )
+    for item in booking_in.items:
+        if item.trip_merchandise_id is None:
+            ticket_quantity_by_trip_boat[(item.trip_id, item.boat_id)] += item.quantity
+    for (trip_id, boat_id), new_quantity in ticket_quantity_by_trip_boat.items():
+        trip_boat = session.exec(
+            select(TripBoat).where(
+                (TripBoat.trip_id == trip_id) & (TripBoat.boat_id == boat_id)
+            )
+        ).first()
+        if not trip_boat:
+            continue
+        boat = session.get(Boat, boat_id)
+        effective_max = (
+            trip_boat.max_capacity
+            if trip_boat.max_capacity is not None
+            else boat.capacity
+        )
+        paid = crud.get_paid_ticket_count_per_boat_for_trip(
+            session=session, trip_id=trip_id
+        ).get(boat_id, 0)
+        total_after = paid + new_quantity
+        if total_after > effective_max:
+            boat_name = boat.name if boat else str(boat_id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Boat '{boat_name}' has {effective_max} passenger capacity "
+                    f"with {paid} already booked; requested {new_quantity} would exceed capacity"
+                ),
+            )
 
     # Don't create PaymentIntent yet - booking starts as draft
 

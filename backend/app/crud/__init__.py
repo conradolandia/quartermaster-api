@@ -20,6 +20,7 @@ from .booking_items import (
     delete_booking_item,
     get_booking_item,
     get_booking_items_by_trip,
+    get_paid_ticket_count_per_boat_for_trip,
     update_booking_item,
 )
 from .jurisdictions import (
@@ -219,5 +220,6 @@ __all__ = [
     "delete_booking_item",
     "get_booking_item",
     "get_booking_items_by_trip",
+    "get_paid_ticket_count_per_boat_for_trip",
     "update_booking_item",
 ]

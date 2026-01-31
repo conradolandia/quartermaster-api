@@ -500,10 +500,29 @@ export type TripBoatPublic = {
   boat: BoatPublic
 }
 
+/**
+ * Trip boat with effective max capacity and remaining passenger slots.
+ */
+export type TripBoatPublicWithAvailability = {
+  trip_id: string
+  boat_id: string
+  max_capacity: number
+  id: string
+  created_at: string
+  updated_at: string
+  boat: BoatPublic
+  remaining_capacity: number
+}
+
 export type TripBoatUpdate = {
   trip_id?: string | null
   boat_id?: string | null
   max_capacity?: number | null
+}
+
+export type TripCapacityResponse = {
+  total_capacity: number
+  used_capacity: number
 }
 
 export type TripCreate = {
@@ -1195,7 +1214,8 @@ export type TripBoatsReadTripBoatsByTripData = {
   tripId: string
 }
 
-export type TripBoatsReadTripBoatsByTripResponse = unknown
+export type TripBoatsReadTripBoatsByTripResponse =
+  Array<TripBoatPublicWithAvailability>
 
 export type TripBoatsReadTripBoatsByBoatData = {
   boatId: string
@@ -1224,7 +1244,8 @@ export type TripBoatsReadPublicTripBoatsByTripData = {
   tripId: string
 }
 
-export type TripBoatsReadPublicTripBoatsByTripResponse = unknown
+export type TripBoatsReadPublicTripBoatsByTripResponse =
+  Array<TripBoatPublicWithAvailability>
 
 export type TripMerchandiseCreateTripMerchandiseData = {
   requestBody: TripMerchandiseCreate
@@ -1335,6 +1356,12 @@ export type TripsDeleteTripData = {
 }
 
 export type TripsDeleteTripResponse = TripPublic
+
+export type TripsReadTripCapacityData = {
+  tripId: string
+}
+
+export type TripsReadTripCapacityResponse = TripCapacityResponse
 
 export type TripsReadTripsByMissionData = {
   limit?: number

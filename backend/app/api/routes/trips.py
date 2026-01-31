@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app import crud
@@ -140,6 +141,45 @@ def read_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
     return _trip_to_public(session, trip)
+
+
+class TripCapacityResponse(BaseModel):
+    total_capacity: int
+    used_capacity: int
+
+
+@router.get(
+    "/{trip_id}/capacity",
+    response_model=TripCapacityResponse,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def read_trip_capacity(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+) -> Any:
+    """
+    Get total and used passenger capacity for a trip (across all boats).
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    trip_boats = crud.get_trip_boats_by_trip(session=session, trip_id=trip_id)
+    total_capacity = 0
+    for tb in trip_boats:
+        effective = tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
+        total_capacity += effective
+    paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
+        session=session, trip_id=trip_id
+    )
+    used_capacity = sum(paid_counts.values())
+    return TripCapacityResponse(
+        total_capacity=total_capacity,
+        used_capacity=used_capacity,
+    )
 
 
 @router.put(

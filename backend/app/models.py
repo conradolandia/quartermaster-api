@@ -689,6 +689,13 @@ class TripBoatPublic(TripBoatBase):
     boat: "BoatPublic"
 
 
+class TripBoatPublicWithAvailability(TripBoatPublic):
+    """Trip boat with effective max capacity and remaining passenger slots."""
+
+    max_capacity: int  # Effective capacity (TripBoat.max_capacity or Boat.capacity)
+    remaining_capacity: int  # max_capacity minus paid ticket count for this trip/boat
+
+
 # TripPricing models
 class TripPricingBase(SQLModel):
     trip_id: uuid.UUID = Field(foreign_key="trip.id")

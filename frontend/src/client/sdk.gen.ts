@@ -210,6 +210,8 @@ import type {
   TripsUpdateTripResponse,
   TripsDeleteTripData,
   TripsDeleteTripResponse,
+  TripsReadTripCapacityData,
+  TripsReadTripCapacityResponse,
   TripsReadTripsByMissionData,
   TripsReadTripsByMissionResponse,
   TripsReadPublicTripsData,
@@ -2340,12 +2342,12 @@ export class TripBoatsService {
 
   /**
    * Read Trip Boats By Trip
-   * Get all boats for a specific trip.
+   * Get all boats for a specific trip with capacity and remaining slots per boat.
    * @param data The data for the request.
    * @param data.tripId
    * @param data.skip
    * @param data.limit
-   * @returns unknown Successful Response
+   * @returns TripBoatPublicWithAvailability Successful Response
    * @throws ApiError
    */
   public static readTripBoatsByTrip(
@@ -2453,7 +2455,7 @@ export class TripBoatsService {
    * @param data.tripId
    * @param data.skip
    * @param data.limit
-   * @returns unknown Successful Response
+   * @returns TripBoatPublicWithAvailability Successful Response
    * @throws ApiError
    */
   public static readPublicTripBoatsByTrip(
@@ -2878,6 +2880,29 @@ export class TripsService {
     return __request(OpenAPI, {
       method: "DELETE",
       url: "/api/v1/trips/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trip Capacity
+   * Get total and used passenger capacity for a trip (across all boats).
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TripCapacityResponse Successful Response
+   * @throws ApiError
+   */
+  public static readTripCapacity(
+    data: TripsReadTripCapacityData,
+  ): CancelablePromise<TripsReadTripCapacityResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/{trip_id}/capacity",
       path: {
         trip_id: data.tripId,
       },
