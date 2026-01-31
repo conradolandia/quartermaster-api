@@ -5,19 +5,27 @@ import {
   Container,
   Flex,
   Heading,
-  Icon,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { FiArrowLeft, FiCheck, FiMail, FiPrinter } from "react-icons/fi";
+import { useState } from "react";
+import { FiArrowLeft, FiCheck, FiCode, FiMail, FiPrinter } from "react-icons/fi";
 
 import { BookingsService } from "@/client";
 import { formatCents } from "@/utils";
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails";
+import {
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import useCustomToast from "@/hooks/useCustomToast";
 import { formatDate, getStatusColor } from "./types";
 
@@ -31,6 +39,7 @@ export default function BookingDetails({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showSuccessToast, showErrorToast } = useCustomToast();
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
 
   const {
     data: booking,
@@ -98,7 +107,7 @@ export default function BookingDetails({
     return (
       <Container maxW="full">
         <VStack align="center" justify="center" minH="200px">
-          <Icon as={FiArrowLeft} boxSize={8} color="red.500" />
+          <Box as={FiArrowLeft} boxSize={8} color="red.500" />
           <Text fontSize="lg" fontWeight="bold">
             Booking Not Found
           </Text>
@@ -146,6 +155,16 @@ export default function BookingDetails({
           </Button>
           <Button
             size="sm"
+            variant="ghost"
+            onClick={() => setJsonDialogOpen(true)}
+          >
+            <Flex align="center" gap={2}>
+              <FiCode />
+              Raw data
+            </Flex>
+          </Button>
+          <Button
+            size="sm"
             colorPalette="green"
             onClick={() => checkInMutation.mutate()}
             loading={checkInMutation.isPending}
@@ -159,6 +178,42 @@ export default function BookingDetails({
           <BookingActionsMenu booking={booking} />
         </Flex>
       </Flex>
+
+      <DialogRoot
+        open={jsonDialogOpen}
+        onOpenChange={({ open }) => setJsonDialogOpen(open)}
+        size={{ base: "lg", md: "xl" }}
+        placement="center"
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Booking (raw JSON)</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Box
+              as="pre"
+              p={4}
+              borderRadius="md"
+              bg="dark.bg.secondary"
+              border="1px"
+              borderColor="dark.border.secondary"
+              overflow="auto"
+              maxH="70vh"
+              fontSize="xs"
+              fontFamily="mono"
+              whiteSpace="pre-wrap"
+              wordBreak="break-all"
+            >
+              {JSON.stringify(booking, null, 2)}
+            </Box>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setJsonDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
 
       <VStack align="stretch" gap={6}>
         <Flex gap={6} direction={{ base: "column", lg: "row" }}>
