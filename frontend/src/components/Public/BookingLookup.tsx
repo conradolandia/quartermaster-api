@@ -16,6 +16,7 @@ import { BookingsService, type BookingPublic } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
+import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 
 const BookingLookup = () => {
   const [confirmationCode, setConfirmationCode] = useState("")
@@ -206,35 +207,12 @@ const BookingLookup = () => {
                 </Box>
               )}
 
-              {/* Booking Items */}
+              {/* Tickets & merchandise included */}
               {currentBooking.items && currentBooking.items.length > 0 && (
-                <Box>
-                  <Heading size="sm" mb={3} color="text.muted">
-                    Booking Items
-                  </Heading>
-                  <VStack gap={2} align="stretch">
-                    {currentBooking.items.map((item, index) => (
-                      <HStack key={index} justify="space-between" p={3} bg="gray.50" borderRadius="md">
-                        <VStack align="start" gap={1}>
-                          <Text fontWeight="medium">
-                            {item.quantity}x {item.item_type.replace("_", " ")}
-                          </Text>
-                          <Text fontSize="sm" color="text.muted">
-                            ${formatCents(item.price_per_unit)} each
-                          </Text>
-                        </VStack>
-                        <VStack align="end" gap={1}>
-                          <Badge colorPalette={item.status === "fulfilled" ? "green" : item.status === "refunded" ? "orange" : "blue"}>
-                            {item.status}
-                          </Badge>
-                          <Text fontWeight="bold">
-                            ${formatCents(item.quantity * item.price_per_unit)}
-                          </Text>
-                        </VStack>
-                      </HStack>
-                    ))}
-                  </VStack>
-                </Box>
+                <PublicBookingItemsList
+                  items={currentBooking.items}
+                  headingColor="text.muted"
+                />
               )}
 
               {/* Pricing Summary */}

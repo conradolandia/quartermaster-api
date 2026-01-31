@@ -13,6 +13,7 @@ import { FiMail, FiPrinter } from "react-icons/fi"
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { formatCents } from "@/utils"
+import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 
 interface BookingConfirmationProps {
   confirmationCode?: string
@@ -94,8 +95,11 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
           <Heading size="lg" mb={2} color="green.300">
             Booking Confirmed!
           </Heading>
-          <Text color="gray.200">
+          <Text color="gray.200" mb={1}>
             Your rocket launch experience has been successfully booked.
+          </Text>
+          <Text fontSize="sm" color="gray.400">
+            A confirmation email has been sent to {booking.user_email}.
           </Text>
         </Box>
 
@@ -172,17 +176,46 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
             </Box>
           )}
 
+          {booking.items && booking.items.length > 0 && (
+            <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+              <PublicBookingItemsList items={booking.items} />
+            </Box>
+          )}
+
           <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
             <Heading size="sm" mb={4}>
               Order summary
             </Heading>
             <VStack gap={3} align="stretch">
               <HStack justify="space-between">
-                <Text fontWeight="medium">Items:</Text>
-                <Text>{booking.items?.length || 0} items</Text>
+                <Text fontWeight="medium">Subtotal:</Text>
+                <Text>${formatCents(booking.subtotal)}</Text>
               </HStack>
+              {booking.discount_amount > 0 && (
+                <HStack justify="space-between">
+                  <Text fontWeight="medium">Discount:</Text>
+                  <Text color="green.600">
+                    -${formatCents(booking.discount_amount)}
+                  </Text>
+                </HStack>
+              )}
               <HStack justify="space-between">
-                <Text fontWeight="medium">Total Amount:</Text>
+                <Text fontWeight="medium">Tax:</Text>
+                <Text>${formatCents(booking.tax_amount)}</Text>
+              </HStack>
+              {booking.tip_amount > 0 && (
+                <HStack justify="space-between">
+                  <Text fontWeight="medium">Tip:</Text>
+                  <Text>${formatCents(booking.tip_amount)}</Text>
+                </HStack>
+              )}
+              <HStack
+                justify="space-between"
+                borderTop="1px solid"
+                borderColor="gray.200"
+                pt={2}
+              >
+                <Text fontWeight="bold">Total:</Text>
                 <Text fontWeight="bold">
                   ${formatCents(booking.total_amount)}
                 </Text>
@@ -221,20 +254,6 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
             </VStack>
           </Box>
 
-          <Box
-            p={4}
-            bg="green.50"
-            border="1px"
-            borderColor="green.200"
-            borderRadius="md"
-          >
-            <Text fontWeight="medium" color="green.800">
-              Booking Confirmed!
-            </Text>
-            <Text fontSize="sm" color="green.700">
-              A confirmation email has been sent to {booking.user_email}
-            </Text>
-          </Box>
         </VStack>
 
         {/* Footer */}

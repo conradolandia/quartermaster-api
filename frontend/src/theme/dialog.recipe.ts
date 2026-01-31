@@ -14,7 +14,7 @@ export const dialogRecipe = defineSlotRecipe({
   base: {
     backdrop: {
       bg: "rgba(0, 0, 0, 0.6)",
-      backdropFilter: "blur(4px)",
+      //backdropFilter: "blur(4px)",
     },
     positioner: {
       display: "flex",

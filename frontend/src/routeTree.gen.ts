@@ -19,6 +19,7 @@ import { Route as BookConfirmImport } from './routes/book-confirm'
 import { Route as BookImport } from './routes/book'
 import { Route as LayoutImport } from './routes/_layout'
 import { Route as LayoutIndexImport } from './routes/_layout/index'
+import { Route as LayoutUsersImport } from './routes/_layout/users'
 import { Route as LayoutTripsImport } from './routes/_layout/trips'
 import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutRefundsImport } from './routes/_layout/refunds'
@@ -33,7 +34,6 @@ import { Route as LayoutDiscountCodesImport } from './routes/_layout/discount-co
 import { Route as LayoutCheckInImport } from './routes/_layout/check-in'
 import { Route as LayoutBookingsImport } from './routes/_layout/bookings'
 import { Route as LayoutBoatsImport } from './routes/_layout/boats'
-import { Route as LayoutUsersImport } from './routes/_layout/users'
 
 // Create/Update Routes
 
@@ -74,6 +74,11 @@ const LayoutRoute = LayoutImport.update({
 
 const LayoutIndexRoute = LayoutIndexImport.update({
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutUsersRoute = LayoutUsersImport.update({
+  path: '/users',
   getParentRoute: () => LayoutRoute,
 } as any)
 
@@ -147,11 +152,6 @@ const LayoutBoatsRoute = LayoutBoatsImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
-const LayoutUsersRoute = LayoutUsersImport.update({
-  path: '/users',
-  getParentRoute: () => LayoutRoute,
-} as any)
-
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -183,10 +183,6 @@ declare module '@tanstack/react-router' {
     '/reset-password': {
       preLoaderRoute: typeof ResetPasswordImport
       parentRoute: typeof rootRoute
-    }
-    '/_layout/users': {
-      preLoaderRoute: typeof LayoutUsersImport
-      parentRoute: typeof LayoutImport
     }
     '/_layout/boats': {
       preLoaderRoute: typeof LayoutBoatsImport
@@ -244,6 +240,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutTripsImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/users': {
+      preLoaderRoute: typeof LayoutUsersImport
+      parentRoute: typeof LayoutImport
+    }
     '/_layout/': {
       preLoaderRoute: typeof LayoutIndexImport
       parentRoute: typeof LayoutImport
@@ -255,7 +255,6 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren([
   LayoutRoute.addChildren([
-    LayoutUsersRoute,
     LayoutBoatsRoute,
     LayoutBookingsRoute,
     LayoutCheckInRoute,
@@ -270,6 +269,7 @@ export const routeTree = rootRoute.addChildren([
     LayoutRefundsRoute,
     LayoutSettingsRoute,
     LayoutTripsRoute,
+    LayoutUsersRoute,
     LayoutIndexRoute,
   ]),
   BookRoute,

@@ -9,15 +9,16 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useQueries, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import {
   type BoatPublic,
   BoatsService,
+  BoatPricingService,
 } from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
 import BoatActionsMenu from "@/components/Common/BoatActionsMenu"
@@ -45,6 +46,16 @@ const boatsSearchSchema = z.object({
   sortBy: z.enum(["name", "capacity", "provider_id"]).default("name"),
   sortDirection: z.enum(["asc", "desc"]).default("asc"),
 })
+
+/** Format boat pricing as "type (n), type (n)" or "—" if none */
+function formatTicketTypesWithCapacity(
+  items: { ticket_type: string; capacity: number }[],
+): string {
+  if (!items?.length) return "—"
+  const label = (t: string) =>
+    t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  return items.map((p) => `${label(p.ticket_type)} (${p.capacity})`).join(", ")
+}
 
 // Helper function to convert BoatPublic to Boat
 const convertToBoat = (boatPublic: BoatPublic): Boat => ({
@@ -172,6 +183,23 @@ function BoatsTable() {
   )
   const count = data?.count ?? 0
 
+  // Fetch boat pricing (ticket types + capacity per type) for each boat on this page
+  const pricingQueries = useQueries({
+    queries: boats.map((boat) => ({
+      queryKey: ["boat-pricing", boat.id],
+      queryFn: () => BoatPricingService.listBoatPricing({ boatId: boat.id }),
+      enabled: !!boat.id,
+    })),
+  })
+  const pricingByBoatId = useMemo(() => {
+    const map: Record<string, { ticket_type: string; capacity: number }[]> = {}
+    boats.forEach((boat, i) => {
+      const result = pricingQueries[i]?.data
+      map[boat.id] = result ?? []
+    })
+    return map
+  }, [boats, pricingQueries])
+
   if (isLoading) {
     return <PendingBoats />
   }
@@ -223,11 +251,10 @@ function BoatsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="xs"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("capacity")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Capacity
@@ -237,9 +264,16 @@ function BoatsTable() {
               <Table.ColumnHeader
                 w="sm"
                 fontWeight="bold"
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                Ticket types (seats)
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("provider_id")}
-                display={{ base: "none", lg: "table-cell" }}
+                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Provider
@@ -257,10 +291,15 @@ function BoatsTable() {
                 <Table.Cell truncate maxW="sm">
                   {boat.name}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                  {boat.capacity}
+                <Table.Cell w="xs">{boat.capacity}</Table.Cell>
+                <Table.Cell
+                  display={{ base: "none", lg: "table-cell" }}
+                  fontSize="sm"
+                  maxW="sm"
+                >
+                  {formatTicketTypesWithCapacity(pricingByBoatId[boat.id] ?? [])}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                   {boat.provider_name || "—"}
                 </Table.Cell>
                 <Table.Cell>
