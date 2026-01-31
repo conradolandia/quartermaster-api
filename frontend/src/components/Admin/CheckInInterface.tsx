@@ -18,6 +18,7 @@ import {
   BookingsService,
   type BookingPublic,
 } from "@/client"
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { formatCents } from "@/utils"
 import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -237,6 +238,16 @@ const CheckInInterface = ({
                     </Text>
                   </Box>
                 </VStack>
+
+                {currentBooking.items && currentBooking.items.length > 0 && (
+                  <Box gridColumn={{ base: "1", md: "1 / -1" }}>
+                    <BookingExperienceDetails
+                      booking={currentBooking}
+                      usePublicApis={false}
+                      heading="Mission, launch & trip"
+                    />
+                  </Box>
+                )}
 
                 <Box>
                   <Text fontWeight="medium" mb={2}>

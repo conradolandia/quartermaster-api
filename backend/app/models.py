@@ -1105,6 +1105,23 @@ class Booking(BookingBase, table=True):
         return None
 
 
+class BookingExperienceDisplay(SQLModel):
+    """Trip, mission, launch and boat display data for public booking detail (no auth, works for past trips)."""
+
+    trip_name: str | None = None
+    trip_type: str | None = None
+    departure_time: str | None = None
+    trip_timezone: str | None = None
+    check_in_time: str | None = None
+    boarding_time: str | None = None
+    mission_name: str | None = None
+    launch_name: str | None = None
+    launch_timestamp: str | None = None
+    launch_timezone: str | None = None
+    launch_summary: str | None = None
+    boat_name: str | None = None
+
+
 class BookingPublic(BookingBase):
     id: uuid.UUID
     created_at: datetime
@@ -1114,6 +1131,7 @@ class BookingPublic(BookingBase):
     mission_id: uuid.UUID | None = None
     mission_name: str | None = None
     discount_code: "DiscountCodePublic | None" = None
+    experience_display: "BookingExperienceDisplay | None" = None
 
 
 # Discount Code Models

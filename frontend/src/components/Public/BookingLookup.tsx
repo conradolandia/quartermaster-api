@@ -13,6 +13,7 @@ import { useState } from "react"
 import { FiSearch } from "react-icons/fi"
 
 import { BookingsService, type BookingPublic } from "@/client"
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
@@ -193,6 +194,17 @@ const BookingLookup = () => {
                   </HStack>
                 </VStack>
               </Box>
+
+              {/* Mission, launch & trip */}
+              {currentBooking.items && currentBooking.items.length > 0 && (
+                <Box>
+                  <BookingExperienceDetails
+                    booking={currentBooking}
+                    usePublicApis
+                    heading="Mission, launch & trip"
+                  />
+                </Box>
+              )}
 
               {/* Booking Items */}
               {currentBooking.items && currentBooking.items.length > 0 && (

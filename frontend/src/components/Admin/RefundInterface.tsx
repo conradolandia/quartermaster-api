@@ -22,6 +22,7 @@ import {
   BookingsService,
   type BookingPublic,
 } from "@/client"
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
@@ -240,6 +241,14 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                     <Text fontWeight="bold">${formatCents(currentBooking.total_amount)}</Text>
                   </HStack>
                 </VStack>
+
+                {currentBooking.items && currentBooking.items.length > 0 && (
+                  <BookingExperienceDetails
+                    booking={currentBooking}
+                    usePublicApis={false}
+                    heading="Mission, launch & trip"
+                  />
+                )}
 
                 {/* Booking Items */}
                 {currentBooking.items && currentBooking.items.length > 0 && (

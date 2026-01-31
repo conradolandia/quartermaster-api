@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query"
 import { FiMail, FiPrinter } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { formatCents } from "@/utils"
 
 interface BookingConfirmationProps {
@@ -161,21 +162,25 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
             </VStack>
           </Box>
 
+          {booking.items && booking.items.length > 0 && (
+            <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+              <BookingExperienceDetails
+                booking={booking}
+                usePublicApis
+                heading="Mission, launch & trip"
+              />
+            </Box>
+          )}
+
           <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
             <Heading size="sm" mb={4}>
-              Trip Details
+              Order summary
             </Heading>
             <VStack gap={3} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Trip Type:</Text>
-                <Text>Rocket Launch Experience</Text>
-              </HStack>
-
               <HStack justify="space-between">
                 <Text fontWeight="medium">Items:</Text>
                 <Text>{booking.items?.length || 0} items</Text>
               </HStack>
-
               <HStack justify="space-between">
                 <Text fontWeight="medium">Total Amount:</Text>
                 <Text fontWeight="bold">

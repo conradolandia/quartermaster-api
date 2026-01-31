@@ -17,12 +17,18 @@ from app.api import deps
 from app.core.config import settings
 from app.core.stripe import update_payment_intent_amount
 from app.models import (
+    Boat,
     Booking,
     BookingDraftUpdate,
+    BookingExperienceDisplay,
     BookingItem,
     BookingItemPublic,
     BookingPublic,
     BookingStatus,
+    Launch,
+    Location,
+    Mission,
+    Trip,
 )
 from app.utils import generate_booking_confirmation_email, send_email
 
@@ -234,6 +240,48 @@ def get_booking_by_confirmation_code(
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in items
         ]
+
+        # Populate experience_display from first item (trip/mission/launch/boat) so public detail works without read_public_trip (which 404s for past trips)
+        if items:
+            first = items[0]
+            trip = session.get(Trip, first.trip_id)
+            if trip:
+                mission = (
+                    session.get(Mission, trip.mission_id) if trip.mission_id else None
+                )
+                launch = (
+                    session.get(Launch, mission.launch_id)
+                    if mission and mission.launch_id
+                    else None
+                )
+                boat = session.get(Boat, first.boat_id) if first.boat_id else None
+                # Trip and Launch tables have no timezone; get from launch's location (same as TripPublic/LaunchPublic)
+                location = (
+                    session.get(Location, launch.location_id)
+                    if launch and launch.location_id
+                    else None
+                )
+                tz = location.timezone if location else None
+
+                def _dt_iso(dt):
+                    return dt.isoformat() if hasattr(dt, "isoformat") and dt else None
+
+                booking_public.experience_display = BookingExperienceDisplay(
+                    trip_name=(trip.name or "").strip() or None,
+                    trip_type=trip.type,
+                    departure_time=_dt_iso(trip.departure_time),
+                    trip_timezone=tz,
+                    check_in_time=_dt_iso(trip.check_in_time),
+                    boarding_time=_dt_iso(trip.boarding_time),
+                    mission_name=mission.name if mission else None,
+                    launch_name=launch.name if launch else None,
+                    launch_timestamp=_dt_iso(launch.launch_timestamp)
+                    if launch
+                    else None,
+                    launch_timezone=tz,
+                    launch_summary=launch.summary if launch else None,
+                    boat_name=boat.name if boat else None,
+                )
 
         return booking_public
 

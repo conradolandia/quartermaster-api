@@ -120,6 +120,24 @@ export type BookingDraftUpdate = {
   total_amount?: number | null
 }
 
+/**
+ * Trip, mission, launch and boat display data for public booking detail (no auth, works for past trips).
+ */
+export type BookingExperienceDisplay = {
+  trip_name?: string | null
+  trip_type?: string | null
+  departure_time?: string | null
+  trip_timezone?: string | null
+  check_in_time?: string | null
+  boarding_time?: string | null
+  mission_name?: string | null
+  launch_name?: string | null
+  launch_timestamp?: string | null
+  launch_timezone?: string | null
+  launch_summary?: string | null
+  boat_name?: string | null
+}
+
 export type BookingItemCreate = {
   trip_id: string
   boat_id: string
@@ -174,6 +192,7 @@ export type BookingPublic = {
   mission_id?: string | null
   mission_name?: string | null
   discount_code?: DiscountCodePublic | null
+  experience_display?: BookingExperienceDisplay | null
 }
 
 export type BookingsPaginatedResponse = {

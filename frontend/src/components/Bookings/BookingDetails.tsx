@@ -17,6 +17,7 @@ import { FiArrowLeft, FiCheck, FiMail, FiPrinter } from "react-icons/fi";
 import { BookingsService } from "@/client";
 import { formatCents } from "@/utils";
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails";
 import useCustomToast from "@/hooks/useCustomToast";
 import { formatDate, getStatusColor } from "./types";
 
@@ -351,6 +352,19 @@ export default function BookingDetails({
             <Text color="gray.500">No items found for this booking.</Text>
           )}
         </Box>
+
+        {booking.items && booking.items.length > 0 && (
+          <Box>
+            <Heading size="md" mb={4}>
+              Mission, launch & trip
+            </Heading>
+            <BookingExperienceDetails
+              booking={booking}
+              usePublicApis={false}
+              showHeading={false}
+            />
+          </Box>
+        )}
       </VStack>
     </Container>
   );

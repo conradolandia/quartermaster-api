@@ -601,11 +601,13 @@ export class BookingsService {
   /**
    * List Bookings
    * List/search bookings (admin only).
-   * Optionally filter by mission_id.
+   * Optionally filter by mission_id, trip_id, or status.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.missionId
+   * @param data.tripId
+   * @param data.status
    * @param data.sortBy
    * @param data.sortDirection
    * @returns BookingsPaginatedResponse Successful Response
@@ -621,10 +623,10 @@ export class BookingsService {
         skip: data.skip,
         limit: data.limit,
         mission_id: data.missionId,
+        trip_id: data.tripId,
+        status: data.status,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
-        status: data.status,
-        trip_id: data.tripId,
       },
       errors: {
         422: "Validation Error",
