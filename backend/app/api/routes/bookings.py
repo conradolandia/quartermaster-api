@@ -126,10 +126,23 @@ def create_booking(
         )
 
     # Enforce booking_mode access control (bypass for authenticated superusers)
+    logger.info(
+        "create_booking access check: mission_id=%s booking_mode=%s discount_code_id=%s "
+        "current_user=%s is_superuser=%s",
+        mission_id,
+        mission.booking_mode,
+        booking_in.discount_code_id,
+        current_user.id if current_user else None,
+        current_user.is_superuser if current_user else None,
+    )
     if current_user and current_user.is_superuser:
         # Superusers can create bookings regardless of booking_mode
         pass
     elif mission.booking_mode == "private":
+        logger.warning(
+            "create_booking 403: mission %s has booking_mode=private",
+            mission_id,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this mission",
@@ -137,6 +150,10 @@ def create_booking(
     elif mission.booking_mode == "early_bird":
         # Require a valid access code (passed via discount_code_id)
         if not booking_in.discount_code_id:
+            logger.warning(
+                "create_booking 403: mission %s early_bird but discount_code_id is missing",
+                mission_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="An access code is required to book this mission",
@@ -144,11 +161,19 @@ def create_booking(
         # Validate that the discount code is a valid access code
         discount_code = session.get(DiscountCode, booking_in.discount_code_id)
         if not discount_code:
+            logger.warning(
+                "create_booking 400: discount_code_id %s not found",
+                booking_in.discount_code_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid access code",
             )
         if not discount_code.is_access_code:
+            logger.warning(
+                "create_booking 403: discount_code_id %s is not an access code",
+                booking_in.discount_code_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="A valid access code is required to book this mission",
@@ -163,6 +188,11 @@ def create_booking(
             discount_code.access_code_mission_id
             and discount_code.access_code_mission_id != mission_id
         ):
+            logger.warning(
+                "create_booking 403: access code mission %s != booking mission %s",
+                discount_code.access_code_mission_id,
+                mission_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access code is not valid for this mission",

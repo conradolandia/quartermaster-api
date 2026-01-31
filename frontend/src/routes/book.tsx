@@ -34,9 +34,10 @@ function PublicBookingPage() {
       accessCode={initialAccessCode}
       onAccessGranted={handleAccessGranted}
     >
-      {(accessCodeValue) => (
+      {(accessCodeValue, discountCodeIdFromGate) => (
         <PublicBookingForm
-          initialDiscountCodeId={discountCodeId}
+          initialDiscountCodeId={discountCodeIdFromGate ?? discountCodeId}
+          accessCodeDiscountCodeId={discountCodeIdFromGate}
           accessCode={accessCodeValue}
         />
       )}

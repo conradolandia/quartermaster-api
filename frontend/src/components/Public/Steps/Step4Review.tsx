@@ -28,6 +28,8 @@ interface Step4ReviewProps {
   urlCode?: string;
   /** Parent ref: survives remounts (e.g. Strict Mode) so we don't create booking twice. */
   createBookingStartedRef: MutableRefObject<boolean>;
+  /** Access code's discount_code.id (early_bird); use this for create payload so Step 2 discount does not overwrite. */
+  accessCodeDiscountCodeId?: string | null;
 }
 
 const Step4Review = ({
@@ -39,6 +41,7 @@ const Step4Review = ({
   skipHydrateForm,
   urlCode,
   createBookingStartedRef,
+  accessCodeDiscountCodeId,
 }: Step4ReviewProps) => {
   const navigate = useNavigate();
   const search = useSearch({ from: "/book" });
@@ -153,7 +156,7 @@ const Step4Review = ({
         total_amount: bookingData.total,
         special_requests: bookingData.customerInfo.special_requests || "",
         launch_updates_pref: bookingData.customerInfo.launch_updates_pref ?? false,
-        discount_code_id: bookingData.discount_code_id,
+        discount_code_id: accessCodeDiscountCodeId ?? bookingData.discount_code_id,
       };
 
       const booking = await BookingsService.createBooking({
@@ -166,15 +169,9 @@ const Step4Review = ({
     },
     onSuccess: ({ booking, paymentData }) => {
       onBookingReady({ booking, paymentData });
-      navigate({
-        to: "/book",
-        search: {
-          discount: search.discount,
-          access: search.access,
-          code: booking.confirmation_code,
-        },
-        replace: true,
-      });
+      // Do not navigate here: parent state (bookingResult) is async; navigating now would
+      // re-render with urlCode set and bookingResult null, triggering loadByCode and "Preparing...".
+      // Code is added to URL in the effect below when we have bookingResult.
     },
     onError: (error) => {
       createStartedRef.current = false;
@@ -220,6 +217,22 @@ const Step4Review = ({
     console.error("Payment failed:", error.message);
   };
 
+  // When we have bookingResult but URL has no code, add code for bookmarking (after create success).
+  useEffect(() => {
+    const code = bookingResult?.booking?.confirmation_code;
+    if (code && search.code !== code) {
+      navigate({
+        to: "/book",
+        search: {
+          discount: search.discount,
+          access: search.access,
+          code,
+        },
+        replace: true,
+      });
+    }
+  }, [bookingResult?.booking?.confirmation_code, search.code, search.discount, search.access, navigate]);
+
   // If URL has code: load existing booking and resume/init payment. Otherwise create new (once) and set code in URL.
   // Parent ref survives remounts (Strict Mode) so we don't create twice.
   useEffect(() => {
@@ -249,7 +262,9 @@ const Step4Review = ({
   const isPending =
     createBookingMutation.isPending || loadByCodeMutation.isPending;
 
-  if (isPending) {
+  // Once we have bookingResult (from create or loadByCode), show payment form even if
+  // something is still pending (e.g. loadByCode was triggered by URL update before parent re-rendered).
+  if (isPending && !bookingResult) {
     return (
       <VStack gap={6} align="stretch">
         <Box
@@ -273,8 +288,22 @@ const Step4Review = ({
 
   // Show error message if booking creation or payment verification failed (not loadByCode: that clears URL and retries)
   if (createBookingMutation.isError || completeBookingMutation.isError) {
+    const apiDetail =
+      createBookingMutation.isError &&
+      createBookingMutation.error &&
+      "body" in createBookingMutation.error &&
+      createBookingMutation.error.body &&
+      typeof createBookingMutation.error.body === "object" &&
+      "detail" in createBookingMutation.error.body
+        ? (() => {
+            const d = (createBookingMutation.error.body as { detail?: string | string[] })
+              .detail;
+            return typeof d === "string" ? d : Array.isArray(d) ? d[0] : undefined;
+          })()
+        : undefined;
     const errorMessage = createBookingMutation.isError
-      ? "There was an error creating your booking. Please try again or contact support if the problem persists."
+      ? apiDetail ??
+        "There was an error creating your booking. Please try again or contact support if the problem persists."
       : "Payment was successful but we couldn't confirm your booking. Please contact support with your payment details.";
 
     return (

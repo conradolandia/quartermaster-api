@@ -17,7 +17,8 @@ import { DiscountCodesService, TripsService } from "@/client"
 interface AccessGateProps {
   accessCode?: string
   onAccessGranted: (accessCode: string | null, discountCodeId: string | null) => void
-  children: (accessCode: string | null) => React.ReactNode
+  /** accessCodeValue, discountCodeId (for early_bird missions) */
+  children: (accessCodeValue: string | null, discountCodeId: string | null) => React.ReactNode
 }
 
 /**
@@ -136,9 +137,13 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
     )
   }
 
-  // If we have trips available, grant access and show children
+  // If we have trips available, grant access and show children (pass discount code ID for early_bird)
   if (hasTrips) {
-    return <>{children(accessCodeValid ? submittedCode : null)}</>
+    const discountCodeId =
+      accessCodeValid && accessCodeValidation?.discount_code
+        ? accessCodeValidation.discount_code.id
+        : null
+    return <>{children(accessCodeValid ? submittedCode : null, discountCodeId)}</>
   }
 
   // No trips available - check if we need an access code

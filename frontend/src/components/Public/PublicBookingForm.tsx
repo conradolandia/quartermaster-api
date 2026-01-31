@@ -105,6 +105,7 @@ import Step4Review from "./Steps/Step4Review"
 
 interface PublicBookingFormProps {
   initialDiscountCodeId?: string | null
+  accessCodeDiscountCodeId?: string | null
   accessCode?: string | null
 }
 
@@ -112,6 +113,7 @@ export type BookingResult = { booking: any; paymentData: any }
 
 const PublicBookingForm = ({
   initialDiscountCodeId,
+  accessCodeDiscountCodeId,
   accessCode,
 }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
@@ -258,6 +260,7 @@ const PublicBookingForm = ({
             )}
             urlCode={search.code}
             createBookingStartedRef={createBookingStartedRef}
+            accessCodeDiscountCodeId={accessCodeDiscountCodeId}
           />
         )
       default:

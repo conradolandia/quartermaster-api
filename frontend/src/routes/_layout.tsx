@@ -10,13 +10,15 @@ import type { UserPublic } from "@/client"
 export const Route = createFileRoute("/_layout")({
   component: Layout,
   beforeLoad: async ({ location }) => {
-    // Allow access to bookings with confirmation code for unauthenticated users
-    const isBookingsWithCode = location.pathname === "/bookings" &&
-                             location.search &&
-                             "code" in location.search &&
-                             typeof location.search.code === "string"
+    // Allow unauthenticated access to public booking and confirmation routes
+    const isBook = location.pathname === "/book"
+    const isBookingsWithCode =
+      location.pathname === "/bookings" &&
+      location.search &&
+      "code" in location.search &&
+      typeof location.search.code === "string"
 
-    if (!isLoggedIn() && !isBookingsWithCode) {
+    if (!isLoggedIn() && !isBook && !isBookingsWithCode) {
       throw redirect({
         to: "/login",
       })
