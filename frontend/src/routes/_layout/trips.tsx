@@ -39,7 +39,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import {
-  formatInLocationTimezoneDisplayParts,
+  formatInLocationTimezoneWithAbbr,
   parseApiDate,
 } from "@/utils"
 
@@ -253,13 +253,13 @@ function TripsTable() {
 
   const renderTripDate = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneDisplayParts(d, timezone) : null
+    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
     if (parts) {
       return (
         <>
           {parts.dateTime}
           <Text as="span" display="block" fontSize="xs" opacity={0.7}>
-            {parts.timezone}
+            {parts.timezoneAbbr}
           </Text>
         </>
       )

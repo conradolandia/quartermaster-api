@@ -39,6 +39,7 @@ import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatInLocationTimezone,
+  formatLocationTimezoneDisplay,
   handleError,
   parseApiDate,
   parseLocationTimeToUtc,
@@ -317,7 +318,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                     </Field>
 
                     <Field
-                      label={`Boarding Time (${tz})`}
+                      label={`Boarding Time (${formatLocationTimezoneDisplay(tz)})`}
                       required
                     >
                       <Input
@@ -331,7 +332,7 @@ const EditTrip = ({ trip }: EditTripProps) => {
                     </Field>
 
                     <Field
-                      label={`Departure Time (${tz})`}
+                      label={`Departure Time (${formatLocationTimezoneDisplay(tz)})`}
                       required
                     >
                       <Input

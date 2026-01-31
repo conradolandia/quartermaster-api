@@ -13,7 +13,7 @@ import {
 } from "../ui/dialog"
 
 import { type LocationCreate, LocationsService } from "@/client"
-import { handleError } from "@/utils"
+import { handleError, resolveTimezoneInput } from "@/utils"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { Field } from "../ui/field"
@@ -40,6 +40,7 @@ export const AddLocation = ({
     handleSubmit,
     reset,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LocationCreate>({
     mode: "onBlur",
@@ -68,7 +69,14 @@ export const AddLocation = ({
   })
 
   const onSubmit: SubmitHandler<LocationCreate> = (data) => {
-    mutation.mutate(data)
+    const resolved = resolveTimezoneInput(data.timezone)
+    if (!resolved) {
+      setError("timezone", {
+        message: "Use IANA (e.g. America/New_York) or abbreviation (e.g. EST, PST).",
+      })
+      return
+    }
+    mutation.mutate({ ...data, timezone: resolved })
   }
 
   return (
@@ -137,7 +145,7 @@ export const AddLocation = ({
                     {...register("timezone", {
                       maxLength: { value: 64, message: "Max 64 characters" },
                     })}
-                    placeholder="e.g. America/New_York"
+                    placeholder="e.g. America/New_York or EST"
                   />
                 </Field>
               </VStack>

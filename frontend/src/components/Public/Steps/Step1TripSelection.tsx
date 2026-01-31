@@ -19,7 +19,11 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
-import { formatDateTimeNoSeconds, parseApiDate } from "@/utils"
+import {
+  formatDateTimeNoSeconds,
+  formatInLocationTimezoneWithAbbr,
+  parseApiDate,
+} from "@/utils"
 import { fetchPublicLaunches, fetchPublicMissions, type PublicLaunch, type PublicMission } from "@/utils/publicApi"
 
 import type { BookingStepData } from "../PublicBookingForm"
@@ -162,18 +166,23 @@ const Step1TripSelection = ({
     })
   }, [allTrips?.data])
 
+  const formatTripTime = (dateString: string, timezone?: string | null) => {
+    const d = parseApiDate(dateString)
+    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+    if (parts) return `${parts.dateTime} ${parts.timezoneAbbr}`
+    return formatDateTimeNoSeconds(d)
+  }
+
   // Create collection for trip selection with full context - only active trips
   const tripsCollection = createListCollection({
     items:
       activeTrips.map((trip: TripPublic) => {
         const mission = getTripMission(trip.id)
         const launch = getTripLaunch(trip.id)
-        const departureDate = parseApiDate(trip.departure_time)
-
         return {
           label: `${launch?.name || "Unknown Launch"} - ${
             mission?.name || "Unknown Mission"
-          } - ${trip.type} (${formatDateTimeNoSeconds(departureDate)})`,
+          } - ${trip.type} (${formatTripTime(trip.departure_time, trip.timezone)})`,
           value: trip.id,
         }
       }) || [],
@@ -225,10 +234,9 @@ const Step1TripSelection = ({
                       {activeTrips.map((trip: TripPublic) => {
                         const mission = getTripMission(trip.id)
                         const launch = getTripLaunch(trip.id)
-                        const departureDate = parseApiDate(trip.departure_time)
                         const label = `${launch?.name || "Unknown Launch"} - ${
                           mission?.name || "Unknown Mission"
-                        } - ${trip.type} (${formatDateTimeNoSeconds(departureDate)})`
+                        } - ${trip.type} (${formatTripTime(trip.departure_time, trip.timezone)})`
 
                         return (
                           <Select.Item
@@ -273,24 +281,27 @@ const Step1TripSelection = ({
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Check-in:</Text>
                           <Text>
-                            {formatDateTimeNoSeconds(
-                              parseApiDate(selectedTrip.check_in_time),
+                            {formatTripTime(
+                              selectedTrip.check_in_time,
+                              selectedTrip.timezone,
                             )}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Boarding:</Text>
                           <Text>
-                            {formatDateTimeNoSeconds(
-                              parseApiDate(selectedTrip.boarding_time),
+                            {formatTripTime(
+                              selectedTrip.boarding_time,
+                              selectedTrip.timezone,
                             )}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
                           <Text fontWeight="medium">Departure:</Text>
                           <Text>
-                            {formatDateTimeNoSeconds(
-                              parseApiDate(selectedTrip.departure_time),
+                            {formatTripTime(
+                              selectedTrip.departure_time,
+                              selectedTrip.timezone,
                             )}
                           </Text>
                         </HStack>

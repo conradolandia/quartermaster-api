@@ -38,7 +38,12 @@ import {
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents, handleError, parseLocationTimeToUtc } from "@/utils"
+import {
+  formatCents,
+  formatLocationTimezoneDisplay,
+  handleError,
+  parseLocationTimeToUtc,
+} from "@/utils"
 
 // Props interface
 interface AddTripProps {
@@ -436,7 +441,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   <Field
                     label={
                       timezone
-                        ? `Check-in Time (${timezone})`
+                        ? `Check-in Time (${formatLocationTimezoneDisplay(timezone)})`
                         : "Check-in Time"
                     }
                     required
@@ -448,7 +453,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       onChange={(e) => setCheckInTime(e.target.value)}
                       placeholder={
                         timezone
-                          ? `Enter time in ${timezone}`
+                          ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
                           : "Select mission for timezone"
                       }
                     />
@@ -456,7 +461,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   <Field
                     label={
                       timezone
-                        ? `Boarding Time (${timezone})`
+                        ? `Boarding Time (${formatLocationTimezoneDisplay(timezone)})`
                         : "Boarding Time"
                     }
                     required
@@ -468,7 +473,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       onChange={(e) => setBoardingTime(e.target.value)}
                       placeholder={
                         timezone
-                          ? `Enter time in ${timezone}`
+                          ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
                           : "Select mission for timezone"
                       }
                     />
@@ -476,7 +481,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   <Field
                     label={
                       timezone
-                        ? `Departure Time (${timezone})`
+                        ? `Departure Time (${formatLocationTimezoneDisplay(timezone)})`
                         : "Departure Time"
                     }
                     required
@@ -488,7 +493,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       onChange={(e) => setDepartureTime(e.target.value)}
                       placeholder={
                         timezone
-                          ? `Enter time in ${timezone}`
+                          ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
                           : "Select mission for timezone"
                       }
                     />

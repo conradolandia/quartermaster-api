@@ -16,6 +16,7 @@ import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { type LocationPublic, LocationsService } from "@/client"
+import { formatLocationTimezoneDisplay } from "@/utils"
 import { LocationActionsMenu } from "@/components/Common/LocationActionsMenu"
 import AddLocation from "@/components/Locations/AddLocation"
 import PendingLocations from "@/components/Pending/PendingLocations"
@@ -243,7 +244,7 @@ function LocationsTable() {
                 {location.state}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {location.timezone ?? "UTC"}
+                {formatLocationTimezoneDisplay(location.timezone ?? "UTC")}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {location.id}

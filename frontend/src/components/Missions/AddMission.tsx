@@ -26,7 +26,7 @@ import {
 } from "../ui/dialog"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseLocationTimeToUtc } from "@/utils"
+import { formatLocationTimezoneDisplay, handleError, parseLocationTimeToUtc } from "@/utils"
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
@@ -134,7 +134,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
               <Field
                 label={
                   timezone
-                    ? `Sales Open Date & Time (${timezone})`
+                    ? `Sales Open Date & Time (${formatLocationTimezoneDisplay(timezone)})`
                     : "Sales Open Date & Time"
                 }
               >
@@ -145,7 +145,7 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   onChange={(e) => setSalesOpenAt(e.target.value)}
                   placeholder={
                     timezone
-                      ? `Enter time in ${timezone}`
+                      ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
                       : "Select launch for timezone"
                   }
                 />

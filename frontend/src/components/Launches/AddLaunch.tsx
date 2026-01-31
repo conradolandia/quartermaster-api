@@ -14,7 +14,7 @@ import {
 
 import { type LaunchCreate, LaunchesService, LocationsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { parseLocationTimeToUtc } from "@/utils"
+import { formatLocationTimezoneDisplay, parseLocationTimeToUtc } from "@/utils"
 import { LocationDropdown } from "../Common/LocationDropdown"
 import { Field } from "../ui/field"
 
@@ -99,7 +99,7 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
                 />
               </Field>
               <Field
-                label={timezone ? `Launch Date & Time (${timezone})` : "Launch Date & Time"}
+                label={timezone ? `Launch Date & Time (${formatLocationTimezoneDisplay(timezone)})` : "Launch Date & Time"}
                 required
               >
                 <Input
@@ -108,7 +108,7 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
                   value={launchTimestamp}
                   onChange={(e) => setLaunchTimestamp(e.target.value)}
                   placeholder={
-                    timezone ? `Enter time in ${timezone}` : "Select location for timezone"
+                    timezone ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}` : "Select location for timezone"
                   }
                 />
               </Field>

@@ -21,6 +21,7 @@ import { Switch } from "../ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatInLocationTimezone,
+  formatLocationTimezoneDisplay,
   handleError,
   parseApiDate,
   parseLocationTimeToUtc,
@@ -223,12 +224,12 @@ const EditMission = ({ mission }: EditMissionProps) => {
                 <Field
                   invalid={!!errors.sales_open_at}
                   errorText={errors.sales_open_at?.message}
-                  label={`Sales Open Date & Time (${mission.timezone ?? "UTC"})`}
+                  label={`Sales Open Date & Time (${formatLocationTimezoneDisplay(mission.timezone ?? "UTC")})`}
                 >
                   <Input
                     id="sales_open_at"
                     {...register("sales_open_at")}
-                    placeholder={`Enter time in ${mission.timezone ?? "UTC"}`}
+                    placeholder={`Enter time in ${formatLocationTimezoneDisplay(mission.timezone ?? "UTC")}`}
                     type="datetime-local"
                     disabled={isPast}
                   />

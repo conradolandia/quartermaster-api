@@ -19,7 +19,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError, parseApiDate } from "@/utils"
+import { formatDateTimeInLocationTz, handleError, parseApiDate } from "@/utils"
 import {
   Badge,
   Box,
@@ -161,7 +161,7 @@ const EditBooking = ({
   const getTripName = (tripId: string) => {
     const trip = tripsData?.data.find((t) => t.id === tripId)
     return trip
-      ? `${trip.type} - ${parseApiDate(trip.departure_time).toLocaleDateString()}`
+      ? `${trip.type} - ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`
       : tripId
   }
 

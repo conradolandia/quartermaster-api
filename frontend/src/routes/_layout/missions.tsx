@@ -28,7 +28,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import {
-  formatInLocationTimezoneDisplayParts,
+  formatInLocationTimezoneWithAbbr,
   parseApiDate,
 } from "@/utils"
 import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
@@ -196,13 +196,13 @@ function Missions() {
   const renderSalesOpenAt = (dateString: string | null | undefined, timezone?: string | null) => {
     if (!dateString) return "Not set"
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneDisplayParts(d, timezone) : null
+    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
     if (parts) {
       return (
         <>
           {parts.dateTime}
           <Text as="span" display="block" fontSize="xs" opacity={0.7}>
-            {parts.timezone}
+            {parts.timezoneAbbr}
           </Text>
         </>
       )

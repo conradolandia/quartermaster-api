@@ -20,6 +20,7 @@ import {
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatInLocationTimezone,
+  formatLocationTimezoneDisplay,
   handleError,
   parseApiDate,
   parseLocationTimeToUtc,
@@ -164,12 +165,12 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
                 <Field
                   invalid={!!errors.launch_timestamp}
                   errorText={errors.launch_timestamp?.message}
-                  label={`Launch Date & Time (${launch.timezone ?? "UTC"})`}
+                  label={`Launch Date & Time (${formatLocationTimezoneDisplay(launch.timezone ?? "UTC")})`}
                 >
                   <Input
                     id="launch_timestamp"
                     {...register("launch_timestamp")}
-                    placeholder={`Enter time in ${launch.timezone ?? "UTC"}`}
+                    placeholder={`Enter time in ${formatLocationTimezoneDisplay(launch.timezone ?? "UTC")}`}
                     type="datetime-local"
                     disabled={isPast}
                   />

@@ -104,6 +104,93 @@ export function formatInLocationTimezoneDisplayParts(
 }
 
 /**
+ * Format a UTC date in a location's timezone for display, with timezone abbreviation (e.g. EST, PST).
+ * Use when showing event times in the location's time (e.g. launch at Kennedy = America/New_York).
+ */
+export function formatInLocationTimezoneWithAbbr(
+  utcDate: Date,
+  timezone: string,
+): { dateTime: string; timezoneAbbr: string } | null {
+  if (Number.isNaN(utcDate.getTime()) || !timezone) return null
+  const dateTime = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
+    locale: enUS,
+  })
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    timeZoneName: "short",
+  }).formatToParts(utcDate)
+  const timezoneAbbr = parts.find((p) => p.type === "timeZoneName")?.value ?? timezone
+  return { dateTime, timezoneAbbr }
+}
+
+/**
+ * Format an API datetime string in location timezone for display (date + time + abbr), or locale fallback.
+ */
+export function formatDateTimeInLocationTz(
+  dateString: string | null | undefined,
+  timezone?: string | null,
+): string {
+  if (!dateString) return ""
+  const d = parseApiDate(dateString)
+  const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+  return parts ? `${parts.dateTime} ${parts.timezoneAbbr}` : formatDateTimeNoSeconds(d)
+}
+
+/**
+ * Get timezone abbreviation (e.g. EST, PST) for an IANA timezone name.
+ */
+export function getTimezoneAbbr(ianaTimezone: string): string {
+  if (!ianaTimezone) return ""
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: ianaTimezone,
+      timeZoneName: "short",
+    }).formatToParts(new Date())
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? ianaTimezone
+  } catch {
+    return ianaTimezone
+  }
+}
+
+/**
+ * Format location timezone for display: "America/New_York (EST)".
+ */
+export function formatLocationTimezoneDisplay(ianaTimezone: string): string {
+  if (!ianaTimezone) return "UTC"
+  const abbr = getTimezoneAbbr(ianaTimezone)
+  return abbr === ianaTimezone ? ianaTimezone : `${ianaTimezone} (${abbr})`
+}
+
+/**
+ * Common timezone abbreviations (US-centric) to IANA. Used when user enters e.g. "EST" in location form.
+ * Backend stores IANA only.
+ */
+const ABBR_TO_IANA: Record<string, string> = {
+  UTC: "UTC",
+  EST: "America/New_York",
+  EDT: "America/New_York",
+  CST: "America/Chicago",
+  CDT: "America/Chicago",
+  MST: "America/Denver",
+  MDT: "America/Denver",
+  PST: "America/Los_Angeles",
+  PDT: "America/Los_Angeles",
+  AKST: "America/Anchorage",
+  AKDT: "America/Anchorage",
+  HST: "Pacific/Honolulu",
+}
+
+/**
+ * Resolve user timezone input to IANA for API. Accepts IANA (e.g. America/New_York) or abbreviation (e.g. EST).
+ */
+export function resolveTimezoneInput(input: string | null | undefined): string | null {
+  const trimmed = input?.trim()
+  if (!trimmed) return null
+  if (trimmed.includes("/")) return trimmed
+  return ABBR_TO_IANA[trimmed.toUpperCase()] ?? null
+}
+
+/**
  * Format an amount in cents as dollars with two decimal places (e.g. 1234 -> "12.34").
  * API amounts and prices are in integer cents.
  */

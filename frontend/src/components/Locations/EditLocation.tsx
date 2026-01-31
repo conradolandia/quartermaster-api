@@ -18,7 +18,7 @@ import {
   LocationsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { handleError, resolveTimezoneInput } from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -46,6 +46,7 @@ const EditLocation = ({ location }: EditLocationProps) => {
     handleSubmit,
     reset,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LocationUpdate>({
     mode: "onBlur",
@@ -87,7 +88,18 @@ const EditLocation = ({ location }: EditLocationProps) => {
   })
 
   const onSubmit: SubmitHandler<LocationUpdate> = async (data) => {
-    mutation.mutate(data)
+    if (data.timezone != null && data.timezone !== "") {
+      const resolved = resolveTimezoneInput(data.timezone)
+      if (resolved === null) {
+        setError("timezone", {
+          message: "Use IANA (e.g. America/New_York) or abbreviation (e.g. EST, PST).",
+        })
+        return
+      }
+      mutation.mutate({ ...data, timezone: resolved })
+    } else {
+      mutation.mutate(data)
+    }
   }
 
   return (
@@ -171,7 +183,7 @@ const EditLocation = ({ location }: EditLocationProps) => {
                     {...register("timezone", {
                       maxLength: { value: 64, message: "Max 64 characters" },
                     })}
-                    placeholder="e.g. America/New_York"
+                    placeholder="e.g. America/New_York or EST"
                   />
                 </Field>
               </VStack>
