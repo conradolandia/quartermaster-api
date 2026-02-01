@@ -1,4 +1,4 @@
-import { Box, Container, Flex, Heading, Text, Image, VStack, Span, Spacer } from "@chakra-ui/react"
+import { Box, Container, Flex, Heading, Text, Image, VStack, Span } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
@@ -330,8 +330,8 @@ const PublicBookingForm = ({
                   <Heading size="2xl">
                     Book Your Rocket Launch
                   </Heading>
-                  <Text fontSize="md" color="whiteAlpha.800" textAlign="right" fontWeight="600">
-                    Step {currentStep} of {STEPS.length}: <Span color="dark.accent.primary">{STEPS[currentStep - 1].title}</Span> <Span fontSize="sm" color="dark.text.muted" textAlign="right">({STEPS[currentStep - 1].description})</Span>
+                  <Text fontSize="md" color="whiteAlpha.800" textAlign="right" fontWeight="500">
+                    Step {currentStep} of {STEPS.length}: <Span color="dark.accent.primary">{STEPS[currentStep - 1].title}</Span> <Span fontWeight="300">({STEPS[currentStep - 1].description})</Span>
                   </Text>
                 </VStack>
               </Flex>
