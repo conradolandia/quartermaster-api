@@ -14,6 +14,7 @@ from app.api.deps import get_current_active_superuser
 from app.models import (
     BoatPublic,
     DiscountCode,
+    PublicTripsResponse,
     Trip,
     TripBoatPublic,
     TripCreate,
@@ -494,7 +495,7 @@ def read_trips_by_mission(
     return TripsPublic(data=trip_dicts, count=count)
 
 
-@router.get("/public/", response_model=TripsPublic)
+@router.get("/public/", response_model=PublicTripsResponse)
 def read_public_trips(
     *,
     session: Session = Depends(deps.get_db),
@@ -504,10 +505,11 @@ def read_public_trips(
 ) -> Any:
     """
     Retrieve public trips for booking form.
-    Filters by booking_mode:
+    Filters by trip booking_mode:
     - private: Not shown unless admin
     - early_bird: Shown if valid access_code provided
     - public: Always shown
+    all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
     """
     trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
     logger.info(f"Found {len(trips)} total trips in database")
@@ -575,9 +577,11 @@ def read_public_trips(
     else:
         logger.info("No access code provided")
 
-    # Filter trips by active status, mission booking_mode, and future dates
+    # Filter trips by active status, trip booking_mode, and future dates
     now = datetime.now(timezone.utc)
     public_trips = []
+    bookable_trip_count = 0
+    public_trip_count = 0
     logger.info(
         f"Filtering {len(trips)} trips with access_code={access_code}, discount_code={'present' if discount_code else 'None'}"
     )
@@ -586,8 +590,11 @@ def read_public_trips(
         trip_name = trip.get("type", "unknown")
         trip_active = trip.get("active", False)
         departure_time = trip.get("departure_time")
+        booking_mode = trip.get("booking_mode", "private")
 
-        logger.info(f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}")
+        logger.info(
+            f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}, booking_mode: {booking_mode}"
+        )
 
         # trips from get_trips_no_relationships are dicts
         if not trip_active:
@@ -603,7 +610,7 @@ def read_public_trips(
                 )
                 continue
 
-        # Get the mission to check booking_mode and launch
+        # Get the mission for launch check
         mission_id = trip.get("mission_id")
         if not mission_id:
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: no mission_id")
@@ -628,21 +635,21 @@ def read_public_trips(
         launch_time = ensure_aware(launch.launch_timestamp)
         if launch_time < now:
             logger.info(
-                f"Trip {trip_id} ({trip_name}) filtered out: launch {launch.launch_timestamp} is in the past"
+                f"Trip {trip_id} ({trip_name}) filtered out: launch is in the past"
             )
             continue
 
-        # Filter based on booking_mode (default to "private" if not set)
-        booking_mode = getattr(mission, "booking_mode", "private")
-        logger.info(
-            f"Trip {trip_id} ({trip_name}) - Mission: {mission.name} (ID: {mission.id}), booking_mode: {booking_mode}"
-        )
+        # Count bookable trips for all_trips_require_access_code
+        if booking_mode in ("public", "early_bird"):
+            bookable_trip_count += 1
+            if booking_mode == "public":
+                public_trip_count += 1
 
         if booking_mode == "private":
             logger.info(
                 f"Trip {trip_id} ({trip_name}) filtered out: booking_mode is private"
             )
-            continue  # Never show private trips in public endpoint
+            continue
         elif booking_mode == "early_bird":
             # Only show if valid access_code is provided
             if not access_code or not discount_code:
@@ -657,7 +664,7 @@ def read_public_trips(
             )
             if access_code_mission_id and access_code_mission_id != mission.id:
                 logger.info(
-                    f"Trip {trip_id} ({trip_name}) filtered out: access code restricted to mission {access_code_mission_id}, but trip is for mission {mission.id}"
+                    f"Trip {trip_id} ({trip_name}) filtered out: access code restricted to another mission"
                 )
                 continue
             logger.info(
@@ -681,11 +688,17 @@ def read_public_trips(
         reverse=True,
     )
 
+    all_trips_require_access_code = bookable_trip_count > 0 and public_trip_count == 0
     logger.info(
-        f"Returning {len(public_trips)} public trips (access_code: {access_code})"
+        f"Returning {len(public_trips)} public trips (access_code: {access_code}), "
+        f"all_trips_require_access_code: {all_trips_require_access_code}"
     )
     count = len(public_trips)
-    return TripsPublic(data=public_trips, count=count)
+    return PublicTripsResponse(
+        data=public_trips,
+        count=count,
+        all_trips_require_access_code=all_trips_require_access_code,
+    )
 
 
 @router.get("/public/{trip_id}", response_model=TripPublic)
@@ -723,7 +736,6 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} has already departed",
         )
 
-    # Check mission booking_mode
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
     if not mission:
         raise HTTPException(
@@ -731,7 +743,6 @@ def read_public_trip(
             detail="Mission not found",
         )
 
-    # Get launch to check if launch is in the past
     launch = crud.get_launch(session=session, launch_id=mission.launch_id)
     if not launch:
         raise HTTPException(
@@ -739,7 +750,6 @@ def read_public_trip(
             detail="Launch not found",
         )
 
-    # Filter out trips for past launches (ensure timezone-aware for comparison)
     launch_time = ensure_aware(launch.launch_timestamp)
     if launch_time < now:
         raise HTTPException(
@@ -747,12 +757,13 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
         )
 
-    if mission.booking_mode == "private":
+    booking_mode = getattr(trip, "booking_mode", "private")
+    if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",
         )
-    elif mission.booking_mode == "early_bird":
+    elif booking_mode == "early_bird":
         if not access_code:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

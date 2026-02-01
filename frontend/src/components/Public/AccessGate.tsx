@@ -29,11 +29,11 @@ interface AccessGateProps {
 
 /**
  * AccessGate component that controls access to the booking form based on
- * mission booking_mode settings.
+ * trip booking_mode and public trip list.
  *
- * - If trips are available (public or early_bird with valid code): shows children
- * - If early_bird mode without code: shows access code entry form
- * - If no trips available (all private): shows "not available" message
+ * - If trips are available: shows children
+ * - If all bookable trips require a code (all_trips_require_access_code): shows code entry form
+ * - Otherwise: shows "not available" or error
  */
 const AccessGate = ({
   accessCode: initialAccessCode,
@@ -61,7 +61,7 @@ const AccessGate = ({
     }
   }, [initialAccessCode, submittedCode])
 
-  // Fetch public trips (this will only return trips with public or early_bird booking_mode)
+  // Fetch public trips (filtered by trip booking_mode and optional access code)
   const {
     data: tripsData,
     isLoading: isLoadingTrips,
@@ -87,6 +87,8 @@ const AccessGate = ({
 
   // Derived after queries (safe when loading/error: optional chaining)
   const hasTrips = (tripsData?.data?.length ?? 0) > 0
+  const allTripsRequireAccessCode =
+    tripsData?.all_trips_require_access_code === true
   const accessCodeValid = accessCodeValidation?.valid === true
 
   // Notify parent when access is granted (effect only, never during render; must run on every render to satisfy Rules of Hooks)
@@ -162,9 +164,8 @@ const AccessGate = ({
     )
   }
 
-  // No trips available - check if we need an access code
-  // If user hasn't submitted a code yet, show the code entry form
-  if (!submittedCode) {
+  // No trips available - show code prompt only when ALL bookable trips require a code
+  if (allTripsRequireAccessCode && !submittedCode) {
     return (
       <Container maxW="container.md" py={16}>
         <Card.Root>
@@ -207,8 +208,23 @@ const AccessGate = ({
     )
   }
 
-  // User submitted a code but it was invalid or no trips are available
-  // Determine the appropriate error message based on validation status
+  // No trips and not all require code: show simple "no trips" (no code form)
+  if (!hasTrips && !allTripsRequireAccessCode) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={4} textAlign="center">
+              <Heading size="lg">No Trips Available</Heading>
+              <Text>No trips are currently available for booking.</Text>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    )
+  }
+
+  // allTripsRequireAccessCode and user submitted a code: invalid or still no trips
   let errorMessage: string
   let heading: string
 

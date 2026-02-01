@@ -87,7 +87,6 @@ class YamlImporter:
                 if isinstance(data["launch_id"], str)
                 else data["launch_id"],
                 active=data.get("active", True),
-                booking_mode=data.get("booking_mode", "private"),
                 sales_open_at=_parse_dt(data.get("sales_open_at")),
                 refund_cutoff_hours=data.get("refund_cutoff_hours", 12),
             )
@@ -131,6 +130,7 @@ class YamlImporter:
                 name=data.get("name"),
                 type=data["type"],
                 active=data.get("active", True),
+                booking_mode=data.get("booking_mode", "private"),
                 check_in_time=_parse_dt(data["check_in_time"]),
                 boarding_time=_parse_dt(data["boarding_time"]),
                 departure_time=_parse_dt(data["departure_time"]),
@@ -195,7 +195,6 @@ class YamlImporter:
                     name=item["name"],
                     launch_id=launch_id,
                     active=item.get("active", True),
-                    booking_mode=item.get("booking_mode", "private"),
                     sales_open_at=_parse_dt(item.get("sales_open_at")),
                     refund_cutoff_hours=item.get("refund_cutoff_hours", 12),
                 )
@@ -211,11 +210,14 @@ class YamlImporter:
                     mission_id = created_missions[item["mission_ref"]].id
                 elif isinstance(mission_id, str):
                     mission_id = uuid.UUID(mission_id)
+                elif isinstance(mission_id, str):
+                    mission_id = uuid.UUID(mission_id)
                 trip_data = TripCreate(
                     mission_id=mission_id,
                     name=item.get("name"),
                     type=item["type"],
                     active=item.get("active", True),
+                    booking_mode=item.get("booking_mode", "private"),
                     check_in_time=_parse_dt(item["check_in_time"]),
                     boarding_time=_parse_dt(item["boarding_time"]),
                     departure_time=_parse_dt(item["departure_time"]),

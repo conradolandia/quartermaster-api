@@ -453,7 +453,6 @@ export type MissionCreate = {
   name: string
   launch_id: string
   active?: boolean
-  booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
 }
@@ -462,7 +461,6 @@ export type MissionPublic = {
   name: string
   launch_id: string
   active?: boolean
-  booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
   id: string
@@ -485,7 +483,6 @@ export type MissionUpdate = {
   name?: string | null
   launch_id?: string | null
   active?: boolean | null
-  booking_mode?: string | null
   sales_open_at?: string | null
   refund_cutoff_hours?: number | null
 }
@@ -494,7 +491,6 @@ export type MissionWithStats = {
   name: string
   launch_id: string
   active?: boolean
-  booking_mode?: string
   sales_open_at?: string | null
   refund_cutoff_hours?: number
   id: string
@@ -549,6 +545,15 @@ export type ProviderUpdate = {
   address?: string | null
   jurisdiction_id?: string | null
   map_link?: string | null
+}
+
+/**
+ * Response for GET /trips/public/ with optional flag for access code prompt.
+ */
+export type PublicTripsResponse = {
+  data: Array<TripPublic>
+  count: number
+  all_trips_require_access_code?: boolean
 }
 
 export type ReassignBoatBody = {
@@ -635,6 +640,7 @@ export type TripCreate = {
   name?: string | null
   type: string
   active?: boolean
+  booking_mode?: string
   check_in_time: string
   boarding_time: string
   departure_time: string
@@ -671,6 +677,7 @@ export type TripPublic = {
   name?: string | null
   type: string
   active?: boolean
+  booking_mode?: string
   check_in_time: string
   boarding_time: string
   departure_time: string
@@ -696,6 +703,7 @@ export type TripUpdate = {
   name?: string | null
   type?: string | null
   active?: boolean | null
+  booking_mode?: string | null
   check_in_time?: string | null
   boarding_time?: string | null
   departure_time?: string | null
@@ -706,6 +714,7 @@ export type TripWithStats = {
   name?: string | null
   type: string
   active?: boolean
+  booking_mode?: string
   check_in_time: string
   boarding_time: string
   departure_time: string
@@ -1542,7 +1551,7 @@ export type TripsReadPublicTripsData = {
   skip?: number
 }
 
-export type TripsReadPublicTripsResponse = TripsPublic
+export type TripsReadPublicTripsResponse = PublicTripsResponse
 
 export type TripsReadPublicTripData = {
   accessCode?: string | null

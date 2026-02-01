@@ -10,7 +10,6 @@ interface Mission {
   name: string
   launch_id: string
   active: boolean
-  booking_mode: string
   sales_open_at: string | null
   refund_cutoff_hours: number
   created_at: string

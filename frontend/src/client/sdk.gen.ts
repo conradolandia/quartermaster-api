@@ -2765,7 +2765,7 @@ export class TripBoatsService {
   /**
    * Read Public Trip Boats By Trip
    * Get all boats for a specific trip (public endpoint for booking form).
-   * Validates that the trip's mission has public or early_bird booking_mode.
+   * Validates that the trip has public or early_bird booking_mode.
    * @param data The data for the request.
    * @param data.tripId
    * @param data.skip
@@ -2796,7 +2796,7 @@ export class TripBoatsService {
    * Read Public Effective Pricing
    * Get effective ticket types and prices for a (trip_id, boat_id).
    * Boat defaults (BoatPricing) merged with per-trip overrides (TripBoatPricing).
-   * Validates trip exists and mission booking_mode allows public booking.
+   * Validates trip exists and trip booking_mode allows public booking.
    * @param data The data for the request.
    * @param data.tripId
    * @param data.boatId
@@ -3168,15 +3168,16 @@ export class TripsService {
   /**
    * Read Public Trips
    * Retrieve public trips for booking form.
-   * Filters by booking_mode:
+   * Filters by trip booking_mode:
    * - private: Not shown unless admin
    * - early_bird: Shown if valid access_code provided
    * - public: Always shown
+   * all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.accessCode
-   * @returns TripsPublic Successful Response
+   * @returns PublicTripsResponse Successful Response
    * @throws ApiError
    */
   public static readPublicTrips(

@@ -278,9 +278,8 @@ def read_public_trip_boats_by_trip(
 ) -> Any:
     """
     Get all boats for a specific trip (public endpoint for booking form).
-    Validates that the trip's mission has public or early_bird booking_mode.
+    Validates that the trip has public or early_bird booking_mode.
     """
-    # Verify that the trip exists
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
         raise HTTPException(
@@ -288,15 +287,8 @@ def read_public_trip_boats_by_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
 
-    # Check mission booking_mode
-    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
-    if not mission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mission not found",
-        )
-
-    if mission.booking_mode == "private":
+    booking_mode = getattr(trip, "booking_mode", "private")
+    if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",
@@ -353,7 +345,7 @@ def read_public_effective_pricing(
     """
     Get effective ticket types and prices for a (trip_id, boat_id).
     Boat defaults (BoatPricing) merged with per-trip overrides (TripBoatPricing).
-    Validates trip exists and mission booking_mode allows public booking.
+    Validates trip exists and trip booking_mode allows public booking.
     """
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
@@ -361,13 +353,8 @@ def read_public_effective_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
-    if not mission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mission not found",
-        )
-    if mission.booking_mode == "private":
+    booking_mode = getattr(trip, "booking_mode", "private")
+    if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",

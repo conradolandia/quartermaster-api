@@ -287,12 +287,14 @@ function TripsTable() {
       : null
     if (parts) {
       return (
-        <>
-          {parts.dateTime}
-          <Text as="span" display="block" fontSize="xs" opacity={0.7}>
+        <Box>
+          <Text fontSize="sm">
+            {parts.dateTime}
+          </Text>
+          <Text fontSize="xs" opacity={0.7}>
             {parts.timezoneAbbr}
           </Text>
-        </>
+        </Box>
       )
     }
     return d.toLocaleString(undefined, {
@@ -353,7 +355,7 @@ function TripsTable() {
                 display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
-                  Bookings
+                  Seats
                   <SortIcon column="total_bookings" />
                 </Flex>
               </Table.ColumnHeader>
@@ -377,12 +379,19 @@ function TripsTable() {
                 display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
-                  Departure Time
+                  Departure
                   <SortIcon column="departure_time" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader w="sm" fontWeight="bold">
                 Boats
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                Mode
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="sm"
@@ -408,12 +417,11 @@ function TripsTable() {
               return (
                 <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell
-                    maxW={{ base: "sm", lg: "500px" }}
                     verticalAlign="top"
                     whiteSpace="normal"
                     wordBreak="break-word"
                   >
-                    <Text fontSize="2xl" fontWeight="200" minW="200px">
+                    <Text fontSize="xl" fontWeight="200" minW="140px">
                       {trip.name || "—"}
                     </Text>
                   </Table.Cell>
@@ -428,16 +436,12 @@ function TripsTable() {
                       : "Pre-Launch"}
                   </Table.Cell>
                   <Table.Cell
-                    truncate
-                    maxW="sm"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
                     {mission?.name || "Unknown"}
                   </Table.Cell>
                   <Table.Cell
-                    truncate
-                    maxW="sm"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
@@ -490,6 +494,27 @@ function TripsTable() {
                         No boats assigned to this trip yet.
                       </Text>
                     )}
+                  </Table.Cell>
+                  <Table.Cell
+                    maxW="sm"
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    <Badge
+                      colorPalette={
+                        trip.booking_mode === "public"
+                          ? "blue"
+                          : trip.booking_mode === "early_bird"
+                            ? "purple"
+                            : "gray"
+                      }
+                    >
+                      {trip.booking_mode === "public"
+                        ? "Public"
+                        : trip.booking_mode === "early_bird"
+                          ? "Early Bird"
+                          : "Private"}
+                    </Badge>
                   </Table.Cell>
                   <Table.Cell verticalAlign="top" paddingY="6">
                     <Flex justify="center">

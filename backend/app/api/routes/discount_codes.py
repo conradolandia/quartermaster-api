@@ -375,21 +375,13 @@ def validate_access_code(
                     message="Access code is not valid for this mission",
                 )
 
-        # If mission_id is provided, verify the mission exists and has early_bird mode
+        # If mission_id is provided, verify the mission exists
         if mission_id:
             mission = crud.get_mission(session=session, mission_id=mission_id)
             if not mission:
                 return AccessCodeValidationResponse(
                     valid=False, message="Mission not found"
                 )
-            if mission.booking_mode != "early_bird":
-                # If mission is public, access code is still valid but not required
-                # If mission is private, access code won't help
-                if mission.booking_mode == "private":
-                    return AccessCodeValidationResponse(
-                        valid=False,
-                        message="Tickets are not yet available for this mission",
-                    )
 
         return AccessCodeValidationResponse(
             valid=True,

@@ -220,13 +220,8 @@ def list_public_trip_merchandise(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    mission = crud.get_mission(session=session, mission_id=trip.mission_id)
-    if not mission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Mission not found",
-        )
-    if mission.booking_mode == "private":
+    booking_mode = getattr(trip, "booking_mode", "private")
+    if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",

@@ -77,6 +77,9 @@ const EditTrip = ({
   const [name, setName] = useState(trip.name ?? "")
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
+  const [bookingMode, setBookingMode] = useState(
+    trip.booking_mode ?? "private",
+  )
 
   const tz = trip.timezone ?? "UTC"
   // Check if trip is in the past (parse API datetime as UTC for correct comparison)
@@ -391,6 +394,7 @@ const EditTrip = ({
       setName(trip.name ?? "")
       setType(trip.type)
       setActive(trip.active ?? true)
+      setBookingMode(trip.booking_mode ?? "private")
       setCheckInTime(
         formatInLocationTimezone(parseApiDate(trip.check_in_time), zone),
       )
@@ -408,6 +412,7 @@ const EditTrip = ({
     trip.name,
     trip.type,
     trip.active,
+    trip.booking_mode,
     trip.check_in_time,
     trip.boarding_time,
     trip.departure_time,
@@ -508,6 +513,7 @@ const EditTrip = ({
       name: name || null,
       type: type,
       active: active,
+      booking_mode: bookingMode,
       check_in_time: parseLocationTimeToUtc(checkInTime, tz),
       boarding_time: parseLocationTimeToUtc(boardingTime, tz),
       departure_time: parseLocationTimeToUtc(departureTime, tz),
@@ -599,6 +605,26 @@ const EditTrip = ({
                       >
                         <option value="launch_viewing">Launch Viewing</option>
                         <option value="pre_launch">Pre-Launch</option>
+                      </NativeSelect>
+                    </Field>
+
+                    <Field
+                      label="Booking Mode"
+                      helperText="Controls who can book this trip"
+                    >
+                      <NativeSelect
+                        id="booking_mode"
+                        value={bookingMode}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setBookingMode(e.target.value)
+                        }
+                        disabled={mutation.isPending || isPast}
+                      >
+                        <option value="private">Private (Admin Only)</option>
+                        <option value="early_bird">
+                          Early Bird (Access Code Required)
+                        </option>
+                        <option value="public">Public (Open to All)</option>
                       </NativeSelect>
                     </Field>
 

@@ -120,79 +120,72 @@ def _create_booking_impl(
             detail="Mission is not active",
         )
 
-    # Enforce booking_mode access control (bypass for authenticated superusers)
+    # Enforce trip booking_mode access control (bypass for authenticated superusers)
+    distinct_trip_ids = {item.trip_id for item in booking_in.items}
+    trips_with_modes = [(tid, session.get(Trip, tid)) for tid in distinct_trip_ids]
+    any_private = any(
+        getattr(t, "booking_mode", "private") == "private"
+        for _, t in trips_with_modes
+        if t
+    )
+    any_early_bird = any(
+        getattr(t, "booking_mode", "private") == "early_bird"
+        for _, t in trips_with_modes
+        if t
+    )
     logger.info(
-        "create_booking access check: mission_id=%s booking_mode=%s discount_code_id=%s "
-        "current_user=%s is_superuser=%s",
+        "create_booking access check: mission_id=%s any_private=%s any_early_bird=%s "
+        "discount_code_id=%s current_user=%s is_superuser=%s",
         mission_id,
-        mission.booking_mode,
+        any_private,
+        any_early_bird,
         booking_in.discount_code_id,
         current_user.id if current_user else None,
         current_user.is_superuser if current_user else None,
     )
     if current_user and current_user.is_superuser:
-        # Superusers can create bookings regardless of booking_mode
         pass
-    elif mission.booking_mode == "private":
+    elif any_private:
         logger.warning(
-            "create_booking 403: mission %s has booking_mode=private",
-            mission_id,
+            "create_booking 403: at least one trip has booking_mode=private",
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tickets are not yet available for this mission",
+            detail="Tickets are not yet available for one or more trips",
         )
-    elif mission.booking_mode == "early_bird":
-        # Require a valid access code (passed via discount_code_id)
+    elif any_early_bird:
         if not booking_in.discount_code_id:
             logger.warning(
-                "create_booking 403: mission %s early_bird but discount_code_id is missing",
-                mission_id,
+                "create_booking 403: at least one trip is early_bird but discount_code_id is missing",
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="An access code is required to book this mission",
+                detail="An access code is required to book one or more trips",
             )
-        # Validate that the discount code is a valid access code
         discount_code = session.get(DiscountCode, booking_in.discount_code_id)
         if not discount_code:
-            logger.warning(
-                "create_booking 400: discount_code_id %s not found",
-                booking_in.discount_code_id,
-            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid access code",
             )
         if not discount_code.is_access_code:
-            logger.warning(
-                "create_booking 403: discount_code_id %s is not an access code",
-                booking_in.discount_code_id,
-            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="A valid access code is required to book this mission",
+                detail="A valid access code is required to book one or more trips",
             )
         if not discount_code.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Access code is not active",
             )
-        # Check if access code is restricted to a specific mission
         if (
             discount_code.access_code_mission_id
             and discount_code.access_code_mission_id != mission_id
         ):
-            logger.warning(
-                "create_booking 403: access code mission %s != booking mission %s",
-                discount_code.access_code_mission_id,
-                mission_id,
-            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access code is not valid for this mission",
             )
-    # booking_mode == "public" allows all bookings
 
     # Validate all boats exist and are associated with the corresponding trip
     for item in booking_in.items:

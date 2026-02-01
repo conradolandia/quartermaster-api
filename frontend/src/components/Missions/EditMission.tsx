@@ -6,11 +6,8 @@ import {
   DialogActionTrigger,
   Flex,
   Input,
-  Portal,
-  Select,
   Text,
   VStack,
-  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
@@ -44,21 +41,12 @@ interface Mission {
   name: string
   launch_id: string
   active: boolean
-  booking_mode: string
   sales_open_at: string | null
   refund_cutoff_hours: number
   created_at: string
   updated_at: string
   timezone?: string
 }
-
-const bookingModeOptions = createListCollection({
-  items: [
-    { label: "Private (Admin Only)", value: "private" },
-    { label: "Early Bird (Access Code Required)", value: "early_bird" },
-    { label: "Public (Open to All)", value: "public" },
-  ],
-})
 
 interface EditMissionProps {
   mission: Mission
@@ -95,7 +83,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
       name: mission.name,
       launch_id: mission.launch_id,
       active: mission.active,
-      booking_mode: mission.booking_mode || "private",
       sales_open_at: mission.sales_open_at
         ? formatInLocationTimezone(
             parseApiDate(mission.sales_open_at),
@@ -130,7 +117,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
         name: mission.name,
         launch_id: mission.launch_id,
         active: mission.active,
-        booking_mode: mission.booking_mode || "private",
         sales_open_at: mission.sales_open_at
           ? formatInLocationTimezone(
               parseApiDate(mission.sales_open_at),
@@ -150,7 +136,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
       name: data.name,
       launch_id: data.launch_id,
       active: active,
-      booking_mode: data.booking_mode || "private",
       sales_open_at: data.sales_open_at
         ? parseLocationTimeToUtc(data.sales_open_at, tz)
         : null,
@@ -282,47 +267,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
                     <Switch checked={active} inputProps={{ id: "active" }} />
                   </Box>
                 </Flex>
-              </Field>
-
-              <Field
-                label="Booking Mode"
-                helperText="Controls who can book tickets for this mission"
-              >
-                <Controller
-                  name="booking_mode"
-                  control={control}
-                  render={({ field }) => (
-                    <Select.Root
-                      collection={bookingModeOptions}
-                      value={field.value ? [field.value] : ["private"]}
-                      onValueChange={(details) =>
-                        field.onChange(details.value[0])
-                      }
-                      disabled={isPast}
-                    >
-                      <Select.Control width="100%">
-                        <Select.Trigger>
-                          <Select.ValueText placeholder="Select booking mode" />
-                        </Select.Trigger>
-                        <Select.IndicatorGroup>
-                          <Select.Indicator />
-                        </Select.IndicatorGroup>
-                      </Select.Control>
-                      <Portal container={contentRef}>
-                        <Select.Positioner>
-                          <Select.Content>
-                            {bookingModeOptions.items.map((option) => (
-                              <Select.Item key={option.value} item={option}>
-                                {option.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Positioner>
-                      </Portal>
-                    </Select.Root>
-                  )}
-                />
               </Field>
             </VStack>
           </DialogBody>

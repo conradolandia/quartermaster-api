@@ -372,9 +372,6 @@ class MissionBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     launch_id: uuid.UUID = Field(foreign_key="launch.id")
     active: bool = Field(default=True)
-    booking_mode: str = Field(
-        default="private", max_length=20
-    )  # private, early_bird, public
     sales_open_at: datetime | None = None
     refund_cutoff_hours: int = Field(default=12, ge=0, le=72)
 
@@ -387,7 +384,6 @@ class MissionUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     launch_id: uuid.UUID | None = None
     active: bool | None = None
-    booking_mode: str | None = Field(default=None, max_length=20)
     sales_open_at: datetime | None = None
     refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
 
@@ -559,6 +555,9 @@ class TripBase(SQLModel):
     name: str | None = Field(default=None, max_length=255)  # custom label
     type: str = Field(max_length=50)  # launch_viewing or pre_launch
     active: bool = Field(default=True)
+    booking_mode: str = Field(
+        default="private", max_length=20
+    )  # private, early_bird, public
     check_in_time: datetime
     boarding_time: datetime
     departure_time: datetime
@@ -573,6 +572,7 @@ class TripUpdate(SQLModel):
     name: str | None = Field(default=None, max_length=255)
     type: str | None = Field(default=None, max_length=50)
     active: bool | None = None
+    booking_mode: str | None = Field(default=None, max_length=20)
     check_in_time: datetime | None = None
     boarding_time: datetime | None = None
     departure_time: datetime | None = None
@@ -649,6 +649,14 @@ class TripsPublic(SQLModel):
 class TripsWithStatsPublic(SQLModel):
     data: list[TripWithStats]
     count: int
+
+
+class PublicTripsResponse(SQLModel):
+    """Response for GET /trips/public/ with optional flag for access code prompt."""
+
+    data: list[TripPublic]
+    count: int
+    all_trips_require_access_code: bool = False
 
 
 # TripBoat models

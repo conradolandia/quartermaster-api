@@ -74,11 +74,18 @@ interface SelectedMerchandise {
   quantity_available_override?: number | null
 }
 
+const bookingModeOptions = [
+  { label: "Private (Admin Only)", value: "private" },
+  { label: "Early Bird (Access Code Required)", value: "early_bird" },
+  { label: "Public (Open to All)", value: "public" },
+]
+
 const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [missionId, setMissionId] = useState("")
   const [name, setName] = useState("")
   const [type, setType] = useState("launch_viewing")
   const [active, setActive] = useState(true)
+  const [bookingMode, setBookingMode] = useState("private")
   const [checkInTime, setCheckInTime] = useState("")
   const [boardingTime, setBoardingTime] = useState("")
   const [departureTime, setDepartureTime] = useState("")
@@ -147,6 +154,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setName("")
       setType("launch_viewing")
       setActive(true)
+      setBookingMode("private")
       setCheckInTime("")
       setBoardingTime("")
       setDepartureTime("")
@@ -344,6 +352,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setMissionId("")
       setType("launch_viewing")
       setActive(true)
+      setBookingMode("private")
       setCheckInTime("")
       setBoardingTime("")
       setDepartureTime("")
@@ -383,6 +392,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       name: name || null,
       type: type,
       active: active,
+      booking_mode: bookingMode,
       check_in_time: parseLocationTimeToUtc(checkInTime, tz),
       boarding_time: parseLocationTimeToUtc(boardingTime, tz),
       departure_time: parseLocationTimeToUtc(departureTime, tz),
@@ -440,6 +450,24 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   >
                     <option value="launch_viewing">Launch Viewing</option>
                     <option value="pre_launch">Pre-Launch</option>
+                  </NativeSelect>
+                </Field>
+                <Field
+                  label="Booking Mode"
+                  helperText="Controls who can book this trip"
+                >
+                  <NativeSelect
+                    id="booking_mode"
+                    value={bookingMode}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setBookingMode(e.target.value)
+                    }
+                  >
+                    {bookingModeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </NativeSelect>
                 </Field>
                 <Field

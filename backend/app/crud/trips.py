@@ -37,9 +37,9 @@ def get_trips_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.check_in_time,
-                   t.boarding_time, t.departure_time, t.created_at, t.updated_at,
-                   loc.timezone
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
+                   t.check_in_time, t.boarding_time, t.departure_time,
+                   t.created_at, t.updated_at, loc.timezone
             FROM trip t
             JOIN mission m ON t.mission_id = m.id
             JOIN launch l ON m.launch_id = l.id
@@ -59,12 +59,13 @@ def get_trips_no_relationships(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "check_in_time": row[5],
-                "boarding_time": row[6],
-                "departure_time": row[7],
-                "created_at": row[8],
-                "updated_at": row[9],
-                "timezone": row[10] or "UTC",
+                "booking_mode": row[5] or "private",
+                "check_in_time": row[6],
+                "boarding_time": row[7],
+                "departure_time": row[8],
+                "created_at": row[9],
+                "updated_at": row[10],
+                "timezone": row[11] or "UTC",
             }
         )
 
@@ -81,9 +82,9 @@ def get_trips_with_stats(
     result = session.exec(
         text(
             """
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.check_in_time,
-                   t.boarding_time, t.departure_time, t.created_at, t.updated_at,
-                   loc.timezone
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
+                   t.check_in_time, t.boarding_time, t.departure_time,
+                   t.created_at, t.updated_at, loc.timezone
             FROM trip t
             JOIN mission m ON t.mission_id = m.id
             JOIN launch l ON m.launch_id = l.id
@@ -123,12 +124,13 @@ def get_trips_with_stats(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "check_in_time": row[5],
-                "boarding_time": row[6],
-                "departure_time": row[7],
-                "created_at": row[8],
-                "updated_at": row[9],
-                "timezone": row[10] or "UTC",
+                "booking_mode": row[5] or "private",
+                "check_in_time": row[6],
+                "boarding_time": row[7],
+                "departure_time": row[8],
+                "created_at": row[9],
+                "updated_at": row[10],
+                "timezone": row[11] or "UTC",
                 "total_bookings": total_bookings,
                 "total_sales": int(total_sales) if total_sales is not None else 0,
             }

@@ -1,14 +1,4 @@
-import {
-  Box,
-  Button,
-  Flex,
-  Input,
-  Portal,
-  Select,
-  Text,
-  VStack,
-  createListCollection,
-} from "@chakra-ui/react"
+import { Box, Button, Flex, Input, Text, VStack } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
@@ -34,14 +24,6 @@ import {
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
-const bookingModeOptions = createListCollection({
-  items: [
-    { label: "Private (Admin Only)", value: "private" },
-    { label: "Early Bird (Access Code Required)", value: "early_bird" },
-    { label: "Public (Open to All)", value: "public" },
-  ],
-})
-
 // Props interface
 interface AddMissionProps {
   isOpen: boolean
@@ -53,7 +35,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const [name, setName] = useState("")
   const [launchId, setLaunchId] = useState("")
   const [active, setActive] = useState(true)
-  const [bookingMode, setBookingMode] = useState("private")
   const [salesOpenAt, setSalesOpenAt] = useState("")
   const [refundCutoffHours, setRefundCutoffHours] = useState(12)
   const { showSuccessToast } = useCustomToast()
@@ -78,7 +59,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       setName("")
       setLaunchId("")
       setActive(true)
-      setBookingMode("private")
       setSalesOpenAt("")
       setRefundCutoffHours(12)
       queryClient.invalidateQueries({ queryKey: ["missions"] })
@@ -97,7 +77,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       name,
       launch_id: launchId,
       active,
-      booking_mode: bookingMode,
       sales_open_at: salesOpenAt
         ? parseLocationTimeToUtc(salesOpenAt, timezone ?? "UTC")
         : null,
@@ -185,37 +164,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                   <Switch checked={active} inputProps={{ id: "active" }} />
                 </Box>
               </Flex>
-            </Field>
-            <Field
-              label="Booking Mode"
-              helperText="Controls who can book tickets for this mission"
-            >
-              <Select.Root
-                collection={bookingModeOptions}
-                value={[bookingMode]}
-                onValueChange={(details) => setBookingMode(details.value[0])}
-              >
-                <Select.Control width="100%">
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Select booking mode" />
-                  </Select.Trigger>
-                  <Select.IndicatorGroup>
-                    <Select.Indicator />
-                  </Select.IndicatorGroup>
-                </Select.Control>
-                <Portal container={contentRef}>
-                  <Select.Positioner>
-                    <Select.Content>
-                      {bookingModeOptions.items.map((option) => (
-                        <Select.Item key={option.value} item={option}>
-                          {option.label}
-                          <Select.ItemIndicator />
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Positioner>
-                </Portal>
-              </Select.Root>
             </Field>
           </VStack>
         </DialogBody>
