@@ -159,7 +159,19 @@ export default function BookingDetails({
             variant="ghost"
             onClick={handleEmail}
             loading={emailSending}
-            disabled={emailSending}
+            disabled={
+              emailSending ||
+              !["confirmed", "checked_in", "completed"].includes(
+                booking?.status ?? "",
+              )
+            }
+            title={
+              !["confirmed", "checked_in", "completed"].includes(
+                booking?.status ?? "",
+              )
+                ? "Resend email is only available for confirmed, checked-in, or completed bookings"
+                : undefined
+            }
           >
             <Flex align="center" gap={2}>
               <FiMail />
