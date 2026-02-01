@@ -9,16 +9,21 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import { type LocationPublic, LocationsService } from "@/client"
+import {
+  type LocationPublic,
+  LocationsService,
+  UtilsService,
+} from "@/client"
 import { formatLocationTimezoneDisplay } from "@/utils"
-import { LocationActionsMenu } from "@/components/Common/LocationActionsMenu"
 import AddLocation from "@/components/Locations/AddLocation"
+import DeleteLocation from "@/components/Locations/DeleteLocation"
+import EditLocation from "@/components/Locations/EditLocation"
 import PendingLocations from "@/components/Pending/PendingLocations"
 import {
   DEFAULT_PAGE_SIZE,
@@ -32,13 +37,13 @@ import {
 } from "@/components/ui/pagination.tsx"
 
 // Define sortable columns
-type SortableColumn = "name" | "state" | "timezone" | "id"
+type SortableColumn = "name" | "state" | "timezone"
 type SortDirection = "asc" | "desc"
 
 const locationsSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
-  sortBy: z.enum(["name", "state", "timezone", "id"]).optional(),
+  sortBy: z.enum(["name", "state", "timezone"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
@@ -92,10 +97,27 @@ export const Route = createFileRoute("/_layout/locations")({
   validateSearch: (search) => locationsSearchSchema.parse(search),
 })
 
+/** Format state for display: "Full Name (XX)" using US states map, or just code. */
+function formatStateDisplay(stateCode: string | null | undefined, stateNameByCode: Map<string, string>): string {
+  if (!stateCode) return "—"
+  const name = stateNameByCode.get(stateCode)
+  return name ? `${name} (${stateCode})` : stateCode
+}
+
 function LocationsTable() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
+
+  const { data: statesResponse } = useQuery({
+    queryKey: ["us-states"],
+    queryFn: () => UtilsService.getUsStates(),
+    staleTime: 1000 * 60 * 60,
+  })
+  const stateNameByCode = useMemo(() => {
+    const list = (statesResponse as { data?: Array<{ code: string; name: string }> })?.data ?? []
+    return new Map(list.map((s) => [s.code, s.name]))
+  }, [statesResponse])
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -217,21 +239,9 @@ function LocationsTable() {
                   <SortIcon column="timezone" />
                 </Flex>
               </Table.ColumnHeader>
-            <Table.ColumnHeader
-              w="sm"
-              fontWeight="bold"
-              cursor="pointer"
-              onClick={() => handleSort("id")}
-              display={{ base: "none", lg: "table-cell" }}
-            >
-              <Flex align="center">
-                ID
-                <SortIcon column="id" />
-              </Flex>
-            </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
+                Actions
+              </Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -241,16 +251,16 @@ function LocationsTable() {
                 {location.name}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {location.state}
+                {formatStateDisplay(location.state, stateNameByCode)}
               </Table.Cell>
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {formatLocationTimezoneDisplay(location.timezone ?? "UTC")}
               </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {location.id}
-              </Table.Cell>
-              <Table.Cell>
-                <LocationActionsMenu location={location} />
+              <Table.Cell textAlign="center">
+                <Flex gap={2} flexWrap="wrap" justify="center">
+                  <EditLocation location={location} />
+                  <DeleteLocation id={location.id} />
+                </Flex>
               </Table.Cell>
             </Table.Row>
           ))}

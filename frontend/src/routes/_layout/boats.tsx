@@ -21,7 +21,8 @@ import {
   BoatPricingService,
 } from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
-import BoatActionsMenu from "@/components/Common/BoatActionsMenu"
+import EditBoat from "@/components/Boats/EditBoat"
+import DeleteBoat from "@/components/Boats/DeleteBoat"
 import PendingBoats from "@/components/Pending/PendingBoats"
 import {
   DEFAULT_PAGE_SIZE,
@@ -240,7 +241,7 @@ function BoatsTable() {
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="sm"
+                minW="140px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -251,7 +252,7 @@ function BoatsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="xs"
+                w="12"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("capacity")}
@@ -262,14 +263,14 @@ function BoatsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="200px"
                 fontWeight="bold"
                 display={{ base: "none", lg: "table-cell" }}
               >
                 Ticket types (seats)
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="120px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("provider_id")}
@@ -280,7 +281,7 @@ function BoatsTable() {
                   <SortIcon column="provider_id" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader minW="140px" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -288,22 +289,25 @@ function BoatsTable() {
         <Table.Body>
           {boats.map((boat) => (
               <Table.Row key={boat.id} opacity={isPlaceholderData ? 0.5 : 1}>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate minW="140px">
                   {boat.name}
                 </Table.Cell>
-                <Table.Cell w="xs">{boat.capacity}</Table.Cell>
+                <Table.Cell w="12">{boat.capacity}</Table.Cell>
                 <Table.Cell
                   display={{ base: "none", lg: "table-cell" }}
                   fontSize="sm"
-                  maxW="sm"
+                  minW="200px"
                 >
                   {formatTicketTypesWithCapacity(pricingByBoatId[boat.id] ?? [])}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell truncate minW="120px" display={{ base: "none", md: "table-cell" }}>
                   {boat.provider_name || "—"}
                 </Table.Cell>
-                <Table.Cell>
-                  <BoatActionsMenu boat={boat} />
+                <Table.Cell textAlign="center" minW="140px">
+                  <Flex gap={2} flexWrap="wrap" justify="center">
+                    <EditBoat boat={boat} />
+                    <DeleteBoat id={boat.id} name={boat.name} />
+                  </Flex>
                 </Table.Cell>
               </Table.Row>
             ))}

@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Card,
+  Grid,
   HStack,
   Heading,
   Select,
@@ -222,11 +223,11 @@ const Step1TripSelection = ({
       {/* Trip Selection */}
       <Card.Root bg="bg.panel">
         <Card.Body>
-          <Heading size="lg" mb={4}>
+          <Heading size="5xl" mb={2} fontWeight="200">
             Select Experience
           </Heading>
-          <Text color="text.muted" mb={6}>
-            Choose your preferred rocket launch viewing experience.
+          <Text color="text.muted" mb={8}>
+            Choose your preferred rocket launch.
           </Text>
           <VStack align="stretch" gap={4}>
             <Box>
@@ -273,68 +274,13 @@ const Step1TripSelection = ({
               )}
             </Box>
 
-            {/* Show trip details after selection */}
-            {bookingData.selectedTripId && (
-              <Card.Root bg="bg.panel">
-                <Card.Body>
-                  <Heading size="sm" mb={3}>
-                    Trip Details
-                  </Heading>
-                  {(() => {
-                    const selectedTrip = allTrips?.data?.find(
-                      (t: TripPublic) => t.id === bookingData.selectedTripId,
-                    )
-                    // Mission and launch data available via helper functions if needed
-
-                    if (!selectedTrip) return null
-
-                    return (
-                      <VStack align="stretch" gap={2}>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Type:</Text>
-                          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Check-in:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.check_in_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Boarding:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.boarding_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Departure:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.departure_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                      </VStack>
-                    )
-                  })()}
-                </Card.Body>
-              </Card.Root>
-            )}
-
             {/* Boat Selection - Only show if trip is selected and there are multiple boats */}
             {bookingData.selectedTripId &&
               tripBoats &&
               tripBoats.length > 1 && (
                 <Card.Root bg="bg.panel">
                   <Card.Body>
-                    <Heading size="sm" mb={4}>
+                    <Heading size="2xl" mb={3}>
                       Choose Your Boat
                     </Heading>
                     <Text color="text.muted" mb={6}>
@@ -391,40 +337,124 @@ const Step1TripSelection = ({
                 </Card.Root>
               )}
 
-            {/* Ticket types for selected boat (when trip + boat selected) */}
-            {bookingData.selectedTripId &&
-              bookingData.selectedBoatId &&
-              tripBoats &&
-              tripBoats.length > 0 &&
-              (() => {
-                const selectedTb = tripBoats.find(
-                  (tb) =>
-                    String(tb.boat_id) === String(bookingData.selectedBoatId),
-                )
-                const pricing = selectedTb?.pricing
-                if (!pricing || pricing.length === 0) return null
-                return (
-                  <Card.Root bg="bg.panel">
-                    <Card.Body>
-                      <Text fontSize="sm" fontWeight="bold" mb={2}>
-                        Ticket types
-                      </Text>
-                      <VStack align="stretch" gap={1}>
-                        {pricing.map((p) => (
-                          <Text
-                            key={p.ticket_type}
-                            fontSize="sm"
-                            color="text.muted"
-                          >
-                            {p.ticket_type.replace(/_/g, " ")}: $
-                            {(p.price / 100).toFixed(2)} ({p.remaining} left)
+            {/* Trip Details and Ticket types in the same row */}
+            {bookingData.selectedTripId && (
+              <Grid
+                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                gap={4}
+                alignSelf="stretch"
+              >
+                <Card.Root bg="bg.panel">
+                  <Card.Body>
+                    <Heading size="2xl" mb={3}>
+                      Trip Details
+                    </Heading>
+                    {(() => {
+                      const selectedTrip = allTrips?.data?.find(
+                        (t: TripPublic) => t.id === bookingData.selectedTripId,
+                      )
+                      if (!selectedTrip) return null
+                      return (
+                        <VStack align="stretch" gap={2}>
+                          <HStack justify="space-between">
+                            <Text fontWeight="medium">Type:</Text>
+                            <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
+                          </HStack>
+                          <HStack justify="space-between">
+                            <Text fontWeight="medium">Check-in:</Text>
+                            <Text>
+                              {formatTripTime(
+                                selectedTrip.check_in_time,
+                                selectedTrip.timezone,
+                              )}
+                            </Text>
+                          </HStack>
+                          <HStack justify="space-between">
+                            <Text fontWeight="medium">Boarding:</Text>
+                            <Text>
+                              {formatTripTime(
+                                selectedTrip.boarding_time,
+                                selectedTrip.timezone,
+                              )}
+                            </Text>
+                          </HStack>
+                          <HStack justify="space-between">
+                            <Text fontWeight="medium">Departure:</Text>
+                            <Text>
+                              {formatTripTime(
+                                selectedTrip.departure_time,
+                                selectedTrip.timezone,
+                              )}
+                            </Text>
+                          </HStack>
+                        </VStack>
+                      )
+                    })()}
+                  </Card.Body>
+                </Card.Root>
+
+                {/* Ticket types: placeholder when no boat, or list when boat selected */}
+                {(() => {
+                  if (
+                    !bookingData.selectedBoatId ||
+                    !tripBoats ||
+                    tripBoats.length === 0
+                  ) {
+                    return (
+                      <Card.Root bg="bg.panel">
+                        <Card.Body>
+                          <Heading size="2xl" mb={3}>
+                            Ticket types
+                          </Heading>
+                          <Text color="text.muted">
+                            Select a boat to see ticket types and pricing.
                           </Text>
-                        ))}
-                      </VStack>
-                    </Card.Body>
-                  </Card.Root>
-                )
-              })()}
+                        </Card.Body>
+                      </Card.Root>
+                    )
+                  }
+                  const selectedTb = tripBoats.find(
+                    (tb) =>
+                      String(tb.boat_id) === String(bookingData.selectedBoatId),
+                  )
+                  const pricing = selectedTb?.pricing
+                  if (!pricing || pricing.length === 0) {
+                    return (
+                      <Card.Root bg="bg.panel">
+                        <Card.Body>
+                          <Heading size="2xl" mb={3}>
+                            Ticket types
+                          </Heading>
+                          <Text fontSize="sm" color="text.muted">
+                            No ticket types available for this boat.
+                          </Text>
+                        </Card.Body>
+                      </Card.Root>
+                    )
+                  }
+                  return (
+                    <Card.Root bg="bg.panel">
+                      <Card.Body>
+                        <Heading size="2xl" mb={3}>
+                          Ticket types
+                        </Heading>
+                        <VStack align="stretch" gap={1}>
+                          {pricing.map((p) => (
+                            <Text
+                              key={p.ticket_type}
+                              fontSize="lg"
+                            >
+                              {p.ticket_type.replace(/_/g, " ")}: $
+                              {(p.price / 100).toFixed(2)} ({p.remaining} left)
+                            </Text>
+                          ))}
+                        </VStack>
+                      </Card.Body>
+                    </Card.Root>
+                  )
+                })()}
+              </Grid>
+            )}
           </VStack>
         </Card.Body>
       </Card.Root>

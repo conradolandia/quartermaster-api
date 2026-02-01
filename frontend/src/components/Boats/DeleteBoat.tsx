@@ -62,7 +62,7 @@ const DeleteBoat = ({ id, name }: DeleteBoatProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FiTrash2 fontSize="16px" />
-          Delete Boat
+          Delete
         </Button>
       </DialogTrigger>
 

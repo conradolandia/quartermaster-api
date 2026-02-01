@@ -264,7 +264,7 @@ function Missions() {
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader
-                  w="sm"
+                  minW="160px"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("name")}
@@ -275,7 +275,7 @@ function Missions() {
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="sm"
+                  minW="140px"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("launch_id")}
@@ -287,19 +287,21 @@ function Missions() {
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="xs"
+                  w="30"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("trip_count")}
                   display={{ base: "none", md: "table-cell" }}
+                  textAlign="center"
                 >
-                  <Flex align="center">
+                  <Flex align="center" justify="center">
                     Trips
                     <SortIcon column="trip_count" />
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
                   w="sm"
+                  minW="140px"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("sales_open_at")}
@@ -311,31 +313,33 @@ function Missions() {
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="sm"
+                  w="30"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("total_bookings")}
                   display={{ base: "none", lg: "table-cell" }}
+                  textAlign="center"
                 >
-                  <Flex align="center">
+                  <Flex align="center" justify="center">
                     Bookings
                     <SortIcon column="total_bookings" />
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="sm"
+                  w="40"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("total_sales")}
                   display={{ base: "none", lg: "table-cell" }}
+                  textAlign="center"
                 >
-                  <Flex align="center">
+                  <Flex align="center" justify="center">
                     Sales
                     <SortIcon column="total_sales" />
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="sm"
+                  w="40"
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("active")}
@@ -345,7 +349,7 @@ function Missions() {
                     <SortIcon column="active" />
                   </Flex>
                 </Table.ColumnHeader>
-                <Table.ColumnHeader w="sm" fontWeight="bold">
+                <Table.ColumnHeader w="14" fontWeight="bold" textAlign="center">
                   Actions
                 </Table.ColumnHeader>
               </Table.Row>
@@ -358,21 +362,36 @@ function Missions() {
                   {launchesMap.get(mission.launch_id)?.name ||
                     mission.launch_id}
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell
+                  display={{ base: "none", md: "table-cell" }}
+                  textAlign="center"
+                  w="12"
+                >
                   {mission.trip_count ?? 0}
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  display={{ base: "none", lg: "table-cell" }}
+                  minW="140px"
+                >
                   {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  display={{ base: "none", lg: "table-cell" }}
+                  textAlign="center"
+                  w="12"
+                >
                   <Text fontWeight="medium">{mission.total_bookings || 0}</Text>
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  display={{ base: "none", lg: "table-cell" }}
+                  textAlign="center"
+                  w="16"
+                >
                   <Text fontWeight="medium">
                     ${formatCents(mission.total_sales ?? 0)}
                   </Text>
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell textAlign="center" w="14">
                   <Flex gap={2}>
                     <Badge colorPalette={mission.active ? "green" : "red"}>
                       {mission.active ? "Active" : "Inactive"}
@@ -394,8 +413,9 @@ function Missions() {
                     </Badge>
                   </Flex>
                 </Table.Cell>
-                <Table.Cell>
-                  <MissionActionsMenu
+                <Table.Cell textAlign="center" w="14">
+                  <Flex justify="center">
+                    <MissionActionsMenu
                     mission={{
                       ...mission,
                       active: mission.active ?? false,
@@ -404,6 +424,7 @@ function Missions() {
                       refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
                     }}
                   />
+                  </Flex>
                 </Table.Cell>
               </Table.Row>
             ))}

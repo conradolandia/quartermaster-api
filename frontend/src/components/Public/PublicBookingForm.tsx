@@ -1,7 +1,8 @@
-import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react"
+import { Box, Container, Flex, Heading, Text, Image, VStack, Span } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
 import { useSearch } from "@tanstack/react-router"
 
+import Logo from "/assets/images/qm-logo.svg"
 import type { BookingPublic } from "@/client"
 
 // Types for the booking flow
@@ -279,39 +280,86 @@ const PublicBookingForm = ({
   }
 
   return (
-    <Container maxW="container.lg" py={8}>
-      <VStack gap={8} align="stretch">
+    <Box
+      position="relative"
+      minH="100vh"
+      backgroundImage="url(/assets/images/hero.jpg)"
+      backgroundSize="cover"
+      backgroundAttachment="fixed"
+      backgroundPosition="center"
+      backgroundRepeat="no-repeat"
+    >
+      {/* Dark overlay for readability */}
+      <Box
+        position="absolute"
+        inset={0}
+        bg="blackAlpha.600"
+        pointerEvents="none"
+        zIndex={0}
+      />
+      <Box position="relative" zIndex={1}>
         {/* Header */}
-        <Box textAlign="center">
-          <Heading size="lg" mb={2}>
-            Book Your Rocket Launch Experience
-          </Heading>
-          <Text color="gray.600">
-            Select your preferred launch and secure your spot
-          </Text>
-        </Box>
+        <Box position="sticky" top={0} zIndex={10}>
+          <Box
+            px={{ base: 4, md: 8 }}
+            py={6}
+            bg="dark.bg.primary"
+            color="white"
+          >
+            <Container maxW="container.lg">
+              <Flex justify="space-between" align="center">
+                <Heading fontFamily="logo" size="3xl" fontWeight="400">
+                  Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
+                </Heading>
+                <VStack gap={1} align="right" textAlign="right">
+                  <Heading size="2xl">
+                    Book Your Rocket Launch
+                  </Heading>
+                  <Text fontSize="md" color="whiteAlpha.700" textAlign="right" fontWeight="600">
+                    Step {currentStep} of {STEPS.length}: <Span color="dark.accent.primary">{STEPS[currentStep - 1].title}</Span>
+                  </Text>
+                  <Text fontSize="sm" color="dark.text.secondary" textAlign="right">{STEPS[currentStep - 1].description}</Text>
+                </VStack>
+              </Flex>
+            </Container>
+          </Box>
 
-        {/* Progress Bar */}
-        <Box>
-          <Box bg="gray.200" h="8px" borderRadius="md" overflow="hidden">
+          {/* Progress bar */}
+          <Box bg="whiteAlpha.300" h="8px" overflow="hidden">
             <Box
-              bg="blue.500"
+              bg="dark.accent.primary"
               h="100%"
               w={`${(currentStep / STEPS.length) * 100}%`}
               transition="width 0.3s ease"
             />
           </Box>
-          <Text fontSize="sm" color="gray.600" mt={2} textAlign="center">
-            Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].title}
-          </Text>
         </Box>
 
-        {/* Step Content */}
-        <Box>{renderCurrentStep()}</Box>
+        {/* Step content */}
+        <Container maxW="container.lg" mx="auto" py={8}>
+          <Box
+            bg="dark.bg.secondary"
+            borderRadius="lg"
+            boxShadow="lg"
+            p={{ base: 4, md: 8 }}
+          >
+            {renderCurrentStep()}
+          </Box>
+        </Container>
 
-        {/* Navigation is now handled by individual step components */}
-      </VStack>
-    </Container>
+        <Box px={{ base: 4, md: 8 }} py={6}>
+          <Container maxW="container.lg" display="flex" justifyContent="center">
+            <VStack gap={4}>
+              <Text fontSize="sm" color="whiteAlpha.700">
+                Powered by
+              </Text>
+              <Image src={Logo} alt="Logo" maxW="200px" />
+            </VStack>
+          </Container>
+        </Box>
+
+      </Box>
+    </Box>
   )
 }
 

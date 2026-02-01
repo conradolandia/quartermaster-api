@@ -5,13 +5,14 @@ import {
   createListCollection,
   Flex,
   Icon,
+  IconButton,
   Select,
   Table,
   Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiCopy, FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService, TripsService } from "@/client"
 import type { TripPublic } from "@/client"
@@ -399,7 +400,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 onClick={() => handleSort("confirmation_code")}
               >
                 <Flex align="center">
-                  Confirmation Code
+                  Code
                   <SortIcon column="confirmation_code" />
                 </Flex>
               </Table.ColumnHeader>
@@ -490,41 +491,35 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           </Table.Header>
           <Table.Body>
             {bookings.map((booking) => (
-              <Table.Row key={booking.id}>
-                <Table.Cell
-                  cursor="pointer"
-                  onClick={(e) => copyConfirmationCode(e, booking.confirmation_code)}
-                  title="Click to copy"
-                >
-                  <Text fontFamily="mono" fontWeight="bold" color="accent.default">
-                    {booking.confirmation_code}
-                  </Text>
+              <Table.Row
+                key={booking.id}
+                cursor="pointer"
+                onClick={() => onBookingClick(booking.confirmation_code)}
+              >
+                <Table.Cell>
+                  <Flex align="center" gap={2}>
+                    <Text fontFamily="mono" fontWeight="bold" color="accent.default">
+                      {booking.confirmation_code}
+                    </Text>
+                    <IconButton
+                      aria-label="Copy confirmation code"
+                      size="2xs"
+                      variant="ghost"
+                      onClick={(e) => copyConfirmationCode(e, booking.confirmation_code)}
+                      title="Copy to clipboard"
+                    >
+                      <Icon as={FiCopy} boxSize={4} />
+                    </IconButton>
+                  </Flex>
                 </Table.Cell>
-                <Table.Cell
-                  cursor="pointer"
-                  onClick={() => onBookingClick(booking.confirmation_code)}
-                >
-                  {booking.user_name}
-                </Table.Cell>
-                <Table.Cell
-                  cursor="pointer"
-                  onClick={() => onBookingClick(booking.confirmation_code)}
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell>{booking.user_name}</Table.Cell>
+                <Table.Cell display={{ base: "none", md: "table-cell" }}>
                   {booking.user_email}
                 </Table.Cell>
-                <Table.Cell
-                  cursor="pointer"
-                  onClick={() => onBookingClick(booking.confirmation_code)}
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {booking.user_phone}
                 </Table.Cell>
-                <Table.Cell
-                  cursor="pointer"
-                  onClick={() => onBookingClick(booking.confirmation_code)}
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
                 <Table.Cell>
@@ -543,7 +538,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     timeStyle: "short",
                   })}
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell onClick={(e) => e.stopPropagation()}>
                   <BookingActionsMenu booking={booking} />
                 </Table.Cell>
               </Table.Row>

@@ -61,7 +61,7 @@ const DeleteMerchandise = ({ id }: { id: string }) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FiTrash2 fontSize="16px" />
-          Delete Merchandise
+          Delete
         </Button>
       </DialogTrigger>
 

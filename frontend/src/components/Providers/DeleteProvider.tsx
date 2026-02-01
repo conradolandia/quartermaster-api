@@ -67,7 +67,7 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FaTrash fontSize="16px" />
-          Delete Provider
+          Delete
         </Button>
       </DialogTrigger>
       <DialogContent>

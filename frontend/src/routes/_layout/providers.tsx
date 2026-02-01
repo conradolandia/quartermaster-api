@@ -19,8 +19,9 @@ import {
   type ProviderPublic,
   ProvidersService,
 } from "@/client"
-import ProviderActionsMenu from "@/components/Common/ProviderActionsMenu"
 import AddProvider from "@/components/Providers/AddProvider"
+import DeleteProvider from "@/components/Providers/DeleteProvider"
+import EditProvider from "@/components/Providers/EditProvider"
 import PendingProviders from "@/components/Pending/PendingProviders"
 import {
   DEFAULT_PAGE_SIZE,
@@ -228,9 +229,9 @@ function ProvidersTable() {
                   <SortIcon column="jurisdiction_id" />
                 </Flex>
               </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
+                Actions
+              </Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -248,8 +249,11 @@ function ProvidersTable() {
               <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
                 {provider.jurisdiction?.name || provider.jurisdiction_id || "—"}
               </Table.Cell>
-              <Table.Cell>
-                <ProviderActionsMenu provider={provider} />
+              <Table.Cell textAlign="center">
+                <Flex gap={2} flexWrap="wrap" justify="center">
+                  <EditProvider provider={provider} />
+                  <DeleteProvider provider={provider} />
+                </Flex>
               </Table.Cell>
             </Table.Row>
           ))}

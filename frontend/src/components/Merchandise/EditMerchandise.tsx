@@ -111,9 +111,9 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button variant="ghost" size="sm">
           <FaExchangeAlt fontSize="16px" />
-          Edit Merchandise
+          Edit
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>

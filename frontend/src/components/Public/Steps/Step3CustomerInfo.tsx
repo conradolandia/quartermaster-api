@@ -1,5 +1,6 @@
 import {
   Box,
+  Link,
   Button,
   HStack,
   Heading,
@@ -191,6 +192,7 @@ const Step3CustomerInfo = ({
           <Box>
             <VStack gap={4} align="stretch">
               <Checkbox
+                borderColor="border.accent"
                 checked={customerInfo.launch_updates_pref}
                 onCheckedChange={({ checked }) =>
                   updateCustomerInfo("launch_updates_pref", checked === true)
@@ -200,19 +202,22 @@ const Step3CustomerInfo = ({
               </Checkbox>
 
               <Checkbox
+                borderColor="border.accent"
                 checked={customerInfo.terms_accepted}
+                inputProps={{ required: true }}
                 onCheckedChange={({ checked }) =>
                   updateCustomerInfo("terms_accepted", checked === true)
                 }
-                inputProps={{ required: true }}
               >
                 I agree to the terms and conditions *
               </Checkbox>
 
-              <Text fontSize="sm" color="gray.600">
-                By checking this box, you agree to our booking terms and
-                conditions, cancellation policy, and acknowledge that you will
-                receive booking confirmations and updates via email.
+              <Text fontSize="sm" color="dark.text.secondary">
+                By checking this box, you agree to our booking&nbsp;
+                <Link href="https://www.star-fleet.tours/details" target="_blank">terms and conditions</Link>&nbsp;
+                and&nbsp;
+                <Link href="https://www.star-fleet.tours/current" target="_blank">scrub policy</Link>&nbsp;
+                and acknowledge that you will receive booking confirmations and updates via email.
               </Text>
             </VStack>
           </Box>

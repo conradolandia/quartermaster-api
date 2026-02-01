@@ -89,9 +89,9 @@ const EditProvider = ({ provider }: EditProviderProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button variant="ghost" size="sm">
           <FaExchangeAlt fontSize="16px" />
-          Edit Provider
+          Edit
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>

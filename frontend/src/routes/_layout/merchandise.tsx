@@ -20,8 +20,9 @@ import {
   MerchandiseService,
 } from "@/client"
 import { formatCents } from "@/utils"
-import { MerchandiseActionsMenu } from "@/components/Common/MerchandiseActionsMenu"
 import AddMerchandise from "@/components/Merchandise/AddMerchandise"
+import DeleteMerchandise from "@/components/Merchandise/DeleteMerchandise"
+import EditMerchandise from "@/components/Merchandise/EditMerchandise"
 import PendingMerchandise from "@/components/Pending/PendingMerchandise"
 import {
   DEFAULT_PAGE_SIZE,
@@ -34,14 +35,14 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 
-type SortableColumn = "name" | "price" | "quantity_available" | "id"
+type SortableColumn = "name" | "price" | "quantity_available"
 type SortDirection = "asc" | "desc"
 
 const merchandiseSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
-    .enum(["name", "price", "quantity_available", "id"])
+    .enum(["name", "price", "quantity_available"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
@@ -220,19 +221,7 @@ function MerchandiseTable() {
                   <SortIcon column="quantity_available" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("id")}
-                display={{ base: "none", lg: "table-cell" }}
-              >
-                <Flex align="center">
-                  ID
-                  <SortIcon column="id" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader minW="180px" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -240,7 +229,7 @@ function MerchandiseTable() {
           <Table.Body>
             {items.map((item) => (
               <Table.Row key={item.id} opacity={isPlaceholderData ? 0.5 : 1}>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell truncate maxW="sm" fontSize="2xl" fontWeight="300">
                   {item.name}
                 </Table.Cell>
                 <Table.Cell
@@ -254,11 +243,11 @@ function MerchandiseTable() {
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {item.quantity_available}
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
-                  {item.id}
-                </Table.Cell>
-                <Table.Cell>
-                  <MerchandiseActionsMenu merchandise={item} />
+                <Table.Cell minW="220px" textAlign="center">
+                  <Flex gap={2} flexWrap="wrap" justify="center">
+                    <EditMerchandise merchandise={item} />
+                    <DeleteMerchandise id={item.id} />
+                  </Flex>
                 </Table.Cell>
               </Table.Row>
             ))}

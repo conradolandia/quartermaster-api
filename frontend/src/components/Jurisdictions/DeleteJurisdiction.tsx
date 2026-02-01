@@ -67,7 +67,7 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" colorPalette="red">
           <FaTrash fontSize="16px" />
-          Delete Jurisdiction
+          Delete
         </Button>
       </DialogTrigger>
       <DialogContent>

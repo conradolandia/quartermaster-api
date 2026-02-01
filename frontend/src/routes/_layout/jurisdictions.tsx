@@ -20,8 +20,9 @@ import {
   JurisdictionsService,
   LocationsService,
 } from "@/client"
-import JurisdictionActionsMenu from "@/components/Common/JurisdictionActionsMenu"
 import AddJurisdiction from "@/components/Jurisdictions/AddJurisdiction"
+import DeleteJurisdiction from "@/components/Jurisdictions/DeleteJurisdiction"
+import EditJurisdiction from "@/components/Jurisdictions/EditJurisdiction"
 import PendingJurisdictions from "@/components/Pending/PendingJurisdictions"
 import {
   DEFAULT_PAGE_SIZE,
@@ -267,9 +268,9 @@ function JurisdictionsTable() {
                   <SortIcon column="sales_tax_rate" />
                 </Flex>
               </Table.ColumnHeader>
-            <Table.ColumnHeader w="sm" fontWeight="bold">
-              Actions
-            </Table.ColumnHeader>
+              <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
+                Actions
+              </Table.ColumnHeader>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -292,8 +293,11 @@ function JurisdictionsTable() {
               <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
                 {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
               </Table.Cell>
-              <Table.Cell>
-                <JurisdictionActionsMenu jurisdiction={jurisdiction} />
+              <Table.Cell textAlign="center">
+                <Flex gap={2} flexWrap="wrap" justify="center">
+                  <EditJurisdiction jurisdiction={jurisdiction} />
+                  <DeleteJurisdiction jurisdiction={jurisdiction} />
+                </Flex>
               </Table.Cell>
             </Table.Row>
           ))}

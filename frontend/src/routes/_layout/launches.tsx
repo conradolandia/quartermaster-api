@@ -264,7 +264,7 @@ function LaunchesTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="lg"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("summary")}
@@ -287,7 +287,7 @@ function LaunchesTable() {
                   <SortIcon column="location_id" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -308,8 +308,10 @@ function LaunchesTable() {
                 {locationsMap.get(launch.location_id)?.name ||
                   launch.location_id}
               </Table.Cell>
-              <Table.Cell>
-                <LaunchActionsMenu launch={launch} />
+              <Table.Cell w="16" textAlign="center">
+                <Flex justify="center">
+                  <LaunchActionsMenu launch={launch} />
+                </Flex>
               </Table.Cell>
             </Table.Row>
           ))}
