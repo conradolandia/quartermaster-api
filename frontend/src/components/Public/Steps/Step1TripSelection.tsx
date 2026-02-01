@@ -16,6 +16,8 @@ import * as React from "react"
 
 import {
   BoatsService,
+  LaunchesService,
+  MissionsService,
   type TripBoatPublicWithAvailability,
   TripBoatsService,
   type TripPublic,
@@ -42,6 +44,21 @@ const Step1TripSelection = ({
   onNext,
   accessCode,
 }: Step1TripSelectionProps) => {
+  // Fetch public launches (for Launch dropdown)
+  const { data: launchesResponse, isLoading: isLoadingLaunches } = useQuery({
+    queryKey: ["public-launches"],
+    queryFn: () => LaunchesService.readPublicLaunches({ limit: 100 }),
+  })
+
+  // Fetch public missions (to filter trips by launch)
+  const { data: missionsResponse, isLoading: isLoadingMissions } = useQuery({
+    queryKey: ["public-missions"],
+    queryFn: () => MissionsService.readPublicMissions({ limit: 500 }),
+  })
+
+  const launches = launchesResponse?.data ?? []
+  const missions = missionsResponse?.data ?? []
+
   // Fetch all trips with their details (using public endpoint)
   const { data: allTrips, isLoading: isLoadingTrips } = useQuery({
     queryKey: ["public-trips", accessCode],
@@ -51,6 +68,30 @@ const Step1TripSelection = ({
         accessCode: accessCode || undefined,
       }),
   })
+
+  // When resuming a booking we have selectedTripId but may not have selectedLaunchId; derive it from the trip's mission
+  React.useEffect(() => {
+    if (
+      !bookingData.selectedTripId ||
+      bookingData.selectedLaunchId ||
+      !allTrips?.data ||
+      missions.length === 0
+    )
+      return
+    const trip = allTrips.data.find(
+      (t: TripPublic) => t.id === bookingData.selectedTripId,
+    )
+    const mission = trip && missions.find((m) => m.id === trip.mission_id)
+    if (mission) {
+      updateBookingData({ selectedLaunchId: mission.launch_id })
+    }
+  }, [
+    bookingData.selectedTripId,
+    bookingData.selectedLaunchId,
+    allTrips?.data,
+    missions,
+    updateBookingData,
+  ])
 
   // Fetch trip boats for selected trip (using public endpoint)
   const { data: tripBoatsResponse, isLoading: isLoadingBoats } = useQuery({
@@ -136,6 +177,16 @@ const Step1TripSelection = ({
     updateBookingData,
   ])
 
+  const handleLaunchChange = (details: { value: string[] }) => {
+    const launchId = details.value[0] || ""
+    updateBookingData({
+      selectedLaunchId: launchId,
+      selectedTripId: "",
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
+    })
+  }
+
   const handleTripChange = (details: { value: string[] }) => {
     const tripId = details.value[0] || ""
     updateBookingData({
@@ -156,22 +207,62 @@ const Step1TripSelection = ({
     })
   }
 
-  // Allow proceeding if trip is selected and either boat is explicitly selected OR there's only one boat available
+  // Mission IDs for the selected launch (used to filter trips)
+  const missionIdsForLaunch = React.useMemo(() => {
+    if (!bookingData.selectedLaunchId) return new Set<string>()
+    return new Set(
+      missions
+        .filter(
+          (m: { launch_id: string }) => m.launch_id === bookingData.selectedLaunchId,
+        )
+        .map((m: { id: string }) => m.id),
+    )
+  }, [bookingData.selectedLaunchId, missions])
+
+  // Filter trips: only active trips, and only for the selected launch's missions
+  const activeTrips = React.useMemo(() => {
+    if (!allTrips?.data) return []
+    const base = allTrips.data.filter(
+      (trip: TripPublic) =>
+        trip.active === true &&
+        (!bookingData.selectedLaunchId ||
+          missionIdsForLaunch.has(trip.mission_id)),
+    )
+    return base
+  }, [allTrips?.data, bookingData.selectedLaunchId, missionIdsForLaunch])
+
+  // Allow proceeding if launch and trip are selected and either boat is explicitly selected OR there's only one boat available
   const canProceed =
+    bookingData.selectedLaunchId &&
     bookingData.selectedTripId &&
     (bookingData.selectedBoatId || (tripBoats && tripBoats.length === 1))
 
-  // Filter trips to show only active trips
-  // Note: The backend already filters trips based on booking_mode and access_code,
-  // so we only need to ensure trips are active here
-  const activeTrips = React.useMemo(() => {
-    if (!allTrips?.data) return []
+  // Launches in the future, sorted by launch_timestamp (soonest first)
+  const sortedLaunches = React.useMemo(() => {
+    const now = Date.now()
+    return [...launches]
+      .filter((a) => new Date(a.launch_timestamp).getTime() >= now)
+      .sort(
+        (a, b) =>
+          new Date(a.launch_timestamp).getTime() -
+          new Date(b.launch_timestamp).getTime(),
+      )
+  }, [launches])
 
-    return allTrips.data.filter((trip: TripPublic) => {
-      // Trip must be active
-      return trip.active === true
+  // If the selected launch has passed, clear launch/trip/boat
+  React.useEffect(() => {
+    if (
+      !bookingData.selectedLaunchId ||
+      sortedLaunches.some((l) => l.id === bookingData.selectedLaunchId)
+    )
+      return
+    updateBookingData({
+      selectedLaunchId: "",
+      selectedTripId: "",
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
     })
-  }, [allTrips?.data])
+  }, [bookingData.selectedLaunchId, sortedLaunches, updateBookingData])
 
   const formatTripTime = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
@@ -197,7 +288,26 @@ const Step1TripSelection = ({
     return `${readableType} (${time})`
   }
 
-  // Create collection for trip selection with full context - only active trips
+  const formatLaunchOptionLabel = (launch: {
+    name: string
+    launch_timestamp: string
+    timezone?: string | null
+  }): string => {
+    const dateStr = formatTripTime(launch.launch_timestamp, launch.timezone)
+    return launch.name?.trim()
+      ? `${launch.name.trim()} (${dateStr})`
+      : dateStr
+  }
+
+  // Create collection for launch selection
+  const launchesCollection = createListCollection({
+    items: sortedLaunches.map((launch) => ({
+      label: formatLaunchOptionLabel(launch),
+      value: launch.id,
+    })),
+  })
+
+  // Create collection for trip selection with full context - only active trips for selected launch
   const tripsCollection = createListCollection({
     items:
       activeTrips.map((trip: TripPublic) => ({
@@ -229,11 +339,67 @@ const Step1TripSelection = ({
             Select Experience
           </Heading>
           <Text color="text.muted" mb={8}>
-            Choose your preferred rocket launch.
+            Choose your launch, then your trip and boat.
           </Text>
           <VStack align="stretch" gap={4}>
+            {/* Launch Selection */}
             <Box>
-              {isLoadingTrips ? (
+              <Text fontWeight="medium" mb={2}>
+                Launch
+              </Text>
+              {isLoadingLaunches ? (
+                <Spinner size="sm" />
+              ) : (
+                <Select.Root
+                  collection={launchesCollection}
+                  value={
+                    bookingData.selectedLaunchId
+                      ? [bookingData.selectedLaunchId]
+                      : []
+                  }
+                  onValueChange={handleLaunchChange}
+                >
+                  <Select.Control width="100%">
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select a launch" />
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content minWidth="400px">
+                      {sortedLaunches.map((launch) => {
+                        const label = formatLaunchOptionLabel(launch)
+                        return (
+                          <Select.Item
+                            key={launch.id}
+                            item={{
+                              value: launch.id,
+                              label,
+                            }}
+                          >
+                            {label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        )
+                      })}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
+              )}
+            </Box>
+
+            {/* Trip Selection - only when launch is selected */}
+            <Box>
+              <Text fontWeight="medium" mb={2}>
+                Trip
+              </Text>
+              {!bookingData.selectedLaunchId ? (
+                <Text color="text.muted" fontSize="sm">
+                  Select a launch first to see available trips.
+                </Text>
+              ) : isLoadingTrips || isLoadingMissions ? (
                 <Spinner size="sm" />
               ) : (
                 <Select.Root

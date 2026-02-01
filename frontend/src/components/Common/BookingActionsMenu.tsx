@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FiCopy, FiEdit, FiTrash2 } from "react-icons/fi"
+import { FiCode, FiCopy, FiEdit, FiPrinter, FiTrash2 } from "react-icons/fi"
 
 import { BookingsService, type BookingPublic } from "@/client"
 import {
@@ -18,14 +18,32 @@ import EditBooking from "../Bookings/EditBooking"
 interface BookingActionsMenuProps {
   booking: BookingPublic
   disabled?: boolean
+  /** When provided, shows a Print item in the menu that calls this. */
+  onPrint?: () => void
+  /** When provided, Edit is shown as external button; menu uses this controlled state for the edit modal. */
+  editModalOpen?: boolean
+  onEditModalOpenChange?: (open: boolean) => void
+  /** When provided, shows a Raw data item in the menu that calls this. */
+  onOpenRawData?: () => void
 }
 
-const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
-  const [editModalOpen, setEditModalOpen] = useState(false)
+const BookingActionsMenu = ({
+  booking,
+  disabled,
+  onPrint,
+  editModalOpen: controlledEditOpen,
+  onEditModalOpenChange,
+  onOpenRawData,
+}: BookingActionsMenuProps) => {
+  const [internalEditOpen, setInternalEditOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [editingBooking, setEditingBooking] = useState<BookingPublic | null>(
     null,
   )
+
+  const isEditControlled = controlledEditOpen !== undefined && onEditModalOpenChange != null
+  const editModalOpen = isEditControlled ? controlledEditOpen : internalEditOpen
+  const setEditModalOpen = isEditControlled ? onEditModalOpenChange : setInternalEditOpen
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -67,10 +85,24 @@ const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
           </IconButton>
         </MenuTrigger>
         <MenuContent>
-          <MenuItem value="edit" onClick={handleOpenEdit}>
-            <FiEdit />
-            Edit Booking
-          </MenuItem>
+          {onPrint && (
+            <MenuItem value="print" onClick={onPrint}>
+              <FiPrinter />
+              Print
+            </MenuItem>
+          )}
+          {onOpenRawData && (
+            <MenuItem value="raw-data" onClick={onOpenRawData}>
+              <FiCode />
+              Raw data
+            </MenuItem>
+          )}
+          {!isEditControlled && (
+            <MenuItem value="edit" onClick={handleOpenEdit}>
+              <FiEdit />
+              Edit Booking
+            </MenuItem>
+          )}
           <MenuItem
             value="duplicate"
             onClick={() => duplicateMutation.mutate()}
@@ -95,6 +127,9 @@ const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
         onClose={handleCloseEdit}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["bookings"] })
+          queryClient.invalidateQueries({
+            queryKey: ["booking", booking.confirmation_code],
+          })
         }}
       />
       <DeleteBooking

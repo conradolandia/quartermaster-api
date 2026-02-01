@@ -809,9 +809,7 @@ export class BookingsService {
    * then updates the booking status to 'refunded'.
    * @param data The data for the request.
    * @param data.confirmationCode
-   * @param data.refundReason
-   * @param data.refundNotes
-   * @param data.refundAmountCents
+   * @param data.requestBody
    * @returns BookingPublic Successful Response
    * @throws ApiError
    */
@@ -824,11 +822,8 @@ export class BookingsService {
       path: {
         confirmation_code: data.confirmationCode,
       },
-      query: {
-        refund_reason: data.refundReason,
-        refund_notes: data.refundNotes,
-        refund_amount_cents: data.refundAmountCents,
-      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

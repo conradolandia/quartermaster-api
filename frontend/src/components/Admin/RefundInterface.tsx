@@ -88,9 +88,11 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     }) =>
       BookingsService.processRefund({
         confirmationCode: code,
-        refundReason: reason,
-        refundNotes: notes || undefined,
-        refundAmountCents: amount ?? undefined,
+        requestBody: {
+          refund_reason: reason,
+          refund_notes: notes || undefined,
+          refund_amount_cents: amount ?? undefined,
+        },
       }),
     onSuccess: (booking) => {
       showSuccessToast("Refund processed successfully!")

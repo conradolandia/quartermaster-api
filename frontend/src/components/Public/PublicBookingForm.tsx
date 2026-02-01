@@ -16,7 +16,8 @@ import Logo from "/assets/images/qm-logo.svg"
 
 // Types for the booking flow
 export interface BookingStepData {
-  // Step 1: Trip Selection
+  // Step 1: Launch and Trip Selection
+  selectedLaunchId: string
   selectedTripId: string
   selectedBoatId: string
   /** Remaining passenger capacity for the selected boat (from API). */
@@ -69,6 +70,7 @@ function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
       : 0
 
   return {
+    selectedLaunchId: "",
     selectedTripId: firstItem?.trip_id ?? "",
     selectedBoatId: firstItem?.boat_id ?? "",
     boatRemainingCapacity: null,
@@ -102,7 +104,11 @@ function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
 }
 
 const STEPS = [
-  { id: 1, title: "Select Trip", description: "Choose your launch and trip" },
+  {
+    id: 1,
+    title: "Select Launch & Trip",
+    description: "Choose your launch, then trip and boat",
+  },
   {
     id: 2,
     title: "Select Items",
@@ -142,7 +148,8 @@ const PublicBookingForm = ({
   /** Code we already pre-filled form for; don't overwrite form when re-loading after user went Back. */
   const hydratedForCodeRef = useRef<string | null>(null)
   const [bookingData, setBookingData] = useState<BookingStepData>({
-    // Step 1: Trip Selection
+    // Step 1: Launch and Trip Selection
+    selectedLaunchId: "",
     selectedTripId: "",
     selectedBoatId: "",
     boatRemainingCapacity: null,

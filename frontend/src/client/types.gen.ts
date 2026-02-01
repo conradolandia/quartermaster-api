@@ -190,6 +190,8 @@ export type BookingPublic = {
   tip_amount: number
   total_amount: number
   refunded_amount_cents?: number
+  refund_reason?: string | null
+  refund_notes?: string | null
   payment_intent_id?: string | null
   special_requests?: string | null
   status?: BookingStatus
@@ -565,6 +567,12 @@ export type ReassignBoatResponse = {
   moved: number
 }
 
+export type RefundRequest = {
+  refund_reason: string
+  refund_notes?: string | null
+  refund_amount_cents?: number | null
+}
+
 export type Token = {
   access_token: string
   token_type?: string
@@ -918,9 +926,7 @@ export type BookingPublicResendBookingConfirmationEmailResponse = {
 
 export type BookingsProcessRefundData = {
   confirmationCode: string
-  refundAmountCents?: number | null
-  refundNotes?: string | null
-  refundReason: string
+  requestBody: RefundRequest
 }
 
 export type BookingsProcessRefundResponse = BookingPublic

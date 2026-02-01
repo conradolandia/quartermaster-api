@@ -51,6 +51,13 @@ from .booking_utils import (
 logger = logging.getLogger(__name__)
 
 
+# Refund request body (POST body is more reliable than query for reason/notes)
+class RefundRequest(BaseModel):
+    refund_reason: str
+    refund_notes: str | None = None
+    refund_amount_cents: int | None = None
+
+
 # Paginated response model
 class BookingsPaginatedResponse(BaseModel):
     data: list[BookingPublic]
@@ -1446,12 +1453,10 @@ def resend_booking_confirmation_email(
     dependencies=[Depends(deps.get_current_active_superuser)],
 )
 def process_refund(
+    confirmation_code: str,
+    body: RefundRequest,
     *,
     session: Session = Depends(deps.get_db),
-    confirmation_code: str,
-    refund_reason: str,
-    refund_notes: str | None = None,
-    refund_amount_cents: int | None = None,
 ) -> BookingPublic:
     """
     Process a refund for a booking.
@@ -1460,6 +1465,9 @@ def process_refund(
     Validates the booking and processes the refund through Stripe,
     then updates the booking status to 'refunded'.
     """
+    refund_reason = body.refund_reason
+    refund_notes = body.refund_notes
+    refund_amount_cents = body.refund_amount_cents
     try:
         # Validate confirmation code format
         validate_confirmation_code(confirmation_code)
@@ -1517,6 +1525,11 @@ def process_refund(
                 detail="Refund amount must be positive.",
             )
 
+        logger.info(
+            f"process_refund received reason={refund_reason!r} notes={refund_notes!r} "
+            f"for booking {confirmation_code}"
+        )
+
         # Process Stripe refund if payment intent exists
         if booking.payment_intent_id:
             try:
@@ -1541,25 +1554,41 @@ def process_refund(
                 f"No payment intent found for booking {confirmation_code}, processing refund without Stripe"
             )
 
-        # Update cumulative refund and status only when fully refunded
+        # Update cumulative refund and store reason/notes at booking level (for display)
         booking.refunded_amount_cents = refunded_so_far + amount_to_refund
+        booking.refund_reason = refund_reason
+        booking.refund_notes = refund_notes
         session.add(booking)
 
         items = session.exec(
             select(BookingItem).where(BookingItem.booking_id == booking.id)
         ).all()
 
+        # Always store refund reason and notes on all items (for display in booking details)
+        for item in items:
+            item.refund_reason = refund_reason
+            item.refund_notes = refund_notes
+            session.add(item)
+
         if booking.refunded_amount_cents >= booking.total_amount:
             booking.status = BookingStatus.refunded
             for item in items:
                 item.status = BookingItemStatus.refunded
-                item.refund_reason = refund_reason
-                item.refund_notes = refund_notes
                 session.add(item)
 
         # Commit all changes
         session.commit()
         session.refresh(booking)
+
+        # Log first item so we can confirm reason/notes were persisted (debug)
+        first_item = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).first()
+        if first_item:
+            logger.info(
+                f"process_refund after commit item refund_reason={first_item.refund_reason!r} "
+                f"refund_notes={first_item.refund_notes!r}"
+            )
 
         # Send refund confirmation email
         try:

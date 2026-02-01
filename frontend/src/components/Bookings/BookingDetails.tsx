@@ -6,9 +6,13 @@ import {
   Container,
   Flex,
   Heading,
+  NumberInput,
+  Select,
   Table,
   Text,
+  Textarea,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -16,10 +20,10 @@ import { useState } from "react"
 import {
   FiArrowLeft,
   FiCheck,
-  FiCode,
   FiCornerUpLeft,
+  FiDollarSign,
+  FiEdit,
   FiMail,
-  FiPrinter,
 } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
@@ -44,6 +48,17 @@ import {
   isPartiallyRefunded,
 } from "./types"
 
+const REFUND_REASONS = [
+  "Customer requested cancellation",
+  "Change in party size",
+  "Could not make date",
+  "Weather conditions",
+  "Technical issues",
+  "Service quality issues",
+  "Medical emergency",
+  "Other",
+]
+
 interface BookingDetailsProps {
   confirmationCode: string
 }
@@ -55,7 +70,14 @@ export default function BookingDetails({
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false)
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false)
+  const [refundReason, setRefundReason] = useState("")
+  const [refundNotes, setRefundNotes] = useState("")
+  const [refundAmountCents, setRefundAmountCents] = useState<number | null>(
+    null,
+  )
   const [emailSending, setEmailSending] = useState(false)
 
   const {
@@ -104,6 +126,69 @@ export default function BookingDetails({
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const openRefundDialog = () => {
+    if (booking) {
+      const remaining =
+        booking.total_amount - getRefundedCents(booking)
+      setRefundAmountCents(remaining > 0 ? remaining : null)
+      setRefundReason("")
+      setRefundNotes("")
+      setRefundDialogOpen(true)
+    }
+  }
+
+  const refundMutation = useMutation({
+    mutationFn: (payload: {
+      confirmationCode: string
+      refundReason: string
+      refundNotes?: string
+      refundAmountCents?: number
+    }) =>
+      BookingsService.processRefund({
+        confirmationCode: payload.confirmationCode,
+        requestBody: {
+          refund_reason: payload.refundReason,
+          refund_notes: payload.refundNotes ?? undefined,
+          refund_amount_cents: payload.refundAmountCents,
+        },
+      }),
+    onSuccess: (updated) => {
+      showSuccessToast("Refund processed successfully")
+      queryClient.setQueryData(["booking", confirmationCode], updated)
+      setRefundDialogOpen(false)
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { body?: { detail?: string } })?.body?.detail
+      showErrorToast(
+        typeof detail === "string" ? detail : "Failed to process refund",
+      )
+    },
+  })
+
+  const handleProcessRefund = () => {
+    if (!refundReason.trim()) {
+      showErrorToast("Please select a refund reason")
+      return
+    }
+    if (!booking) return
+    const remaining = booking.total_amount - getRefundedCents(booking)
+    if (
+      refundAmountCents !== null &&
+      refundAmountCents > remaining
+    ) {
+      showErrorToast(
+        `Refund amount cannot exceed remaining ($${formatCents(remaining)})`,
+      )
+      return
+    }
+    refundMutation.mutate({
+      confirmationCode: booking.confirmation_code,
+      refundReason: refundReason.trim(),
+      refundNotes: refundNotes.trim() || undefined,
+      refundAmountCents: refundAmountCents ?? undefined,
+    })
   }
 
   const handleEmail = async () => {
@@ -180,12 +265,20 @@ export default function BookingDetails({
               Back to Bookings
             </Flex>
           </Button>
-          <Button size="sm" variant="ghost" onClick={handlePrint}>
-            <Flex align="center" gap={2}>
-              <FiPrinter />
-              Print
-            </Flex>
-          </Button>
+          {booking.status !== "refunded" &&
+            getRefundedCents(booking) < booking.total_amount && (
+              <Button
+                size="sm"
+                colorPalette="orange"
+                variant="outline"
+                onClick={openRefundDialog}
+              >
+                <Flex align="center" gap={2}>
+                  <FiDollarSign />
+                  Refund
+                </Flex>
+              </Button>
+            )}
           <Button
             size="sm"
             variant="ghost"
@@ -213,11 +306,11 @@ export default function BookingDetails({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => setJsonDialogOpen(true)}
+            onClick={() => setEditModalOpen(true)}
           >
             <Flex align="center" gap={2}>
-              <FiCode />
-              Raw data
+              <FiEdit />
+              Edit Booking
             </Flex>
           </Button>
           {booking.status === "confirmed" && (
@@ -248,7 +341,13 @@ export default function BookingDetails({
               </Flex>
             </Button>
           )}
-          <BookingActionsMenu booking={booking} />
+          <BookingActionsMenu
+            booking={booking}
+            onPrint={handlePrint}
+            editModalOpen={editModalOpen}
+            onEditModalOpenChange={setEditModalOpen}
+            onOpenRawData={() => setJsonDialogOpen(true)}
+          />
         </Flex>
       </Flex>
 
@@ -326,6 +425,130 @@ export default function BookingDetails({
         </DialogContent>
       </DialogRoot>
 
+      <DialogRoot
+        open={refundDialogOpen}
+        onOpenChange={({ open }) => setRefundDialogOpen(open)}
+        size={{ base: "xs", md: "sm" }}
+        placement="center"
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund booking</DialogTitle>
+          </DialogHeader>
+          <DialogCloseTrigger />
+          <DialogBody>
+            <VStack align="stretch" gap={4}>
+              {isPartiallyRefunded(booking) && (
+                <Text fontSize="sm" color="text.muted">
+                  Already refunded: ${formatCents(getRefundedCents(booking))}.
+                  Remaining: $
+                  {formatCents(
+                    booking.total_amount - getRefundedCents(booking),
+                  )}
+                </Text>
+              )}
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Refund reason *
+                </Text>
+                <Select.Root
+                  collection={createListCollection({
+                    items: REFUND_REASONS.map((r) => ({ label: r, value: r })),
+                  })}
+                  value={refundReason ? [refundReason] : []}
+                  onValueChange={(e) => setRefundReason(e.value[0] ?? "")}
+                >
+                  <Select.Control width="100%">
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Select a reason" />
+                    </Select.Trigger>
+                    <Select.IndicatorGroup>
+                      <Select.Indicator />
+                    </Select.IndicatorGroup>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content minWidth="280px">
+                      {REFUND_REASONS.map((r) => (
+                        <Select.Item
+                          key={r}
+                          item={{ value: r, label: r }}
+                        >
+                          {r}
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select.Root>
+              </Box>
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Refund amount (optional, full if empty)
+                </Text>
+                <NumberInput.Root
+                  value={
+                    refundAmountCents !== null
+                      ? (refundAmountCents / 100).toFixed(2)
+                      : ""
+                  }
+                  onValueChange={(e) => {
+                    const v = e.value
+                    if (v === "" || v == null) {
+                      const remaining =
+                        booking.total_amount - getRefundedCents(booking)
+                      setRefundAmountCents(remaining > 0 ? remaining : null)
+                      return
+                    }
+                    setRefundAmountCents(
+                      Math.round(Number.parseFloat(String(v)) * 100),
+                    )
+                  }}
+                  min={0}
+                  max={
+                    (booking.total_amount - getRefundedCents(booking)) / 100
+                  }
+                  step={0.01}
+                >
+                  <NumberInput.Input placeholder="0.00" />
+                </NumberInput.Root>
+                <Text fontSize="sm" color="text.muted" mt={1}>
+                  Max: $
+                  {formatCents(
+                    booking.total_amount - getRefundedCents(booking),
+                  )}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Notes (optional)
+                </Text>
+                <Textarea
+                  placeholder="Additional details..."
+                  value={refundNotes}
+                  onChange={(e) => setRefundNotes(e.target.value)}
+                  rows={2}
+                />
+              </Box>
+            </VStack>
+          </DialogBody>
+          <DialogFooter>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogActionTrigger>
+              <Button
+                colorPalette="red"
+                onClick={handleProcessRefund}
+                loading={refundMutation.isPending}
+                disabled={!refundReason.trim()}
+              >
+                Process refund
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
+
       <VStack align="stretch" gap={6}>
         <Flex gap={6} direction={{ base: "column", lg: "row" }}>
           <Box flex="2">
@@ -357,10 +580,14 @@ export default function BookingDetails({
                       {booking.status?.replace("_", " ").toUpperCase() ||
                         "UNKNOWN"}
                     </Badge>
-                    {isPartiallyRefunded(booking) && (
-                      <Text fontSize="sm" color="text.muted">
-                        Partially refunded: ${formatCents(getRefundedCents(booking))}
-                      </Text>
+                    {(booking.status === "refunded" ||
+                      getRefundedCents(booking) > 0) && (
+                      <Badge colorPalette="red" textTransform="uppercase">
+                        {booking.status === "refunded" ||
+                        getRefundedCents(booking) >= (booking.total_amount ?? 0)
+                          ? "Fully refunded"
+                          : "Partially refunded"}
+                      </Badge>
                     )}
                   </Flex>
                   <Flex gap={4} mb={2} alignItems="baseline">
@@ -368,11 +595,47 @@ export default function BookingDetails({
                     <Text>{formatDate(booking.created_at)}</Text>
                   </Flex>
                   {booking.updated_at && (
-                    <Flex gap={4} alignItems="baseline">
+                    <Flex gap={4} mb={2} alignItems="baseline">
                       <Text fontWeight="bold">Last Updated:</Text>
                       <Text>{formatDate(booking.updated_at)}</Text>
                     </Flex>
                   )}
+                  {(() => {
+                    const hasRefund =
+                      booking.status === "refunded" ||
+                      getRefundedCents(booking) > 0
+                    if (!hasRefund) return null
+                    // Prefer booking-level reason/notes (set on every refund); fall back to first item
+                    const itemWithRefund = booking.items?.find(
+                      (item) =>
+                        (item.refund_reason?.trim() ?? "") !== "" ||
+                        (item.refund_notes?.trim() ?? "") !== "",
+                    )
+                    const reason =
+                      booking.refund_reason?.trim() ??
+                      itemWithRefund?.refund_reason?.trim() ??
+                      "Not recorded"
+                    const notes =
+                      booking.refund_notes?.trim() ??
+                      itemWithRefund?.refund_notes?.trim() ??
+                      "Not recorded"
+                    return (
+                      <>
+                        <Flex gap={4} mb={2} alignItems="baseline">
+                          <Text fontWeight="bold">Refunded amount:</Text>
+                          <Text>${formatCents(getRefundedCents(booking))}</Text>
+                        </Flex>
+                        <Flex gap={4} mb={2} alignItems="baseline">
+                          <Text fontWeight="bold">Refund reason:</Text>
+                          <Text>{reason}</Text>
+                        </Flex>
+                        <Flex gap={4} alignItems="baseline">
+                          <Text fontWeight="bold">Refund notes:</Text>
+                          <Text>{notes}</Text>
+                        </Flex>
+                      </>
+                    )
+                  })()}
                 </Box>
               </Flex>
             </Box>
@@ -462,18 +725,14 @@ export default function BookingDetails({
                       <Text>-${formatCents(booking.discount_amount)}</Text>
                     </Flex>
                   )}
-                  {booking.tax_amount > 0 && (
-                    <Flex justify="space-between">
-                      <Text>Tax:</Text>
-                      <Text>${formatCents(booking.tax_amount)}</Text>
-                    </Flex>
-                  )}
-                  {booking.tip_amount > 0 && (
-                    <Flex justify="space-between">
-                      <Text>Tip:</Text>
-                      <Text>${formatCents(booking.tip_amount)}</Text>
-                    </Flex>
-                  )}
+                  <Flex justify="space-between">
+                    <Text>Tax:</Text>
+                    <Text>${formatCents(booking.tax_amount)}</Text>
+                  </Flex>
+                  <Flex justify="space-between">
+                    <Text>Tip:</Text>
+                    <Text>${formatCents(booking.tip_amount)}</Text>
+                  </Flex>
                   <Flex
                     justify="space-between"
                     fontWeight="bold"

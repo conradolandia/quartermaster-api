@@ -1049,6 +1049,8 @@ class BookingBase(SQLModel):
     tip_amount: int = Field(ge=0)  # cents
     total_amount: int = Field(ge=0)  # cents
     refunded_amount_cents: int = Field(default=0, ge=0)  # cumulative refunds
+    refund_reason: str | None = Field(default=None, max_length=255)
+    refund_notes: str | None = Field(default=None, max_length=1000)
     payment_intent_id: str | None = Field(default=None, max_length=255)
     special_requests: str | None = Field(default=None, max_length=1000)
     status: BookingStatus = Field(default=BookingStatus.draft)
