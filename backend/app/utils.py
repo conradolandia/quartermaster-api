@@ -114,6 +114,13 @@ def generate_booking_confirmation_email(
     base_url = settings.FRONTEND_HOST
     confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
+    qr_b64 = qr_code_base64 or ""
+    logger.info(
+        "Booking confirmation email: confirmation_code=%s qr_code_len=%s",
+        confirmation_code,
+        len(qr_b64),
+    )
+
     # Render the email template
     html_content = render_email_template(
         template_name="booking_confirmation.html",
@@ -127,7 +134,7 @@ def generate_booking_confirmation_email(
             "total_amount": total_amount,
             "confirmation_link": confirmation_link,
             "email": email_to,
-            "qr_code_base64": qr_code_base64 or "",
+            "qr_code_base64": qr_b64,
             "is_cancellation": False,  # Explicitly set to False for regular bookings
             "is_refund": False,  # Explicitly set to False for regular bookings
         },
