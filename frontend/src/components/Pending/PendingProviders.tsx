@@ -6,13 +6,22 @@ const PendingProviders = () => {
       <Table.Header>
         <Table.Row>
           <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
-          <Table.ColumnHeader w="sm" display={{ base: "none", md: "table-cell" }}>
+          <Table.ColumnHeader
+            w="sm"
+            display={{ base: "none", md: "table-cell" }}
+          >
             Location
           </Table.ColumnHeader>
-          <Table.ColumnHeader w="sm" display={{ base: "none", lg: "table-cell" }}>
+          <Table.ColumnHeader
+            w="sm"
+            display={{ base: "none", lg: "table-cell" }}
+          >
             Address
           </Table.ColumnHeader>
-          <Table.ColumnHeader w="sm" display={{ base: "none", md: "table-cell" }}>
+          <Table.ColumnHeader
+            w="sm"
+            display={{ base: "none", md: "table-cell" }}
+          >
             Jurisdiction
           </Table.ColumnHeader>
           <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>

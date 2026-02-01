@@ -61,39 +61,39 @@ const DeleteBooking = ({
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Booking</DialogTitle>
-          </DialogHeader>
-          <DialogCloseTrigger />
-          <DialogBody>
-            <Text>
-              Are you sure you want to cancel the booking for{" "}
-              <Text as="span" fontWeight="bold">
-                {booking.user_name}
-              </Text>{" "}
-              (Confirmation: {booking.confirmation_code})?
-            </Text>
-            <Text mt={2} fontSize="sm" color="gray.600">
-              This action will set the booking status to "cancelled".
-            </Text>
-          </DialogBody>
-          <DialogFooter>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogActionTrigger>
-              <Button
-                variant="solid"
-                colorScheme="red"
-                onClick={() => mutation.mutate()}
-                loading={mutation.isPending}
-                disabled={mutation.isPending}
-              >
-                {mutation.isPending ? "Cancelling..." : "Cancel Booking"}
-              </Button>
-            </ButtonGroup>
-          </DialogFooter>
-        </DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cancel Booking</DialogTitle>
+        </DialogHeader>
+        <DialogCloseTrigger />
+        <DialogBody>
+          <Text>
+            Are you sure you want to cancel the booking for{" "}
+            <Text as="span" fontWeight="bold">
+              {booking.user_name}
+            </Text>{" "}
+            (Confirmation: {booking.confirmation_code})?
+          </Text>
+          <Text mt={2} fontSize="sm" color="gray.600">
+            This action will set the booking status to "cancelled".
+          </Text>
+        </DialogBody>
+        <DialogFooter>
+          <ButtonGroup>
+            <DialogActionTrigger asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogActionTrigger>
+            <Button
+              variant="solid"
+              colorScheme="red"
+              onClick={() => mutation.mutate()}
+              loading={mutation.isPending}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? "Cancelling..." : "Cancel Booking"}
+            </Button>
+          </ButtonGroup>
+        </DialogFooter>
+      </DialogContent>
     </DialogRoot>
   )
 }

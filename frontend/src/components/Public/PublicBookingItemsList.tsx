@@ -1,4 +1,4 @@
-import { Box, Heading, HStack, Separator, Text, VStack } from "@chakra-ui/react"
+import { Box, HStack, Heading, Separator, Text, VStack } from "@chakra-ui/react"
 
 import type { BookingItemPublic } from "@/client"
 import { formatCents } from "@/utils"
@@ -13,9 +13,13 @@ interface PublicBookingItemsListProps {
 
 const formatItemType = (item: BookingItemPublic): string => {
   if (item.trip_merchandise_id) {
-    return `Merchandise: ${item.item_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`
+    return `Merchandise: ${item.item_type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())}`
   }
-  const type = item.item_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  const type = item.item_type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
   return `Ticket: ${type}`
 }
 
@@ -72,9 +76,7 @@ export default function PublicBookingItemsList({
             </VStack>
           </>
         )}
-        {tickets.length > 0 && merchandise.length > 0 && (
-          <Separator />
-        )}
+        {tickets.length > 0 && merchandise.length > 0 && <Separator />}
         {merchandise.length > 0 && (
           <>
             <Text fontSize="sm" fontWeight="medium" color="text.muted">

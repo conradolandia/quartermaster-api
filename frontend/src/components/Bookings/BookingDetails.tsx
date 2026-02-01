@@ -8,16 +8,15 @@ import {
   Table,
   Text,
   VStack,
-} from "@chakra-ui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { FiArrowLeft, FiCheck, FiCode, FiMail, FiPrinter } from "react-icons/fi";
+} from "@chakra-ui/react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
+import { FiArrowLeft, FiCheck, FiCode, FiMail, FiPrinter } from "react-icons/fi"
 
-import { BookingsService } from "@/client";
-import { formatCents } from "@/utils";
-import BookingActionsMenu from "@/components/Common/BookingActionsMenu";
-import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails";
+import { BookingsService } from "@/client"
+import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import {
   DialogBody,
   DialogContent,
@@ -25,21 +24,22 @@ import {
   DialogHeader,
   DialogRoot,
   DialogTitle,
-} from "@/components/ui/dialog";
-import useCustomToast from "@/hooks/useCustomToast";
-import { formatDate, getStatusColor } from "./types";
+} from "@/components/ui/dialog"
+import useCustomToast from "@/hooks/useCustomToast"
+import { formatCents } from "@/utils"
+import { formatDate, getStatusColor } from "./types"
 
 interface BookingDetailsProps {
-  confirmationCode: string;
+  confirmationCode: string
 }
 
 export default function BookingDetails({
   confirmationCode,
 }: BookingDetailsProps) {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { showSuccessToast, showErrorToast } = useCustomToast();
-  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
 
   const {
     data: booking,
@@ -51,28 +51,27 @@ export default function BookingDetails({
       BookingsService.getBookingByConfirmationCode({
         confirmationCode,
       }),
-  });
+  })
 
   const checkInMutation = useMutation({
-    mutationFn: () =>
-      BookingsService.checkInBooking({ confirmationCode }),
+    mutationFn: () => BookingsService.checkInBooking({ confirmationCode }),
     onSuccess: (updated) => {
-      showSuccessToast("Booking checked in successfully");
-      queryClient.setQueryData(["booking", confirmationCode], updated);
+      showSuccessToast("Booking checked in successfully")
+      queryClient.setQueryData(["booking", confirmationCode], updated)
     },
     onError: (err: unknown) => {
-      const detail = (err as { body?: { detail?: string } })?.body?.detail;
-      showErrorToast(typeof detail === "string" ? detail : "Failed to check in");
+      const detail = (err as { body?: { detail?: string } })?.body?.detail
+      showErrorToast(typeof detail === "string" ? detail : "Failed to check in")
     },
-  });
+  })
 
   const handleBack = () => {
-    navigate({ search: {} });
-  };
+    navigate({ search: {} })
+  }
 
   const handlePrint = () => {
-    window.print();
-  };
+    window.print()
+  }
 
   const handleEmail = async () => {
     try {
@@ -81,17 +80,17 @@ export default function BookingDetails({
         `${apiUrl}/api/v1/bookings/${confirmationCode}/resend-email`,
         {
           method: "POST",
-        }
-      );
+        },
+      )
       if (response.ok) {
-        console.log("Email sent successfully");
+        console.log("Email sent successfully")
       } else {
-        console.error("Failed to resend email");
+        console.error("Failed to resend email")
       }
     } catch (error) {
-      console.error("Error resending email:", error);
+      console.error("Error resending email:", error)
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -100,7 +99,7 @@ export default function BookingDetails({
           <Text>Loading booking details...</Text>
         </VStack>
       </Container>
-    );
+    )
   }
 
   if (error || !booking) {
@@ -117,7 +116,7 @@ export default function BookingDetails({
           <Button onClick={handleBack}>Back to Bookings</Button>
         </VStack>
       </Container>
-    );
+    )
   }
 
   return (
@@ -172,7 +171,9 @@ export default function BookingDetails({
           >
             <Flex align="center" gap={2}>
               <FiCheck />
-              {booking.status === "checked_in" ? "Already Checked In" : "Check In"}
+              {booking.status === "checked_in"
+                ? "Already Checked In"
+                : "Check In"}
             </Flex>
           </Button>
           <BookingActionsMenu booking={booking} />
@@ -276,29 +277,41 @@ export default function BookingDetails({
             >
               <VStack align="stretch" gap={3}>
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold" minW="120px">Name:</Text>
+                  <Text fontWeight="bold" minW="120px">
+                    Name:
+                  </Text>
                   <Text>{booking.user_name}</Text>
                 </Flex>
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold" minW="120px">Email:</Text>
+                  <Text fontWeight="bold" minW="120px">
+                    Email:
+                  </Text>
                   <Text>{booking.user_email}</Text>
                 </Flex>
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold" minW="120px">Phone:</Text>
+                  <Text fontWeight="bold" minW="120px">
+                    Phone:
+                  </Text>
                   <Text>{booking.user_phone}</Text>
                 </Flex>
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold" minW="120px">Billing Address:</Text>
+                  <Text fontWeight="bold" minW="120px">
+                    Billing Address:
+                  </Text>
                   <Text>{booking.billing_address}</Text>
                 </Flex>
                 {booking.special_requests && (
                   <Flex gap={4} alignItems="baseline">
-                    <Text fontWeight="bold" minW="120px">Special Requests:</Text>
+                    <Text fontWeight="bold" minW="120px">
+                      Special Requests:
+                    </Text>
                     <Text>{booking.special_requests}</Text>
                   </Flex>
                 )}
                 <Flex gap={4} alignItems="baseline">
-                  <Text fontWeight="bold" minW="120px">Launch Updates:</Text>
+                  <Text fontWeight="bold" minW="120px">
+                    Launch Updates:
+                  </Text>
                   <Text>{booking.launch_updates_pref ? "Yes" : "No"}</Text>
                 </Flex>
               </VStack>
@@ -320,7 +333,9 @@ export default function BookingDetails({
                 borderColor="dark.border.secondary"
                 bg="dark.bg.secondary"
               >
-                <Heading size="sm" mb={3}>Pricing Breakdown</Heading>
+                <Heading size="sm" mb={3}>
+                  Pricing Breakdown
+                </Heading>
                 <VStack align="stretch" gap={2}>
                   <Flex justify="space-between">
                     <Text>Subtotal:</Text>
@@ -344,7 +359,14 @@ export default function BookingDetails({
                       <Text>${formatCents(booking.tip_amount)}</Text>
                     </Flex>
                   )}
-                  <Flex justify="space-between" fontWeight="bold" fontSize="lg" pt={2} borderTop="1px" borderColor="dark.border.secondary">
+                  <Flex
+                    justify="space-between"
+                    fontWeight="bold"
+                    fontSize="lg"
+                    pt={2}
+                    borderTop="1px"
+                    borderColor="dark.border.secondary"
+                  >
                     <Text>Total:</Text>
                     <Text>${formatCents(booking.total_amount)}</Text>
                   </Flex>
@@ -379,9 +401,13 @@ export default function BookingDetails({
                         <Table.Cell>
                           <Badge
                             colorPalette={
-                              item.status === "active" ? "green" :
-                              item.status === "refunded" ? "red" :
-                              item.status === "fulfilled" ? "blue" : "gray"
+                              item.status === "active"
+                                ? "green"
+                                : item.status === "refunded"
+                                  ? "red"
+                                  : item.status === "fulfilled"
+                                    ? "blue"
+                                    : "gray"
                             }
                           >
                             {item.status?.replace("_", " ").toUpperCase()}
@@ -393,15 +419,15 @@ export default function BookingDetails({
                         </Table.Cell>
                         <Table.Cell>
                           $
-                          {formatCents((item.price_per_unit || 0) * item.quantity)}
+                          {formatCents(
+                            (item.price_per_unit || 0) * item.quantity,
+                          )}
                         </Table.Cell>
                       </Table.Row>
                     ))}
                   </Table.Body>
                 </Table.Root>
               </Box>
-
-
             </Flex>
           ) : (
             <Text color="gray.500">No items found for this booking.</Text>
@@ -422,5 +448,5 @@ export default function BookingDetails({
         )}
       </VStack>
     </Container>
-  );
+  )
 }

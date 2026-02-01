@@ -14,14 +14,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiCheck, FiEdit, FiSearch, FiX } from "react-icons/fi"
 
-import {
-  BookingsService,
-  type BookingPublic,
-} from "@/client"
+import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
-import { formatCents } from "@/utils"
 import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
+import { formatCents } from "@/utils"
 import { useEffect } from "react"
 
 interface CheckInInterfaceProps {
@@ -35,7 +32,9 @@ const CheckInInterface = ({
   onBookingCheckedIn,
 }: CheckInInterfaceProps) => {
   const [confirmationCode, setConfirmationCode] = useState("")
-  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(null)
+  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(
+    null,
+  )
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const queryClient = useQueryClient()
@@ -52,9 +51,7 @@ const CheckInInterface = ({
       showSuccessToast("Booking found successfully")
     },
     onError: (error: any) => {
-      showErrorToast(
-        error?.response?.data?.detail || "Failed to find booking",
-      )
+      showErrorToast(error?.response?.data?.detail || "Failed to find booking")
       setCurrentBooking(null)
     },
   })
@@ -195,7 +192,11 @@ const CheckInInterface = ({
             <Card.Header>
               <HStack justify="space-between">
                 <Heading size="md">Booking Details</Heading>
-                <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
+                <Badge
+                  colorPalette={getStatusColor(
+                    currentBooking.status || "unknown",
+                  )}
+                >
                   {getStatusText(currentBooking.status || "unknown")}
                 </Badge>
               </HStack>
@@ -218,7 +219,8 @@ const CheckInInterface = ({
                       <strong>Email:</strong> {currentBooking.user_email}
                     </Text>
                     <Text>
-                      <strong>Phone:</strong> {currentBooking.user_phone || "Not provided"}
+                      <strong>Phone:</strong>{" "}
+                      {currentBooking.user_phone || "Not provided"}
                     </Text>
                   </Box>
 
@@ -227,10 +229,12 @@ const CheckInInterface = ({
                       Booking Information
                     </Text>
                     <Text>
-                      <strong>Confirmation Code:</strong> {currentBooking.confirmation_code}
+                      <strong>Confirmation Code:</strong>{" "}
+                      {currentBooking.confirmation_code}
                     </Text>
                     <Text>
-                      <strong>Total Amount:</strong> ${formatCents(currentBooking.total_amount)}
+                      <strong>Total Amount:</strong> $
+                      {formatCents(currentBooking.total_amount)}
                     </Text>
                     <Text>
                       <strong>Created:</strong>{" "}

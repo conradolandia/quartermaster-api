@@ -1,35 +1,48 @@
-import { Box, Button, HStack, Heading, Text, VStack } from "@chakra-ui/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import type { MutableRefObject } from "react";
+import {
+  Box,
+  Button,
+  HStack,
+  Heading,
+  Separator,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate, useSearch } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
+import type { MutableRefObject } from "react"
 
-import { type BookingCreate, BookingsService } from "../../../client";
-import { formatCents } from "@/utils";
+import { formatCents } from "@/utils"
+import {
+  type BookingCreate,
+  BookingsService,
+  PaymentsService,
+} from "../../../client"
 
-import PaymentForm from "../PaymentForm";
-import type { BookingStepData, BookingResult } from "../PublicBookingForm";
-import StripeProvider from "../StripeProvider";
+import PaymentForm from "../PaymentForm"
+import type { BookingResult, BookingStepData } from "../PublicBookingForm"
+import StripeProvider from "../StripeProvider"
+import { customerInfoSchema } from "./Step3CustomerInfo"
 
-const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"];
+const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"]
 
 interface Step4ReviewProps {
-  bookingData: BookingStepData;
-  onBack: () => void;
+  bookingData: BookingStepData
+  onBack: () => void
   /** Booking + payment result (from parent). Set as soon as draft and payment intent are ready. */
-  bookingResult: BookingResult | null;
+  bookingResult: BookingResult | null
   /** Called when draft booking and payment intent are ready. */
-  onBookingReady: (result: BookingResult) => void;
+  onBookingReady: (result: BookingResult) => void
   /** When resuming by code, called with the loaded booking so parent can pre-fill form. */
-  onResumeBookingLoaded?: (booking: BookingResult["booking"]) => void;
+  onResumeBookingLoaded?: (booking: BookingResult["booking"]) => void
   /** When true, do not overwrite form (user already had form filled and may have edited). */
-  skipHydrateForm?: boolean;
+  skipHydrateForm?: boolean
   /** Confirmation code from URL; when set, resume existing booking instead of creating. */
-  urlCode?: string;
+  urlCode?: string
   /** Parent ref: survives remounts (e.g. Strict Mode) so we don't create booking twice. */
-  createBookingStartedRef: MutableRefObject<boolean>;
+  createBookingStartedRef: MutableRefObject<boolean>
   /** Access code's discount_code.id (early_bird); use this for create payload so Step 2 discount does not overwrite. */
-  accessCodeDiscountCodeId?: string | null;
+  accessCodeDiscountCodeId?: string | null
 }
 
 const Step4Review = ({
@@ -43,67 +56,81 @@ const Step4Review = ({
   createBookingStartedRef,
   accessCodeDiscountCodeId,
 }: Step4ReviewProps) => {
-  const navigate = useNavigate();
-  const search = useSearch({ from: "/book" });
-  const queryClient = useQueryClient();
-  const [isBookingSuccessful, setIsBookingSuccessful] = useState(false);
-  const bookingWithPayment = bookingResult;
-  const createStartedRef = useRef(false);
+  const navigate = useNavigate()
+  const search = useSearch({ from: "/book" })
+  const queryClient = useQueryClient()
+  const [isBookingSuccessful, setIsBookingSuccessful] = useState(false)
+  const [customerInfoInvalid, setCustomerInfoInvalid] = useState(false)
+  const bookingWithPayment = bookingResult
+  const createStartedRef = useRef(false)
 
   // Generate a random confirmation code
   const generateConfirmationCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let code = "";
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    let code = ""
     for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    return code;
-  };
+    return code
+  }
 
   const loadByCodeMutation = useMutation({
     mutationFn: async (code: string) => {
       const booking = await BookingsService.getBookingByConfirmationCode({
         confirmationCode: code,
-      });
-      return { booking };
+      })
+      return { booking }
     },
     onSuccess: async ({ booking }, code) => {
-      const status = booking.status as string;
+      const status = booking.status as string
       if (CONFIRMED_STATUSES.includes(status)) {
-        navigate({ to: "/bookings", search: { code } });
-        return;
+        navigate({ to: "/bookings", search: { code } })
+        return
       }
       if (status === "cancelled" || status === "refunded") {
         navigate({
           to: "/book",
           search: { discount: search.discount, access: search.access },
           replace: true,
-        });
-        return;
+        })
+        return
       }
       try {
-        let bookingToUse = booking;
+        let bookingToUse = booking
         if (!skipHydrateForm) {
-          onResumeBookingLoaded?.(booking);
+          onResumeBookingLoaded?.(booking)
         } else {
+          const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)
+          if (!parsed.success) {
+            setCustomerInfoInvalid(true)
+            return
+          }
+          setCustomerInfoInvalid(false)
           // User edited the form; persist to backend so payment/confirmation use updated details
-          const updated = await BookingsService.bookingPublicUpdateDraftBooking({
-            confirmationCode: code,
-            requestBody: {
-              user_name: `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`.trim() || undefined,
-              user_email: bookingData.customerInfo.email || undefined,
-              user_phone: bookingData.customerInfo.phone || undefined,
-              billing_address: bookingData.customerInfo.billing_address || undefined,
-              special_requests: bookingData.customerInfo.special_requests || undefined,
-              launch_updates_pref: bookingData.customerInfo.launch_updates_pref ?? undefined,
-              tip_amount: bookingData.tip ?? undefined,
-              subtotal: bookingData.subtotal,
-              discount_amount: bookingData.discount_amount,
-              tax_amount: bookingData.tax_amount,
-              total_amount: bookingData.total,
+          const updated = await BookingsService.bookingPublicUpdateDraftBooking(
+            {
+              confirmationCode: code,
+              requestBody: {
+                user_name:
+                  `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`.trim() ||
+                  undefined,
+                user_email: bookingData.customerInfo.email || undefined,
+                user_phone: bookingData.customerInfo.phone || undefined,
+                billing_address:
+                  bookingData.customerInfo.billing_address || undefined,
+                special_requests:
+                  bookingData.customerInfo.special_requests || undefined,
+                launch_updates_pref:
+                  bookingData.customerInfo.launch_updates_pref ?? undefined,
+                tip_amount: bookingData.tip ?? undefined,
+                subtotal: bookingData.subtotal,
+                discount_amount: bookingData.discount_amount,
+                tax_amount: bookingData.tax_amount,
+                total_amount: bookingData.total,
+              },
             },
-          });
-          bookingToUse = updated;
+          )
+          bookingToUse = updated
         }
         const paymentData =
           status === "draft"
@@ -112,14 +139,14 @@ const Step4Review = ({
               })
             : await BookingsService.resumePayment({
                 confirmationCode: code,
-              });
-        onBookingReady({ booking: bookingToUse, paymentData });
+              })
+        onBookingReady({ booking: bookingToUse, paymentData })
       } catch {
         navigate({
           to: "/book",
           search: { discount: search.discount, access: search.access },
           replace: true,
-        });
+        })
       }
     },
     onError: () => {
@@ -127,13 +154,13 @@ const Step4Review = ({
         to: "/book",
         search: { discount: search.discount, access: search.access },
         replace: true,
-      });
+      })
     },
-  });
+  })
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: { bookingData: BookingStepData }) => {
-      const { bookingData } = data;
+      const { bookingData } = data
 
       const bookingCreate: BookingCreate = {
         user_name: `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`,
@@ -155,71 +182,72 @@ const Step4Review = ({
         tip_amount: bookingData.tip,
         total_amount: bookingData.total,
         special_requests: bookingData.customerInfo.special_requests || "",
-        launch_updates_pref: bookingData.customerInfo.launch_updates_pref ?? false,
-        discount_code_id: accessCodeDiscountCodeId ?? bookingData.discount_code_id,
-      };
+        launch_updates_pref:
+          bookingData.customerInfo.launch_updates_pref ?? false,
+        discount_code_id:
+          accessCodeDiscountCodeId ?? bookingData.discount_code_id,
+      }
 
       const booking = await BookingsService.createBooking({
         requestBody: bookingCreate,
-      });
+      })
       const paymentData = await BookingsService.initializePayment({
         confirmationCode: booking.confirmation_code,
-      });
-      return { booking, paymentData };
+      })
+      return { booking, paymentData }
     },
     onSuccess: ({ booking, paymentData }) => {
-      onBookingReady({ booking, paymentData });
+      onBookingReady({ booking, paymentData })
       // Do not navigate here: parent state (bookingResult) is async; navigating now would
       // re-render with urlCode set and bookingResult null, triggering loadByCode and "Preparing...".
       // Code is added to URL in the effect below when we have bookingResult.
     },
     onError: (error) => {
-      createStartedRef.current = false;
-      createBookingStartedRef.current = false;
-      console.error("Failed to create booking:", error);
+      createStartedRef.current = false
+      createBookingStartedRef.current = false
+      console.error("Failed to create booking:", error)
     },
-  });
+  })
 
   const completeBookingMutation = useMutation({
     mutationFn: async ({
       paymentIntentId,
       confirmationCode,
     }: {
-      paymentIntentId: string;
-      confirmationCode: string;
+      paymentIntentId: string
+      confirmationCode: string
     }) => {
-      console.log("Payment successful, waiting for webhook confirmation...");
-      return { paymentIntentId, confirmationCode };
+      await PaymentsService.verifyPayment({ paymentIntentId })
+      return { paymentIntentId, confirmationCode }
     },
     onSuccess: (data) => {
-      console.log("Payment successful, booking will be confirmed via webhook!");
-      setIsBookingSuccessful(true);
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setIsBookingSuccessful(true)
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
       setTimeout(() => {
         navigate({
           to: "/bookings",
           search: { code: data.confirmationCode },
-        });
-      }, 3000);
+        })
+      }, 3000)
     },
     onError: (error) => {
-      console.error("Failed to process payment success:", error);
+      console.error("Failed to process payment success:", error)
     },
-  });
+  })
 
   const handlePaymentSuccess = (paymentIntentId: string) => {
-    const confirmationCode = bookingWithPayment?.booking?.confirmation_code;
-    if (!confirmationCode) return;
-    completeBookingMutation.mutate({ paymentIntentId, confirmationCode });
-  };
+    const confirmationCode = bookingWithPayment?.booking?.confirmation_code
+    if (!confirmationCode) return
+    completeBookingMutation.mutate({ paymentIntentId, confirmationCode })
+  }
 
   const handlePaymentError = (error: Error) => {
-    console.error("Payment failed:", error.message);
-  };
+    console.error("Payment failed:", error.message)
+  }
 
   // When we have bookingResult but URL has no code, add code for bookmarking (after create success).
   useEffect(() => {
-    const code = bookingResult?.booking?.confirmation_code;
+    const code = bookingResult?.booking?.confirmation_code
     if (code && search.code !== code) {
       navigate({
         to: "/book",
@@ -229,38 +257,76 @@ const Step4Review = ({
           code,
         },
         replace: true,
-      });
+      })
     }
-  }, [bookingResult?.booking?.confirmation_code, search.code, search.discount, search.access, navigate]);
+  }, [
+    bookingResult?.booking?.confirmation_code,
+    search.code,
+    search.discount,
+    search.access,
+    navigate,
+  ])
 
   // If URL has code: load existing booking and resume/init payment. Otherwise create new (once) and set code in URL.
   // Parent ref survives remounts (Strict Mode) so we don't create twice.
   useEffect(() => {
-    if (bookingResult) return;
+    if (bookingResult) return
     if (urlCode) {
-      createStartedRef.current = false;
-      createBookingStartedRef.current = false;
+      createStartedRef.current = false
+      createBookingStartedRef.current = false
       if (!loadByCodeMutation.isPending) {
-        loadByCodeMutation.mutate(urlCode);
+        loadByCodeMutation.mutate(urlCode)
       }
-      return;
+      return
     }
     if (
       createStartedRef.current ||
       createBookingStartedRef.current ||
       createBookingMutation.isPending
     )
-      return;
+      return
     if (bookingData.total > 0) {
-      createStartedRef.current = true;
-      createBookingStartedRef.current = true;
-      createBookingMutation.mutate({ bookingData });
+      const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)
+      if (!parsed.success) {
+        setCustomerInfoInvalid(true)
+        return
+      }
+      setCustomerInfoInvalid(false)
+      createStartedRef.current = true
+      createBookingStartedRef.current = true
+      createBookingMutation.mutate({ bookingData })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- urlCode, bookingResult drive flow; bookingData stable on step 4
-  }, [urlCode, bookingResult]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- urlCode, bookingResult drive flow; re-validate when customerInfo changes (e.g. user returned from Step 3)
+  }, [urlCode, bookingResult, bookingData.customerInfo])
 
   const isPending =
-    createBookingMutation.isPending || loadByCodeMutation.isPending;
+    createBookingMutation.isPending || loadByCodeMutation.isPending
+
+  // Customer info failed validation (e.g. state corrupted or user resumed with incomplete data). Ask to go back.
+  if (customerInfoInvalid && !bookingResult) {
+    return (
+      <VStack gap={6} align="stretch">
+        <Box
+          p={4}
+          bg="orange.50"
+          border="1px"
+          borderColor="orange.200"
+          borderRadius="md"
+        >
+          <Heading size="sm" color="orange.800" mb={2}>
+            Information incomplete or invalid
+          </Heading>
+          <Text color="orange.700" fontSize="sm" mb={4}>
+            Please go back and complete your contact and billing details before
+            continuing.
+          </Text>
+          <Button variant="outline" onClick={onBack}>
+            Back to your information
+          </Button>
+        </Box>
+      </VStack>
+    )
+  }
 
   // Once we have bookingResult (from create or loadByCode), show payment form even if
   // something is still pending (e.g. loadByCode was triggered by URL update before parent re-rendered).
@@ -283,7 +349,7 @@ const Step4Review = ({
           </Text>
         </Box>
       </VStack>
-    );
+    )
   }
 
   // Show error message if booking creation or payment verification failed (not loadByCode: that clears URL and retries)
@@ -296,15 +362,20 @@ const Step4Review = ({
       typeof createBookingMutation.error.body === "object" &&
       "detail" in createBookingMutation.error.body
         ? (() => {
-            const d = (createBookingMutation.error.body as { detail?: string | string[] })
-              .detail;
-            return typeof d === "string" ? d : Array.isArray(d) ? d[0] : undefined;
+            const d = (
+              createBookingMutation.error.body as { detail?: string | string[] }
+            ).detail
+            return typeof d === "string"
+              ? d
+              : Array.isArray(d)
+                ? d[0]
+                : undefined
           })()
-        : undefined;
+        : undefined
     const errorMessage = createBookingMutation.isError
       ? apiDetail ??
         "There was an error creating your booking. Please try again or contact support if the problem persists."
-      : "Payment was successful but we couldn't confirm your booking. Please contact support with your payment details.";
+      : "Payment was successful but we couldn't confirm your booking. Please contact support with your payment details."
 
     return (
       <VStack gap={6} align="stretch">
@@ -328,7 +399,7 @@ const Step4Review = ({
           Back to Review
         </Button>
       </VStack>
-    );
+    )
   }
 
   // Show success message if booking was successful
@@ -352,16 +423,16 @@ const Step4Review = ({
           </Text>
         </Box>
       </VStack>
-    );
+    )
   }
 
   return (
     <VStack gap={6} align="stretch">
       <Box>
-        <Heading size="md" mb={4}>
+        <Heading size="5xl" fontWeight="200" mb={2}>
           Review & Complete Booking
         </Heading>
-        <Text color="gray.600" mb={6}>
+        <Text mb={6}>
           Please review your booking details before completing payment.
         </Text>
       </Box>
@@ -370,9 +441,10 @@ const Step4Review = ({
         {/* Left Column - Booking Details */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
-            <Heading size="sm" mb={4}>
+            <Heading size="2xl" fontWeight="200" mb={4}>
               Booking Summary
             </Heading>
+            <Separator mb={3} />
             <VStack gap={3} align="stretch">
               <HStack justify="space-between">
                 <Text fontWeight="medium">Customer:</Text>
@@ -396,18 +468,20 @@ const Step4Review = ({
                 <Text fontWeight="medium">Billing Address:</Text>
                 <Text>{bookingData.customerInfo.billing_address}</Text>
               </HStack>
-
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Items:</Text>
-                <Text>{bookingData.selectedItems.length} selected</Text>
-              </HStack>
             </VStack>
           </Box>
 
+          <Separator />
+
           <Box>
-            <Heading size="sm" mb={4}>
-              Selected Items
-            </Heading>
+            <HStack justify="space-between">
+              <Heading size="2xl" fontWeight="200" mb={4}>
+                Selected Items
+              </Heading>
+              <Text mb={4} fontSize="2xl" color="whiteAlpha.500">
+                {bookingData.selectedItems.length} selected
+              </Text>
+            </HStack>
             <VStack gap={3} align="stretch">
               {bookingData.selectedItems.map((item, index) => (
                 <HStack
@@ -439,9 +513,10 @@ const Step4Review = ({
         {/* Right Column - Payment */}
         <VStack gap={4} align="stretch">
           <Box>
-            <Heading size="sm" mb={4}>
+            <Heading size="2xl" fontWeight="200" mb={4}>
               Payment Summary
             </Heading>
+            <Separator mb={3} />
             <VStack gap={3} align="stretch">
               <HStack justify="space-between">
                 <Text>Subtotal:</Text>
@@ -469,13 +544,13 @@ const Step4Review = ({
                 </HStack>
               )}
 
-              <Box borderTop="1px" borderColor="gray.200" my={2} />
+              <Separator />
 
               <HStack justify="space-between">
-                <Text fontWeight="bold" fontSize="lg">
+                <Text fontWeight="bold" fontSize="2xl">
                   Total:
                 </Text>
-                <Text fontWeight="bold" fontSize="lg">
+                <Text fontWeight="bold" fontSize="2xl">
                   ${formatCents(bookingData.total)}
                 </Text>
               </HStack>
@@ -484,7 +559,7 @@ const Step4Review = ({
 
           <Box p={4} bg="bg.accent" borderRadius="md">
             <Text fontWeight="medium">Payment Processing</Text>
-            <Text fontSize="sm">
+            <Text fontSize="xs" width="100%">
               Your payment will be processed securely. You'll receive a
               confirmation email with your QR code tickets once payment is
               complete.
@@ -494,7 +569,11 @@ const Step4Review = ({
           <Box>
             {bookingWithPayment && (
               <VStack gap={4} align="stretch">
-                <StripeProvider>
+                <StripeProvider
+                  options={{
+                    clientSecret: bookingWithPayment.paymentData.client_secret,
+                  }}
+                >
                   <PaymentForm
                     clientSecret={bookingWithPayment.paymentData.client_secret}
                     paymentIntentId={
@@ -506,10 +585,6 @@ const Step4Review = ({
                     loading={completeBookingMutation.isPending}
                   />
                 </StripeProvider>
-                <Text fontSize="sm" color="gray.600" textAlign="center">
-                  By completing this payment, you agree to our terms and
-                  conditions.
-                </Text>
               </VStack>
             )}
           </Box>
@@ -523,7 +598,7 @@ const Step4Review = ({
         </Button>
       </HStack>
     </VStack>
-  );
-};
+  )
+}
 
-export default Step4Review;
+export default Step4Review

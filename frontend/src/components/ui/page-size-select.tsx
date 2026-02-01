@@ -1,12 +1,12 @@
 "use client"
 
-import { Flex, Text } from "@chakra-ui/react"
-import * as React from "react"
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
   type PageSizeOption,
 } from "@/constants/pagination"
+import { Flex, Text } from "@chakra-ui/react"
+import type * as React from "react"
 import { NativeSelect } from "./native-select"
 
 export interface PageSizeSelectProps {

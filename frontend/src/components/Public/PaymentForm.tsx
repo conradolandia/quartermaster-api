@@ -1,6 +1,13 @@
-import { Box, Button, HStack, Separator, Text, VStack } from "@chakra-ui/react"
-import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js"
-import type { StripeCardElementChangeEvent } from "@stripe/stripe-js"
+import {
+  Box,
+  Button,
+  HStack,
+  Link,
+  Separator,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import type * as React from "react"
 import { useState } from "react"
 
@@ -26,12 +33,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const stripe = useStripe()
   const elements = useElements()
-  const [cardError, setCardError] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-
-  const handleCardChange = (event: StripeCardElementChangeEvent) => {
-    setCardError(event.error ? event.error.message : null)
-  }
+  const [isComplete, setIsComplete] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -41,45 +45,42 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       return
     }
 
-    const cardElement = elements.getElement(CardElement)
-    if (!cardElement) {
-      onPaymentError(new Error("Card element not found"))
-      return
-    }
-
     setIsProcessing(true)
+    setErrorMessage(null)
 
     try {
-      // Confirm the card payment using the provided client secret
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        setErrorMessage(submitError.message ?? "Validation failed")
+        setIsProcessing(false)
+        return
+      }
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}${window.location.pathname}${window.location.search}`,
         },
+        redirect: "if_required",
       })
 
-      if (result.error) {
-        throw new Error(result.error.message || "Payment failed")
-      }
-
-      if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
-        console.log("Payment succeeded, calling onPaymentSuccess")
-        onPaymentSuccess(paymentIntentId)
+      if (error) {
+        setErrorMessage(error.message ?? "Payment failed")
+        onPaymentError(new Error(error.message ?? "Payment failed"))
       } else {
-        throw new Error("Payment was not successful")
+        onPaymentSuccess(paymentIntentId)
       }
     } catch (error) {
-      onPaymentError(
-        error instanceof Error ? error : new Error("Unknown payment error"),
-      )
-      setCardError(
-        error instanceof Error ? error.message : "Unknown payment error",
-      )
+      const err =
+        error instanceof Error ? error : new Error("Unknown payment error")
+      setErrorMessage(err.message)
+      onPaymentError(err)
     } finally {
       setIsProcessing(false)
     }
   }
 
-  // Show loading state while waiting for payment system
   if (!clientSecret || !paymentIntentId) {
     return (
       <Box width="100%">
@@ -103,30 +104,19 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       <VStack gap={6} align="stretch">
         <Box p={4} borderWidth="1px" borderRadius="md" bg="bg.accent">
           <Text mb={4} fontWeight="medium">
-            Card Information
+            Payment details
           </Text>
-          <CardElement
+          <PaymentElement
+            onChange={(event) => setIsComplete(event.complete)}
             options={{
-              style: {
-                base: {
-                  fontSize: "16px",
-                  color: "#424770",
-                  "::placeholder": {
-                    color: "#aab7c4",
-                  },
-                },
-                invalid: {
-                  color: "#9e2146",
-                },
-              },
+              layout: "tabs",
             }}
-            onChange={handleCardChange}
           />
         </Box>
 
-        {cardError && (
+        {errorMessage && (
           <Text color="red.500" fontSize="sm">
-            {cardError}
+            {errorMessage}
           </Text>
         )}
 
@@ -149,18 +139,27 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             !stripe ||
             !clientSecret ||
             !paymentIntentId ||
+            !isComplete ||
             isProcessing ||
-            loading ||
-            !!cardError
+            loading
           }
         >
           Pay ${formatCents(amount)}
         </Button>
 
-        <Text fontSize="sm" color="gray.600" textAlign="center">
-          Your payment is processed securely through Stripe. We do not store
-          your card details.
-        </Text>
+        <Box>
+          <Text fontSize="sm" textAlign="center">
+            Your payment is processed securely through Stripe. We do not store
+            your card details.
+          </Text>
+          <Text fontSize="xs" textAlign="center">
+            By completing this payment, you agree to our{" "}
+            <Link href="https://www.star-fleet.tours/details">
+              terms and conditions
+            </Link>
+            .
+          </Text>
+        </Box>
       </VStack>
     </Box>
   )

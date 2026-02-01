@@ -15,11 +15,7 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import {
-  type MerchandisePublic,
-  MerchandiseService,
-} from "@/client"
-import { formatCents } from "@/utils"
+import { type MerchandisePublic, MerchandiseService } from "@/client"
 import AddMerchandise from "@/components/Merchandise/AddMerchandise"
 import DeleteMerchandise from "@/components/Merchandise/DeleteMerchandise"
 import EditMerchandise from "@/components/Merchandise/EditMerchandise"
@@ -34,6 +30,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { formatCents } from "@/utils"
 
 type SortableColumn = "name" | "price" | "quantity_available"
 type SortDirection = "asc" | "desc"
@@ -41,9 +38,7 @@ type SortDirection = "asc" | "desc"
 const merchandiseSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
-  sortBy: z
-    .enum(["name", "price", "quantity_available"])
-    .optional(),
+  sortBy: z.enum(["name", "price", "quantity_available"]).optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
 })
 
@@ -221,7 +216,11 @@ function MerchandiseTable() {
                   <SortIcon column="quantity_available" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader minW="180px" fontWeight="bold" textAlign="center">
+              <Table.ColumnHeader
+                minW="180px"
+                fontWeight="bold"
+                textAlign="center"
+              >
                 Actions
               </Table.ColumnHeader>
             </Table.Row>

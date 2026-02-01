@@ -1,9 +1,18 @@
-import { Box, Container, Flex, Heading, Text, Image, VStack, Span } from "@chakra-ui/react"
-import { useEffect, useRef, useState } from "react"
+import {
+  Box,
+  Container,
+  Flex,
+  Heading,
+  Image,
+  Span,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
+import { useEffect, useRef, useState } from "react"
 
-import Logo from "/assets/images/qm-logo.svg"
 import type { BookingPublic } from "@/client"
+import Logo from "/assets/images/qm-logo.svg"
 
 // Types for the booking flow
 export interface BookingStepData {
@@ -185,7 +194,11 @@ const PublicBookingForm = ({
     const dataDiscount = bookingData.discount_code ?? ""
     if (dataDiscount !== urlDiscount) {
       navigate({
-        search: (prev: { discount?: string; access?: string; code?: string }) => ({
+        search: (prev: {
+          discount?: string
+          access?: string
+          code?: string
+        }) => ({
           ...prev,
           discount: dataDiscount || undefined,
         }),
@@ -282,7 +295,7 @@ const PublicBookingForm = ({
               hydratedForCodeRef.current = booking.confirmation_code
             }}
             skipHydrateForm={Boolean(
-              search.code && hydratedForCodeRef.current === search.code
+              search.code && hydratedForCodeRef.current === search.code,
             )}
             urlCode={search.code}
             createBookingStartedRef={createBookingStartedRef}
@@ -327,11 +340,20 @@ const PublicBookingForm = ({
                   Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
                 </Heading>
                 <VStack gap={1} align="right" textAlign="right">
-                  <Heading size="2xl">
-                    Book Your Rocket Launch
-                  </Heading>
-                  <Text fontSize="md" color="whiteAlpha.800" textAlign="right" fontWeight="500">
-                    Step {currentStep} of {STEPS.length}: <Span color="dark.accent.primary">{STEPS[currentStep - 1].title}</Span> <Span fontWeight="300">({STEPS[currentStep - 1].description})</Span>
+                  <Heading size="2xl">Book Your Rocket Launch</Heading>
+                  <Text
+                    fontSize="md"
+                    color="whiteAlpha.800"
+                    textAlign="right"
+                    fontWeight="500"
+                  >
+                    Step {currentStep} of {STEPS.length}:{" "}
+                    <Span color="dark.accent.primary">
+                      {STEPS[currentStep - 1].title}
+                    </Span>{" "}
+                    <Span fontWeight="300">
+                      ({STEPS[currentStep - 1].description})
+                    </Span>
                   </Text>
                 </VStack>
               </Flex>
@@ -371,7 +393,6 @@ const PublicBookingForm = ({
             </VStack>
           </Container>
         </Box>
-
       </Box>
     </Box>
   )

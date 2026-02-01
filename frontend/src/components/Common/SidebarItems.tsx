@@ -1,14 +1,22 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink, useMatchRoute } from "@tanstack/react-router"
-import { FiCheck, FiDollarSign, FiDownload, FiHome, FiSettings, FiUsers, FiTag } from "react-icons/fi"
+import { useEffect, useRef, useState } from "react"
+import {
+  FiCheck,
+  FiDollarSign,
+  FiDownload,
+  FiHome,
+  FiSettings,
+  FiTag,
+  FiUsers,
+} from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
-import { useState, useEffect, useRef } from "react"
 
 import type { UserPublic } from "@/client"
 import {
-  FaBalanceScale,
   FaAnchor,
+  FaBalanceScale,
   FaMapMarked,
   FaRocket,
   FaRoute,
@@ -20,16 +28,16 @@ import {
 
 import {
   DndContext,
-  closestCenter,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
+  closestCenter,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core"
 import {
-  arrayMove,
   SortableContext,
+  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -78,7 +86,7 @@ function getOrderedItems(items: Item[]): Item[] {
     if (!savedOrder) return items
 
     const orderArray: string[] = JSON.parse(savedOrder)
-    const itemMap = new Map(items.map(item => [item.title, item]))
+    const itemMap = new Map(items.map((item) => [item.title, item]))
 
     // Build ordered list from saved order
     const ordered: Item[] = []
@@ -103,7 +111,7 @@ function getOrderedItems(items: Item[]): Item[] {
 
 // Save order to localStorage
 function saveOrder(items: Item[]): void {
-  const order = items.map(item => item.title)
+  const order = items.map((item) => item.title)
   localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(order))
 }
 
@@ -116,7 +124,13 @@ interface SortableItemProps {
   isAnyDragging: boolean // True when any item is being dragged
 }
 
-function SortableItem({ item, isActive, onClose, wasDragging, isAnyDragging }: SortableItemProps) {
+function SortableItem({
+  item,
+  isActive,
+  onClose,
+  wasDragging,
+  isAnyDragging,
+}: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -194,7 +208,9 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     : defaultItems
 
   // State for ordered items
-  const [orderedItems, setOrderedItems] = useState<Item[]>(() => getOrderedItems(allItems))
+  const [orderedItems, setOrderedItems] = useState<Item[]>(() =>
+    getOrderedItems(allItems),
+  )
 
   // Update ordered items when allItems changes (e.g., user becomes superuser)
   useEffect(() => {
@@ -210,7 +226,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   )
 
   // Handle drag start - disable pointer events on all links
@@ -261,7 +277,7 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={orderedItems.map(item => item.title)}
+            items={orderedItems.map((item) => item.title)}
             strategy={verticalListSortingStrategy}
           >
             {orderedItems.map((item) => (

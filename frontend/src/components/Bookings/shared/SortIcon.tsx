@@ -1,7 +1,7 @@
 import { Icon } from "@chakra-ui/react"
 import { FiArrowDown, FiArrowUp } from "react-icons/fi"
 
-import type { SortableColumn, SortDirection } from "../types"
+import type { SortDirection, SortableColumn } from "../types"
 
 interface SortIconProps {
   column: SortableColumn
@@ -9,7 +9,11 @@ interface SortIconProps {
   sortDirection?: SortDirection
 }
 
-export default function SortIcon({ column, sortBy, sortDirection }: SortIconProps) {
+export default function SortIcon({
+  column,
+  sortBy,
+  sortDirection,
+}: SortIconProps) {
   if (sortBy !== column) {
     return <Icon as={FiArrowUp} opacity={0.3} />
   }

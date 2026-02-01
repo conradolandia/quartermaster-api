@@ -44,7 +44,7 @@ const YamlImportForm = ({
     },
     onError: (error: any) => {
       showErrorToast(
-        error?.response?.data?.detail || "Failed to import YAML file"
+        error?.response?.data?.detail || "Failed to import YAML file",
       )
     },
   })
@@ -52,11 +52,13 @@ const YamlImportForm = ({
   const handleFileSelect = (file: File) => {
     // Validate file type
     const isValidType = acceptedFileTypes.some((type) =>
-      file.name.toLowerCase().endsWith(type.toLowerCase())
+      file.name.toLowerCase().endsWith(type.toLowerCase()),
     )
     if (!isValidType) {
       showErrorToast(
-        `Invalid file type. Please select a ${acceptedFileTypes.join(" or ")} file.`
+        `Invalid file type. Please select a ${acceptedFileTypes.join(
+          " or ",
+        )} file.`,
       )
       return
     }
@@ -64,9 +66,7 @@ const YamlImportForm = ({
     // Validate file size
     const fileSizeMB = file.size / (1024 * 1024)
     if (fileSizeMB > maxFileSize) {
-      showErrorToast(
-        `File too large. Maximum size is ${maxFileSize}MB.`
-      )
+      showErrorToast(`File too large. Maximum size is ${maxFileSize}MB.`)
       return
     }
 
@@ -119,7 +119,7 @@ const YamlImportForm = ({
     const k = 1024
     const sizes = ["Bytes", "KB", "MB", "GB"]
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
   }
 
   return (
@@ -152,7 +152,8 @@ const YamlImportForm = ({
                 Drag and drop or click to select
               </Text>
               <Text fontSize="xs" color="text.muted">
-                Accepted formats: {acceptedFileTypes.join(", ")} (max {maxFileSize}MB)
+                Accepted formats: {acceptedFileTypes.join(", ")} (max{" "}
+                {maxFileSize}MB)
               </Text>
             </VStack>
           </Box>

@@ -14,21 +14,26 @@ import {
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
+import {
+  FiArrowDown,
+  FiArrowUp,
+  FiFileText,
+  FiPlus,
+  FiSearch,
+} from "react-icons/fi"
 import { z } from "zod"
 
 import {
   MissionsService,
   type TripBoatPublicWithAvailability,
-  type TripPublic,
   TripBoatsService,
+  type TripPublic,
   TripsService,
 } from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
 import YamlImportForm from "@/components/Common/YamlImportForm"
 import PendingTrips from "@/components/Pending/PendingTrips"
 import AddTrip from "@/components/Trips/AddTrip"
-import { YamlImportService } from "@/services/yamlImportService"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -39,10 +44,8 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import {
-  formatInLocationTimezoneWithAbbr,
-  parseApiDate,
-} from "@/utils"
+import { YamlImportService } from "@/services/yamlImportService"
+import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
 type SortableColumn =
@@ -58,7 +61,14 @@ const tripsSearchSchema = z.object({
   page: z.number().catch(1),
   pageSize: z.number().catch(DEFAULT_PAGE_SIZE),
   sortBy: z
-    .enum(["name", "type", "mission_id", "check_in_time", "departure_time", "active"])
+    .enum([
+      "name",
+      "type",
+      "mission_id",
+      "check_in_time",
+      "departure_time",
+      "active",
+    ])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
 })
@@ -91,7 +101,9 @@ function TripsTable() {
     const currentSortBy = sortBy || "check_in_time"
     const currentSortDirection = sortDirection || "desc"
     const newDirection: SortDirection =
-      currentSortBy === column && currentSortDirection === "desc" ? "asc" : "desc"
+      currentSortBy === column && currentSortDirection === "desc"
+        ? "asc"
+        : "desc"
 
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
@@ -140,7 +152,9 @@ function TripsTable() {
     Object.fromEntries(
       tripsData.map((trip, i) => [
         trip.id,
-        Array.isArray(tripBoatsQueries[i]?.data) ? tripBoatsQueries[i].data! : [],
+        Array.isArray(tripBoatsQueries[i]?.data)
+          ? tripBoatsQueries[i].data!
+          : [],
       ]),
     )
 
@@ -181,10 +195,13 @@ function TripsTable() {
     let bValue: any = b[effectiveSortBy as keyof TripPublic]
 
     // Handle date sorting
-      if (effectiveSortBy === "check_in_time" || effectiveSortBy === "departure_time") {
-        aValue = parseApiDate(aValue as string).getTime()
-        bValue = parseApiDate(bValue as string).getTime()
-      }
+    if (
+      effectiveSortBy === "check_in_time" ||
+      effectiveSortBy === "departure_time"
+    ) {
+      aValue = parseApiDate(aValue as string).getTime()
+      bValue = parseApiDate(bValue as string).getTime()
+    }
 
     // Handle boolean sorting
     if (effectiveSortBy === "active") {
@@ -207,7 +224,9 @@ function TripsTable() {
 
     // Handle numeric sorting
     if (typeof aValue === "number" && typeof bValue === "number") {
-      return effectiveSortDirection === "asc" ? aValue - bValue : bValue - aValue
+      return effectiveSortDirection === "asc"
+        ? aValue - bValue
+        : bValue - aValue
     }
 
     return 0
@@ -250,7 +269,9 @@ function TripsTable() {
 
   const renderTripDate = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+    const parts = timezone
+      ? formatInLocationTimezoneWithAbbr(d, timezone)
+      : null
     if (parts) {
       return (
         <>
@@ -354,104 +375,105 @@ function TripsTable() {
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
-        <Table.Body>
-          {tripsToShow.map((trip) => {
-            const mission = missionsMap.get(trip.mission_id)
-            const boats = tripBoatsByTrip[trip.id]
+          <Table.Body>
+            {tripsToShow.map((trip) => {
+              const mission = missionsMap.get(trip.mission_id)
+              const boats = tripBoatsByTrip[trip.id]
 
-            return (
-              <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
-                <Table.Cell
-                  maxW={{ base: "sm", lg: "500px" }}
-                  verticalAlign="top"
-                  whiteSpace="normal"
-                  wordBreak="break-word"
-                >
-                  <Text fontSize="2xl" fontWeight="200" minW="200px">
-                    {trip.name || "—"}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                  verticalAlign="top"
-                >
-                  {trip.type === "launch_viewing"
-                    ? "Launch Viewing"
-                    : "Pre-Launch"}
-                </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                  verticalAlign="top"
-                >
-                  {mission?.name || "Unknown"}
-                </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                  verticalAlign="top"
-                >
-                  {renderTripDate(trip.check_in_time, trip.timezone)}
-                </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                  verticalAlign="top"
-                >
-                  {renderTripDate(trip.departure_time, trip.timezone)}
-                </Table.Cell>
-                <Table.Cell maxW="sm" verticalAlign="top">
-                  {boats != null && boats.length > 0 ? (
-                    <VStack align="stretch" gap={2}>
-                      {boats.map((tb) => {
-                        const used = tb.max_capacity - tb.remaining_capacity
-                        const name = tb.boat?.name ?? "Boat"
-                        const remaining = tb.remaining_capacity
-                        const maxCap = tb.max_capacity
-                        return (
-                          <Box key={tb.boat_id}>
-                            <Text fontSize="sm" truncate>
-                              {name}
-                            </Text>
-                            <Text
-                              fontSize="xs"
-                              color="gray.400"
-                              mt={0.5}
-                              lineHeight="1"
-                            >
-                              {used} of {maxCap} seats taken ({remaining} remaining)
-                            </Text>
-                          </Box>
-                        )
-                      })}
-                    </VStack>
-                  ) : (
-                    <Text fontSize="sm" color="gray.400">
-                      No boats assigned to this trip yet.
+              return (
+                <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
+                  <Table.Cell
+                    maxW={{ base: "sm", lg: "500px" }}
+                    verticalAlign="top"
+                    whiteSpace="normal"
+                    wordBreak="break-word"
+                  >
+                    <Text fontSize="2xl" fontWeight="200" minW="200px">
+                      {trip.name || "—"}
                     </Text>
-                  )}
-                </Table.Cell>
-                <Table.Cell verticalAlign="top" paddingY="6">
-                  <Flex justify="center">
-                    <Badge colorPalette={trip.active ? "green" : "red"}>
-                      {trip.active ? "Active" : "Inactive"}
-                    </Badge>
-                  </Flex>
-                </Table.Cell>
-                <Table.Cell verticalAlign="top" paddingY="3">
-                  <Flex justify="center">
-                    <TripActionsMenu trip={trip} />
-                  </Flex>
-                </Table.Cell>
-              </Table.Row>
-            )
-          })}
-        </Table.Body>
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    maxW="sm"
+                    display={{ base: "none", md: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    {trip.type === "launch_viewing"
+                      ? "Launch Viewing"
+                      : "Pre-Launch"}
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    maxW="sm"
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    {mission?.name || "Unknown"}
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    maxW="sm"
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    {renderTripDate(trip.check_in_time, trip.timezone)}
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    maxW="sm"
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    {renderTripDate(trip.departure_time, trip.timezone)}
+                  </Table.Cell>
+                  <Table.Cell maxW="sm" verticalAlign="top">
+                    {boats != null && boats.length > 0 ? (
+                      <VStack align="stretch" gap={2}>
+                        {boats.map((tb) => {
+                          const used = tb.max_capacity - tb.remaining_capacity
+                          const name = tb.boat?.name ?? "Boat"
+                          const remaining = tb.remaining_capacity
+                          const maxCap = tb.max_capacity
+                          return (
+                            <Box key={tb.boat_id}>
+                              <Text fontSize="sm" truncate>
+                                {name}
+                              </Text>
+                              <Text
+                                fontSize="xs"
+                                color="gray.400"
+                                mt={0.5}
+                                lineHeight="1"
+                              >
+                                {used} of {maxCap} seats taken ({remaining}{" "}
+                                remaining)
+                              </Text>
+                            </Box>
+                          )
+                        })}
+                      </VStack>
+                    ) : (
+                      <Text fontSize="sm" color="gray.400">
+                        No boats assigned to this trip yet.
+                      </Text>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell verticalAlign="top" paddingY="6">
+                    <Flex justify="center">
+                      <Badge colorPalette={trip.active ? "green" : "red"}>
+                        {trip.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </Flex>
+                  </Table.Cell>
+                  <Table.Cell verticalAlign="top" paddingY="3">
+                    <Flex justify="center">
+                      <TripActionsMenu trip={trip} />
+                    </Flex>
+                  </Table.Cell>
+                </Table.Row>
+              )
+            })}
+          </Table.Body>
         </Table.Root>
       </Box>
 
@@ -463,10 +485,7 @@ function TripsTable() {
           gap={4}
           mt={4}
         >
-          <PageSizeSelect
-            value={effectivePageSize}
-            onChange={setPageSize}
-          />
+          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
           {count > effectivePageSize && (
             <PaginationRoot
               page={page}
@@ -497,10 +516,7 @@ function Trips() {
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Trips Management</Heading>
         <Flex gap={3}>
-          <Button
-            variant="outline"
-            onClick={() => setIsYamlImportOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />
               <span>Import from YAML</span>

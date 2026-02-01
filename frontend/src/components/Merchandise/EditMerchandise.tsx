@@ -15,8 +15,8 @@ import { FaExchangeAlt } from "react-icons/fa"
 import {
   type ApiError,
   type MerchandisePublic,
-  type MerchandiseUpdate,
   MerchandiseService,
+  type MerchandiseUpdate,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -173,7 +173,11 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
                   }}
                   render={({ field: { value, onChange } }) => (
                     <NumberInput.Root
-                      value={value === undefined || value === null ? "" : String(value)}
+                      value={
+                        value === undefined || value === null
+                          ? ""
+                          : String(value)
+                      }
                       onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
                       min={0}
                       step={0.01}
@@ -198,7 +202,11 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
                   }}
                   render={({ field: { value, onChange } }) => (
                     <NumberInput.Root
-                      value={value === undefined || value === null ? "" : String(value)}
+                      value={
+                        value === undefined || value === null
+                          ? ""
+                          : String(value)
+                      }
                       onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
                       min={0}
                       step={1}

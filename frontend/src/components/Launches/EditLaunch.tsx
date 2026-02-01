@@ -131,106 +131,125 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" disabled={isPast} title={isPast ? "This launch has already occurred and cannot be edited" : ""}>
+        <Button
+          variant="ghost"
+          disabled={isPast}
+          title={
+            isPast
+              ? "This launch has already occurred and cannot be edited"
+              : ""
+          }
+        >
           <FaExchangeAlt fontSize="16px" />
           Edit Launch
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Edit Launch</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              {isPast && (
-                <Text mb={4} color="orange.500">
-                  This launch has already occurred and cannot be edited. Contact a system administrator if you need to make changes to past launches.
-                </Text>
-              )}
-              {!isPast && <Text mb={4}>Update the launch details below.</Text>}
-              <VStack gap={4}>
-                <Field
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
-                  label="Name"
-                >
-                  <Input
-                    id="name"
-                    {...register("name")}
-                    placeholder="Launch name"
-                    type="text"
-                  />
-                </Field>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Edit Launch</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {isPast && (
+              <Text mb={4} color="orange.500">
+                This launch has already occurred and cannot be edited. Contact a
+                system administrator if you need to make changes to past
+                launches.
+              </Text>
+            )}
+            {!isPast && <Text mb={4}>Update the launch details below.</Text>}
+            <VStack gap={4}>
+              <Field
+                invalid={!!errors.name}
+                errorText={errors.name?.message}
+                label="Name"
+              >
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Launch name"
+                  type="text"
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.launch_timestamp}
-                  errorText={errors.launch_timestamp?.message}
-                  label={`Launch Date & Time (${formatLocationTimezoneDisplay(launch.timezone ?? "UTC")})`}
-                >
-                  <Input
-                    id="launch_timestamp"
-                    {...register("launch_timestamp")}
-                    placeholder={`Enter time in ${formatLocationTimezoneDisplay(launch.timezone ?? "UTC")}`}
-                    type="datetime-local"
-                    disabled={isPast}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.launch_timestamp}
+                errorText={errors.launch_timestamp?.message}
+                label={`Launch Date & Time (${formatLocationTimezoneDisplay(
+                  launch.timezone ?? "UTC",
+                )})`}
+              >
+                <Input
+                  id="launch_timestamp"
+                  {...register("launch_timestamp")}
+                  placeholder={`Enter time in ${formatLocationTimezoneDisplay(
+                    launch.timezone ?? "UTC",
+                  )}`}
+                  type="datetime-local"
+                  disabled={isPast}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.summary}
-                  errorText={errors.summary?.message}
-                  label="Summary"
-                >
-                  <Input
-                    id="summary"
-                    {...register("summary")}
-                    placeholder="Launch summary"
-                    type="text"
-                    disabled={isPast}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.summary}
+                errorText={errors.summary?.message}
+                label="Summary"
+              >
+                <Input
+                  id="summary"
+                  {...register("summary")}
+                  placeholder="Launch summary"
+                  type="text"
+                  disabled={isPast}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.location_id}
-                  errorText={errors.location_id?.message}
-                  label="Location"
-                >
-                  <Controller
-                    name="location_id"
-                    control={control}
-                    render={({ field }) => (
-                      <LocationDropdown
-                        id="location_id"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        isDisabled={isSubmitting || isPast}
-                        portalRef={contentRef}
-                      />
-                    )}
-                  />
-                </Field>
-              </VStack>
-            </DialogBody>
+              <Field
+                invalid={!!errors.location_id}
+                errorText={errors.location_id?.message}
+                label="Location"
+              >
+                <Controller
+                  name="location_id"
+                  control={control}
+                  render={({ field }) => (
+                    <LocationDropdown
+                      id="location_id"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      isDisabled={isSubmitting || isPast}
+                      portalRef={contentRef}
+                    />
+                  )}
+                />
+              </Field>
+            </VStack>
+          </DialogBody>
 
-            <DialogFooter gap={2}>
-              <ButtonGroup>
-                <DialogActionTrigger asChild>
-                  <Button
-                    variant="subtle"
-                    colorPalette="gray"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting} disabled={isPast}>
-                  Save
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
+                >
+                  Cancel
                 </Button>
-              </ButtonGroup>
-            </DialogFooter>
-          </form>
-          <DialogCloseTrigger />
-        </DialogContent>
+              </DialogActionTrigger>
+              <Button
+                variant="solid"
+                type="submit"
+                loading={isSubmitting}
+                disabled={isPast}
+              >
+                Save
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </form>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

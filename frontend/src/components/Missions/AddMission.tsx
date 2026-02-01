@@ -1,13 +1,13 @@
 import {
   Box,
   Button,
-  createListCollection,
   Flex,
   Input,
   Portal,
   Select,
   Text,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
@@ -26,7 +26,11 @@ import {
 } from "../ui/dialog"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatLocationTimezoneDisplay, handleError, parseLocationTimeToUtc } from "@/utils"
+import {
+  formatLocationTimezoneDisplay,
+  handleError,
+  parseLocationTimeToUtc,
+} from "@/utils"
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
@@ -109,133 +113,132 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent ref={contentRef}>
-          <DialogHeader>
-            <DialogTitle>Add Mission</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <VStack gap={4}>
-              <Field label="Name" required>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Mission name"
-                />
-              </Field>
-              <Field label="Launch" required>
-                <LaunchDropdown
-                  id="launch_id"
-                  value={launchId}
-                  onChange={setLaunchId}
-                  disabled={mutation.isPending}
-                  portalRef={contentRef}
-                />
-              </Field>
-              <Field
-                label={
+        <DialogHeader>
+          <DialogTitle>Add Mission</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <VStack gap={4}>
+            <Field label="Name" required>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Mission name"
+              />
+            </Field>
+            <Field label="Launch" required>
+              <LaunchDropdown
+                id="launch_id"
+                value={launchId}
+                onChange={setLaunchId}
+                disabled={mutation.isPending}
+                portalRef={contentRef}
+              />
+            </Field>
+            <Field
+              label={
+                timezone
+                  ? `Sales Open Date & Time (${formatLocationTimezoneDisplay(
+                      timezone,
+                    )})`
+                  : "Sales Open Date & Time"
+              }
+            >
+              <Input
+                id="sales_open_at"
+                type="datetime-local"
+                value={salesOpenAt}
+                onChange={(e) => setSalesOpenAt(e.target.value)}
+                placeholder={
                   timezone
-                    ? `Sales Open Date & Time (${formatLocationTimezoneDisplay(timezone)})`
-                    : "Sales Open Date & Time"
+                    ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
+                    : "Select launch for timezone"
                 }
+              />
+            </Field>
+            <Field label="Refund Cutoff Hours" required>
+              <Input
+                id="refund_cutoff_hours"
+                type="number"
+                value={refundCutoffHours}
+                onChange={(e) =>
+                  setRefundCutoffHours(Number.parseInt(e.target.value))
+                }
+                placeholder="Refund cutoff hours"
+                min={0}
+                max={72}
+              />
+            </Field>
+            <Field>
+              <Flex
+                alignItems="center"
+                justifyContent="space-between"
+                width="100%"
               >
-                <Input
-                  id="sales_open_at"
-                  type="datetime-local"
-                  value={salesOpenAt}
-                  onChange={(e) => setSalesOpenAt(e.target.value)}
-                  placeholder={
-                    timezone
-                      ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
-                      : "Select launch for timezone"
-                  }
-                />
-              </Field>
-              <Field label="Refund Cutoff Hours" required>
-                <Input
-                  id="refund_cutoff_hours"
-                  type="number"
-                  value={refundCutoffHours}
-                  onChange={(e) =>
-                    setRefundCutoffHours(Number.parseInt(e.target.value))
-                  }
-                  placeholder="Refund cutoff hours"
-                  min={0}
-                  max={72}
-                />
-              </Field>
-              <Field>
-                <Flex
-                  alignItems="center"
-                  justifyContent="space-between"
-                  width="100%"
+                <Text>Active</Text>
+                <Box
+                  onClick={() => {
+                    setActive(!active)
+                  }}
+                  cursor="pointer"
                 >
-                  <Text>Active</Text>
-                  <Box
-                    onClick={() => {
-                      setActive(!active)
-                    }}
-                    cursor="pointer"
-                  >
-                    <Switch
-                      checked={active}
-                      inputProps={{ id: "active" }}
-                    />
-                  </Box>
-                </Flex>
-              </Field>
-              <Field
-                label="Booking Mode"
-                helperText="Controls who can book tickets for this mission"
+                  <Switch checked={active} inputProps={{ id: "active" }} />
+                </Box>
+              </Flex>
+            </Field>
+            <Field
+              label="Booking Mode"
+              helperText="Controls who can book tickets for this mission"
+            >
+              <Select.Root
+                collection={bookingModeOptions}
+                value={[bookingMode]}
+                onValueChange={(details) => setBookingMode(details.value[0])}
               >
-                <Select.Root
-                  collection={bookingModeOptions}
-                  value={[bookingMode]}
-                  onValueChange={(details) => setBookingMode(details.value[0])}
-                >
-                  <Select.Control width="100%">
-                    <Select.Trigger>
-                      <Select.ValueText placeholder="Select booking mode" />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                      <Select.Indicator />
-                    </Select.IndicatorGroup>
-                  </Select.Control>
-                  <Portal container={contentRef}>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {bookingModeOptions.items.map((option) => (
-                          <Select.Item key={option.value} item={option}>
-                            {option.label}
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Portal>
-                </Select.Root>
-              </Field>
-            </VStack>
-          </DialogBody>
-          <DialogFooter gap={2}>
-            <Button
-              variant="subtle"
-              colorPalette="gray"
-              onClick={onClose}
-              disabled={mutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              onClick={handleSubmit}
-              loading={mutation.isPending}
-              disabled={!name || !launchId || mutation.isPending}
-            >
-              Add
-            </Button>
-          </DialogFooter>
-          <DialogCloseTrigger />
-        </DialogContent>
+                <Select.Control width="100%">
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Select booking mode" />
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Portal container={contentRef}>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {bookingModeOptions.items.map((option) => (
+                        <Select.Item key={option.value} item={option}>
+                          {option.label}
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+            </Field>
+          </VStack>
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            variant="subtle"
+            colorPalette="gray"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="solid"
+            onClick={handleSubmit}
+            loading={mutation.isPending}
+            disabled={!name || !launchId || mutation.isPending}
+          >
+            Add
+          </Button>
+        </DialogFooter>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

@@ -13,14 +13,19 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiArrowDown, FiArrowUp, FiFileText, FiPlus, FiSearch } from "react-icons/fi"
+import {
+  FiArrowDown,
+  FiArrowUp,
+  FiFileText,
+  FiPlus,
+  FiSearch,
+} from "react-icons/fi"
 import { z } from "zod"
 
 import { LaunchesService, LocationsService } from "@/client"
 import { LaunchActionsMenu } from "@/components/Common/LaunchActionsMenu"
 import YamlImportForm from "@/components/Common/YamlImportForm"
 import AddLaunch from "@/components/Launches/AddLaunch"
-import { YamlImportService } from "@/services/yamlImportService"
 import PendingLaunches from "@/components/Pending/PendingLaunches"
 import {
   DEFAULT_PAGE_SIZE,
@@ -32,10 +37,8 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import {
-  formatInLocationTimezoneWithAbbr,
-  parseApiDate,
-} from "@/utils"
+import { YamlImportService } from "@/services/yamlImportService"
+import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
 type SortableColumn = "name" | "launch_timestamp" | "summary" | "location_id"
@@ -214,7 +217,9 @@ function LaunchesTable() {
 
   const renderLaunchDate = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+    const parts = timezone
+      ? formatInLocationTimezoneWithAbbr(d, timezone)
+      : null
     if (parts) {
       return (
         <>
@@ -292,30 +297,42 @@ function LaunchesTable() {
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
-        <Table.Body>
-          {launches?.map((launch) => (
-            <Table.Row key={launch.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell truncate maxW="sm">
-                {launch.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {launch.summary}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {locationsMap.get(launch.location_id)?.name ||
-                  launch.location_id}
-              </Table.Cell>
-              <Table.Cell w="16" textAlign="center">
-                <Flex justify="center">
-                  <LaunchActionsMenu launch={launch} />
-                </Flex>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
+          <Table.Body>
+            {launches?.map((launch) => (
+              <Table.Row key={launch.id} opacity={isPlaceholderData ? 0.5 : 1}>
+                <Table.Cell truncate maxW="sm">
+                  {launch.name}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {launch.summary}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  {locationsMap.get(launch.location_id)?.name ||
+                    launch.location_id}
+                </Table.Cell>
+                <Table.Cell w="16" textAlign="center">
+                  <Flex justify="center">
+                    <LaunchActionsMenu launch={launch} />
+                  </Flex>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
         </Table.Root>
       </Box>
       {count > 0 && (
@@ -356,10 +373,7 @@ function Launches() {
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Launches Management</Heading>
         <Flex gap={3}>
-          <Button
-            variant="outline"
-            onClick={() => setIsYamlImportOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />
               <span>Import from YAML</span>

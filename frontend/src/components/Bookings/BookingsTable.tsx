@@ -2,13 +2,13 @@ import {
   Badge,
   Box,
   Button,
-  createListCollection,
   Flex,
   Icon,
   IconButton,
   Select,
   Table,
   Text,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
@@ -16,9 +16,7 @@ import { FiArrowDown, FiArrowUp, FiCopy, FiX } from "react-icons/fi"
 
 import { BookingsService, MissionsService, TripsService } from "@/client"
 import type { TripPublic } from "@/client"
-import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
-import useCustomToast from "@/hooks/useCustomToast"
 import PendingBookings from "@/components/Pending/PendingBookings"
 import {
   DEFAULT_PAGE_SIZE,
@@ -30,7 +28,13 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
-import { getStatusColor, type SortableColumn, type SortDirection } from "./types"
+import useCustomToast from "@/hooks/useCustomToast"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import {
+  type SortDirection,
+  type SortableColumn,
+  getStatusColor,
+} from "./types"
 
 interface BookingsTableProps {
   onBookingClick: (confirmationCode: string) => void
@@ -68,12 +72,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   }
 
   // Parse search params
-  const page = parseInt(searchParams.get("page") || "1")
+  const page = Number.parseInt(searchParams.get("page") || "1")
   const pageSizeParam = searchParams.get("pageSize")
-  const pageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : DEFAULT_PAGE_SIZE
-  const effectivePageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE
+  const pageSize = pageSizeParam
+    ? Number.parseInt(pageSizeParam, 10)
+    : DEFAULT_PAGE_SIZE
+  const effectivePageSize =
+    Number.isInteger(pageSize) && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE
   const sortBy = (searchParams.get("sortBy") as SortableColumn) || "created_at"
-  const sortDirection = (searchParams.get("sortDirection") as SortDirection) || "desc"
+  const sortDirection =
+    (searchParams.get("sortDirection") as SortDirection) || "desc"
 
   // Listen for URL changes
   useEffect(() => {
@@ -81,8 +89,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       setSearchParams(new URLSearchParams(window.location.search))
     }
 
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
   // Fetch bookings with mission, trip, status filters and sorting
@@ -138,7 +146,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   // Filter missions to only show those with existing bookings
   const missionsWithBookings = missions.filter((mission: any) =>
-    allBookingsData?.data?.some((booking: any) => booking.mission_id === mission.id)
+    allBookingsData?.data?.some(
+      (booking: any) => booking.mission_id === mission.id,
+    ),
   )
 
   // Filter trips by selected mission
@@ -153,12 +163,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     const params = new URLSearchParams(window.location.search)
     params.set("sortBy", column)
     params.set("sortDirection", newDirection)
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
 
     // Update local state to trigger re-render
     setSearchParams(new URLSearchParams(params.toString()))
   }
-
 
   const updateFiltersInUrl = (updates: {
     missionId?: string
@@ -179,7 +192,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       else params.delete("status")
     }
     params.set("page", "1")
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
     setSearchParams(new URLSearchParams(params.toString()))
   }
 
@@ -205,7 +222,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set("page", newPage.toString())
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
 
     // Update local state to trigger re-render
     setSearchParams(new URLSearchParams(params.toString()))
@@ -215,7 +236,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     const params = new URLSearchParams(window.location.search)
     params.set("pageSize", newPageSize.toString())
     params.set("page", "1")
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`)
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
 
     setSearchParams(new URLSearchParams(params.toString()))
   }
@@ -498,14 +523,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               >
                 <Table.Cell>
                   <Flex align="center" gap={2}>
-                    <Text fontFamily="mono" fontWeight="bold" color="accent.default">
+                    <Text
+                      fontFamily="mono"
+                      fontWeight="bold"
+                      color="accent.default"
+                    >
                       {booking.confirmation_code}
                     </Text>
                     <IconButton
                       aria-label="Copy confirmation code"
                       size="2xs"
                       variant="ghost"
-                      onClick={(e) => copyConfirmationCode(e, booking.confirmation_code)}
+                      onClick={(e) =>
+                        copyConfirmationCode(e, booking.confirmation_code)
+                      }
                       title="Copy to clipboard"
                     >
                       <Icon as={FiCopy} boxSize={4} />
@@ -524,7 +555,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Table.Cell>
                 <Table.Cell>
                   <Badge colorPalette={getStatusColor(booking.status || "")}>
-                    {booking.status?.replace("_", " ").toUpperCase() || "UNKNOWN"}
+                    {booking.status?.replace("_", " ").toUpperCase() ||
+                      "UNKNOWN"}
                   </Badge>
                 </Table.Cell>
                 <Table.Cell>

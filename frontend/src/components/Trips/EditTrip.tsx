@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select"
 import {
   Box,
   Button,
@@ -10,10 +11,16 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { NativeSelect } from "@/components/ui/native-select"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiDollarSign, FiEdit, FiPlus, FiSliders, FiTrash2, FiUsers } from "react-icons/fi"
+import {
+  FiDollarSign,
+  FiEdit,
+  FiPlus,
+  FiSliders,
+  FiTrash2,
+  FiUsers,
+} from "react-icons/fi"
 
 import {
   type ApiError,
@@ -106,10 +113,14 @@ const EditTrip = ({
     boatId: string
     boatName: string
   } | null>(null)
-  const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null)
+  const [editingOverrideId, setEditingOverrideId] = useState<string | null>(
+    null,
+  )
   const [editingOverridePrice, setEditingOverridePrice] = useState("")
   const [editingOverrideCapacity, setEditingOverrideCapacity] = useState("")
-  const [editingCapacityTripBoatId, setEditingCapacityTripBoatId] = useState<string | null>(null)
+  const [editingCapacityTripBoatId, setEditingCapacityTripBoatId] = useState<
+    string | null
+  >(null)
   const [capacityInputValue, setCapacityInputValue] = useState("")
   const [tripBoatPricingForm, setTripBoatPricingForm] = useState({
     ticket_type: "",
@@ -390,7 +401,18 @@ const EditTrip = ({
         formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
       )
     }
-  }, [isOpen, trip.id, trip.mission_id, trip.name, trip.type, trip.active, trip.check_in_time, trip.boarding_time, trip.departure_time, trip.timezone])
+  }, [
+    isOpen,
+    trip.id,
+    trip.mission_id,
+    trip.name,
+    trip.type,
+    trip.active,
+    trip.check_in_time,
+    trip.boarding_time,
+    trip.departure_time,
+    trip.timezone,
+  ])
 
   // Create a map of boat ids to boat objects for quick lookup
   const boatsMap = new Map<string, any>()
@@ -464,9 +486,7 @@ const EditTrip = ({
           to_boat_id: reassignToBoatId,
         },
       })
-      showSuccessToast(
-        `Moved ${res.moved} passenger(s) to the selected boat.`,
-      )
+      showSuccessToast(`Moved ${res.moved} passenger(s) to the selected boat.`)
       setReassignFrom(null)
       setReassignToBoatId("")
       refetchTripBoats()
@@ -496,24 +516,28 @@ const EditTrip = ({
 
   return (
     <>
-    <DialogRoot
-      size={{ base: "xs", md: "md" }}
-      placement="center"
-      open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
-    >
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          disabled={isPast}
-          title={isPast ? "This trip has already departed and cannot be edited" : ""}
-        >
-          <FiEdit fontSize="16px" />
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
+      <DialogRoot
+        size={{ base: "xs", md: "md" }}
+        placement="center"
+        open={isOpen}
+        onOpenChange={({ open }) => setIsOpen(open)}
+      >
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            disabled={isPast}
+            title={
+              isPast
+                ? "This trip has already departed and cannot be edited"
+                : ""
+            }
+          >
+            <FiEdit fontSize="16px" />
+            {triggerLabel}
+          </Button>
+        </DialogTrigger>
 
-      <DialogContent ref={contentRef}>
+        <DialogContent ref={contentRef}>
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -527,16 +551,16 @@ const EditTrip = ({
             <DialogBody>
               {isPast && (
                 <Text mb={4} color="orange.500">
-                  This trip has already departed and cannot be edited. Contact a system administrator if you need to make changes to past trips.
+                  This trip has already departed and cannot be edited. Contact a
+                  system administrator if you need to make changes to past
+                  trips.
                 </Text>
               )}
               <Tabs.Root defaultValue={initialTab} variant="subtle">
                 <Tabs.List>
                   <Tabs.Trigger value="basic-info">Basic Info</Tabs.Trigger>
                   <Tabs.Trigger value="boats">Boats</Tabs.Trigger>
-                    <Tabs.Trigger value="pricing">
-                      Merchandise
-                    </Tabs.Trigger>
+                  <Tabs.Trigger value="pricing">Merchandise</Tabs.Trigger>
                 </Tabs.List>
 
                 <Tabs.Content value="basic-info">
@@ -551,7 +575,10 @@ const EditTrip = ({
                       />
                     </Field>
 
-                    <Field label="Name" helperText="Optional custom label for this trip">
+                    <Field
+                      label="Name"
+                      helperText="Optional custom label for this trip"
+                    >
                       <Input
                         id="name"
                         value={name}
@@ -575,10 +602,7 @@ const EditTrip = ({
                       </NativeSelect>
                     </Field>
 
-                    <Field
-                      label={`Check-in Time (${tz})`}
-                      required
-                    >
+                    <Field label={`Check-in Time (${tz})`} required>
                       <Input
                         id="check_in_time"
                         type="datetime-local"
@@ -590,7 +614,9 @@ const EditTrip = ({
                     </Field>
 
                     <Field
-                      label={`Boarding Time (${formatLocationTimezoneDisplay(tz)})`}
+                      label={`Boarding Time (${formatLocationTimezoneDisplay(
+                        tz,
+                      )})`}
                       required
                     >
                       <Input
@@ -604,7 +630,9 @@ const EditTrip = ({
                     </Field>
 
                     <Field
-                      label={`Departure Time (${formatLocationTimezoneDisplay(tz)})`}
+                      label={`Departure Time (${formatLocationTimezoneDisplay(
+                        tz,
+                      )})`}
                       required
                     >
                       <Input
@@ -624,13 +652,13 @@ const EditTrip = ({
                         width="100%"
                       >
                         <Text>Active</Text>
-                      <Box
-                        onClick={() => {
-                          if (!isPast) setActive(!active)
-                        }}
-                        cursor={isPast ? "not-allowed" : "pointer"}
-                        opacity={isPast ? 0.5 : 1}
-                      >
+                        <Box
+                          onClick={() => {
+                            if (!isPast) setActive(!active)
+                          }}
+                          cursor={isPast ? "not-allowed" : "pointer"}
+                          opacity={isPast ? 0.5 : 1}
+                        >
                           <Switch
                             checked={active}
                             disabled={mutation.isPending || isPast}
@@ -666,8 +694,20 @@ const EditTrip = ({
                           const isPricingOpen =
                             selectedTripBoatForPricing?.id === tripBoat.id
                           const pricing =
-                            "pricing" in tripBoat && Array.isArray((tripBoat as { pricing?: unknown[] }).pricing)
-                              ? (tripBoat as { pricing: Array<{ ticket_type: string; price: number; capacity: number; remaining: number }> }).pricing
+                            "pricing" in tripBoat &&
+                            Array.isArray(
+                              (tripBoat as { pricing?: unknown[] }).pricing,
+                            )
+                              ? (
+                                  tripBoat as {
+                                    pricing: Array<{
+                                      ticket_type: string
+                                      price: number
+                                      capacity: number
+                                      remaining: number
+                                    }>
+                                  }
+                                ).pricing
                               : []
                           return (
                             <Box key={tripBoat.id}>
@@ -679,20 +719,30 @@ const EditTrip = ({
                                 borderRadius="md"
                               >
                                 <Box>
-                                  <Text color="gray.100" fontWeight="medium">{boat?.name || "Unknown"}</Text>
+                                  <Text color="gray.100" fontWeight="medium">
+                                    {boat?.name || "Unknown"}
+                                  </Text>
                                   <Text
                                     fontSize="xs"
                                     color="gray.300"
                                     mt={0.5}
                                     lineHeight="1.2"
                                   >
-                                    {used} of {maxCap} seats taken ({remaining} remaining)
+                                    {used} of {maxCap} seats taken ({remaining}{" "}
+                                    remaining)
                                   </Text>
                                   {pricing.length > 0 && (
                                     <VStack align="start" gap={0}>
                                       {pricing.map((p) => (
-                                        <Text key={p.ticket_type} fontSize="xs" color="gray.500" lineHeight="1.2">
-                                          {p.ticket_type}: ${formatCents(p.price)} ({p.remaining}/{p.capacity} left)
+                                        <Text
+                                          key={p.ticket_type}
+                                          fontSize="xs"
+                                          color="gray.500"
+                                          lineHeight="1.2"
+                                        >
+                                          {p.ticket_type}: $
+                                          {formatCents(p.price)} ({p.remaining}/
+                                          {p.capacity} left)
                                         </Text>
                                       ))}
                                     </VStack>
@@ -742,12 +792,15 @@ const EditTrip = ({
                                     variant="ghost"
                                     onClick={() => {
                                       const isCapacityOpen =
-                                        editingCapacityTripBoatId === tripBoat.id
+                                        editingCapacityTripBoatId ===
+                                        tripBoat.id
                                       if (isCapacityOpen) {
                                         setEditingCapacityTripBoatId(null)
                                         setCapacityInputValue("")
                                       } else {
-                                        setEditingCapacityTripBoatId(tripBoat.id)
+                                        setEditingCapacityTripBoatId(
+                                          tripBoat.id,
+                                        )
                                         setCapacityInputValue(
                                           tripBoat.max_capacity != null
                                             ? String(tripBoat.max_capacity)
@@ -773,10 +826,16 @@ const EditTrip = ({
                                         : undefined
                                     }
                                     onClick={() => {
-                                      if (tripBoat.id === selectedTripBoatForPricing?.id) {
+                                      if (
+                                        tripBoat.id ===
+                                        selectedTripBoatForPricing?.id
+                                      ) {
                                         setSelectedTripBoatForPricing(null)
                                       }
-                                      if (tripBoat.id === editingCapacityTripBoatId) {
+                                      if (
+                                        tripBoat.id ===
+                                        editingCapacityTripBoatId
+                                      ) {
                                         setEditingCapacityTripBoatId(null)
                                       }
                                       handleRemoveBoat(tripBoat.id)
@@ -795,12 +854,19 @@ const EditTrip = ({
                                   _dark={{ borderColor: "gray.600" }}
                                 >
                                   <Text fontWeight="bold" mb={2} fontSize="sm">
-                                    Capacity override for {boat?.name || "Unknown"}
+                                    Capacity override for{" "}
+                                    {boat?.name || "Unknown"}
                                   </Text>
                                   <Text fontSize="sm" color="gray.500" mb={2}>
-                                    Boat default: {boat?.capacity ?? "—"} seats. Set a lower limit for this trip or leave default.
+                                    Boat default: {boat?.capacity ?? "—"} seats.
+                                    Set a lower limit for this trip or leave
+                                    default.
                                   </Text>
-                                  <HStack gap={2} align="center" flexWrap="wrap">
+                                  <HStack
+                                    gap={2}
+                                    align="center"
+                                    flexWrap="wrap"
+                                  >
                                     <Input
                                       type="number"
                                       min={used}
@@ -827,7 +893,9 @@ const EditTrip = ({
                                     </Button>
                                     <Button
                                       size="xs"
-                                      onClick={() => handleSaveCapacity(tripBoat.id)}
+                                      onClick={() =>
+                                        handleSaveCapacity(tripBoat.id)
+                                      }
                                       loading={updateTripBoatMutation.isPending}
                                       disabled={
                                         capacityInputValue.trim() === "" ||
@@ -837,9 +905,7 @@ const EditTrip = ({
                                             10,
                                           )
                                           return (
-                                            Number.isNaN(n) ||
-                                            n < 1 ||
-                                            n < used
+                                            Number.isNaN(n) || n < 1 || n < used
                                           )
                                         })()
                                       }
@@ -913,12 +979,18 @@ const EditTrip = ({
                                             borderWidth="1px"
                                             borderRadius="md"
                                             borderColor="gray.400"
-                                            _dark={{ borderColor: "gray.600", bg: "gray.800" }}
+                                            _dark={{
+                                              borderColor: "gray.600",
+                                              bg: "gray.800",
+                                            }}
                                           >
                                             <Text fontSize="sm">
                                               {bp.ticket_type}
                                             </Text>
-                                            <Text fontSize="sm" color="gray.500">
+                                            <Text
+                                              fontSize="sm"
+                                              color="gray.500"
+                                            >
                                               ${formatCents(bp.price)} (default)
                                             </Text>
                                           </HStack>
@@ -980,7 +1052,9 @@ const EditTrip = ({
                                                   min="0"
                                                   size="sm"
                                                   width="16"
-                                                  value={editingOverrideCapacity}
+                                                  value={
+                                                    editingOverrideCapacity
+                                                  }
                                                   onChange={(e) =>
                                                     setEditingOverrideCapacity(
                                                       e.target.value,
@@ -1001,12 +1075,13 @@ const EditTrip = ({
                                                       !Number.isNaN(cents) &&
                                                       cents >= 0
                                                     ) {
-                                                      const cap = editingOverrideCapacity.trim()
-                                                        ? Number.parseInt(
-                                                            editingOverrideCapacity,
-                                                            10,
-                                                          )
-                                                        : null
+                                                      const cap =
+                                                        editingOverrideCapacity.trim()
+                                                          ? Number.parseInt(
+                                                              editingOverrideCapacity,
+                                                              10,
+                                                            )
+                                                          : null
                                                       if (
                                                         cap !== null &&
                                                         (Number.isNaN(cap) ||
@@ -1018,7 +1093,8 @@ const EditTrip = ({
                                                           tripBoatPricingId:
                                                             p.id,
                                                           price: cents,
-                                                          capacity: cap ?? undefined,
+                                                          capacity:
+                                                            cap ?? undefined,
                                                         },
                                                       )
                                                     }
@@ -1043,15 +1119,21 @@ const EditTrip = ({
                                                   onClick={() => {
                                                     setEditingOverrideId(null)
                                                     setEditingOverridePrice("")
-                                                    setEditingOverrideCapacity("")
+                                                    setEditingOverrideCapacity(
+                                                      "",
+                                                    )
                                                   }}
                                                 >
                                                   Cancel
                                                 </Button>
                                               </>
                                             ) : (
-                                              <Text fontSize="sm" color="gray.500">
-                                                ${formatCents(p.price)} (override)
+                                              <Text
+                                                fontSize="sm"
+                                                color="gray.500"
+                                              >
+                                                ${formatCents(p.price)}{" "}
+                                                (override)
                                                 {p.capacity != null
                                                   ? `, ${p.capacity} seats`
                                                   : ""}
@@ -1063,17 +1145,17 @@ const EditTrip = ({
                                               <Button
                                                 size="xs"
                                                 variant="ghost"
-                                              onClick={() => {
-                                                setEditingOverrideId(p.id)
-                                                setEditingOverridePrice(
-                                                  (p.price / 100).toFixed(2),
-                                                )
-                                                setEditingOverrideCapacity(
-                                                  p.capacity != null
-                                                    ? String(p.capacity)
-                                                    : "",
-                                                )
-                                              }}
+                                                onClick={() => {
+                                                  setEditingOverrideId(p.id)
+                                                  setEditingOverridePrice(
+                                                    (p.price / 100).toFixed(2),
+                                                  )
+                                                  setEditingOverrideCapacity(
+                                                    p.capacity != null
+                                                      ? String(p.capacity)
+                                                      : "",
+                                                  )
+                                                }}
                                               >
                                                 <FiEdit fontSize="12px" />
                                                 Edit
@@ -1150,13 +1232,17 @@ const EditTrip = ({
                                                 return "__other__"
                                               return ""
                                             })()}
-                                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                            onChange={(
+                                              e: React.ChangeEvent<HTMLSelectElement>,
+                                            ) => {
                                               const v = e.target.value
-                                              setTripBoatPricingForm((prev) => ({
-                                                ...prev,
-                                                ticket_type:
-                                                  v === "__other__" ? "" : v,
-                                              }))
+                                              setTripBoatPricingForm(
+                                                (prev) => ({
+                                                  ...prev,
+                                                  ticket_type:
+                                                    v === "__other__" ? "" : v,
+                                                }),
+                                              )
                                             }}
                                           >
                                             <option value="">
@@ -1303,7 +1389,11 @@ const EditTrip = ({
                                   )}
                                   {tripBoatPricingList.length > 0 &&
                                     isAddingTripBoatPricing && (
-                                      <Text fontSize="xs" color="gray.500" mt={1}>
+                                      <Text
+                                        fontSize="xs"
+                                        color="gray.500"
+                                        mt={1}
+                                      >
                                         To change a ticket type already in the
                                         list, edit it above instead of adding
                                         again.
@@ -1332,9 +1422,9 @@ const EditTrip = ({
                         <Field label="Select Boat" required>
                           <NativeSelect
                             value={selectedBoatId}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                              setSelectedBoatId(e.target.value)
-                            }
+                            onChange={(
+                              e: React.ChangeEvent<HTMLSelectElement>,
+                            ) => setSelectedBoatId(e.target.value)}
                             disabled={mutation.isPending || isPast}
                           >
                             <option value="">Select a boat</option>
@@ -1416,9 +1506,7 @@ const EditTrip = ({
                               size="sm"
                               variant="ghost"
                               colorPalette="red"
-                              onClick={() =>
-                                handleRemoveMerchandise(item.id)
-                              }
+                              onClick={() => handleRemoveMerchandise(item.id)}
                               disabled={deleteMerchandiseMutation.isPending}
                             >
                               <FiTrash2 />
@@ -1434,12 +1522,7 @@ const EditTrip = ({
                           )}
                       </VStack>
                       {isAddingMerchandise ? (
-                        <Box
-                          mt={2}
-                          p={3}
-                          borderWidth="1px"
-                          borderRadius="md"
-                        >
+                        <Box mt={2} p={3} borderWidth="1px" borderRadius="md">
                           <VStack gap={3}>
                             <HStack width="100%">
                               <Box flex={1}>
@@ -1489,11 +1572,14 @@ const EditTrip = ({
                                 <Input
                                   type="number"
                                   min={0}
-                                  value={merchandiseForm.quantity_available_override}
+                                  value={
+                                    merchandiseForm.quantity_available_override
+                                  }
                                   onChange={(e) =>
                                     setMerchandiseForm({
                                       ...merchandiseForm,
-                                      quantity_available_override: e.target.value,
+                                      quantity_available_override:
+                                        e.target.value,
                                     })
                                   }
                                   placeholder="Use catalog qty"
@@ -1568,87 +1654,88 @@ const EditTrip = ({
             </DialogFooter>
           </form>
         </DialogContent>
-    </DialogRoot>
+      </DialogRoot>
 
-    {/* Reassign passengers dialog */}
-    <DialogRoot
-      size="xs"
-      placement="center"
-      open={reassignFrom != null}
-      onOpenChange={({ open }) => {
-        if (!open) {
-          setReassignFrom(null)
-          setReassignToBoatId("")
-        }
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Reassign passengers</DialogTitle>
-        </DialogHeader>
-        <DialogBody>
-          {reassignFrom && (() => {
-            const from = reassignFrom
-            return (
-            <VStack align="stretch" gap={4}>
-              <Text>
-                Move {from.used} passenger(s) from{" "}
-                <strong>{from.boatName}</strong> to:
-              </Text>
-              <Field label="Target boat" required>
-                <NativeSelect
-                  value={reassignToBoatId}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setReassignToBoatId(e.target.value)
-                  }
-                  disabled={isReassignSubmitting}
-                >
-                  <option value="">Select a boat</option>
-                  {tripBoats
-                    .filter((tb) => tb.boat_id !== from.boat_id)
-                    .map((tb) => {
-                      const b = boatsMap.get(tb.boat_id)
-                      const rem =
-                        "remaining_capacity" in tb
-                          ? (tb as { remaining_capacity: number })
-                              .remaining_capacity
-                          : null
-                      return (
-                        <option key={tb.boat_id} value={tb.boat_id}>
-                          {b?.name || "Unknown"}
-                          {rem != null ? ` (${rem} spots left)` : ""}
-                        </option>
-                      )
-                    })}
-                </NativeSelect>
-              </Field>
-            </VStack>
-            )
-          })()}
-        </DialogBody>
-        <DialogFooter gap={2}>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setReassignFrom(null)
-              setReassignToBoatId("")
-            }}
-            disabled={isReassignSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={handleReassignConfirm}
-            loading={isReassignSubmitting}
-            disabled={!reassignToBoatId}
-          >
-            Move passengers
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </DialogRoot>
-  </>
+      {/* Reassign passengers dialog */}
+      <DialogRoot
+        size="xs"
+        placement="center"
+        open={reassignFrom != null}
+        onOpenChange={({ open }) => {
+          if (!open) {
+            setReassignFrom(null)
+            setReassignToBoatId("")
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reassign passengers</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {reassignFrom &&
+              (() => {
+                const from = reassignFrom
+                return (
+                  <VStack align="stretch" gap={4}>
+                    <Text>
+                      Move {from.used} passenger(s) from{" "}
+                      <strong>{from.boatName}</strong> to:
+                    </Text>
+                    <Field label="Target boat" required>
+                      <NativeSelect
+                        value={reassignToBoatId}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setReassignToBoatId(e.target.value)
+                        }
+                        disabled={isReassignSubmitting}
+                      >
+                        <option value="">Select a boat</option>
+                        {tripBoats
+                          .filter((tb) => tb.boat_id !== from.boat_id)
+                          .map((tb) => {
+                            const b = boatsMap.get(tb.boat_id)
+                            const rem =
+                              "remaining_capacity" in tb
+                                ? (tb as { remaining_capacity: number })
+                                    .remaining_capacity
+                                : null
+                            return (
+                              <option key={tb.boat_id} value={tb.boat_id}>
+                                {b?.name || "Unknown"}
+                                {rem != null ? ` (${rem} spots left)` : ""}
+                              </option>
+                            )
+                          })}
+                      </NativeSelect>
+                    </Field>
+                  </VStack>
+                )
+              })()}
+          </DialogBody>
+          <DialogFooter gap={2}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setReassignFrom(null)
+                setReassignToBoatId("")
+              }}
+              disabled={isReassignSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleReassignConfirm}
+              loading={isReassignSubmitting}
+              disabled={!reassignToBoatId}
+            >
+              Move passengers
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
+    </>
   )
 }
 

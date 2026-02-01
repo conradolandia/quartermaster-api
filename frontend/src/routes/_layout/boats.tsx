@@ -15,14 +15,10 @@ import { useMemo, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import {
-  type BoatPublic,
-  BoatsService,
-  BoatPricingService,
-} from "@/client"
+import { BoatPricingService, type BoatPublic, BoatsService } from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
-import EditBoat from "@/components/Boats/EditBoat"
 import DeleteBoat from "@/components/Boats/DeleteBoat"
+import EditBoat from "@/components/Boats/EditBoat"
 import PendingBoats from "@/components/Pending/PendingBoats"
 import {
   DEFAULT_PAGE_SIZE,
@@ -68,11 +64,20 @@ const convertToBoat = (boatPublic: BoatPublic): Boat => ({
   created_at: boatPublic.created_at,
   updated_at: boatPublic.updated_at,
   // Provider data from relationship or from get_boats_no_relationships
-  provider_name: (boatPublic as any).provider_name || boatPublic.provider?.name || "",
-  provider_location: (boatPublic as any).provider_location || boatPublic.provider?.location || "",
-  provider_address: (boatPublic as any).provider_address || boatPublic.provider?.address || "",
-  jurisdiction_id: (boatPublic as any).jurisdiction_id || boatPublic.provider?.jurisdiction_id || "",
-  map_link: (boatPublic as any).map_link || boatPublic.provider?.map_link || null,
+  provider_name:
+    (boatPublic as any).provider_name || boatPublic.provider?.name || "",
+  provider_location:
+    (boatPublic as any).provider_location ||
+    boatPublic.provider?.location ||
+    "",
+  provider_address:
+    (boatPublic as any).provider_address || boatPublic.provider?.address || "",
+  jurisdiction_id:
+    (boatPublic as any).jurisdiction_id ||
+    boatPublic.provider?.jurisdiction_id ||
+    "",
+  map_link:
+    (boatPublic as any).map_link || boatPublic.provider?.map_link || null,
 })
 
 // Helper function to sort boats
@@ -281,13 +286,17 @@ function BoatsTable() {
                   <SortIcon column="provider_id" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader minW="140px" fontWeight="bold" textAlign="center">
+              <Table.ColumnHeader
+                minW="140px"
+                fontWeight="bold"
+                textAlign="center"
+              >
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
-        <Table.Body>
-          {boats.map((boat) => (
+          <Table.Body>
+            {boats.map((boat) => (
               <Table.Row key={boat.id} opacity={isPlaceholderData ? 0.5 : 1}>
                 <Table.Cell truncate minW="140px">
                   {boat.name}
@@ -298,9 +307,15 @@ function BoatsTable() {
                   fontSize="sm"
                   minW="200px"
                 >
-                  {formatTicketTypesWithCapacity(pricingByBoatId[boat.id] ?? [])}
+                  {formatTicketTypesWithCapacity(
+                    pricingByBoatId[boat.id] ?? [],
+                  )}
                 </Table.Cell>
-                <Table.Cell truncate minW="120px" display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell
+                  truncate
+                  minW="120px"
+                  display={{ base: "none", md: "table-cell" }}
+                >
                   {boat.provider_name || "—"}
                 </Table.Cell>
                 <Table.Cell textAlign="center" minW="140px">
@@ -311,7 +326,7 @@ function BoatsTable() {
                 </Table.Cell>
               </Table.Row>
             ))}
-        </Table.Body>
+          </Table.Body>
         </Table.Root>
       </Box>
       {count > 0 && (

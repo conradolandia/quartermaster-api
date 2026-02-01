@@ -1,33 +1,31 @@
+import { Switch } from "@/components/ui/switch"
 import {
   Box,
   Button,
   Checkbox,
   Flex,
   HStack,
+  Heading,
   IconButton,
   Input,
-  Heading,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { Switch } from "@/components/ui/switch"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
-  DiscountCodesService,
   type DiscountCodeCreate,
   type DiscountCodePublic,
   type DiscountCodeUpdate,
+  DiscountCodesService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
 
-interface DiscountCodeManagerProps {
-  // Add any props if needed
-}
+type DiscountCodeManagerProps = {}
 
 export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const [isAdding, setIsAdding] = useState(false)
@@ -148,7 +146,12 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
 
   const handleSubmit = () => {
     // Allow discount_value to be 0 (especially for access codes)
-    if (!formData.code || formData.discount_value === undefined || formData.discount_value === null) return
+    if (
+      !formData.code ||
+      formData.discount_value === undefined ||
+      formData.discount_value === null
+    )
+      return
 
     // API: percentage 0-100 (e.g. 10 for 10%), fixed_amount in cents
     const discountValue =
@@ -184,9 +187,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   return (
     <VStack align="stretch" gap={6}>
       <HStack justify="space-between" alignItems="center" py={2}>
-        <Heading size="lg">
-          Discount Codes Management
-        </Heading>
+        <Heading size="lg">Discount Codes Management</Heading>
         {!isAdding && !editingId && (
           <Button size="sm" onClick={() => setIsAdding(true)}>
             <FiPlus style={{ marginRight: "4px" }} />
@@ -236,7 +237,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      discount_type: e.target.value as "percentage" | "fixed_amount",
+                      discount_type: e.target.value as
+                        | "percentage"
+                        | "fixed_amount",
                     })
                   }
                   style={{
@@ -264,10 +267,13 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                     const value = e.target.value
                     setFormData({
                       ...formData,
-                      discount_value: value === "" ? 0 : Number.parseFloat(value) || 0,
+                      discount_value:
+                        value === "" ? 0 : Number.parseFloat(value) || 0,
                     })
                   }}
-                  placeholder={formData.is_access_code ? "0 (no discount)" : "10"}
+                  placeholder={
+                    formData.is_access_code ? "0 (no discount)" : "10"
+                  }
                 />
               </Box>
             </HStack>
@@ -284,7 +290,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      max_uses: e.target.value ? Number.parseInt(e.target.value) : null,
+                      max_uses: e.target.value
+                        ? Number.parseInt(e.target.value)
+                        : null,
                     })
                   }
                   placeholder="Unlimited"
@@ -302,7 +310,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      min_order_amount: e.target.value ? Number.parseFloat(e.target.value) : null,
+                      min_order_amount: e.target.value
+                        ? Number.parseFloat(e.target.value)
+                        : null,
                     })
                   }
                   placeholder="No minimum"
@@ -323,12 +333,11 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 >
                   <Checkbox.HiddenInput />
                   <Checkbox.Control />
-                  <Checkbox.Label>
-                    Early Bird Access Code
-                  </Checkbox.Label>
+                  <Checkbox.Label>Early Bird Access Code</Checkbox.Label>
                 </Checkbox.Root>
                 <Text fontSize="xs" color="gray.500" mt={1}>
-                  When enabled, this code grants access to missions in "Early Bird" booking mode
+                  When enabled, this code grants access to missions in "Early
+                  Bird" booking mode
                 </Text>
               </Box>
             </HStack>
@@ -420,7 +429,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 <Table.Cell>
                   <Text fontSize="sm">
                     {discountCode.discount_type === "percentage"
-                      ? `${(discountCode.discount_value <= 1 ? discountCode.discount_value * 100 : discountCode.discount_value).toFixed(0)}%`
+                      ? `${(discountCode.discount_value <= 1
+                          ? discountCode.discount_value * 100
+                          : discountCode.discount_value
+                        ).toFixed(0)}%`
                       : `$${formatCents(discountCode.discount_value)}`}
                   </Text>
                 </Table.Cell>
@@ -433,7 +445,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 <Table.Cell>
                   <Text
                     fontSize="sm"
-                    color={discountCode.is_access_code ? "blue.500" : "gray.400"}
+                    color={
+                      discountCode.is_access_code ? "blue.500" : "gray.400"
+                    }
                   >
                     {discountCode.is_access_code ? "Yes" : "No"}
                   </Text>

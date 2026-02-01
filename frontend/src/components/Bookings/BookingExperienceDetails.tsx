@@ -64,10 +64,7 @@ export default function BookingExperienceDetails({
   })
 
   const { data: launch } = useQuery({
-    queryKey: [
-      usePublicApis ? "public-launch" : "launch",
-      mission?.launch_id,
-    ],
+    queryKey: [usePublicApis ? "public-launch" : "launch", mission?.launch_id],
     queryFn: () =>
       usePublicApis
         ? LaunchesService.readPublicLaunch({
@@ -145,7 +142,9 @@ export default function BookingExperienceDetails({
                   label="Trip"
                   value={
                     exp.trip_name?.trim()
-                      ? `${exp.trip_name.trim()} – ${tripTypeToLabel(exp.trip_type ?? "")}`
+                      ? `${exp.trip_name.trim()} – ${tripTypeToLabel(
+                          exp.trip_type ?? "",
+                        )}`
                       : tripTypeToLabel(exp.trip_type ?? "")
                   }
                 />
@@ -180,9 +179,7 @@ export default function BookingExperienceDetails({
             )}
           </VStack>
           <VStack align="stretch" gap={3}>
-            {exp.boat_name && (
-              <Row label="Boat" value={exp.boat_name} />
-            )}
+            {exp.boat_name && <Row label="Boat" value={exp.boat_name} />}
           </VStack>
         </Grid>
       </Box>
@@ -220,9 +217,7 @@ export default function BookingExperienceDetails({
                   )}
                 />
               )}
-              {launch.summary && (
-                <Row label="Summary" value={launch.summary} />
-              )}
+              {launch.summary && <Row label="Summary" value={launch.summary} />}
             </>
           )}
         </VStack>

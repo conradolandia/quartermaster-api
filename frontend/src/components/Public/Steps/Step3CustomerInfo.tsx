@@ -1,48 +1,52 @@
 import {
   Box,
-  Flex,
-  Link,
   Button,
+  Flex,
   HStack,
   Heading,
   Input,
+  Link,
   Separator,
   Text,
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
+import type { Resolver } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { z } from "zod"
+
 import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
 import { formatCents } from "@/utils"
 
-interface CustomerInfo {
-  first_name: string
-  last_name: string
-  email: string
-  phone: string
-  special_requests?: string
-  billing_address?: string
-  launch_updates_pref: boolean
-  terms_accepted: boolean
-}
+import type { BookingStepData } from "../PublicBookingForm"
 
-interface SelectedItem {
-  trip_id: string
-  item_type: string
-  quantity: number
-  price_per_unit: number
-  trip_merchandise_id?: string
-}
+export const customerInfoSchema = z
+  .object({
+    first_name: z.string().min(1, "First name is required").max(255),
+    last_name: z.string().min(1, "Last name is required").max(255),
+    email: z
+      .string()
+      .min(1, "Email is required")
+      .email("Enter a valid email address"),
+    phone: z
+      .string()
+      .min(1, "Phone is required")
+      .min(10, "Enter a valid phone number")
+      .max(32),
+    billing_address: z.string().min(1, "Billing address is required").max(500),
+    special_requests: z.string().max(2000).optional().default(""),
+    launch_updates_pref: z.boolean().default(false),
+    terms_accepted: z.boolean().default(false),
+  })
+  .refine((data) => data.terms_accepted === true, {
+    message: "You must accept the terms and conditions",
+    path: ["terms_accepted"],
+  })
 
-interface BookingStepData {
-  selectedItems: SelectedItem[]
-  subtotal: number
-  discount_amount: number
-  tax_amount: number
-  tip: number
-  total: number
-  customerInfo: CustomerInfo
-}
+export type CustomerInfo = z.infer<typeof customerInfoSchema>
 
 function formatItemName(itemType: string): string {
   return itemType.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
@@ -55,47 +59,61 @@ interface Step3CustomerInfoProps {
   onBack: () => void
 }
 
+const defaultCustomerInfo: CustomerInfo = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  phone: "",
+  billing_address: "",
+  special_requests: "",
+  launch_updates_pref: false,
+  terms_accepted: false,
+}
+
 const Step3CustomerInfo = ({
   bookingData,
   updateBookingData,
   onNext,
   onBack,
 }: Step3CustomerInfoProps) => {
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    first_name: bookingData.customerInfo?.first_name || "",
-    last_name: bookingData.customerInfo?.last_name || "",
-    email: bookingData.customerInfo?.email || "",
-    phone: bookingData.customerInfo?.phone || "",
-    special_requests: bookingData.customerInfo?.special_requests || "",
-    billing_address: bookingData.customerInfo?.billing_address || "",
-    launch_updates_pref: bookingData.customerInfo?.launch_updates_pref || false,
-    terms_accepted: bookingData.customerInfo?.terms_accepted || false,
+  const ci = bookingData.customerInfo
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CustomerInfo>({
+    resolver: zodResolver(customerInfoSchema) as Resolver<CustomerInfo>,
+    mode: "onBlur",
+    defaultValues: {
+      first_name: ci?.first_name ?? defaultCustomerInfo.first_name,
+      last_name: ci?.last_name ?? defaultCustomerInfo.last_name,
+      email: ci?.email ?? defaultCustomerInfo.email,
+      phone: ci?.phone ?? defaultCustomerInfo.phone,
+      billing_address:
+        ci?.billing_address ?? defaultCustomerInfo.billing_address,
+      special_requests:
+        ci?.special_requests ?? defaultCustomerInfo.special_requests,
+      launch_updates_pref:
+        ci?.launch_updates_pref ?? defaultCustomerInfo.launch_updates_pref,
+      terms_accepted: ci?.terms_accepted ?? defaultCustomerInfo.terms_accepted,
+    },
   })
 
-  const updateCustomerInfo = (
-    field: keyof CustomerInfo,
-    value: string | boolean,
-  ) => {
-    const updatedInfo = { ...customerInfo, [field]: value }
-    setCustomerInfo(updatedInfo)
-    updateBookingData({ customerInfo: updatedInfo })
-  }
+  const watched = useWatch({ control })
 
-  const isFormValid = () => {
-    return (
-      customerInfo.first_name.trim() !== "" &&
-      customerInfo.last_name.trim() !== "" &&
-      customerInfo.email.trim() !== "" &&
-      customerInfo.phone.trim() !== "" &&
-      customerInfo.billing_address?.trim() !== "" &&
-      customerInfo.terms_accepted
-    )
-  }
+  useEffect(() => {
+    if (watched && typeof watched === "object" && "first_name" in watched) {
+      updateBookingData({ customerInfo: watched as CustomerInfo })
+    }
+  }, [watched, updateBookingData])
 
   const handleNext = () => {
-    if (isFormValid()) {
-      onNext()
-    }
+    handleSubmit(
+      () => onNext(),
+      () => {},
+    )()
   }
 
   return (
@@ -114,77 +132,75 @@ const Step3CustomerInfo = ({
             <VStack gap={4} align="stretch">
               <HStack gap={4}>
                 <Box flex={1}>
-                  <Text fontWeight="medium" mb={2}>
-                    First Name *
-                  </Text>
-                  <Input
-                    placeholder="Enter your first name"
-                    value={customerInfo.first_name}
-                    onChange={(e) =>
-                      updateCustomerInfo("first_name", e.target.value)
-                    }
+                  <Field
+                    label="First Name"
                     required
-                    borderColor={"border.accent"}
-                  />
+                    invalid={!!errors.first_name}
+                    errorText={errors.first_name?.message}
+                  >
+                    <Input
+                      placeholder="Enter your first name"
+                      {...register("first_name")}
+                      borderColor="border.accent"
+                    />
+                  </Field>
                 </Box>
                 <Box flex={1}>
-                  <Text fontWeight="medium" mb={2}>
-                    Last Name *
-                  </Text>
-                  <Input
-                    placeholder="Enter your last name"
-                    value={customerInfo.last_name}
-                    onChange={(e) =>
-                      updateCustomerInfo("last_name", e.target.value)
-                    }
+                  <Field
+                    label="Last Name"
                     required
-                    borderColor={"border.accent"}
-                  />
+                    invalid={!!errors.last_name}
+                    errorText={errors.last_name?.message}
+                  >
+                    <Input
+                      placeholder="Enter your last name"
+                      {...register("last_name")}
+                      borderColor="border.accent"
+                    />
+                  </Field>
                 </Box>
               </HStack>
 
-              <Box>
-                <Text fontWeight="medium" mb={2}>
-                  Email Address *
-                </Text>
+              <Field
+                label="Email Address"
+                required
+                invalid={!!errors.email}
+                errorText={errors.email?.message}
+              >
                 <Input
                   type="email"
                   placeholder="Enter your email address"
-                  value={customerInfo.email}
-                  onChange={(e) => updateCustomerInfo("email", e.target.value)}
-                  required
-                  borderColor={"border.accent"}
+                  {...register("email")}
+                  borderColor="border.accent"
                 />
-              </Box>
+              </Field>
 
-              <Box>
-                <Text fontWeight="medium" mb={2}>
-                  Phone Number *
-                </Text>
+              <Field
+                label="Phone Number"
+                required
+                invalid={!!errors.phone}
+                errorText={errors.phone?.message}
+              >
                 <Input
                   type="tel"
                   placeholder="Enter your phone number"
-                  value={customerInfo.phone}
-                  onChange={(e) => updateCustomerInfo("phone", e.target.value)}
-                  required
-                  borderColor={"border.accent"}
+                  {...register("phone")}
+                  borderColor="border.accent"
                 />
-              </Box>
+              </Field>
 
-              <Box>
-                <Text fontWeight="medium" mb={2}>
-                  Billing Address *
-                </Text>
+              <Field
+                label="Billing Address"
+                required
+                invalid={!!errors.billing_address}
+                errorText={errors.billing_address?.message}
+              >
                 <Input
                   placeholder="Enter your billing address"
-                  value={customerInfo.billing_address || ""}
-                  onChange={(e) =>
-                    updateCustomerInfo("billing_address", e.target.value)
-                  }
-                  required
-                  borderColor={"border.accent"}
+                  {...register("billing_address")}
+                  borderColor="border.accent"
                 />
-              </Box>
+              </Field>
             </VStack>
           </Box>
 
@@ -192,42 +208,76 @@ const Step3CustomerInfo = ({
             <Heading size="sm" mb={4}>
               Special Requests
             </Heading>
-            <Textarea
-              placeholder="Any special requests or accommodations needed..."
-              value={customerInfo.special_requests || ""}
-              onChange={(e) =>
-                updateCustomerInfo("special_requests", e.target.value)
-              }
-              rows={4}
-              borderColor={"border.accent"}
-            />
+            <Field
+              invalid={!!errors.special_requests}
+              errorText={errors.special_requests?.message}
+            >
+              <Textarea
+                placeholder="Any special requests or accommodations needed..."
+                {...register("special_requests")}
+                rows={4}
+                borderColor="border.accent"
+              />
+            </Field>
           </Box>
 
           <Box>
             <VStack gap={4} align="stretch">
-              <Checkbox
-                borderColor="border.accent"
-                checked={customerInfo.launch_updates_pref}
-                onCheckedChange={({ checked }) =>
-                  updateCustomerInfo("launch_updates_pref", checked === true)
-                }
-              >
-                Send me launch updates and schedule changes
-              </Checkbox>
+              <Controller
+                name="launch_updates_pref"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    borderColor="border.accent"
+                    checked={field.value}
+                    onCheckedChange={({ checked }) =>
+                      field.onChange(checked === true)
+                    }
+                  >
+                    Send me launch updates and schedule changes
+                  </Checkbox>
+                )}
+              />
 
-              <Checkbox
-                borderColor="border.accent"
-                checked={customerInfo.terms_accepted}
-                inputProps={{ required: true }}
-                onCheckedChange={({ checked }) =>
-                  updateCustomerInfo("terms_accepted", checked === true)
-                }
-              >
-                I agree to the terms and conditions <span style={{ color: "red" }}>*</span>
-              </Checkbox>
+              <Controller
+                name="terms_accepted"
+                control={control}
+                render={({ field }) => (
+                  <Field
+                    invalid={!!errors.terms_accepted}
+                    errorText={errors.terms_accepted?.message}
+                  >
+                    <Checkbox
+                      borderColor="border.accent"
+                      checked={field.value}
+                      onCheckedChange={({ checked }) =>
+                        field.onChange(checked === true)
+                      }
+                    >
+                      I agree to the terms and conditions{" "}
+                      <span style={{ color: "red" }}>*</span>
+                    </Checkbox>
+                  </Field>
+                )}
+              />
 
               <Text fontSize="xs" color="dark.text.secondary">
-                By checking this box, you agree to our booking <Link href="https://www.star-fleet.tours/details" target="_blank">terms and conditions</Link> and <Link href="https://www.star-fleet.tours/current" target="_blank">scrub policy</Link> and acknowledge that you will receive booking confirmations and updates via email.
+                By checking this box, you agree to our booking{" "}
+                <Link
+                  href="https://www.star-fleet.tours/details"
+                  target="_blank"
+                >
+                  terms and conditions
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="https://www.star-fleet.tours/current"
+                  target="_blank"
+                >
+                  scrub policy
+                </Link>{" "}
+                and acknowledge that you will receive booking confirmations and
+                updates via email.
               </Text>
             </VStack>
           </Box>
@@ -235,90 +285,94 @@ const Step3CustomerInfo = ({
 
         {/* Right Column - Booking Summary */}
         <VStack gap={4} align="stretch" flex={1}>
-            <Heading size="2xl" mb={4} fontWeight="200">
-              Booking Summary
+          <Heading size="2xl" mb={4} fontWeight="200">
+            Booking Summary
+          </Heading>
+          <VStack
+            gap={3}
+            align="stretch"
+            px={5}
+            py={4}
+            bg="bg.accent"
+            borderRadius="md"
+          >
+            <Heading size="xl" fontWeight="200">
+              Selected Items
             </Heading>
-            <VStack
-              gap={3}
-              align="stretch"
-              px={5}
-              py={4}
-              bg={"bg.accent"}
-              borderRadius="md"
-            >
-              <Heading size="xl" fontWeight="200">Selected Items</Heading>
-              <Separator />
-              <VStack gap={2} align="stretch" w="100%">
-                {bookingData.selectedItems.map((item, index) => {
-                  const lineTotal = item.quantity * item.price_per_unit
-                  return (
-                    <HStack
-                      key={index}
-                      justify="space-between"
-                      align="baseline"
-                      fontSize="sm"
-                    >
-                      <Flex gap={4} align="baseline" w="100%">
-                        <Text fontWeight="medium">
-                          {formatItemName(item.item_type)}
-                        </Text>
-                        <Text color="text.muted" fontWeight="normal" textAlign="start">
-                          ({item.quantity} × ${formatCents(item.price_per_unit)})
-                        </Text>
-                      </Flex>
+            <Separator />
+            <VStack gap={2} align="stretch" w="100%">
+              {bookingData.selectedItems.map((item, index) => {
+                const lineTotal = item.quantity * item.price_per_unit
+                return (
+                  <HStack
+                    key={index}
+                    justify="space-between"
+                    align="baseline"
+                    fontSize="sm"
+                  >
+                    <Flex gap={4} align="baseline" w="100%">
                       <Text fontWeight="medium">
-                        ${formatCents(lineTotal)}
+                        {formatItemName(item.item_type)}
                       </Text>
-                    </HStack>
-                  )
-                })}
-              </VStack>
-              <Separator />
-
-              <HStack justify="space-between">
-                <Text fontWeight="bold">Subtotal:</Text>
-                <Text fontWeight="medium">
-                  ${formatCents(bookingData.subtotal)}
-                </Text>
-              </HStack>
-
-              {bookingData.discount_amount > 0 && (
-                <HStack justify="space-between">
-                  <Text fontWeight="bold">Discount:</Text>
-                  <Text fontWeight="medium">
-                    -${formatCents(bookingData.discount_amount)}
-                  </Text>
-                </HStack>
-              )}
-
-              <HStack justify="space-between">
-                <Text fontWeight="bold">Tax:</Text>
-                <Text fontWeight="medium">
-                  ${formatCents(bookingData.tax_amount)}
-                </Text>
-              </HStack>
-
-              {bookingData.tip > 0 && (
-                <HStack justify="space-between">
-                  <Text fontWeight="bold">Tip:</Text>
-                  <Text fontWeight="medium">${formatCents(bookingData.tip)}</Text>
-                </HStack>
-              )}
-
-              <HStack
-                justify="space-between"
-                pt={2}
-                borderTop="1px"
-                borderColor="gray.200"
-              >
-                <Text fontWeight="bold" fontSize="lg">
-                  Total:
-                </Text>
-                <Text fontWeight="bold" fontSize="lg">
-                  ${formatCents(bookingData.total)}
-                </Text>
-              </HStack>
+                      <Text
+                        color="text.muted"
+                        fontWeight="normal"
+                        textAlign="start"
+                      >
+                        ({item.quantity} × ${formatCents(item.price_per_unit)})
+                      </Text>
+                    </Flex>
+                    <Text fontWeight="medium">${formatCents(lineTotal)}</Text>
+                  </HStack>
+                )
+              })}
             </VStack>
+            <Separator />
+
+            <HStack justify="space-between">
+              <Text fontWeight="bold">Subtotal:</Text>
+              <Text fontWeight="medium">
+                ${formatCents(bookingData.subtotal)}
+              </Text>
+            </HStack>
+
+            {bookingData.discount_amount > 0 && (
+              <HStack justify="space-between">
+                <Text fontWeight="bold">Discount:</Text>
+                <Text fontWeight="medium">
+                  -${formatCents(bookingData.discount_amount)}
+                </Text>
+              </HStack>
+            )}
+
+            <HStack justify="space-between">
+              <Text fontWeight="bold">Tax:</Text>
+              <Text fontWeight="medium">
+                ${formatCents(bookingData.tax_amount)}
+              </Text>
+            </HStack>
+
+            {bookingData.tip > 0 && (
+              <HStack justify="space-between">
+                <Text fontWeight="bold">Tip:</Text>
+                <Text fontWeight="medium">${formatCents(bookingData.tip)}</Text>
+              </HStack>
+            )}
+
+            <HStack
+              justify="space-between"
+              pt={2}
+              borderTop="1px"
+              borderColor="gray.200"
+            >
+              <Text fontWeight="bold" fontSize="lg">
+                Total:
+              </Text>
+              <Text fontWeight="bold" fontSize="lg">
+                ${formatCents(bookingData.total)}
+              </Text>
+            </HStack>
+          </VStack>
         </VStack>
       </HStack>
 
@@ -327,11 +381,7 @@ const Step3CustomerInfo = ({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button
-          colorScheme="blue"
-          onClick={handleNext}
-          disabled={!isFormValid()}
-        >
+        <Button colorScheme="blue" onClick={handleNext}>
           Continue to Review
         </Button>
       </HStack>

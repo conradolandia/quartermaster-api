@@ -16,8 +16,8 @@ import * as React from "react"
 
 import {
   BoatsService,
-  TripBoatsService,
   type TripBoatPublicWithAvailability,
+  TripBoatsService,
   type TripPublic,
   TripsService,
 } from "@/client"
@@ -147,7 +147,9 @@ const Step1TripSelection = ({
 
   const handleBoatChange = (details: { value: string[] }) => {
     const boatId = details.value[0] || ""
-    const selected = tripBoats?.find((tb) => String(tb.boat_id) === String(boatId))
+    const selected = tripBoats?.find(
+      (tb) => String(tb.boat_id) === String(boatId),
+    )
     updateBookingData({
       selectedBoatId: boatId,
       boatRemainingCapacity: selected?.remaining_capacity ?? null,
@@ -173,7 +175,9 @@ const Step1TripSelection = ({
 
   const formatTripTime = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+    const parts = timezone
+      ? formatInLocationTimezoneWithAbbr(d, timezone)
+      : null
     if (parts) return `${parts.dateTime} ${parts.timezoneAbbr}`
     return formatDateTimeNoSeconds(d)
   }
@@ -208,9 +212,7 @@ const Step1TripSelection = ({
         ?.filter((tb) => tb.remaining_capacity > 0)
         .map((tripBoat: TripBoatPublicWithAvailability) => {
           const name =
-            tripBoat.boat?.name ||
-            boatNames?.[tripBoat.boat_id] ||
-            "Loading..."
+            tripBoat.boat?.name || boatNames?.[tripBoat.boat_id] || "Loading..."
           return {
             label: `${name} (${tripBoat.remaining_capacity} spots left)`,
             value: tripBoat.boat_id,
@@ -310,25 +312,27 @@ const Step1TripSelection = ({
                           <Select.Content minWidth="300px">
                             {tripBoats
                               .filter((tb) => tb.remaining_capacity > 0)
-                              .map((tripBoat: TripBoatPublicWithAvailability) => {
-                                const name =
-                                  tripBoat.boat?.name ||
-                                  boatNames?.[tripBoat.boat_id] ||
-                                  "Loading..."
-                                const label = `${name} (${tripBoat.remaining_capacity} spots left)`
-                                return (
-                                  <Select.Item
-                                    key={tripBoat.boat_id}
-                                    item={{
-                                      value: tripBoat.boat_id,
-                                      label,
-                                    }}
-                                  >
-                                    {label}
-                                    <Select.ItemIndicator />
-                                  </Select.Item>
-                                )
-                              })}
+                              .map(
+                                (tripBoat: TripBoatPublicWithAvailability) => {
+                                  const name =
+                                    tripBoat.boat?.name ||
+                                    boatNames?.[tripBoat.boat_id] ||
+                                    "Loading..."
+                                  const label = `${name} (${tripBoat.remaining_capacity} spots left)`
+                                  return (
+                                    <Select.Item
+                                      key={tripBoat.boat_id}
+                                      item={{
+                                        value: tripBoat.boat_id,
+                                        label,
+                                      }}
+                                    >
+                                      {label}
+                                      <Select.ItemIndicator />
+                                    </Select.Item>
+                                  )
+                                },
+                              )}
                           </Select.Content>
                         </Select.Positioner>
                       </Select.Root>
@@ -440,10 +444,7 @@ const Step1TripSelection = ({
                         </Heading>
                         <VStack align="stretch" gap={1}>
                           {pricing.map((p) => (
-                            <Text
-                              key={p.ticket_type}
-                              fontSize="lg"
-                            >
+                            <Text key={p.ticket_type} fontSize="lg">
                               {p.ticket_type.replace(/_/g, " ")}: $
                               {(p.price / 100).toFixed(2)} ({p.remaining} left)
                             </Text>

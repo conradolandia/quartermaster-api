@@ -1,5 +1,11 @@
 import useCustomToast from "@/hooks/useCustomToast"
-import { Button, ButtonGroup, Input, NumberInput, VStack } from "@chakra-ui/react"
+import {
+  Button,
+  ButtonGroup,
+  Input,
+  NumberInput,
+  VStack,
+} from "@chakra-ui/react"
 import { useRef } from "react"
 import {
   DialogActionTrigger,
@@ -12,7 +18,11 @@ import {
   DialogTitle,
 } from "../ui/dialog"
 
-import { type ApiError, type MerchandiseCreate, MerchandiseService } from "@/client"
+import {
+  type ApiError,
+  type MerchandiseCreate,
+  MerchandiseService,
+} from "@/client"
 import { handleError } from "@/utils"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
@@ -133,7 +143,11 @@ export const AddMerchandise = ({
                   }}
                   render={({ field: { value, onChange } }) => (
                     <NumberInput.Root
-                      value={value === undefined || value === null ? "" : String(value)}
+                      value={
+                        value === undefined || value === null
+                          ? ""
+                          : String(value)
+                      }
                       onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
                       min={0}
                       step={0.01}
@@ -159,7 +173,11 @@ export const AddMerchandise = ({
                   }}
                   render={({ field: { value, onChange } }) => (
                     <NumberInput.Root
-                      value={value === undefined || value === null ? "" : String(value)}
+                      value={
+                        value === undefined || value === null
+                          ? ""
+                          : String(value)
+                      }
                       onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
                       min={0}
                       step={1}

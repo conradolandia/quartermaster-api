@@ -9,18 +9,13 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
-import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useMemo, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import {
-  type LocationPublic,
-  LocationsService,
-  UtilsService,
-} from "@/client"
-import { formatLocationTimezoneDisplay } from "@/utils"
+import { type LocationPublic, LocationsService, UtilsService } from "@/client"
 import AddLocation from "@/components/Locations/AddLocation"
 import DeleteLocation from "@/components/Locations/DeleteLocation"
 import EditLocation from "@/components/Locations/EditLocation"
@@ -35,6 +30,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { formatLocationTimezoneDisplay } from "@/utils"
 
 // Define sortable columns
 type SortableColumn = "name" | "state" | "timezone"
@@ -98,7 +94,10 @@ export const Route = createFileRoute("/_layout/locations")({
 })
 
 /** Format state for display: "Full Name (XX)" using US states map, or just code. */
-function formatStateDisplay(stateCode: string | null | undefined, stateNameByCode: Map<string, string>): string {
+function formatStateDisplay(
+  stateCode: string | null | undefined,
+  stateNameByCode: Map<string, string>,
+): string {
   if (!stateCode) return "—"
   const name = stateNameByCode.get(stateCode)
   return name ? `${name} (${stateCode})` : stateCode
@@ -115,7 +114,9 @@ function LocationsTable() {
     staleTime: 1000 * 60 * 60,
   })
   const stateNameByCode = useMemo(() => {
-    const list = (statesResponse as { data?: Array<{ code: string; name: string }> })?.data ?? []
+    const list =
+      (statesResponse as { data?: Array<{ code: string; name: string }> })
+        ?.data ?? []
     return new Map(list.map((s) => [s.code, s.name]))
   }, [statesResponse])
 
@@ -135,7 +136,10 @@ function LocationsTable() {
   const { data, isLoading, isPlaceholderData } = useQuery({
     ...getLocationsQueryOptions({ page, pageSize: effectivePageSize }),
     placeholderData: (prevData) => prevData,
-    queryKey: ["locations", { page, pageSize: effectivePageSize, sortBy, sortDirection }],
+    queryKey: [
+      "locations",
+      { page, pageSize: effectivePageSize, sortBy, sortDirection },
+    ],
   })
 
   const setPage = (newPage: number) =>
@@ -242,29 +246,40 @@ function LocationsTable() {
               <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {locations?.map((location) => (
-            <Table.Row key={location.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell truncate maxW="sm">
-                {location.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {formatStateDisplay(location.state, stateNameByCode)}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {formatLocationTimezoneDisplay(location.timezone ?? "UTC")}
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Flex gap={2} flexWrap="wrap" justify="center">
-                  <EditLocation location={location} />
-                  <DeleteLocation id={location.id} />
-                </Flex>
-              </Table.Cell>
             </Table.Row>
-          ))}
-        </Table.Body>
+          </Table.Header>
+          <Table.Body>
+            {locations?.map((location) => (
+              <Table.Row
+                key={location.id}
+                opacity={isPlaceholderData ? 0.5 : 1}
+              >
+                <Table.Cell truncate maxW="sm">
+                  {location.name}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  {formatStateDisplay(location.state, stateNameByCode)}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {formatLocationTimezoneDisplay(location.timezone ?? "UTC")}
+                </Table.Cell>
+                <Table.Cell textAlign="center">
+                  <Flex gap={2} flexWrap="wrap" justify="center">
+                    <EditLocation location={location} />
+                    <DeleteLocation id={location.id} />
+                  </Flex>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
         </Table.Root>
       </Box>
       {count > 0 && (

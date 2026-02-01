@@ -271,37 +271,50 @@ function JurisdictionsTable() {
               <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {jurisdictions?.map((jurisdiction) => (
-            <Table.Row
-              key={jurisdiction.id}
-              opacity={isPlaceholderData ? 0.5 : 1}
-            >
-              <Table.Cell truncate maxW="sm">
-                {jurisdiction.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {(() => {
-                  const location = jurisdiction.location || locationsMap.get(jurisdiction.location_id)
-                  const locationName = location?.name || jurisdiction.location_id
-                  const state = location?.state || locationsMap.get(jurisdiction.location_id)?.state
-                  return state ? `${locationName} (${state})` : locationName
-                })()}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Flex gap={2} flexWrap="wrap" justify="center">
-                  <EditJurisdiction jurisdiction={jurisdiction} />
-                  <DeleteJurisdiction jurisdiction={jurisdiction} />
-                </Flex>
-              </Table.Cell>
             </Table.Row>
-          ))}
-        </Table.Body>
+          </Table.Header>
+          <Table.Body>
+            {jurisdictions?.map((jurisdiction) => (
+              <Table.Row
+                key={jurisdiction.id}
+                opacity={isPlaceholderData ? 0.5 : 1}
+              >
+                <Table.Cell truncate maxW="sm">
+                  {jurisdiction.name}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  {(() => {
+                    const location =
+                      jurisdiction.location ||
+                      locationsMap.get(jurisdiction.location_id)
+                    const locationName =
+                      location?.name || jurisdiction.location_id
+                    const state =
+                      location?.state ||
+                      locationsMap.get(jurisdiction.location_id)?.state
+                    return state ? `${locationName} (${state})` : locationName
+                  })()}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
+                </Table.Cell>
+                <Table.Cell textAlign="center">
+                  <Flex gap={2} flexWrap="wrap" justify="center">
+                    <EditJurisdiction jurisdiction={jurisdiction} />
+                    <DeleteJurisdiction jurisdiction={jurisdiction} />
+                  </Flex>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
         </Table.Root>
       </Box>
       {count > 0 && (

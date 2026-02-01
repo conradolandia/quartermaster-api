@@ -1,3 +1,5 @@
+import { Checkbox } from "@/components/ui/checkbox"
+import { formatDateTimeInLocationTz } from "@/utils"
 import {
   Box,
   Button,
@@ -12,15 +14,13 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiDownload, FiFilter } from "react-icons/fi"
-import { Checkbox } from "@/components/ui/checkbox"
-import { formatDateTimeInLocationTz } from "@/utils"
 
 import {
   BookingsService,
-  MissionsService,
-  TripsService,
   type MissionPublic,
+  MissionsService,
   type TripPublic,
+  TripsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 
@@ -107,7 +107,10 @@ const CSVExportInterface = () => {
 
   const tripsCollection = createListCollection({
     items: filteredTrips.map((trip: TripPublic) => ({
-      label: `${trip.type} - ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`,
+      label: `${trip.type} - ${formatDateTimeInLocationTz(
+        trip.departure_time,
+        trip.timezone,
+      )}`,
       value: trip.id,
     })),
   })
@@ -125,7 +128,9 @@ const CSVExportInterface = () => {
 
       // Convert selected fields set to comma-separated string
       const fieldsParam =
-        selectedFields.size > 0 ? Array.from(selectedFields).join(",") : undefined
+        selectedFields.size > 0
+          ? Array.from(selectedFields).join(",")
+          : undefined
 
       // Make the API call
       const response = await BookingsService.exportBookingsCsv({
@@ -144,7 +149,9 @@ const CSVExportInterface = () => {
       // Generate filename based on filters
       let filename = "bookings_export"
       if (selectedMissionId) {
-        const mission = missions.find((m: MissionPublic) => m.id === selectedMissionId)
+        const mission = missions.find(
+          (m: MissionPublic) => m.id === selectedMissionId,
+        )
         filename += `_${mission?.name?.replace(/\s+/g, "_") || "mission"}`
       }
       if (selectedTripId) {
@@ -210,7 +217,8 @@ const CSVExportInterface = () => {
   }
 
   // Check if ticket-type fields are selected
-  const hasTicketTypeFields = selectedFields.has("ticket_types_quantity") ||
+  const hasTicketTypeFields =
+    selectedFields.has("ticket_types_quantity") ||
     selectedFields.has("ticket_types_price") ||
     selectedFields.has("ticket_types_total")
 
@@ -227,10 +235,12 @@ const CSVExportInterface = () => {
           <VStack gap={6} align="stretch">
             <Heading size="md">Export Passenger Manifest</Heading>
             <Text color="text.muted">
-              Export booking data to CSV format with optional filtering by mission, trip, or status.
+              Export booking data to CSV format with optional filtering by
+              mission, trip, or status.
               {hasTicketTypeFields && (
                 <Text as="span" display="block" mt={1} color="orange.600">
-                  Note: Trip selection is required when exporting ticket-type columns to ensure accurate column headers.
+                  Note: Trip selection is required when exporting ticket-type
+                  columns to ensure accurate column headers.
                 </Text>
               )}
             </Text>
@@ -245,7 +255,11 @@ const CSVExportInterface = () => {
                 <Button variant="ghost" size="sm" onClick={deselectAllFields}>
                   Deselect All
                 </Button>
-                <Button variant="ghost" size="sm" onClick={deselectAmountFields}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deselectAmountFields}
+                >
                   Deselect amount columns
                 </Button>
                 <Button variant="ghost" size="sm" onClick={selectAmountFields}>
@@ -308,23 +322,39 @@ const CSVExportInterface = () => {
 
                 <Box flex={1}>
                   <Text fontWeight="medium" mb={2}>
-                    Trip {tripRequired && <Text as="span" color="red.500">*</Text>}
+                    Trip{" "}
+                    {tripRequired && (
+                      <Text as="span" color="red.500">
+                        *
+                      </Text>
+                    )}
                     {tripRequired ? " (Required)" : " (Optional)"}
                   </Text>
                   {tripRequired && !selectedTripId && (
                     <Text fontSize="sm" color="orange.600" mb={1}>
-                      Trip selection is required when exporting ticket-type columns
+                      Trip selection is required when exporting ticket-type
+                      columns
                     </Text>
                   )}
                   <Select.Root
                     collection={tripsCollection}
                     value={selectedTripId ? [selectedTripId] : []}
-                    onValueChange={(details) => setSelectedTripId(details.value[0] || "")}
+                    onValueChange={(details) =>
+                      setSelectedTripId(details.value[0] || "")
+                    }
                     disabled={!selectedMissionId}
                   >
                     <Select.Control width="100%">
                       <Select.Trigger>
-                        <Select.ValueText placeholder={selectedMissionId ? (tripRequired ? "Select a trip" : "All trips") : "Select mission first"} />
+                        <Select.ValueText
+                          placeholder={
+                            selectedMissionId
+                              ? tripRequired
+                                ? "Select a trip"
+                                : "All trips"
+                              : "Select mission first"
+                          }
+                        />
                       </Select.Trigger>
                       <Select.IndicatorGroup>
                         <Select.Indicator />
@@ -350,7 +380,9 @@ const CSVExportInterface = () => {
                   <Select.Root
                     collection={statusCollection}
                     value={selectedStatus ? [selectedStatus] : []}
-                    onValueChange={(details) => setSelectedStatus(details.value[0] || "")}
+                    onValueChange={(details) =>
+                      setSelectedStatus(details.value[0] || "")
+                    }
                   >
                     <Select.Control width="100%">
                       <Select.Trigger>

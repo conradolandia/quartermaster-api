@@ -21,9 +21,9 @@ import {
   JurisdictionsService,
   LaunchesService,
   MissionsService,
+  TripBoatsService,
   type TripMerchandisePublic,
   TripMerchandiseService,
-  TripBoatsService,
   TripsService,
 } from "@/client"
 import type { EffectivePricingItem } from "@/client"
@@ -48,7 +48,9 @@ const Step2ItemSelection = ({
 }: Step2ItemSelectionProps) => {
   const [discountAmount, setDiscountAmount] = useState<number>(0)
   const [tip, setTip] = useState<number>(0)
-  const [discountCode, setDiscountCode] = useState<string>(bookingData.discount_code || "")
+  const [discountCode, setDiscountCode] = useState<string>(
+    bookingData.discount_code || "",
+  )
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
 
@@ -66,8 +68,7 @@ const Step2ItemSelection = ({
   // Fetch mission details (using public endpoint)
   const { data: missionData } = useQuery({
     queryKey: ["public-mission-details", tripData?.mission_id],
-    queryFn: () =>
-      MissionsService.readPublicMissions({ limit: 100 }),
+    queryFn: () => MissionsService.readPublicMissions({ limit: 100 }),
     enabled: !!tripData?.mission_id,
     select: (data) => data.data.find((m) => m.id === tripData?.mission_id),
   })
@@ -81,15 +82,16 @@ const Step2ItemSelection = ({
   })
 
   // Fetch jurisdiction for tax rate (using public endpoint)
-  const { data: jurisdictionsData, isPending: isLoadingJurisdictions } = useQuery({
-    queryKey: ["public-jurisdictions-by-location", launchData?.location_id],
-    queryFn: () =>
-      JurisdictionsService.readPublicJurisdictions({
-        locationId: launchData!.location_id,
-        limit: 100,
-      }),
-    enabled: !!launchData?.location_id,
-  })
+  const { data: jurisdictionsData, isPending: isLoadingJurisdictions } =
+    useQuery({
+      queryKey: ["public-jurisdictions-by-location", launchData?.location_id],
+      queryFn: () =>
+        JurisdictionsService.readPublicJurisdictions({
+          locationId: launchData!.location_id,
+          limit: 100,
+        }),
+      enabled: !!launchData?.location_id,
+    })
 
   // Get tax rate from jurisdiction (convert from decimal to percentage)
   const taxRatePercent = jurisdictionsData?.data?.[0]?.sales_tax_rate
@@ -149,20 +151,28 @@ const Step2ItemSelection = ({
             : discountCodeData.discount_value
         calculatedDiscount = Math.round(subtotal * rate)
         if (discountCodeData.max_discount_amount != null) {
-          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+          calculatedDiscount = Math.min(
+            calculatedDiscount,
+            discountCodeData.max_discount_amount,
+          )
         }
         calculatedDiscount = Math.min(calculatedDiscount, subtotal)
       } else {
         calculatedDiscount = Math.round(discountCodeData.discount_value)
         if (discountCodeData.max_discount_amount != null) {
-          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+          calculatedDiscount = Math.min(
+            calculatedDiscount,
+            discountCodeData.max_discount_amount,
+          )
         }
         calculatedDiscount = Math.min(calculatedDiscount, subtotal)
       }
 
       setDiscountAmount(calculatedDiscount)
     } catch (error: any) {
-      setDiscountCodeError(error.response?.data?.detail || "Invalid discount code")
+      setDiscountCodeError(
+        error.response?.data?.detail || "Invalid discount code",
+      )
       setAppliedDiscountCode(null)
       setDiscountAmount(0)
     }
@@ -195,14 +205,20 @@ const Step2ItemSelection = ({
 
   // Compute discount from applied code and current subtotal (so discount updates when items change)
   const discountFromCode = (
-    codeData: { discount_type: string; discount_value: number; max_discount_amount?: number | null },
+    codeData: {
+      discount_type: string
+      discount_value: number
+      max_discount_amount?: number | null
+    },
     subtotal: number,
   ): number => {
     if (subtotal <= 0) return 0
     let calculated = 0
     if (codeData.discount_type === "percentage") {
       const rate =
-        codeData.discount_value > 1 ? codeData.discount_value / 100 : codeData.discount_value
+        codeData.discount_value > 1
+          ? codeData.discount_value / 100
+          : codeData.discount_value
       calculated = Math.round(subtotal * rate)
       if (codeData.max_discount_amount != null) {
         calculated = Math.min(calculated, codeData.max_discount_amount)
@@ -334,9 +350,7 @@ const Step2ItemSelection = ({
     const item = bookingData.selectedItems[index]
     let cappedQuantity = newQuantity
     if (item && !item.trip_merchandise_id) {
-      const pricing = tripPricing?.find(
-        (p) => p.ticket_type === item.item_type,
-      )
+      const pricing = tripPricing?.find((p) => p.ticket_type === item.item_type)
       if (pricing) {
         const otherSameType = bookingData.selectedItems
           .filter(
@@ -387,7 +401,8 @@ const Step2ItemSelection = ({
                   Tax Configuration Error
                 </Text>
                 <Text fontSize="sm">
-                  No tax jurisdiction is configured for this location. Please contact support to complete your booking.
+                  No tax jurisdiction is configured for this location. Please
+                  contact support to complete your booking.
                 </Text>
               </Box>
             </HStack>
@@ -425,7 +440,9 @@ const Step2ItemSelection = ({
                       </Box>
                       <Button
                         size="sm"
-                        disabled={ticketCapacityReachedForType(pricing.ticket_type)}
+                        disabled={ticketCapacityReachedForType(
+                          pricing.ticket_type,
+                        )}
                         onClick={() =>
                           addTicket(pricing.ticket_type, pricing.price)
                         }
@@ -450,7 +467,9 @@ const Step2ItemSelection = ({
                   {tripMerchandise.map((merchandise: TripMerchandisePublic) => (
                     <HStack key={merchandise.id} justify="space-between">
                       <Box flex={1}>
-                        <Text fontWeight="medium" fontSize="lg">{merchandise.name}</Text>
+                        <Text fontWeight="medium" fontSize="lg">
+                          {merchandise.name}
+                        </Text>
                         {merchandise.description && (
                           <Text fontSize="sm" color="gray.400" lineClamp={2}>
                             {merchandise.description}
@@ -529,7 +548,8 @@ const Step2ItemSelection = ({
                         <Box flex={1}>
                           <Text fontWeight="medium">{itemName}</Text>
                           <Text fontSize="sm" color="gray.400">
-                            ${formatCents(item.price_per_unit)} × {item.quantity}
+                            ${formatCents(item.price_per_unit)} ×{" "}
+                            {item.quantity}
                           </Text>
                         </Box>
                         <HStack gap={2}>
@@ -601,7 +621,9 @@ const Step2ItemSelection = ({
               </Heading>
               <VStack gap={3} align="stretch">
                 <HStack justify="space-between">
-                  <Text fontWeight="medium" fontSize="lg">Subtotal:</Text>
+                  <Text fontWeight="medium" fontSize="lg">
+                    Subtotal:
+                  </Text>
                   <Text fontWeight="semibold" fontSize="lg">
                     ${formatCents(bookingData.subtotal)}
                   </Text>
@@ -640,7 +662,11 @@ const Step2ItemSelection = ({
                       <Text fontSize="sm" color="green.500">
                         {appliedDiscountCode.code} applied
                       </Text>
-                      <Text fontSize="sm" color="green.500" fontWeight="semibold">
+                      <Text
+                        fontSize="sm"
+                        color="green.500"
+                        fontWeight="semibold"
+                      >
                         -${formatCents(bookingData.discount_amount)}
                       </Text>
                     </HStack>
@@ -652,7 +678,7 @@ const Step2ItemSelection = ({
                 <HStack justify="space-between">
                   <Text>Tax ({taxRatePercent.toFixed(2)}%):</Text>
                   <Text fontSize="sm" fontWeight="semibold">
-                  ${formatCents(bookingData.tax_amount)}
+                    ${formatCents(bookingData.tax_amount)}
                   </Text>
                 </HStack>
 
@@ -664,12 +690,20 @@ const Step2ItemSelection = ({
                     <HStack gap={2}>
                       <Text>Tip:</Text>
                       {[10, 15, 20, 25].map((percentage) => {
-                        const currentSubtotal = bookingData.selectedItems.reduce((sum, item) => {
-                          return sum + item.price_per_unit * item.quantity
-                        }, 0)
-                        const effectiveDiscount = Math.min(discountAmount, currentSubtotal)
+                        const currentSubtotal =
+                          bookingData.selectedItems.reduce((sum, item) => {
+                            return sum + item.price_per_unit * item.quantity
+                          }, 0)
+                        const effectiveDiscount = Math.min(
+                          discountAmount,
+                          currentSubtotal,
+                        )
                         const suggestedAmount = Math.round(
-                          Math.max(0, (currentSubtotal - effectiveDiscount) * (percentage / 100)),
+                          Math.max(
+                            0,
+                            (currentSubtotal - effectiveDiscount) *
+                              (percentage / 100),
+                          ),
                         )
                         return (
                           <Button
@@ -695,7 +729,8 @@ const Step2ItemSelection = ({
                       min={0}
                       value={(tip / 100).toFixed(2)}
                       onValueChange={(details) => {
-                        const dollars = Number.parseFloat(details.value || "0") || 0
+                        const dollars =
+                          Number.parseFloat(details.value || "0") || 0
                         setTip(Math.round(dollars * 100))
                       }}
                       w="120px"

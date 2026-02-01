@@ -16,9 +16,15 @@ import { DiscountCodesService, TripsService } from "@/client"
 
 interface AccessGateProps {
   accessCode?: string
-  onAccessGranted: (accessCode: string | null, discountCodeId: string | null) => void
+  onAccessGranted: (
+    accessCode: string | null,
+    discountCodeId: string | null,
+  ) => void
   /** accessCodeValue, discountCodeId (for early_bird missions) */
-  children: (accessCodeValue: string | null, discountCodeId: string | null) => React.ReactNode
+  children: (
+    accessCodeValue: string | null,
+    discountCodeId: string | null,
+  ) => React.ReactNode
 }
 
 /**
@@ -29,7 +35,11 @@ interface AccessGateProps {
  * - If early_bird mode without code: shows access code entry form
  * - If no trips available (all private): shows "not available" message
  */
-const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }: AccessGateProps) => {
+const AccessGate = ({
+  accessCode: initialAccessCode,
+  onAccessGranted,
+  children,
+}: AccessGateProps) => {
   const [accessCode, setAccessCode] = useState(initialAccessCode || "")
   const [submittedCode, setSubmittedCode] = useState(initialAccessCode || "")
   const [codeError, setCodeError] = useState<string | null>(null)
@@ -66,10 +76,7 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
   })
 
   // Validate access code if provided
-  const {
-    data: accessCodeValidation,
-    isLoading: isValidatingCode,
-  } = useQuery({
+  const { data: accessCodeValidation, isLoading: isValidatingCode } = useQuery({
     queryKey: ["validate-access-code", submittedCode],
     queryFn: () =>
       DiscountCodesService.validateAccessCode({
@@ -90,7 +97,13 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
     } else {
       onAccessGranted(null, null)
     }
-  }, [hasTrips, accessCodeValid, accessCodeValidation?.discount_code, submittedCode, onAccessGranted])
+  }, [
+    hasTrips,
+    accessCodeValid,
+    accessCodeValidation?.discount_code,
+    submittedCode,
+    onAccessGranted,
+  ])
 
   const handleSubmitCode = () => {
     if (!accessCode.trim()) {
@@ -128,7 +141,8 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
             <VStack gap={4} textAlign="center">
               <Heading size="lg">Unable to Load Trips</Heading>
               <Text>
-                We encountered an error while loading available trips. Please try again later.
+                We encountered an error while loading available trips. Please
+                try again later.
               </Text>
             </VStack>
           </Card.Body>
@@ -143,7 +157,9 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
       accessCodeValid && accessCodeValidation?.discount_code
         ? accessCodeValidation.discount_code.id
         : null
-    return <>{children(accessCodeValid ? submittedCode : null, discountCodeId)}</>
+    return (
+      <>{children(accessCodeValid ? submittedCode : null, discountCodeId)}</>
+    )
   }
 
   // No trips available - check if we need an access code
@@ -156,8 +172,8 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
             <VStack gap={6} textAlign="center">
               <Heading size="lg">Early Access Required</Heading>
               <Text>
-                Tickets are not yet available to the public. If you have an early access code,
-                enter it below to continue.
+                Tickets are not yet available to the public. If you have an
+                early access code, enter it below to continue.
               </Text>
               <Box w="100%" maxW="400px">
                 <VStack gap={4}>
@@ -199,11 +215,14 @@ const AccessGate = ({ accessCode: initialAccessCode, onAccessGranted, children }
   if (accessCodeValid) {
     // Access code is valid but no trips are available
     heading = "No Trips Available"
-    errorMessage = "Your access code is valid, but there are currently no trips available for booking. Please check back later or contact support."
+    errorMessage =
+      "Your access code is valid, but there are currently no trips available for booking. Please check back later or contact support."
   } else if (accessCodeValidation) {
     // Access code validation failed
     heading = "Access Denied"
-    errorMessage = accessCodeValidation.message || "The access code you entered is not valid."
+    errorMessage =
+      accessCodeValidation.message ||
+      "The access code you entered is not valid."
   } else {
     // No validation result yet or no trips available
     heading = "No Trips Available"

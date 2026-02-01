@@ -15,8 +15,15 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
 
-import { LaunchesService, type MissionWithStats, MissionsService } from "@/client"
-import { formatCents } from "@/utils"
+import {
+  LaunchesService,
+  type MissionWithStats,
+  MissionsService,
+} from "@/client"
+import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
+import YamlImportForm from "@/components/Common/YamlImportForm"
+import AddMission from "@/components/Missions/AddMission"
+import PendingMissions from "@/components/Pending/PendingMissions"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -27,15 +34,9 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import {
-  formatInLocationTimezoneWithAbbr,
-  parseApiDate,
-} from "@/utils"
-import MissionActionsMenu from "@/components/Common/MissionActionsMenu"
-import YamlImportForm from "@/components/Common/YamlImportForm"
-import AddMission from "@/components/Missions/AddMission"
 import { YamlImportService } from "@/services/yamlImportService"
-import PendingMissions from "@/components/Pending/PendingMissions"
+import { formatCents } from "@/utils"
+import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns (must match MissionWithStats keys)
 type SortableColumn =
@@ -84,7 +85,11 @@ const sortMissions = (
     }
 
     // Coerce optional numeric stats to 0 for sorting
-    if (sortBy === "trip_count" || sortBy === "total_bookings" || sortBy === "total_sales") {
+    if (
+      sortBy === "trip_count" ||
+      sortBy === "total_bookings" ||
+      sortBy === "total_sales"
+    ) {
       aValue = typeof aValue === "number" ? aValue : 0
       bValue = typeof bValue === "number" ? bValue : 0
     }
@@ -179,7 +184,10 @@ function Missions() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["missions", { page, pageSize: effectivePageSize, sortBy, sortDirection }],
+    queryKey: [
+      "missions",
+      { page, pageSize: effectivePageSize, sortBy, sortDirection },
+    ],
     queryFn: () =>
       MissionsService.readMissions({
         skip: ((page ?? 1) - 1) * effectivePageSize,
@@ -208,10 +216,15 @@ function Missions() {
     )
   }
 
-  const renderSalesOpenAt = (dateString: string | null | undefined, timezone?: string | null) => {
+  const renderSalesOpenAt = (
+    dateString: string | null | undefined,
+    timezone?: string | null,
+  ) => {
     if (!dateString) return "Not set"
     const d = parseApiDate(dateString)
-    const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
+    const parts = timezone
+      ? formatInLocationTimezoneWithAbbr(d, timezone)
+      : null
     if (parts) {
       return (
         <>
@@ -236,10 +249,7 @@ function Missions() {
       <Flex justify="space-between" align="center" pt={12} pb={4}>
         <Heading size="lg">Missions</Heading>
         <Flex gap={3}>
-          <Button
-            variant="outline"
-            onClick={() => setIsYamlImportOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />
               <span>Import from YAML</span>
@@ -354,81 +364,83 @@ function Missions() {
                 </Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
-          <Table.Body>
-            {missions.map((mission) => (
-              <Table.Row key={mission.id}>
-                <Table.Cell>{mission.name}</Table.Cell>
-                <Table.Cell display={{ base: "none", md: "table-cell" }}>
-                  {launchesMap.get(mission.launch_id)?.name ||
-                    mission.launch_id}
-                </Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", md: "table-cell" }}
-                  textAlign="center"
-                  w="12"
-                >
-                  {mission.trip_count ?? 0}
-                </Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", lg: "table-cell" }}
-                  minW="140px"
-                >
-                  {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}
-                </Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", lg: "table-cell" }}
-                  textAlign="center"
-                  w="12"
-                >
-                  <Text fontWeight="medium">{mission.total_bookings || 0}</Text>
-                </Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", lg: "table-cell" }}
-                  textAlign="center"
-                  w="16"
-                >
-                  <Text fontWeight="medium">
-                    ${formatCents(mission.total_sales ?? 0)}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell textAlign="center" w="14">
-                  <Flex gap={2}>
-                    <Badge colorPalette={mission.active ? "green" : "red"}>
-                      {mission.active ? "Active" : "Inactive"}
-                    </Badge>
-                    <Badge
-                      colorPalette={
-                        mission.booking_mode === "public"
-                          ? "blue"
+            <Table.Body>
+              {missions.map((mission) => (
+                <Table.Row key={mission.id}>
+                  <Table.Cell>{mission.name}</Table.Cell>
+                  <Table.Cell display={{ base: "none", md: "table-cell" }}>
+                    {launchesMap.get(mission.launch_id)?.name ||
+                      mission.launch_id}
+                  </Table.Cell>
+                  <Table.Cell
+                    display={{ base: "none", md: "table-cell" }}
+                    textAlign="center"
+                    w="12"
+                  >
+                    {mission.trip_count ?? 0}
+                  </Table.Cell>
+                  <Table.Cell
+                    display={{ base: "none", lg: "table-cell" }}
+                    minW="140px"
+                  >
+                    {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}
+                  </Table.Cell>
+                  <Table.Cell
+                    display={{ base: "none", lg: "table-cell" }}
+                    textAlign="center"
+                    w="12"
+                  >
+                    <Text fontWeight="medium">
+                      {mission.total_bookings || 0}
+                    </Text>
+                  </Table.Cell>
+                  <Table.Cell
+                    display={{ base: "none", lg: "table-cell" }}
+                    textAlign="center"
+                    w="16"
+                  >
+                    <Text fontWeight="medium">
+                      ${formatCents(mission.total_sales ?? 0)}
+                    </Text>
+                  </Table.Cell>
+                  <Table.Cell textAlign="center" w="14">
+                    <Flex gap={2}>
+                      <Badge colorPalette={mission.active ? "green" : "red"}>
+                        {mission.active ? "Active" : "Inactive"}
+                      </Badge>
+                      <Badge
+                        colorPalette={
+                          mission.booking_mode === "public"
+                            ? "blue"
+                            : mission.booking_mode === "early_bird"
+                              ? "purple"
+                              : "gray"
+                        }
+                      >
+                        {mission.booking_mode === "public"
+                          ? "Public"
                           : mission.booking_mode === "early_bird"
-                            ? "purple"
-                            : "gray"
-                      }
-                    >
-                      {mission.booking_mode === "public"
-                        ? "Public"
-                        : mission.booking_mode === "early_bird"
-                          ? "Early Bird"
-                          : "Private"}
-                    </Badge>
-                  </Flex>
-                </Table.Cell>
-                <Table.Cell textAlign="center" w="14">
-                  <Flex justify="center">
-                    <MissionActionsMenu
-                    mission={{
-                      ...mission,
-                      active: mission.active ?? false,
-                      booking_mode: mission.booking_mode ?? "private",
-                      sales_open_at: mission.sales_open_at ?? null,
-                      refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
-                    }}
-                  />
-                  </Flex>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
+                            ? "Early Bird"
+                            : "Private"}
+                      </Badge>
+                    </Flex>
+                  </Table.Cell>
+                  <Table.Cell textAlign="center" w="14">
+                    <Flex justify="center">
+                      <MissionActionsMenu
+                        mission={{
+                          ...mission,
+                          active: mission.active ?? false,
+                          booking_mode: mission.booking_mode ?? "private",
+                          sales_open_at: mission.sales_open_at ?? null,
+                          refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
+                        }}
+                      />
+                    </Flex>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
           </Table.Root>
         </Box>
       )}

@@ -15,14 +15,11 @@ import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
-import {
-  type ProviderPublic,
-  ProvidersService,
-} from "@/client"
+import { type ProviderPublic, ProvidersService } from "@/client"
+import PendingProviders from "@/components/Pending/PendingProviders"
 import AddProvider from "@/components/Providers/AddProvider"
 import DeleteProvider from "@/components/Providers/DeleteProvider"
 import EditProvider from "@/components/Providers/EditProvider"
-import PendingProviders from "@/components/Pending/PendingProviders"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -129,7 +126,13 @@ function ProvidersTable() {
     placeholderData: (prevData) => prevData,
     queryKey: [
       "providers",
-      { page, pageSize: effectivePageSize, jurisdictionId, sortBy, sortDirection },
+      {
+        page,
+        pageSize: effectivePageSize,
+        jurisdictionId,
+        sortBy,
+        sortDirection,
+      },
     ],
   })
 
@@ -232,32 +235,42 @@ function ProvidersTable() {
               <Table.ColumnHeader w="sm" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {providers?.map((provider) => (
-            <Table.Row
-              key={provider.id}
-              opacity={isPlaceholderData ? 0.5 : 1}
-            >
-              <Table.Cell truncate maxW="sm">
-                {provider.name}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", lg: "table-cell" }}>
-                {provider.address || "—"}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm" display={{ base: "none", md: "table-cell" }}>
-                {provider.jurisdiction?.name || provider.jurisdiction_id || "—"}
-              </Table.Cell>
-              <Table.Cell textAlign="center">
-                <Flex gap={2} flexWrap="wrap" justify="center">
-                  <EditProvider provider={provider} />
-                  <DeleteProvider provider={provider} />
-                </Flex>
-              </Table.Cell>
             </Table.Row>
-          ))}
-        </Table.Body>
+          </Table.Header>
+          <Table.Body>
+            {providers?.map((provider) => (
+              <Table.Row
+                key={provider.id}
+                opacity={isPlaceholderData ? 0.5 : 1}
+              >
+                <Table.Cell truncate maxW="sm">
+                  {provider.name}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {provider.address || "—"}
+                </Table.Cell>
+                <Table.Cell
+                  truncate
+                  maxW="sm"
+                  display={{ base: "none", md: "table-cell" }}
+                >
+                  {provider.jurisdiction?.name ||
+                    provider.jurisdiction_id ||
+                    "—"}
+                </Table.Cell>
+                <Table.Cell textAlign="center">
+                  <Flex gap={2} flexWrap="wrap" justify="center">
+                    <EditProvider provider={provider} />
+                    <DeleteProvider provider={provider} />
+                  </Flex>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
         </Table.Root>
       </Box>
       {count > 0 && (

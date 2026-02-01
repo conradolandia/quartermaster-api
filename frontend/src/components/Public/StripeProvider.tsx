@@ -21,11 +21,31 @@ const stripePromise = stripePublishableKey
   ? loadStripe(stripePublishableKey)
   : null
 
-interface StripeProviderProps {
-  children: React.ReactNode
+/** Dark appearance matching app theme (dark.bg, dark.text, dark.accent). */
+const stripeAppearance = {
+  theme: "night" as const,
+  variables: {
+    colorPrimary: "#fda801",
+    colorBackground: "#28343B",
+    colorText: "#ffffff",
+    colorTextSecondary: "#eeeeee",
+    colorDanger: "#f44336",
+    borderRadius: "6px",
+    fontFamily:
+      "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+  },
 }
 
-const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
+interface StripeProviderProps {
+  children: React.ReactNode
+  /** Required for Payment Element. Pass client_secret from your PaymentIntent. */
+  options?: { clientSecret: string }
+}
+
+const StripeProvider: React.FC<StripeProviderProps> = ({
+  children,
+  options,
+}) => {
   // If no Stripe key is configured, show a development message and don't render children
   if (!stripePublishableKey) {
     console.warn(
@@ -69,7 +89,15 @@ const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
     )
   }
 
-  return <Elements stripe={stripePromise}>{children}</Elements>
+  const elementsOptions = options
+    ? { ...options, appearance: stripeAppearance }
+    : undefined
+
+  return (
+    <Elements stripe={stripePromise} options={elementsOptions}>
+      {children}
+    </Elements>
+  )
 }
 
 export default StripeProvider

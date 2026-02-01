@@ -39,7 +39,9 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
     queryFn: () => LocationsService.readLocations(),
     enabled: isOpen,
   })
-  const selectedLocation = locationsResponse?.data?.find((l) => l.id === locationId)
+  const selectedLocation = locationsResponse?.data?.find(
+    (l) => l.id === locationId,
+  )
   const timezone = selectedLocation?.timezone ?? null
 
   // Use mutation for creating launch
@@ -71,7 +73,9 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
     const tz = timezone ?? "UTC"
     mutation.mutate({
       name,
-      launch_timestamp: parseLocationTimeToUtc(launchTimestamp, tz) || new Date(launchTimestamp).toISOString(),
+      launch_timestamp:
+        parseLocationTimeToUtc(launchTimestamp, tz) ||
+        new Date(launchTimestamp).toISOString(),
       summary,
       location_id: locationId,
     })
@@ -85,78 +89,86 @@ export const AddLaunch = ({ isOpen, onClose, onSuccess }: AddLaunchProps) => {
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent ref={contentRef}>
-          <DialogHeader>
-            <DialogTitle>Add Launch</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <VStack gap={4}>
-              <Field label="Name" required>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Launch name"
-                />
-              </Field>
-              <Field
-                label={timezone ? `Launch Date & Time (${formatLocationTimezoneDisplay(timezone)})` : "Launch Date & Time"}
-                required
-              >
-                <Input
-                  id="launch_timestamp"
-                  type="datetime-local"
-                  value={launchTimestamp}
-                  onChange={(e) => setLaunchTimestamp(e.target.value)}
-                  placeholder={
-                    timezone ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}` : "Select location for timezone"
-                  }
-                />
-              </Field>
-              <Field label="Summary" required>
-                <Input
-                  id="summary"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  placeholder="Launch summary"
-                />
-              </Field>
-              <Field label="Location" required>
-                <LocationDropdown
-                  id="location_id"
-                  value={locationId}
-                  onChange={setLocationId}
-                  isDisabled={mutation.isPending}
-                  portalRef={contentRef}
-                />
-              </Field>
-            </VStack>
-          </DialogBody>
-          <DialogFooter gap={2}>
-            <Button
-              variant="subtle"
-              colorPalette="gray"
-              onClick={onClose}
-              disabled={mutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              onClick={handleSubmit}
-              loading={mutation.isPending}
-              disabled={
-                !name ||
-                !launchTimestamp ||
-                !summary ||
-                !locationId ||
-                mutation.isPending
+        <DialogHeader>
+          <DialogTitle>Add Launch</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <VStack gap={4}>
+            <Field label="Name" required>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Launch name"
+              />
+            </Field>
+            <Field
+              label={
+                timezone
+                  ? `Launch Date & Time (${formatLocationTimezoneDisplay(
+                      timezone,
+                    )})`
+                  : "Launch Date & Time"
               }
+              required
             >
-              Add
-            </Button>
-          </DialogFooter>
-          <DialogCloseTrigger />
-        </DialogContent>
+              <Input
+                id="launch_timestamp"
+                type="datetime-local"
+                value={launchTimestamp}
+                onChange={(e) => setLaunchTimestamp(e.target.value)}
+                placeholder={
+                  timezone
+                    ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
+                    : "Select location for timezone"
+                }
+              />
+            </Field>
+            <Field label="Summary" required>
+              <Input
+                id="summary"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Launch summary"
+              />
+            </Field>
+            <Field label="Location" required>
+              <LocationDropdown
+                id="location_id"
+                value={locationId}
+                onChange={setLocationId}
+                isDisabled={mutation.isPending}
+                portalRef={contentRef}
+              />
+            </Field>
+          </VStack>
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            variant="subtle"
+            colorPalette="gray"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="solid"
+            onClick={handleSubmit}
+            loading={mutation.isPending}
+            disabled={
+              !name ||
+              !launchTimestamp ||
+              !summary ||
+              !locationId ||
+              mutation.isPending
+            }
+          >
+            Add
+          </Button>
+        </DialogFooter>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

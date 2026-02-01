@@ -95,110 +95,110 @@ const EditProvider = ({ provider }: EditProviderProps) => {
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Edit Provider</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              <Text mb={4}>Update the provider details below.</Text>
-              <VStack gap={4}>
-                <Field
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
-                  label="Name"
-                  required
-                >
-                  <Input
-                    id="name"
-                    {...register("name", {
-                      maxLength: {
-                        value: 255,
-                        message: "Name cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Name"
-                    type="text"
-                  />
-                </Field>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Edit Provider</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Text mb={4}>Update the provider details below.</Text>
+            <VStack gap={4}>
+              <Field
+                invalid={!!errors.name}
+                errorText={errors.name?.message}
+                label="Name"
+                required
+              >
+                <Input
+                  id="name"
+                  {...register("name", {
+                    maxLength: {
+                      value: 255,
+                      message: "Name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Name"
+                  type="text"
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.address}
-                  errorText={errors.address?.message}
-                  label="Address"
-                >
-                  <Input
-                    id="address"
-                    {...register("address", {
-                      maxLength: {
-                        value: 500,
-                        message: "Address cannot exceed 500 characters",
-                      },
-                    })}
-                    placeholder="Address"
-                    type="text"
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.address}
+                errorText={errors.address?.message}
+                label="Address"
+              >
+                <Input
+                  id="address"
+                  {...register("address", {
+                    maxLength: {
+                      value: 500,
+                      message: "Address cannot exceed 500 characters",
+                    },
+                  })}
+                  placeholder="Address"
+                  type="text"
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.jurisdiction_id}
-                  errorText={errors.jurisdiction_id?.message}
-                  label="Jurisdiction"
-                  required
-                >
-                  <Controller
-                    name="jurisdiction_id"
-                    control={control}
-                    render={({ field }) => (
-                      <JurisdictionDropdown
-                        id="jurisdiction_id"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        isDisabled={isSubmitting}
-                        portalRef={contentRef}
-                      />
-                    )}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.jurisdiction_id}
+                errorText={errors.jurisdiction_id?.message}
+                label="Jurisdiction"
+                required
+              >
+                <Controller
+                  name="jurisdiction_id"
+                  control={control}
+                  render={({ field }) => (
+                    <JurisdictionDropdown
+                      id="jurisdiction_id"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      isDisabled={isSubmitting}
+                      portalRef={contentRef}
+                    />
+                  )}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.map_link}
-                  errorText={errors.map_link?.message}
-                  label="Map Link"
-                >
-                  <Input
-                    id="map_link"
-                    {...register("map_link", {
-                      maxLength: {
-                        value: 2000,
-                        message: "Map link cannot exceed 2000 characters",
-                      },
-                    })}
-                    placeholder="Map link URL"
-                    type="text"
-                  />
-                </Field>
-              </VStack>
-            </DialogBody>
+              <Field
+                invalid={!!errors.map_link}
+                errorText={errors.map_link?.message}
+                label="Map Link"
+              >
+                <Input
+                  id="map_link"
+                  {...register("map_link", {
+                    maxLength: {
+                      value: 2000,
+                      message: "Map link cannot exceed 2000 characters",
+                    },
+                  })}
+                  placeholder="Map link URL"
+                  type="text"
+                />
+              </Field>
+            </VStack>
+          </DialogBody>
 
-            <DialogFooter gap={2}>
-              <ButtonGroup>
-                <DialogActionTrigger asChild>
-                  <Button
-                    variant="subtle"
-                    colorPalette="gray"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting}>
-                  Save
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
+                >
+                  Cancel
                 </Button>
-              </ButtonGroup>
-            </DialogFooter>
-          </form>
-          <DialogCloseTrigger />
-        </DialogContent>
+              </DialogActionTrigger>
+              <Button variant="solid" type="submit" loading={isSubmitting}>
+                Save
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </form>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

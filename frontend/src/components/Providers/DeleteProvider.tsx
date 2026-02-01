@@ -9,11 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FaTrash } from "react-icons/fa"
 
-import {
-  type ApiError,
-  type ProviderPublic,
-  ProvidersService,
-} from "@/client"
+import { type ApiError, type ProviderPublic, ProvidersService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import {
@@ -79,7 +75,8 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
             <Text>Are you sure you want to delete {provider.name}?</Text>
             <Text>This action cannot be undone.</Text>
             <Text fontSize="sm" color="red.500">
-              Note: You cannot delete a provider if any boats are associated with it.
+              Note: You cannot delete a provider if any boats are associated
+              with it.
             </Text>
           </VStack>
         </DialogBody>

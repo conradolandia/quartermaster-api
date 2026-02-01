@@ -19,14 +19,14 @@ import {
   type BookingCreate,
   type BookingItemCreate,
   BookingsService,
-  type EffectivePricingItem,
   DiscountCodesService,
+  type EffectivePricingItem,
   JurisdictionsService,
   LaunchesService,
   MissionsService,
+  type TripBoatPublicWithAvailability,
   TripBoatsService,
   TripMerchandiseService,
-  type TripBoatPublicWithAvailability,
   type TripPublic,
   TripsService,
 } from "@/client"
@@ -57,7 +57,6 @@ interface AddBookingProps {
   onClose: () => void
   onSuccess: () => void
 }
-
 
 // Interface for trip merchandise data
 interface TripMerchandiseData {
@@ -116,14 +115,16 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   // Get mission details
   const { data: missionData } = useQuery({
     queryKey: ["mission-details", tripData?.mission_id],
-    queryFn: () => MissionsService.readMission({ missionId: tripData!.mission_id }),
+    queryFn: () =>
+      MissionsService.readMission({ missionId: tripData!.mission_id }),
     enabled: !!tripData?.mission_id,
   })
 
   // Get launch details
   const { data: launchData } = useQuery({
     queryKey: ["launch-details", missionData?.launch_id],
-    queryFn: () => LaunchesService.readLaunch({ launchId: missionData!.launch_id }),
+    queryFn: () =>
+      LaunchesService.readLaunch({ launchId: missionData!.launch_id }),
     enabled: !!missionData?.launch_id,
   })
 
@@ -302,9 +303,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       // Discount: API returns discount_value as 0-1 for percentage, or cents for fixed_amount
       let calculatedDiscount = 0
       if (discountCodeData.discount_type === "percentage") {
-        calculatedDiscount = Math.round(subtotal * discountCodeData.discount_value)
+        calculatedDiscount = Math.round(
+          subtotal * discountCodeData.discount_value,
+        )
         if (discountCodeData.max_discount_amount != null) {
-          calculatedDiscount = Math.min(calculatedDiscount, discountCodeData.max_discount_amount)
+          calculatedDiscount = Math.min(
+            calculatedDiscount,
+            discountCodeData.max_discount_amount,
+          )
         }
       } else {
         calculatedDiscount = Math.round(discountCodeData.discount_value)
@@ -312,7 +318,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
       setDiscountInput(calculatedDiscount)
     } catch (error: any) {
-      setDiscountCodeError(error.response?.data?.detail || "Invalid discount code")
+      setDiscountCodeError(
+        error.response?.data?.detail || "Invalid discount code",
+      )
       setAppliedDiscountCode(null)
       setDiscountInput(0)
     }
@@ -351,7 +359,10 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   }
 
   const mutation = useMutation({
-    mutationFn: async (data: { bookingData: BookingCreate; markAsPaid: boolean }) => {
+    mutationFn: async (data: {
+      bookingData: BookingCreate
+      markAsPaid: boolean
+    }) => {
       // Create the booking
       const booking = await BookingsService.createBooking({
         requestBody: data.bookingData,
@@ -375,7 +386,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       showSuccessToast(
         markAsPaid
           ? "Booking created and marked as paid successfully."
-          : "Booking created as draft successfully."
+          : "Booking created as draft successfully.",
       )
       reset()
       setSelectedTripId("")
@@ -448,7 +459,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       if (newQty > remainingForType(ticketType)) return
       setSelectedItems(
         selectedItems.map((item) =>
-          item === existingItem ? { ...item, quantity: item.quantity + 1 } : item,
+          item === existingItem
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         ),
       )
     } else {
@@ -504,14 +517,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     const item = selectedItems[index]
     let cappedQuantity = quantity
     if (item && !item.merchandise_id) {
-      const pricing = tripPricing.find(
-        (p) => p.ticket_type === item.item_type,
-      )
+      const pricing = tripPricing.find((p) => p.ticket_type === item.item_type)
       if (pricing) {
         const otherSameType = selectedItems
           .filter(
             (x, i) =>
-              i !== index && !x.merchandise_id && x.item_type === item.item_type,
+              i !== index &&
+              !x.merchandise_id &&
+              x.item_type === item.item_type,
           )
           .reduce((sum, x) => sum + x.quantity, 0)
         cappedQuantity = Math.min(
@@ -568,479 +581,468 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Add Booking</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              <Text mb={4}>
-                Add a new booking by selecting a trip and items. A confirmation
-                code will be auto-generated.
-              </Text>
-              <VStack gap={4}>
-                {/* Trip Selection */}
-                <Field label="Select Trip" required>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Add Booking</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Text mb={4}>
+              Add a new booking by selecting a trip and items. A confirmation
+              code will be auto-generated.
+            </Text>
+            <VStack gap={4}>
+              {/* Trip Selection */}
+              <Field label="Select Trip" required>
+                <NativeSelect
+                  value={selectedTripId}
+                  onChange={(e) => {
+                    handleTripSelection(e.target.value)
+                  }}
+                >
+                  <option value="">Select a trip...</option>
+                  {tripsData?.data
+                    ?.filter((trip: TripPublic) => {
+                      if (!trip.departure_time) return false
+                      const departureTime = parseApiDate(trip.departure_time)
+                      return departureTime >= new Date()
+                    })
+                    .map((trip: TripPublic) => (
+                      <option key={trip.id} value={trip.id}>
+                        {formatTripOptionLabel(trip)}
+                      </option>
+                    ))}
+                </NativeSelect>
+              </Field>
+
+              {selectedTripId && tripBoats.length > 0 && (
+                <Field label="Assign Boat" required>
                   <NativeSelect
-                    value={selectedTripId}
-                    onChange={(e) => {
-                      handleTripSelection(e.target.value)
-                    }}
+                    value={selectedBoatId}
+                    onChange={(e) => setSelectedBoatId(e.target.value)}
                   >
-                    <option value="">Select a trip...</option>
-                    {tripsData?.data
-                      ?.filter((trip: TripPublic) => {
-                        if (!trip.departure_time) return false
-                        const departureTime = parseApiDate(trip.departure_time)
-                        return departureTime >= new Date()
-                      })
-                      .map((trip: TripPublic) => (
-                        <option key={trip.id} value={trip.id}>
-                          {formatTripOptionLabel(trip)}
-                        </option>
-                      ))}
+                    {tripBoats.map((tb, idx) => (
+                      <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
+                        {boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id} (
+                        {tb.remaining_capacity} spots left)
+                      </option>
+                    ))}
                   </NativeSelect>
                 </Field>
+              )}
 
-                {selectedTripId && tripBoats.length > 0 && (
-                  <Field label="Assign Boat" required>
-                    <NativeSelect
-                      value={selectedBoatId}
-                      onChange={(e) => setSelectedBoatId(e.target.value)}
+              {/* Customer Information */}
+              <Field
+                invalid={!!errors.user_name}
+                errorText={errors.user_name?.message}
+                label="Customer Name"
+                required
+              >
+                <Input
+                  id="user_name"
+                  {...register("user_name", {
+                    required: "Customer name is required",
+                    maxLength: {
+                      value: 255,
+                      message: "Customer name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Customer Name"
+                  type="text"
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.user_email}
+                errorText={errors.user_email?.message}
+                label="Customer Email"
+                required
+              >
+                <Input
+                  id="user_email"
+                  {...register("user_email", {
+                    required: "Customer email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address",
+                    },
+                    maxLength: {
+                      value: 255,
+                      message: "Customer email cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="customer@example.com"
+                  type="email"
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.user_phone}
+                errorText={errors.user_phone?.message}
+                label="Customer Phone"
+                required
+              >
+                <Input
+                  id="user_phone"
+                  {...register("user_phone", {
+                    required: "Customer phone is required",
+                    maxLength: {
+                      value: 40,
+                      message: "Customer phone cannot exceed 40 characters",
+                    },
+                  })}
+                  placeholder="Customer Phone"
+                  type="tel"
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.billing_address}
+                errorText={errors.billing_address?.message}
+                label="Billing Address"
+                required
+              >
+                <Textarea
+                  id="billing_address"
+                  {...register("billing_address", {
+                    required: "Billing address is required",
+                    maxLength: {
+                      value: 1000,
+                      message: "Billing address cannot exceed 1000 characters",
+                    },
+                  })}
+                  placeholder="Billing Address"
+                  rows={3}
+                />
+              </Field>
+
+              {/* Item Selection - Only show if trip is selected */}
+              {selectedTripId && (
+                <VStack gap={4} width="100%">
+                  <Text fontWeight="bold">Select Items</Text>
+
+                  {/* Tickets */}
+                  {tripPricing.length > 0 && (
+                    <VStack
+                      gap={2}
+                      width="100%"
+                      p={3}
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="md"
                     >
-                      {tripBoats.map((tb, idx) => (
-                        <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
-                          {boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id}{" "}
-                          ({tb.remaining_capacity} spots left)
-                        </option>
+                      <Text fontWeight="medium">Tickets</Text>
+                      <HStack gap={2} flexWrap="wrap">
+                        {tripPricing.map((pricing: EffectivePricingItem) => (
+                          <Button
+                            key={pricing.ticket_type}
+                            size="sm"
+                            variant="outline"
+                            disabled={ticketCapacityReachedForType(
+                              pricing.ticket_type,
+                            )}
+                            onClick={() => addTicketItem(pricing.ticket_type)}
+                          >
+                            <FiPlus style={{ marginRight: "4px" }} />
+                            {pricing.ticket_type
+                              .replace("_", " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
+                            - ${formatCents(pricing.price)}
+                            {pricing.remaining >= 0 && (
+                              <> ({pricing.remaining} left)</>
+                            )}
+                          </Button>
+                        ))}
+                      </HStack>
+                    </VStack>
+                  )}
+
+                  {/* Merchandise */}
+                  {tripMerchandise.length > 0 && (
+                    <VStack
+                      gap={2}
+                      width="100%"
+                      p={3}
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                    >
+                      <Text fontWeight="medium">Merchandise</Text>
+                      <HStack gap={2} flexWrap="wrap">
+                        {tripMerchandise.map((merchandise) => (
+                          <Button
+                            key={merchandise.id}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addMerchandiseItem(merchandise.id)}
+                            disabled={merchandise.quantity_available <= 0}
+                          >
+                            <FiPlus style={{ marginRight: "4px" }} />
+                            {merchandise.name} - $
+                            {formatCents(merchandise.price)} (
+                            {merchandise.quantity_available} available)
+                          </Button>
+                        ))}
+                      </HStack>
+                    </VStack>
+                  )}
+
+                  {/* Selected Items */}
+                  {selectedItems.length > 0 && (
+                    <VStack
+                      gap={2}
+                      width="100%"
+                      p={3}
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                    >
+                      <Text fontWeight="medium">Selected Items</Text>
+                      {selectedItems.map((item, index) => (
+                        <HStack
+                          key={index}
+                          width="100%"
+                          justify="space-between"
+                        >
+                          <VStack align="start" gap={0}>
+                            <Text fontSize="sm" fontWeight="medium">
+                              {getItemDisplayName(item)}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500">
+                              ${formatCents(item.price_per_unit)} each
+                            </Text>
+                          </VStack>
+                          <HStack gap={2}>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={
+                                item.merchandise_id
+                                  ? tripMerchandise.find(
+                                      (m) => m.id === item.merchandise_id,
+                                    )?.quantity_available ?? 999
+                                  : (() => {
+                                      const pricing = tripPricing.find(
+                                        (p) => p.ticket_type === item.item_type,
+                                      )
+                                      if (!pricing) return 999
+                                      const otherSameType = selectedItems
+                                        .filter(
+                                          (x, i) =>
+                                            i !== index &&
+                                            !x.merchandise_id &&
+                                            x.item_type === item.item_type,
+                                        )
+                                        .reduce((sum, x) => sum + x.quantity, 0)
+                                      return Math.max(
+                                        0,
+                                        pricing.remaining - otherSameType,
+                                      )
+                                    })()
+                              }
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateItemQuantity(
+                                  index,
+                                  Number.parseInt(e.target.value) || 0,
+                                )
+                              }
+                              style={{ width: "60px" }}
+                            />
+                            <Text fontSize="sm" fontWeight="medium">
+                              $
+                              {formatCents(item.quantity * item.price_per_unit)}
+                            </Text>
+                            <IconButton
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() => removeItem(index)}
+                              children={<FiTrash2 />}
+                            />
+                          </HStack>
+                        </HStack>
                       ))}
-                    </NativeSelect>
+                    </VStack>
+                  )}
+                </VStack>
+              )}
+
+              {/* Pricing Summary */}
+              <VStack
+                gap={3}
+                width="100%"
+                p={4}
+                border="1px solid"
+                borderColor="gray.200"
+                borderRadius="md"
+              >
+                <Text fontWeight="bold">Pricing Summary</Text>
+                <HStack justify="space-between" width="100%">
+                  <Text>Subtotal:</Text>
+                  <Text>${formatCents(watch("subtotal"))}</Text>
+                </HStack>
+                <VStack align="stretch" gap={2} width="100%">
+                  <HStack justify="space-between">
+                    <Text>Discount Code:</Text>
+                    <HStack gap={2}>
+                      <Input
+                        placeholder="Enter code"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        onBlur={() => validateDiscountCode(discountCode)}
+                        style={{ width: "120px" }}
+                        borderColor={discountCodeError ? "red.500" : undefined}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => validateDiscountCode(discountCode)}
+                        disabled={!discountCode.trim()}
+                      >
+                        Apply
+                      </Button>
+                    </HStack>
+                  </HStack>
+                  {discountCodeError && (
+                    <Text fontSize="sm" color="red.500">
+                      {discountCodeError}
+                    </Text>
+                  )}
+                  {appliedDiscountCode && (
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color="green.500">
+                        {appliedDiscountCode.code} applied
+                      </Text>
+                      <Text fontSize="sm" color="green.500">
+                        -${formatCents(discountInput)}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
+                <HStack justify="space-between" width="100%">
+                  <Text>Discount override (optional, $):</Text>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={watch("discount_amount") / 100}
+                    onChange={(e) => {
+                      const dollars = Number.parseFloat(e.target.value) || 0
+                      const cents = Math.round(dollars * 100)
+                      setValue("discount_amount", cents)
+                      setDiscountInput(cents)
+                      if (appliedDiscountCode && cents !== discountInput) {
+                        setAppliedDiscountCode(null)
+                        setDiscountCode("")
+                      }
+                    }}
+                    style={{ width: "100px" }}
+                  />
+                </HStack>
+                <HStack justify="space-between" width="100%">
+                  <Text>Tax Rate:</Text>
+                  <Text>
+                    {taxRatePercent > 0
+                      ? `${taxRatePercent.toFixed(2)}%`
+                      : "N/A - No jurisdiction set"}
+                  </Text>
+                </HStack>
+                <HStack justify="space-between" width="100%">
+                  <Text>Tax Amount:</Text>
+                  <Text>${formatCents(watch("tax_amount"))}</Text>
+                </HStack>
+                <HStack justify="space-between" width="100%">
+                  <Text>Tip ($):</Text>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={watch("tip_amount") / 100}
+                    onChange={(e) =>
+                      setValue(
+                        "tip_amount",
+                        Math.round(
+                          (Number.parseFloat(e.target.value) || 0) * 100,
+                        ),
+                      )
+                    }
+                    style={{ width: "100px" }}
+                  />
+                </HStack>
+                <HStack justify="space-between" width="100%" fontWeight="bold">
+                  <Text>Total:</Text>
+                  <Text>${formatCents(watch("total_amount"))}</Text>
+                </HStack>
+              </VStack>
+
+              {/* Additional Fields */}
+              <Field
+                invalid={!!errors.special_requests}
+                errorText={errors.special_requests?.message}
+                label="Special Requests"
+              >
+                <Textarea
+                  id="special_requests"
+                  {...register("special_requests", {
+                    maxLength: {
+                      value: 1000,
+                      message: "Special requests cannot exceed 1000 characters",
+                    },
+                  })}
+                  placeholder="Any special requests or notes"
+                  rows={3}
+                />
+              </Field>
+
+              <Controller
+                name="launch_updates_pref"
+                control={control}
+                render={({ field }) => (
+                  <Field
+                    invalid={!!errors.launch_updates_pref}
+                    errorText={errors.launch_updates_pref?.message}
+                  >
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={({ checked }) =>
+                        field.onChange(checked === true)
+                      }
+                    >
+                      Send launch updates
+                    </Checkbox>
                   </Field>
                 )}
+              />
 
-                {/* Customer Information */}
-                <Field
-                  invalid={!!errors.user_name}
-                  errorText={errors.user_name?.message}
-                  label="Customer Name"
-                  required
+              {/* Mark as paid checkbox for admin bookings */}
+              <Field>
+                <Checkbox
+                  checked={markAsPaid}
+                  onCheckedChange={({ checked }) =>
+                    setMarkAsPaid(checked === true)
+                  }
                 >
-                  <Input
-                    id="user_name"
-                    {...register("user_name", {
-                      required: "Customer name is required",
-                      maxLength: {
-                        value: 255,
-                        message: "Customer name cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Customer Name"
-                    type="text"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.user_email}
-                  errorText={errors.user_email?.message}
-                  label="Customer Email"
-                  required
-                >
-                  <Input
-                    id="user_email"
-                    {...register("user_email", {
-                      required: "Customer email is required",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
-                      },
-                      maxLength: {
-                        value: 255,
-                        message: "Customer email cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="customer@example.com"
-                    type="email"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.user_phone}
-                  errorText={errors.user_phone?.message}
-                  label="Customer Phone"
-                  required
-                >
-                  <Input
-                    id="user_phone"
-                    {...register("user_phone", {
-                      required: "Customer phone is required",
-                      maxLength: {
-                        value: 40,
-                        message: "Customer phone cannot exceed 40 characters",
-                      },
-                    })}
-                    placeholder="Customer Phone"
-                    type="tel"
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.billing_address}
-                  errorText={errors.billing_address?.message}
-                  label="Billing Address"
-                  required
-                >
-                  <Textarea
-                    id="billing_address"
-                    {...register("billing_address", {
-                      required: "Billing address is required",
-                      maxLength: {
-                        value: 1000,
-                        message:
-                          "Billing address cannot exceed 1000 characters",
-                      },
-                    })}
-                    placeholder="Billing Address"
-                    rows={3}
-                  />
-                </Field>
-
-                {/* Item Selection - Only show if trip is selected */}
-                {selectedTripId && (
-                  <VStack gap={4} width="100%">
-                    <Text fontWeight="bold">Select Items</Text>
-
-                    {/* Tickets */}
-                    {tripPricing.length > 0 && (
-                      <VStack
-                        gap={2}
-                        width="100%"
-                        p={3}
-                        border="1px solid"
-                        borderColor="gray.200"
-                        borderRadius="md"
-                      >
-                        <Text fontWeight="medium">Tickets</Text>
-                        <HStack gap={2} flexWrap="wrap">
-                          {tripPricing.map((pricing: EffectivePricingItem) => (
-                            <Button
-                              key={pricing.ticket_type}
-                              size="sm"
-                              variant="outline"
-                              disabled={ticketCapacityReachedForType(
-                                pricing.ticket_type,
-                              )}
-                              onClick={() =>
-                                addTicketItem(pricing.ticket_type)
-                              }
-                            >
-                              <FiPlus style={{ marginRight: "4px" }} />
-                              {pricing.ticket_type
-                                .replace("_", " ")
-                                .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
-                              - ${formatCents(pricing.price)}
-                              {pricing.remaining >= 0 && (
-                                <> ({pricing.remaining} left)</>
-                              )}
-                            </Button>
-                          ))}
-                        </HStack>
-                      </VStack>
-                    )}
-
-                    {/* Merchandise */}
-                    {tripMerchandise.length > 0 && (
-                      <VStack
-                        gap={2}
-                        width="100%"
-                        p={3}
-                        border="1px solid"
-                        borderColor="gray.200"
-                        borderRadius="md"
-                      >
-                        <Text fontWeight="medium">Merchandise</Text>
-                        <HStack gap={2} flexWrap="wrap">
-                          {tripMerchandise.map((merchandise) => (
-                            <Button
-                              key={merchandise.id}
-                              size="sm"
-                              variant="outline"
-                              onClick={() => addMerchandiseItem(merchandise.id)}
-                              disabled={merchandise.quantity_available <= 0}
-                            >
-                              <FiPlus style={{ marginRight: "4px" }} />
-                              {merchandise.name} - ${formatCents(merchandise.price)} (
-                              {merchandise.quantity_available} available)
-                            </Button>
-                          ))}
-                        </HStack>
-                      </VStack>
-                    )}
-
-                    {/* Selected Items */}
-                    {selectedItems.length > 0 && (
-                      <VStack
-                        gap={2}
-                        width="100%"
-                        p={3}
-                        border="1px solid"
-                        borderColor="gray.200"
-                        borderRadius="md"
-                      >
-                        <Text fontWeight="medium">Selected Items</Text>
-                        {selectedItems.map((item, index) => (
-                          <HStack
-                            key={index}
-                            width="100%"
-                            justify="space-between"
-                          >
-                            <VStack align="start" gap={0}>
-                              <Text fontSize="sm" fontWeight="medium">
-                                {getItemDisplayName(item)}
-                              </Text>
-                              <Text fontSize="xs" color="gray.500">
-                                ${formatCents(item.price_per_unit)} each
-                              </Text>
-                            </VStack>
-                            <HStack gap={2}>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={
-                                  item.merchandise_id
-                                    ? tripMerchandise.find(
-                                        (m) => m.id === item.merchandise_id,
-                                      )?.quantity_available ?? 999
-                                    : (() => {
-                                        const pricing = tripPricing.find(
-                                          (p) =>
-                                            p.ticket_type === item.item_type,
-                                        )
-                                        if (!pricing) return 999
-                                        const otherSameType = selectedItems
-                                          .filter(
-                                            (x, i) =>
-                                              i !== index &&
-                                              !x.merchandise_id &&
-                                              x.item_type === item.item_type,
-                                          )
-                                          .reduce(
-                                            (sum, x) => sum + x.quantity,
-                                            0,
-                                          )
-                                        return Math.max(
-                                          0,
-                                          pricing.remaining - otherSameType,
-                                        )
-                                      })()
-                                }
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  updateItemQuantity(
-                                    index,
-                                    Number.parseInt(e.target.value) || 0,
-                                  )
-                                }
-                                style={{ width: "60px" }}
-                              />
-                              <Text fontSize="sm" fontWeight="medium">
-                                $
-                                {formatCents(item.quantity * item.price_per_unit)}
-                              </Text>
-                              <IconButton
-                                size="sm"
-                                variant="ghost"
-                                colorScheme="red"
-                                onClick={() => removeItem(index)}
-                                children={<FiTrash2 />}
-                              />
-                            </HStack>
-                          </HStack>
-                        ))}
-                      </VStack>
-                    )}
-                  </VStack>
-                )}
-
-                {/* Pricing Summary */}
-                <VStack
-                  gap={3}
-                  width="100%"
-                  p={4}
-                  border="1px solid"
-                  borderColor="gray.200"
-                  borderRadius="md"
-                >
-                  <Text fontWeight="bold">Pricing Summary</Text>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Subtotal:</Text>
-                    <Text>${formatCents(watch("subtotal"))}</Text>
-                  </HStack>
-                  <VStack align="stretch" gap={2} width="100%">
-                    <HStack justify="space-between">
-                      <Text>Discount Code:</Text>
-                      <HStack gap={2}>
-                        <Input
-                          placeholder="Enter code"
-                          value={discountCode}
-                          onChange={(e) => setDiscountCode(e.target.value)}
-                          onBlur={() => validateDiscountCode(discountCode)}
-                          style={{ width: "120px" }}
-                          borderColor={discountCodeError ? "red.500" : undefined}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => validateDiscountCode(discountCode)}
-                          disabled={!discountCode.trim()}
-                        >
-                          Apply
-                        </Button>
-                      </HStack>
-                    </HStack>
-                    {discountCodeError && (
-                      <Text fontSize="sm" color="red.500">
-                        {discountCodeError}
-                      </Text>
-                    )}
-                    {appliedDiscountCode && (
-                      <HStack justify="space-between">
-                        <Text fontSize="sm" color="green.500">
-                          {appliedDiscountCode.code} applied
-                        </Text>
-                        <Text fontSize="sm" color="green.500">
-                          -${formatCents(discountInput)}
-                        </Text>
-                      </HStack>
-                    )}
-                  </VStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Discount override (optional, $):</Text>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={watch("discount_amount") / 100}
-                      onChange={(e) => {
-                        const dollars = Number.parseFloat(e.target.value) || 0
-                        const cents = Math.round(dollars * 100)
-                        setValue("discount_amount", cents)
-                        setDiscountInput(cents)
-                        if (appliedDiscountCode && cents !== discountInput) {
-                          setAppliedDiscountCode(null)
-                          setDiscountCode("")
-                        }
-                      }}
-                      style={{ width: "100px" }}
-                    />
-                  </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Tax Rate:</Text>
-                    <Text>
-                      {taxRatePercent > 0
-                        ? `${taxRatePercent.toFixed(2)}%`
-                        : "N/A - No jurisdiction set"}
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Tax Amount:</Text>
-                    <Text>${formatCents(watch("tax_amount"))}</Text>
-                  </HStack>
-                  <HStack justify="space-between" width="100%">
-                    <Text>Tip ($):</Text>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={watch("tip_amount") / 100}
-                      onChange={(e) =>
-                        setValue(
-                          "tip_amount",
-                          Math.round((Number.parseFloat(e.target.value) || 0) * 100),
-                        )
-                      }
-                      style={{ width: "100px" }}
-                    />
-                  </HStack>
-                  <HStack
-                    justify="space-between"
-                    width="100%"
-                    fontWeight="bold"
-                  >
-                    <Text>Total:</Text>
-                    <Text>${formatCents(watch("total_amount"))}</Text>
-                  </HStack>
-                </VStack>
-
-                {/* Additional Fields */}
-                <Field
-                  invalid={!!errors.special_requests}
-                  errorText={errors.special_requests?.message}
-                  label="Special Requests"
-                >
-                  <Textarea
-                    id="special_requests"
-                    {...register("special_requests", {
-                      maxLength: {
-                        value: 1000,
-                        message:
-                          "Special requests cannot exceed 1000 characters",
-                      },
-                    })}
-                    placeholder="Any special requests or notes"
-                    rows={3}
-                  />
-                </Field>
-
-                <Controller
-                  name="launch_updates_pref"
-                  control={control}
-                  render={({ field }) => (
-                    <Field
-                      invalid={!!errors.launch_updates_pref}
-                      errorText={errors.launch_updates_pref?.message}
-                    >
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={({ checked }) =>
-                          field.onChange(checked === true)
-                        }
-                      >
-                        Send launch updates
-                      </Checkbox>
-                    </Field>
-                  )}
-                />
-
-                {/* Mark as paid checkbox for admin bookings */}
-                <Field>
-                  <Checkbox
-                    checked={markAsPaid}
-                    onCheckedChange={({ checked }) =>
-                      setMarkAsPaid(checked === true)
-                    }
-                  >
-                    Mark as paid/confirmed
-                  </Checkbox>
-                </Field>
-              </VStack>
-            </DialogBody>
-            <DialogFooter>
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                colorScheme="blue"
-                loading={isSubmitting}
-                disabled={
-                  selectedItems.length === 0 ||
-                  !selectedTripId ||
-                  !selectedBoatId
-                }
-              >
-                Create Booking
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+                  Mark as paid/confirmed
+                </Checkbox>
+              </Field>
+            </VStack>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              colorScheme="blue"
+              loading={isSubmitting}
+              disabled={
+                selectedItems.length === 0 || !selectedTripId || !selectedBoatId
+              }
+            >
+              Create Booking
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </DialogRoot>
   )
 }

@@ -43,9 +43,8 @@ function Bookings() {
       return <BookingDetails confirmationCode={code} />
     }
     // If user is not authenticated, show the public confirmation view
-    else {
-      return <BookingConfirmation confirmationCode={code} />
-    }
+
+    return <BookingConfirmation confirmationCode={code} />
   }
 
   // If no confirmation code, require authentication for bookings management
@@ -77,11 +76,13 @@ function Bookings() {
         </Button>
       </Flex>
 
-      <BookingsTable onBookingClick={(confirmationCode) => {
-        // Navigate to the booking details view
-        window.history.pushState({}, "", `/bookings?code=${confirmationCode}`)
-        window.location.reload()
-      }} />
+      <BookingsTable
+        onBookingClick={(confirmationCode) => {
+          // Navigate to the booking details view
+          window.history.pushState({}, "", `/bookings?code=${confirmationCode}`)
+          window.location.reload()
+        }}
+      />
 
       <AddBooking
         isOpen={isAddBookingOpen}

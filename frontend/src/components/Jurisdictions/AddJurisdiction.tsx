@@ -79,113 +79,111 @@ export const AddJurisdiction = ({
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Add Jurisdiction</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              <VStack gap={4}>
-                <Field
-                  label="Name"
-                  required
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Add Jurisdiction</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <VStack gap={4}>
+              <Field
+                label="Name"
+                required
+                invalid={!!errors.name}
+                errorText={errors.name?.message}
+              >
+                <Input
+                  id="name"
+                  {...register("name", {
+                    required: "Name is required",
+                    maxLength: {
+                      value: 255,
+                      message: "Name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Jurisdiction name"
+                />
+              </Field>
+              <Field
+                label="Sales Tax Rate (%)"
+                required
+                invalid={!!errors.sales_tax_rate}
+                errorText={errors.sales_tax_rate?.message}
+              >
+                <Controller
+                  name="sales_tax_rate"
+                  control={control}
+                  rules={{
+                    required: "Sales tax rate is required",
+                    min: {
+                      value: 0,
+                      message: "Sales tax rate must be between 0 and 100%",
+                    },
+                    max: {
+                      value: 1,
+                      message: "Sales tax rate must be between 0 and 100%",
+                    },
+                  }}
+                  render={({ field }) => (
+                    <Input
+                      id="sales_tax_rate"
+                      type="number"
+                      value={field.value ? (field.value * 100).toString() : ""}
+                      onChange={(e) => {
+                        const percentValue =
+                          Number.parseFloat(e.target.value) || 0
+                        field.onChange(percentValue / 100) // Convert percentage to decimal for storage
+                      }}
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      disabled={isSubmitting}
+                      placeholder="Sales tax rate (e.g. 6.5 for 6.5%)"
+                    />
+                  )}
+                />
+              </Field>
+              <Field
+                label="Location"
+                required
+                invalid={!!errors.location_id}
+                errorText={errors.location_id?.message}
+              >
+                <Controller
+                  name="location_id"
+                  control={control}
+                  rules={{ required: "Location is required" }}
+                  render={({ field }) => (
+                    <LocationDropdown
+                      value={field.value}
+                      onChange={field.onChange}
+                      id="location_id"
+                      isDisabled={isSubmitting}
+                      portalRef={contentRef}
+                    />
+                  )}
+                />
+              </Field>
+            </VStack>
+          </DialogBody>
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
                 >
-                  <Input
-                    id="name"
-                    {...register("name", {
-                      required: "Name is required",
-                      maxLength: {
-                        value: 255,
-                        message: "Name cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Jurisdiction name"
-                  />
-                </Field>
-                <Field
-                  label="Sales Tax Rate (%)"
-                  required
-                  invalid={!!errors.sales_tax_rate}
-                  errorText={errors.sales_tax_rate?.message}
-                >
-                  <Controller
-                    name="sales_tax_rate"
-                    control={control}
-                    rules={{
-                      required: "Sales tax rate is required",
-                      min: {
-                        value: 0,
-                        message: "Sales tax rate must be between 0 and 100%",
-                      },
-                      max: {
-                        value: 1,
-                        message: "Sales tax rate must be between 0 and 100%",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <Input
-                        id="sales_tax_rate"
-                        type="number"
-                        value={
-                          field.value ? (field.value * 100).toString() : ""
-                        }
-                        onChange={(e) => {
-                          const percentValue =
-                            Number.parseFloat(e.target.value) || 0
-                          field.onChange(percentValue / 100) // Convert percentage to decimal for storage
-                        }}
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        disabled={isSubmitting}
-                        placeholder="Sales tax rate (e.g. 6.5 for 6.5%)"
-                      />
-                    )}
-                  />
-                </Field>
-                <Field
-                  label="Location"
-                  required
-                  invalid={!!errors.location_id}
-                  errorText={errors.location_id?.message}
-                >
-                  <Controller
-                    name="location_id"
-                    control={control}
-                    rules={{ required: "Location is required" }}
-                    render={({ field }) => (
-                      <LocationDropdown
-                        value={field.value}
-                        onChange={field.onChange}
-                        id="location_id"
-                        isDisabled={isSubmitting}
-                        portalRef={contentRef}
-                      />
-                    )}
-                  />
-                </Field>
-              </VStack>
-            </DialogBody>
-            <DialogFooter gap={2}>
-              <ButtonGroup>
-                <DialogActionTrigger asChild>
-                  <Button
-                    variant="subtle"
-                    colorPalette="gray"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting}>
-                  Add
+                  Cancel
                 </Button>
-              </ButtonGroup>
-            </DialogFooter>
-          </form>
-          <DialogCloseTrigger />
-        </DialogContent>
+              </DialogActionTrigger>
+              <Button variant="solid" type="submit" loading={isSubmitting}>
+                Add
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </form>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

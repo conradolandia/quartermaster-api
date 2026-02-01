@@ -24,7 +24,6 @@ const useAuth = () => {
     enabled: isLoggedIn(),
   })
 
-
   const login = async (data: AccessToken) => {
     const response = await LoginService.loginAccessToken({
       formData: data,

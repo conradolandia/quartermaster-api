@@ -53,22 +53,30 @@ export interface PublicTripsResponse {
 /**
  * Fetch public launches without authentication
  */
-export const fetchPublicLaunches = async (params: { skip?: number; limit?: number } = {}): Promise<PublicLaunchesResponse> => {
+export const fetchPublicLaunches = async (
+  params: { skip?: number; limit?: number } = {},
+): Promise<PublicLaunchesResponse> => {
   const searchParams = new URLSearchParams()
-  if (params.skip !== undefined) searchParams.set('skip', params.skip.toString())
-  if (params.limit !== undefined) searchParams.set('limit', params.limit.toString())
+  if (params.skip !== undefined)
+    searchParams.set("skip", params.skip.toString())
+  if (params.limit !== undefined)
+    searchParams.set("limit", params.limit.toString())
 
-  const url = `${OpenAPI.BASE}/api/v1/launches/public/?${searchParams.toString()}`
+  const url = `${
+    OpenAPI.BASE
+  }/api/v1/launches/public/?${searchParams.toString()}`
 
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch launches: ${response.status} ${response.statusText}`)
+    throw new Error(
+      `Failed to fetch launches: ${response.status} ${response.statusText}`,
+    )
   }
 
   return response.json()
@@ -77,22 +85,30 @@ export const fetchPublicLaunches = async (params: { skip?: number; limit?: numbe
 /**
  * Fetch public missions without authentication
  */
-export const fetchPublicMissions = async (params: { skip?: number; limit?: number } = {}): Promise<PublicMissionsResponse> => {
+export const fetchPublicMissions = async (
+  params: { skip?: number; limit?: number } = {},
+): Promise<PublicMissionsResponse> => {
   const searchParams = new URLSearchParams()
-  if (params.skip !== undefined) searchParams.set('skip', params.skip.toString())
-  if (params.limit !== undefined) searchParams.set('limit', params.limit.toString())
+  if (params.skip !== undefined)
+    searchParams.set("skip", params.skip.toString())
+  if (params.limit !== undefined)
+    searchParams.set("limit", params.limit.toString())
 
-  const url = `${OpenAPI.BASE}/api/v1/missions/public/?${searchParams.toString()}`
+  const url = `${
+    OpenAPI.BASE
+  }/api/v1/missions/public/?${searchParams.toString()}`
 
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch missions: ${response.status} ${response.statusText}`)
+    throw new Error(
+      `Failed to fetch missions: ${response.status} ${response.statusText}`,
+    )
   }
 
   return response.json()
@@ -101,22 +117,28 @@ export const fetchPublicMissions = async (params: { skip?: number; limit?: numbe
 /**
  * Fetch public trips without authentication
  */
-export const fetchPublicTrips = async (params: { skip?: number; limit?: number } = {}): Promise<PublicTripsResponse> => {
+export const fetchPublicTrips = async (
+  params: { skip?: number; limit?: number } = {},
+): Promise<PublicTripsResponse> => {
   const searchParams = new URLSearchParams()
-  if (params.skip !== undefined) searchParams.set('skip', params.skip.toString())
-  if (params.limit !== undefined) searchParams.set('limit', params.limit.toString())
+  if (params.skip !== undefined)
+    searchParams.set("skip", params.skip.toString())
+  if (params.limit !== undefined)
+    searchParams.set("limit", params.limit.toString())
 
   const url = `${OpenAPI.BASE}/api/v1/trips/public/?${searchParams.toString()}`
 
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch trips: ${response.status} ${response.statusText}`)
+    throw new Error(
+      `Failed to fetch trips: ${response.status} ${response.statusText}`,
+    )
   }
 
   return response.json()

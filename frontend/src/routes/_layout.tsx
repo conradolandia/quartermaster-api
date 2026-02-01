@@ -1,11 +1,16 @@
 import { Flex } from "@chakra-ui/react"
-import { Outlet, createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useRouter,
+} from "@tanstack/react-router"
 
+import type { UserPublic } from "@/client"
 import Navbar from "@/components/Common/Navbar"
 import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
-import type { UserPublic } from "@/client"
 
 export const Route = createFileRoute("/_layout")({
   component: Layout,
@@ -32,11 +37,12 @@ function Layout() {
   const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
 
   // Check if this is a public booking confirmation (unauthenticated access)
-  const isPublicBookingConfirmation = router.state.location.pathname === "/bookings" &&
-                                    router.state.location.search &&
-                                    "code" in router.state.location.search &&
-                                    typeof router.state.location.search.code === "string" &&
-                                    !isLoggedIn()
+  const isPublicBookingConfirmation =
+    router.state.location.pathname === "/bookings" &&
+    router.state.location.search &&
+    "code" in router.state.location.search &&
+    typeof router.state.location.search.code === "string" &&
+    !isLoggedIn()
 
   // For public booking confirmations, don't show navbar and sidebar
   if (isPublicBookingConfirmation) {

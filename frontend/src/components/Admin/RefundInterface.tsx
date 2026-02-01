@@ -16,12 +16,9 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiChevronUp, FiChevronDown, FiSearch, FiX } from "react-icons/fi"
+import { FiChevronDown, FiChevronUp, FiSearch, FiX } from "react-icons/fi"
 
-import {
-  BookingsService,
-  type BookingPublic,
-} from "@/client"
+import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
@@ -46,7 +43,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
   const [refundAmount, setRefundAmount] = useState<number | null>(null)
-  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(null)
+  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(
+    null,
+  )
 
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -63,9 +62,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       showSuccessToast("Booking found successfully")
     },
     onError: (error: any) => {
-      showErrorToast(
-        error?.response?.data?.detail || "Failed to find booking",
-      )
+      showErrorToast(error?.response?.data?.detail || "Failed to find booking")
       setCurrentBooking(null)
     },
   })
@@ -186,7 +183,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
               <Input
                 placeholder="Enter confirmation code"
                 value={confirmationCode}
-                onChange={(e) => setConfirmationCode(e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  setConfirmationCode(e.target.value.toUpperCase())
+                }
                 onKeyDown={(e) => e.key === "Enter" && handleLookupBooking()}
               />
               <Button
@@ -204,25 +203,30 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
 
       {/* Two-column layout for large screens */}
       {currentBooking && (
-        <Grid
-          templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
-          gap={6}
-        >
+        <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={6}>
           {/* Booking Details */}
           <Card.Root bg="bg.panel">
             <Card.Body>
               <VStack gap={4} align="stretch">
                 <HStack justify="space-between" align="center">
                   <Heading size="md">Booking Details</Heading>
-                  <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")}>
-                    {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
+                  <Badge
+                    colorPalette={getStatusColor(
+                      currentBooking.status || "unknown",
+                    )}
+                  >
+                    {(currentBooking.status || "unknown")
+                      .replace("_", " ")
+                      .toUpperCase()}
                   </Badge>
                 </HStack>
 
                 <VStack gap={3} align="stretch">
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Confirmation Code:</Text>
-                    <Text fontFamily="mono">{currentBooking.confirmation_code}</Text>
+                    <Text fontFamily="mono">
+                      {currentBooking.confirmation_code}
+                    </Text>
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Customer:</Text>
@@ -238,7 +242,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Total Amount:</Text>
-                    <Text fontWeight="bold">${formatCents(currentBooking.total_amount)}</Text>
+                    <Text fontWeight="bold">
+                      ${formatCents(currentBooking.total_amount)}
+                    </Text>
                   </HStack>
                 </VStack>
 
@@ -258,11 +264,19 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                     </Text>
                     <VStack gap={2} align="stretch">
                       {currentBooking.items.map((item, index) => (
-                        <HStack key={index} justify="space-between" borderRadius="md">
+                        <HStack
+                          key={index}
+                          justify="space-between"
+                          borderRadius="md"
+                        >
                           <Text>
                             {item.quantity}x {item.item_type.replace("_", " ")}
                           </Text>
-                          <Badge colorPalette={item.status === "refunded" ? "orange" : "blue"}>
+                          <Badge
+                            colorPalette={
+                              item.status === "refunded" ? "orange" : "blue"
+                            }
+                          >
                             {item.status}
                           </Badge>
                         </HStack>
@@ -288,9 +302,12 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         Refund Amount
                       </Text>
                       <NumberInput.Root
-                        value={((refundAmount ?? currentBooking.total_amount) / 100).toFixed(2)}
+                        value={(
+                          (refundAmount ?? currentBooking.total_amount) / 100
+                        ).toFixed(2)}
                         onValueChange={(details) => {
-                          const dollars = Number.parseFloat(details.value || "0") || 0
+                          const dollars =
+                            Number.parseFloat(details.value || "0") || 0
                           setRefundAmount(Math.round(dollars * 100))
                         }}
                         min={0}
@@ -320,7 +337,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                       <Select.Root
                         collection={reasonsCollection}
                         value={refundReason ? [refundReason] : []}
-                        onValueChange={(details) => setRefundReason(details.value[0] || "")}
+                        onValueChange={(details) =>
+                          setRefundReason(details.value[0] || "")
+                        }
                       >
                         <Select.Control width="100%">
                           <Select.Trigger>
@@ -387,7 +406,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                     Refund completed
                   </Text>
                   <Text color="text.muted">
-                    This booking has been refunded. Items above show refunded status.
+                    This booking has been refunded. Items above show refunded
+                    status.
                   </Text>
                   {(() => {
                     const itemWithDetails = currentBooking.items?.find(

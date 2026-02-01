@@ -13,7 +13,11 @@ import {
 } from "../ui/dialog"
 
 import { type LocationCreate, LocationsService } from "@/client"
-import { formatLocationTimezoneDisplay, handleError, US_TIMEZONES } from "@/utils"
+import {
+  US_TIMEZONES,
+  formatLocationTimezoneDisplay,
+  handleError,
+} from "@/utils"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import { Field } from "../ui/field"
@@ -80,95 +84,95 @@ export const AddLocation = ({
       onOpenChange={({ open }) => !open && onClose()}
     >
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Add Location</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              <VStack gap={4}>
-                <Field
-                  label="Name"
-                  required
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Add Location</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <VStack gap={4}>
+              <Field
+                label="Name"
+                required
+                invalid={!!errors.name}
+                errorText={errors.name?.message}
+              >
+                <Input
+                  id="name"
+                  {...register("name", {
+                    required: "Name is required",
+                    minLength: { value: 1, message: "Name is required" },
+                    maxLength: {
+                      value: 255,
+                      message: "Name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Location name"
+                />
+              </Field>
+              <Field
+                label="State"
+                required
+                invalid={!!errors.state}
+                errorText={errors.state?.message}
+              >
+                <Controller
+                  name="state"
+                  control={control}
+                  rules={{
+                    required: "State is required",
+                  }}
+                  render={({ field }) => (
+                    <StateDropdown
+                      value={field.value}
+                      onChange={field.onChange}
+                      id="state"
+                      isDisabled={isSubmitting}
+                      portalRef={contentRef}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Timezone">
+                <Controller
+                  name="timezone"
+                  control={control}
+                  render={({ field }) => (
+                    <NativeSelect
+                      id="timezone"
+                      value={field.value ?? "UTC"}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      disabled={isSubmitting}
+                    >
+                      {US_TIMEZONES.map((tz) => (
+                        <option key={tz} value={tz}>
+                          {formatLocationTimezoneDisplay(tz)}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
+                />
+              </Field>
+            </VStack>
+          </DialogBody>
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
                 >
-                  <Input
-                    id="name"
-                    {...register("name", {
-                      required: "Name is required",
-                      minLength: { value: 1, message: "Name is required" },
-                      maxLength: {
-                        value: 255,
-                        message: "Name cannot exceed 255 characters",
-                      },
-                    })}
-                    placeholder="Location name"
-                  />
-                </Field>
-                <Field
-                  label="State"
-                  required
-                  invalid={!!errors.state}
-                  errorText={errors.state?.message}
-                >
-                  <Controller
-                    name="state"
-                    control={control}
-                    rules={{
-                      required: "State is required",
-                    }}
-                    render={({ field }) => (
-                      <StateDropdown
-                        value={field.value}
-                        onChange={field.onChange}
-                        id="state"
-                        isDisabled={isSubmitting}
-                        portalRef={contentRef}
-                      />
-                    )}
-                  />
-                </Field>
-                <Field label="Timezone">
-                  <Controller
-                    name="timezone"
-                    control={control}
-                    render={({ field }) => (
-                      <NativeSelect
-                        id="timezone"
-                        value={field.value ?? "UTC"}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        disabled={isSubmitting}
-                      >
-                        {US_TIMEZONES.map((tz) => (
-                          <option key={tz} value={tz}>
-                            {formatLocationTimezoneDisplay(tz)}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    )}
-                  />
-                </Field>
-              </VStack>
-            </DialogBody>
-            <DialogFooter gap={2}>
-              <ButtonGroup>
-                <DialogActionTrigger asChild>
-                  <Button
-                    variant="subtle"
-                    colorPalette="gray"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting}>
-                  Add
+                  Cancel
                 </Button>
-              </ButtonGroup>
-            </DialogFooter>
-          </form>
-          <DialogCloseTrigger />
-        </DialogContent>
+              </DialogActionTrigger>
+              <Button variant="solid" type="submit" loading={isSubmitting}>
+                Add
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </form>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

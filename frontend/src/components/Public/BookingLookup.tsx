@@ -12,17 +12,19 @@ import {
 import { useState } from "react"
 import { FiSearch } from "react-icons/fi"
 
-import { BookingsService, type BookingPublic } from "@/client"
+import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
-import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 
 const BookingLookup = () => {
   const [confirmationCode, setConfirmationCode] = useState("")
   const [lastName, setLastName] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(null)
+  const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(
+    null,
+  )
 
   const { showSuccessToast, showErrorToast } = useCustomToast()
 
@@ -39,7 +41,8 @@ const BookingLookup = () => {
       })
 
       // Verify last name matches (case-insensitive)
-      const bookingLastName = booking.user_name.split(" ").pop()?.toLowerCase() || ""
+      const bookingLastName =
+        booking.user_name.split(" ").pop()?.toLowerCase() || ""
       const inputLastName = lastName.trim().toLowerCase()
 
       if (bookingLastName !== inputLastName) {
@@ -52,7 +55,8 @@ const BookingLookup = () => {
       showSuccessToast("Booking found successfully")
     } catch (error: any) {
       showErrorToast(
-        error?.response?.data?.detail || "Booking not found. Please check your confirmation code and last name.",
+        error?.response?.data?.detail ||
+          "Booking not found. Please check your confirmation code and last name.",
       )
       setCurrentBooking(null)
     } finally {
@@ -102,7 +106,8 @@ const BookingLookup = () => {
           Look Up Your Booking
         </Heading>
         <Text color="text.muted">
-          Enter your confirmation code and last name to view your booking details
+          Enter your confirmation code and last name to view your booking
+          details
         </Text>
       </Box>
 
@@ -118,7 +123,9 @@ const BookingLookup = () => {
                 <Input
                   placeholder="Enter your confirmation code (e.g., ABC12345)"
                   value={confirmationCode}
-                  onChange={(e) => setConfirmationCode(e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    setConfirmationCode(e.target.value.toUpperCase())
+                  }
                   onKeyPress={(e) => e.key === "Enter" && handleLookup()}
                 />
               </Box>
@@ -164,8 +171,15 @@ const BookingLookup = () => {
             <VStack gap={6} align="stretch">
               <HStack justify="space-between" align="center">
                 <Heading size="md">Booking Details</Heading>
-                <Badge colorPalette={getStatusColor(currentBooking.status || "unknown")} size="lg">
-                  {(currentBooking.status || "unknown").replace("_", " ").toUpperCase()}
+                <Badge
+                  colorPalette={getStatusColor(
+                    currentBooking.status || "unknown",
+                  )}
+                  size="lg"
+                >
+                  {(currentBooking.status || "unknown")
+                    .replace("_", " ")
+                    .toUpperCase()}
                 </Badge>
               </HStack>
 
@@ -228,7 +242,9 @@ const BookingLookup = () => {
                   {currentBooking.discount_amount > 0 && (
                     <HStack justify="space-between">
                       <Text color="green.600">Discount:</Text>
-                      <Text color="green.600">-${formatCents(currentBooking.discount_amount)}</Text>
+                      <Text color="green.600">
+                        -${formatCents(currentBooking.discount_amount)}
+                      </Text>
                     </HStack>
                   )}
                   <HStack justify="space-between">
@@ -241,9 +257,18 @@ const BookingLookup = () => {
                       <Text>${formatCents(currentBooking.tip_amount)}</Text>
                     </HStack>
                   )}
-                  <HStack justify="space-between" borderTop="1px solid" borderColor="gray.200" pt={2}>
-                    <Text fontWeight="bold" fontSize="lg">Total:</Text>
-                    <Text fontWeight="bold" fontSize="lg">${formatCents(currentBooking.total_amount)}</Text>
+                  <HStack
+                    justify="space-between"
+                    borderTop="1px solid"
+                    borderColor="gray.200"
+                    pt={2}
+                  >
+                    <Text fontWeight="bold" fontSize="lg">
+                      Total:
+                    </Text>
+                    <Text fontWeight="bold" fontSize="lg">
+                      ${formatCents(currentBooking.total_amount)}
+                    </Text>
                   </HStack>
                 </VStack>
               </Box>
@@ -260,8 +285,16 @@ const BookingLookup = () => {
                   </HStack>
                   {currentBooking.special_requests && (
                     <Box>
-                      <Text fontWeight="medium" mb={1}>Special Requests:</Text>
-                      <Text fontSize="sm" color="text.muted" p={2} bg="gray.50" borderRadius="md">
+                      <Text fontWeight="medium" mb={1}>
+                        Special Requests:
+                      </Text>
+                      <Text
+                        fontSize="sm"
+                        color="text.muted"
+                        p={2}
+                        bg="gray.50"
+                        borderRadius="md"
+                      >
                         {currentBooking.special_requests}
                       </Text>
                     </Box>
@@ -271,10 +304,7 @@ const BookingLookup = () => {
 
               {/* Actions */}
               <HStack gap={4} justify="center">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                >
+                <Button variant="outline" onClick={handleReset}>
                   Look Up Another Booking
                 </Button>
                 {currentBooking.status === "confirmed" && (
@@ -282,7 +312,9 @@ const BookingLookup = () => {
                     colorPalette="blue"
                     onClick={() => {
                       // In a real app, this would open the QR code or check-in page
-                      showSuccessToast("QR code functionality would be available here")
+                      showSuccessToast(
+                        "QR code functionality would be available here",
+                      )
                     }}
                   >
                     View QR Code

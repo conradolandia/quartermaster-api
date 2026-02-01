@@ -1,6 +1,6 @@
-import { enUS } from "date-fns/locale/en-US"
 import { formatInTimeZone } from "date-fns-tz/formatInTimeZone"
 import { toDate } from "date-fns-tz/toDate"
+import { enUS } from "date-fns/locale/en-US"
 
 import type { ApiError } from "./client"
 import useCustomToast from "./hooks/useCustomToast"
@@ -12,8 +12,9 @@ import useCustomToast from "./hooks/useCustomToast"
  * without timezone as UTC so format() displays in the user's locale.
  */
 export function parseApiDate(isoString: string | null | undefined): Date {
-  if (isoString == null || isoString === "") return new Date(NaN)
-  const hasTimezone = isoString.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(isoString)
+  if (isoString == null || isoString === "") return new Date(Number.NaN)
+  const hasTimezone =
+    isoString.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(isoString)
   return new Date(hasTimezone ? isoString : `${isoString}Z`)
 }
 
@@ -119,7 +120,8 @@ export function formatInLocationTimezoneWithAbbr(
     timeZone: timezone,
     timeZoneName: "short",
   }).formatToParts(utcDate)
-  const timezoneAbbr = parts.find((p) => p.type === "timeZoneName")?.value ?? timezone
+  const timezoneAbbr =
+    parts.find((p) => p.type === "timeZoneName")?.value ?? timezone
   return { dateTime, timezoneAbbr }
 }
 
@@ -133,7 +135,9 @@ export function formatDateTimeInLocationTz(
   if (!dateString) return ""
   const d = parseApiDate(dateString)
   const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
-  return parts ? `${parts.dateTime} ${parts.timezoneAbbr}` : formatDateTimeNoSeconds(d)
+  return parts
+    ? `${parts.dateTime} ${parts.timezoneAbbr}`
+    : formatDateTimeNoSeconds(d)
 }
 
 /**

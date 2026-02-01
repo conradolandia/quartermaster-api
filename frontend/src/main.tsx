@@ -25,17 +25,36 @@ const isBaseDomain = !isLocalhost && !hostname.startsWith("admin.")
 
 // Public routes allowed on base domain (book.star-fleet.tours)
 // /bookings with ?code= is the public booking confirmation; layout restricts unauthenticated access to that
-const publicRoutes = ["/book", "/book-confirm", "/bookings", "/lookup", "/login", "/reset-password", "/recover-password"]
-const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route + "/"))
+const publicRoutes = [
+  "/book",
+  "/book-confirm",
+  "/bookings",
+  "/lookup",
+  "/login",
+  "/reset-password",
+  "/recover-password",
+]
+const isPublicRoute = publicRoutes.some(
+  (route) => pathname === route || pathname.startsWith(`${route}/`),
+)
 const isRootPath = pathname === "/" || pathname === ""
 
 // Option 2: Redirect unauthenticated users from admin.*/bookings?code=... to public URL
-const publicBookingBaseUrl = (import.meta as any).env?.VITE_PUBLIC_BOOKING_BASE_URL as string | undefined
+const publicBookingBaseUrl = (import.meta as any).env
+  ?.VITE_PUBLIC_BOOKING_BASE_URL as string | undefined
 const hasBookingCode = search && /[?&]code=/.test(search)
-if (isAdminDomain && pathname === "/bookings" && hasBookingCode && publicBookingBaseUrl) {
+if (
+  isAdminDomain &&
+  pathname === "/bookings" &&
+  hasBookingCode &&
+  publicBookingBaseUrl
+) {
   const hasToken = !!localStorage.getItem("access_token")
   if (!hasToken) {
-    const publicUrl = `${publicBookingBaseUrl.replace(/\/$/, "")}${pathname}${search}`
+    const publicUrl = `${publicBookingBaseUrl.replace(
+      /\/$/,
+      "",
+    )}${pathname}${search}`
     window.location.replace(publicUrl)
   }
 }
@@ -59,7 +78,7 @@ const handleApiError = (error: Error) => {
   if (error instanceof ApiError && [401, 403].includes(error.status)) {
     const pathname = window.location.pathname
     const onPublicRoute = publicRoutes.some(
-      (route) => pathname === route || pathname.startsWith(route + "/")
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
     )
     if (!onPublicRoute) {
       localStorage.removeItem("access_token")

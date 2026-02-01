@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { FiDollarSign, FiUsers, FiTrendingUp, FiCalendar } from "react-icons/fi"
+import { FiCalendar, FiDollarSign, FiTrendingUp, FiUsers } from "react-icons/fi"
 
 import { BookingsService, TripsService } from "@/client"
 import { formatCents } from "@/utils"
@@ -40,24 +40,31 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
   const trips = tripsData?.data || []
 
   // Extract trip boats from trips data
-  const tripBoats = trips.flatMap(trip => trip.trip_boats || [])
+  const tripBoats = trips.flatMap((trip) => trip.trip_boats || [])
 
   // Calculate statistics
   const stats = {
     totalBookings: bookings.length,
     totalRevenue: bookings
-      .filter(booking =>
-        ['confirmed', 'checked_in', 'completed'].includes(booking.status || '')
+      .filter((booking) =>
+        ["confirmed", "checked_in", "completed"].includes(booking.status || ""),
       )
       .reduce((sum, booking) => sum + booking.total_amount, 0),
-    grossRevenue: bookings.reduce((sum, booking) => sum + booking.total_amount, 0),
+    grossRevenue: bookings.reduce(
+      (sum, booking) => sum + booking.total_amount,
+      0,
+    ),
     confirmedBookings: bookings.filter((b) => b.status === "confirmed").length,
     checkedInBookings: bookings.filter((b) => b.status === "checked_in").length,
     completedBookings: bookings.filter((b) => b.status === "completed").length,
     cancelledBookings: bookings.filter((b) => b.status === "cancelled").length,
     refundedBookings: bookings.filter((b) => b.status === "refunded").length,
     totalPassengers: bookings.reduce((sum, booking) => {
-      return sum + (booking.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0)
+      return (
+        sum +
+        (booking.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) ||
+          0)
+      )
     }, 0),
   }
 
@@ -69,22 +76,30 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
     return sum + capacity
   }, 0)
 
-  const capacityUtilization = totalCapacity > 0 ? (stats.totalPassengers / totalCapacity) * 100 : 0
+  const capacityUtilization =
+    totalCapacity > 0 ? (stats.totalPassengers / totalCapacity) * 100 : 0
 
   // Calculate average booking value
-  const averageBookingValue = stats.totalBookings > 0 ? stats.totalRevenue / stats.totalBookings : 0
+  const averageBookingValue =
+    stats.totalBookings > 0 ? stats.totalRevenue / stats.totalBookings : 0
 
   // Calculate conversion rate (confirmed vs total)
-  const conversionRate = stats.totalBookings > 0 ? (stats.confirmedBookings / stats.totalBookings) * 100 : 0
+  const conversionRate =
+    stats.totalBookings > 0
+      ? (stats.confirmedBookings / stats.totalBookings) * 100
+      : 0
 
   // Get recent bookings (last 7 days)
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  const recentBookings = bookings.filter((booking) =>
-    new Date(booking.created_at) >= sevenDaysAgo
+  const recentBookings = bookings.filter(
+    (booking) => new Date(booking.created_at) >= sevenDaysAgo,
   )
 
-  const recentRevenue = recentBookings.reduce((sum, booking) => sum + booking.total_amount, 0)
+  const recentRevenue = recentBookings.reduce(
+    (sum, booking) => sum + booking.total_amount,
+    0,
+  )
 
   if (isLoadingBookings) {
     return (
@@ -101,7 +116,7 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
     icon,
     color = "blue",
     subtitle,
-    trend
+    trend,
   }: {
     title: string
     value: string | number
@@ -135,7 +150,8 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                   color={trend.isPositive ? "green.500" : "red.500"}
                   fontWeight="medium"
                 >
-                  {trend.isPositive ? "+" : ""}{trend.value.toFixed(1)}%
+                  {trend.isPositive ? "+" : ""}
+                  {trend.value.toFixed(1)}%
                 </Text>
                 <Text fontSize="sm" color="text.muted">
                   vs last period
@@ -153,7 +169,14 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
       <Heading size="lg">Dashboard Statistics</Heading>
 
       {/* Key Metrics */}
-      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap={4}>
+      <Grid
+        templateColumns={{
+          base: "1fr",
+          md: "repeat(2, 1fr)",
+          lg: "repeat(4, 1fr)",
+        }}
+        gap={4}
+      >
         <StatCard
           title="Total Bookings"
           value={stats.totalBookings}
@@ -166,7 +189,9 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
           value={`$${formatCents(stats.totalRevenue)}`}
           icon={<FiDollarSign />}
           color="green"
-          subtitle={`Net: $${formatCents(stats.totalRevenue)} | Gross: $${formatCents(stats.grossRevenue)}`}
+          subtitle={`Net: $${formatCents(
+            stats.totalRevenue,
+          )} | Gross: $${formatCents(stats.grossRevenue)}`}
         />
         <StatCard
           title="Total Passengers"
@@ -189,41 +214,63 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
         <Card.Body>
           <VStack gap={4} align="stretch">
             <Heading size="md">Booking Status Breakdown</Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4}>
+            <Grid
+              templateColumns={{
+                base: "1fr",
+                md: "repeat(2, 1fr)",
+                lg: "repeat(3, 1fr)",
+              }}
+              gap={4}
+            >
               <StatCard
                 title="Confirmed"
                 value={stats.confirmedBookings}
                 icon={<FiCalendar />}
                 color="blue"
-                subtitle={`${((stats.confirmedBookings / stats.totalBookings) * 100).toFixed(1)}% of total`}
+                subtitle={`${(
+                  (stats.confirmedBookings / stats.totalBookings) *
+                  100
+                ).toFixed(1)}% of total`}
               />
               <StatCard
                 title="Checked In"
                 value={stats.checkedInBookings}
                 icon={<FiUsers />}
                 color="green"
-                subtitle={`${((stats.checkedInBookings / stats.totalBookings) * 100).toFixed(1)}% of total`}
+                subtitle={`${(
+                  (stats.checkedInBookings / stats.totalBookings) *
+                  100
+                ).toFixed(1)}% of total`}
               />
               <StatCard
                 title="Completed"
                 value={stats.completedBookings}
                 icon={<FiTrendingUp />}
                 color="purple"
-                subtitle={`${((stats.completedBookings / stats.totalBookings) * 100).toFixed(1)}% of total`}
+                subtitle={`${(
+                  (stats.completedBookings / stats.totalBookings) *
+                  100
+                ).toFixed(1)}% of total`}
               />
               <StatCard
                 title="Cancelled"
                 value={stats.cancelledBookings}
                 icon={<FiCalendar />}
                 color="red"
-                subtitle={`${((stats.cancelledBookings / stats.totalBookings) * 100).toFixed(1)}% of total`}
+                subtitle={`${(
+                  (stats.cancelledBookings / stats.totalBookings) *
+                  100
+                ).toFixed(1)}% of total`}
               />
               <StatCard
                 title="Refunded"
                 value={stats.refundedBookings}
                 icon={<FiDollarSign />}
                 color="orange"
-                subtitle={`${((stats.refundedBookings / stats.totalBookings) * 100).toFixed(1)}% of total`}
+                subtitle={`${(
+                  (stats.refundedBookings / stats.totalBookings) *
+                  100
+                ).toFixed(1)}% of total`}
               />
             </Grid>
           </VStack>
@@ -247,14 +294,27 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                 </HStack>
                 <Box>
                   <HStack justify="space-between" mb={2}>
-                    <Text fontSize="sm" color="text.muted">Utilization</Text>
+                    <Text fontSize="sm" color="text.muted">
+                      Utilization
+                    </Text>
                     <Text fontSize="sm" fontWeight="bold">
                       {capacityUtilization.toFixed(1)}%
                     </Text>
                   </HStack>
-                  <Box bg="gray.200" h="8px" borderRadius="md" overflow="hidden">
+                  <Box
+                    bg="gray.200"
+                    h="8px"
+                    borderRadius="md"
+                    overflow="hidden"
+                  >
                     <Box
-                      bg={capacityUtilization > 80 ? "red.500" : capacityUtilization > 60 ? "orange.500" : "green.500"}
+                      bg={
+                        capacityUtilization > 80
+                          ? "red.500"
+                          : capacityUtilization > 60
+                            ? "orange.500"
+                            : "green.500"
+                      }
                       h="100%"
                       w={`${Math.min(capacityUtilization, 100)}%`}
                       transition="width 0.3s ease"
@@ -273,7 +333,15 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
               <VStack gap={3} align="stretch">
                 <HStack justify="space-between">
                   <Text>Conversion Rate</Text>
-                  <Badge colorPalette={conversionRate > 70 ? "green" : conversionRate > 50 ? "orange" : "red"}>
+                  <Badge
+                    colorPalette={
+                      conversionRate > 70
+                        ? "green"
+                        : conversionRate > 50
+                          ? "orange"
+                          : "red"
+                    }
+                  >
                     {conversionRate.toFixed(1)}%
                   </Badge>
                 </HStack>
@@ -283,9 +351,7 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                 </HStack>
                 <HStack justify="space-between">
                   <Text>Recent Revenue (7 days)</Text>
-                  <Text fontWeight="bold">
-                    ${formatCents(recentRevenue)}
-                  </Text>
+                  <Text fontWeight="bold">${formatCents(recentRevenue)}</Text>
                 </HStack>
               </VStack>
             </VStack>
@@ -305,7 +371,11 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                 </Text>
               ) : (
                 recentBookings.slice(0, 5).map((booking) => (
-                  <HStack key={booking.id} justify="space-between" borderRadius="md">
+                  <HStack
+                    key={booking.id}
+                    justify="space-between"
+                    borderRadius="md"
+                  >
                     <VStack align="start" gap={1}>
                       <Text fontWeight="medium">{booking.user_name}</Text>
                       <Text fontSize="sm" color="text.muted">
@@ -313,8 +383,14 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                       </Text>
                     </VStack>
                     <VStack align="end" gap={1}>
-                      <Badge colorPalette={getStatusColor(booking.status || "unknown")}>
-                        {(booking.status || "unknown").replace("_", " ").toUpperCase()}
+                      <Badge
+                        colorPalette={getStatusColor(
+                          booking.status || "unknown",
+                        )}
+                      >
+                        {(booking.status || "unknown")
+                          .replace("_", " ")
+                          .toUpperCase()}
                       </Badge>
                       <Text fontSize="sm" fontWeight="bold">
                         ${formatCents(booking.total_amount)}

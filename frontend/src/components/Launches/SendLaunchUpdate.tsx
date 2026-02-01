@@ -12,6 +12,7 @@ import { useRef, useState } from "react"
 import { FiMail } from "react-icons/fi"
 
 import type { LaunchPublic } from "@/client"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -22,7 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 
@@ -58,8 +58,11 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
-          body: JSON.stringify({ message: data.message, priority: data.priority }),
-        }
+          body: JSON.stringify({
+            message: data.message,
+            priority: data.priority,
+          }),
+        },
       )
       if (!response.ok) {
         throw new Error("Failed to send update")
@@ -69,12 +72,10 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
     onSuccess: (data) => {
       if (data.emails_sent > 0) {
         showSuccessToast(
-          `Successfully sent launch update to ${data.emails_sent} customer(s).`
+          `Successfully sent launch update to ${data.emails_sent} customer(s).`,
         )
       } else {
-        showSuccessToast(
-          "No customers found for this launch."
-        )
+        showSuccessToast("No customers found for this launch.")
       }
       if (data.emails_failed > 0) {
         showErrorToast(`Failed to send ${data.emails_failed} email(s).`)
@@ -108,62 +109,62 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>
-          <DialogHeader>
-            <DialogTitle>Send Launch Update</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <Text mb={4}>
-              Send an update to customers with confirmed bookings for this launch.
-              {!priority && " Only customers who have opted in to receive launch updates will be notified."}
-            </Text>
-            <VStack gap={4}>
-              <Field label="Launch">
-                <Input value={launch.name} disabled />
-              </Field>
+        <DialogHeader>
+          <DialogTitle>Send Launch Update</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <Text mb={4}>
+            Send an update to customers with confirmed bookings for this launch.
+            {!priority &&
+              " Only customers who have opted in to receive launch updates will be notified."}
+          </Text>
+          <VStack gap={4}>
+            <Field label="Launch">
+              <Input value={launch.name} disabled />
+            </Field>
 
-              <Field label="Update Message">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Enter the update message to send to customers..."
-                  rows={6}
-                />
-              </Field>
+            <Field label="Update Message">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Enter the update message to send to customers..."
+                rows={6}
+              />
+            </Field>
 
-              <Checkbox
-                checked={priority}
-                onCheckedChange={({ checked }) =>
-                  setPriority(checked === true)
-                }
-              >
-                Priority update (override customer preferences - send to all customers)
-              </Checkbox>
-            </VStack>
-          </DialogBody>
+            <Checkbox
+              checked={priority}
+              onCheckedChange={({ checked }) => setPriority(checked === true)}
+            >
+              Priority update (override customer preferences - send to all
+              customers)
+            </Checkbox>
+          </VStack>
+        </DialogBody>
 
-          <DialogFooter gap={2}>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button
-                  variant="subtle"
-                  colorPalette="gray"
-                  disabled={sendUpdateMutation.isPending}
-                >
-                  Cancel
-                </Button>
-              </DialogActionTrigger>
+        <DialogFooter gap={2}>
+          <ButtonGroup>
+            <DialogActionTrigger asChild>
               <Button
-                variant="solid"
-                onClick={handleSend}
-                disabled={!message.trim()}
-                loading={sendUpdateMutation.isPending}
+                variant="subtle"
+                colorPalette="gray"
+                disabled={sendUpdateMutation.isPending}
               >
-                Send Update
+                Cancel
               </Button>
-            </ButtonGroup>
-          </DialogFooter>
-          <DialogCloseTrigger />
-        </DialogContent>
+            </DialogActionTrigger>
+            <Button
+              variant="solid"
+              onClick={handleSend}
+              disabled={!message.trim()}
+              loading={sendUpdateMutation.isPending}
+            >
+              Send Update
+            </Button>
+          </ButtonGroup>
+        </DialogFooter>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

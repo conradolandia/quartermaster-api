@@ -47,10 +47,12 @@ export const system = createSystem(defaultConfig, {
             "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
         },
         mono: {
-          value: "'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+          value:
+            "'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
         },
         logo: {
-          value: "Bitsumishi, Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+          value:
+            "Bitsumishi, Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
         },
       },
       fontSizes: {

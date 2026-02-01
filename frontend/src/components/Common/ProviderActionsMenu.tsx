@@ -10,9 +10,7 @@ interface ProviderActionsMenuProps {
   provider: ProviderPublic
 }
 
-export const ProviderActionsMenu = ({
-  provider,
-}: ProviderActionsMenuProps) => {
+export const ProviderActionsMenu = ({ provider }: ProviderActionsMenuProps) => {
   return (
     <MenuRoot>
       <MenuTrigger asChild>

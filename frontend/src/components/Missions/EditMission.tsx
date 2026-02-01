@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   ButtonGroup,
-  createListCollection,
   DialogActionTrigger,
   Flex,
   Input,
@@ -11,6 +10,7 @@ import {
   Select,
   Text,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
@@ -79,7 +79,9 @@ const EditMission = ({ mission }: EditMissionProps) => {
   })
 
   // Check if mission's launch is in the past
-  const isPast = launchData ? parseApiDate(launchData.launch_timestamp) < new Date() : false
+  const isPast = launchData
+    ? parseApiDate(launchData.launch_timestamp) < new Date()
+    : false
   const {
     register,
     handleSubmit,
@@ -168,175 +170,187 @@ const EditMission = ({ mission }: EditMissionProps) => {
         <Button
           variant="ghost"
           disabled={isPast}
-          title={isPast ? "This mission's launch has already occurred and cannot be edited" : ""}
+          title={
+            isPast
+              ? "This mission's launch has already occurred and cannot be edited"
+              : ""
+          }
         >
           <FaExchangeAlt fontSize="16px" />
           Edit Mission
         </Button>
       </DialogTrigger>
       <DialogContent ref={contentRef}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Edit Mission</DialogTitle>
-            </DialogHeader>
-            <DialogBody>
-              {isPast && (
-                <Text mb={4} color="orange.500">
-                  This mission's launch has already occurred and cannot be edited. Contact a system administrator if you need to make changes to past missions.
-                </Text>
-              )}
-              {!isPast && <Text mb={4}>Update the mission details below.</Text>}
-              <VStack gap={4}>
-                <Field
-                  invalid={!!errors.name}
-                  errorText={errors.name?.message}
-                  label="Name"
-                >
-                  <Input
-                    id="name"
-                    {...register("name")}
-                    placeholder="Mission name"
-                    type="text"
-                    disabled={isPast}
-                  />
-                </Field>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Edit Mission</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {isPast && (
+              <Text mb={4} color="orange.500">
+                This mission's launch has already occurred and cannot be edited.
+                Contact a system administrator if you need to make changes to
+                past missions.
+              </Text>
+            )}
+            {!isPast && <Text mb={4}>Update the mission details below.</Text>}
+            <VStack gap={4}>
+              <Field
+                invalid={!!errors.name}
+                errorText={errors.name?.message}
+                label="Name"
+              >
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Mission name"
+                  type="text"
+                  disabled={isPast}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.launch_id}
-                  errorText={errors.launch_id?.message}
-                  label="Launch"
-                >
-                  <Controller
-                    name="launch_id"
-                    control={control}
-                    render={({ field }) => (
-                      <LaunchDropdown
-                        id="launch_id"
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        disabled={isSubmitting || isPast}
-                        portalRef={contentRef}
-                      />
-                    )}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.launch_id}
+                errorText={errors.launch_id?.message}
+                label="Launch"
+              >
+                <Controller
+                  name="launch_id"
+                  control={control}
+                  render={({ field }) => (
+                    <LaunchDropdown
+                      id="launch_id"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      disabled={isSubmitting || isPast}
+                      portalRef={contentRef}
+                    />
+                  )}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.sales_open_at}
-                  errorText={errors.sales_open_at?.message}
-                  label={`Sales Open Date & Time (${formatLocationTimezoneDisplay(mission.timezone ?? "UTC")})`}
-                >
-                  <Input
-                    id="sales_open_at"
-                    {...register("sales_open_at")}
-                    placeholder={`Enter time in ${formatLocationTimezoneDisplay(mission.timezone ?? "UTC")}`}
-                    type="datetime-local"
-                    disabled={isPast}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.sales_open_at}
+                errorText={errors.sales_open_at?.message}
+                label={`Sales Open Date & Time (${formatLocationTimezoneDisplay(
+                  mission.timezone ?? "UTC",
+                )})`}
+              >
+                <Input
+                  id="sales_open_at"
+                  {...register("sales_open_at")}
+                  placeholder={`Enter time in ${formatLocationTimezoneDisplay(
+                    mission.timezone ?? "UTC",
+                  )}`}
+                  type="datetime-local"
+                  disabled={isPast}
+                />
+              </Field>
 
-                <Field
-                  invalid={!!errors.refund_cutoff_hours}
-                  errorText={errors.refund_cutoff_hours?.message}
-                  label="Refund Cutoff Hours"
-                >
-                  <Input
-                    id="refund_cutoff_hours"
-                    {...register("refund_cutoff_hours", {
-                      valueAsNumber: true,
-                    })}
-                    placeholder="Refund cutoff hours"
-                    type="number"
-                    min={0}
-                    max={72}
-                    disabled={isPast}
-                  />
-                </Field>
+              <Field
+                invalid={!!errors.refund_cutoff_hours}
+                errorText={errors.refund_cutoff_hours?.message}
+                label="Refund Cutoff Hours"
+              >
+                <Input
+                  id="refund_cutoff_hours"
+                  {...register("refund_cutoff_hours", {
+                    valueAsNumber: true,
+                  })}
+                  placeholder="Refund cutoff hours"
+                  type="number"
+                  min={0}
+                  max={72}
+                  disabled={isPast}
+                />
+              </Field>
 
-                <Field>
-                  <Flex
-                    alignItems="center"
-                    justifyContent="space-between"
-                    width="100%"
+              <Field>
+                <Flex
+                  alignItems="center"
+                  justifyContent="space-between"
+                  width="100%"
+                >
+                  <Text>Active</Text>
+                  <Box
+                    onClick={() => {
+                      if (!isPast) setActive(!active)
+                    }}
+                    cursor={isPast ? "not-allowed" : "pointer"}
+                    opacity={isPast ? 0.5 : 1}
                   >
-                    <Text>Active</Text>
-                    <Box
-                      onClick={() => {
-                        if (!isPast) setActive(!active)
-                      }}
-                      cursor={isPast ? "not-allowed" : "pointer"}
-                      opacity={isPast ? 0.5 : 1}
+                    <Switch checked={active} inputProps={{ id: "active" }} />
+                  </Box>
+                </Flex>
+              </Field>
+
+              <Field
+                label="Booking Mode"
+                helperText="Controls who can book tickets for this mission"
+              >
+                <Controller
+                  name="booking_mode"
+                  control={control}
+                  render={({ field }) => (
+                    <Select.Root
+                      collection={bookingModeOptions}
+                      value={field.value ? [field.value] : ["private"]}
+                      onValueChange={(details) =>
+                        field.onChange(details.value[0])
+                      }
+                      disabled={isPast}
                     >
-                      <Switch
-                        checked={active}
-                        inputProps={{ id: "active" }}
-                      />
-                    </Box>
-                  </Flex>
-                </Field>
+                      <Select.Control width="100%">
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select booking mode" />
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Portal container={contentRef}>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {bookingModeOptions.items.map((option) => (
+                              <Select.Item key={option.value} item={option}>
+                                {option.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Portal>
+                    </Select.Root>
+                  )}
+                />
+              </Field>
+            </VStack>
+          </DialogBody>
 
-                <Field
-                  label="Booking Mode"
-                  helperText="Controls who can book tickets for this mission"
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button
+                  variant="subtle"
+                  colorPalette="gray"
+                  disabled={isSubmitting}
                 >
-                  <Controller
-                    name="booking_mode"
-                    control={control}
-                    render={({ field }) => (
-                      <Select.Root
-                        collection={bookingModeOptions}
-                        value={field.value ? [field.value] : ["private"]}
-                        onValueChange={(details) =>
-                          field.onChange(details.value[0])
-                        }
-                        disabled={isPast}
-                      >
-                        <Select.Control width="100%">
-                          <Select.Trigger>
-                            <Select.ValueText placeholder="Select booking mode" />
-                          </Select.Trigger>
-                          <Select.IndicatorGroup>
-                            <Select.Indicator />
-                          </Select.IndicatorGroup>
-                        </Select.Control>
-                        <Portal container={contentRef}>
-                          <Select.Positioner>
-                            <Select.Content>
-                              {bookingModeOptions.items.map((option) => (
-                                <Select.Item key={option.value} item={option}>
-                                  {option.label}
-                                  <Select.ItemIndicator />
-                                </Select.Item>
-                              ))}
-                            </Select.Content>
-                          </Select.Positioner>
-                        </Portal>
-                      </Select.Root>
-                    )}
-                  />
-                </Field>
-              </VStack>
-            </DialogBody>
-
-            <DialogFooter gap={2}>
-              <ButtonGroup>
-                <DialogActionTrigger asChild>
-                  <Button
-                    variant="subtle"
-                    colorPalette="gray"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </DialogActionTrigger>
-                <Button variant="solid" type="submit" loading={isSubmitting} disabled={isPast}>
-                  Save
+                  Cancel
                 </Button>
-              </ButtonGroup>
-            </DialogFooter>
-          </form>
-          <DialogCloseTrigger />
-        </DialogContent>
+              </DialogActionTrigger>
+              <Button
+                variant="solid"
+                type="submit"
+                loading={isSubmitting}
+                disabled={isPast}
+              >
+                Save
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </form>
+        <DialogCloseTrigger />
+      </DialogContent>
     </DialogRoot>
   )
 }

@@ -12,15 +12,16 @@ import { FiMail, FiPrinter } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
-import { formatCents } from "@/utils"
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
+import { formatCents } from "@/utils"
 
 interface BookingConfirmationProps {
   confirmationCode?: string
 }
 
-const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => {
-
+const BookingConfirmation = ({
+  confirmationCode,
+}: BookingConfirmationProps) => {
   const {
     data: booking,
     isLoading,
@@ -253,7 +254,6 @@ const BookingConfirmation = ({ confirmationCode }: BookingConfirmationProps) => 
               <Text fontSize="sm">• Present your QR code for check-in</Text>
             </VStack>
           </Box>
-
         </VStack>
 
         {/* Footer */}

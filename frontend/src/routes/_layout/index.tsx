@@ -1,5 +1,5 @@
 import { Box, Container, Text } from "@chakra-ui/react"
-import { createFileRoute, Navigate } from "@tanstack/react-router"
+import { Navigate, createFileRoute } from "@tanstack/react-router"
 
 import DashboardStats from "@/components/Admin/DashboardStats"
 import { DEFAULT_HOME_PATH } from "@/components/Common/SidebarItems"
@@ -31,7 +31,10 @@ function Dashboard() {
     return (
       <Container maxW="full">
         <Box pt={12} m={4}>
-          <Text>Only superusers can access the dashboard. Please use the public booking form.</Text>
+          <Text>
+            Only superusers can access the dashboard. Please use the public
+            booking form.
+          </Text>
         </Box>
       </Container>
     )
