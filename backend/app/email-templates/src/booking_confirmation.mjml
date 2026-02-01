@@ -98,6 +98,25 @@
       </mj-section>
       {% endif %}
 
+      {% if not is_cancellation and not is_refund and experience_details_html %}
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
+        <mj-column width="100%">
+          <mj-text color="#19232d" font-weight="bold" font-size="18px" padding-bottom="0">
+            Trip details
+          </mj-text>
+          <mj-text color="#637381" font-size="16px" padding-top="10px" padding-bottom="0">
+            {{ experience_details_html | safe }}
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
+        <mj-column width="100%">
+          <mj-divider border-color="#4a5a67" border-width="1px" />
+        </mj-column>
+      </mj-section>
+      {% endif %}
+
       {% if not is_cancellation and (booking_items|length > 0 or is_refund) %}
       <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">

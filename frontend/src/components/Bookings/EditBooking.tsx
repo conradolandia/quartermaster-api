@@ -136,28 +136,44 @@ const EditBooking = ({
 
   // Watch form values for auto-calculation
   const watchedDiscountAmount = watch("discount_amount")
-  const watchedTaxAmount = watch("tax_amount")
   const watchedTipAmount = watch("tip_amount")
   const watchedItemQuantities = watch("item_quantity_updates")
 
-  // Auto-calculate total based on original subtotal and updated values
+  // Subtotal from current item quantities and prices (so changing quantities updates pricing)
+  const effectiveSubtotal =
+    booking.items?.reduce((sum, item) => {
+      const update = watchedItemQuantities?.find((u) => u.id === item.id)
+      const qty = update?.quantity ?? item.quantity
+      return sum + qty * item.price_per_unit
+    }, 0) ?? booking.subtotal
+
+  // Tax rate derived from current booking (same formula as backend)
+  const afterDiscountOriginal = Math.max(
+    0,
+    booking.subtotal - (booking.discount_amount ?? 0),
+  )
+  const taxRate =
+    afterDiscountOriginal > 0
+      ? (booking.tax_amount ?? 0) / afterDiscountOriginal
+      : 0
+
+  // Recompute tax and total when subtotal (quantities), discount or tip change
   useEffect(() => {
-    // Standard formula: (subtotal - discount) * (1 + tax_rate) + tip = total.
-    // Here we allow manual override: total = subtotal - discount + tax + tip.
     const afterDiscount = Math.max(
       0,
-      booking.subtotal - (watchedDiscountAmount || 0),
+      effectiveSubtotal - (watchedDiscountAmount ?? 0),
     )
-    const calculatedTotal =
-      afterDiscount + (watchedTaxAmount || 0) + (watchedTipAmount || 0)
-
-    setValue("total_amount", Math.max(0, calculatedTotal)) // Ensure total is not negative
+    const newTax = Math.round(afterDiscount * taxRate)
+    const newTotal =
+      afterDiscount + newTax + (watchedTipAmount ?? 0)
+    setValue("tax_amount", newTax)
+    setValue("total_amount", Math.max(0, newTotal))
   }, [
+    effectiveSubtotal,
     watchedDiscountAmount,
-    watchedTaxAmount,
     watchedTipAmount,
+    taxRate,
     setValue,
-    booking.subtotal,
   ])
 
   const mutation = useMutation({
@@ -652,9 +668,12 @@ const EditBooking = ({
               </Field>
 
               {/* Financial Fields */}
-              <Field label="Subtotal" helperText="This field is read-only">
+              <Field
+                label="Subtotal"
+                helperText="Recalculated from item quantities and prices"
+              >
                 <Input
-                  value={`$${formatCents(booking.subtotal)}`}
+                  value={`$${formatCents(effectiveSubtotal)}`}
                   readOnly
                   bg="dark.bg.accent"
                   color="text.muted"

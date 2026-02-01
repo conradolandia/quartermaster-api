@@ -39,8 +39,11 @@ from app.utils import (
 )
 
 from .booking_utils import (
+    build_experience_display_dict,
+    compute_booking_totals,
     generate_qr_code,
     generate_unique_confirmation_code,
+    get_booking_items_in_display_order,
     get_booking_with_items,
     get_mission_name_for_booking,
     prepare_booking_items_for_email,
@@ -476,9 +479,7 @@ def duplicate_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Booking {booking_id} not found",
         )
-    items = session.exec(
-        select(BookingItem).where(BookingItem.booking_id == booking.id)
-    ).all()
+    items = get_booking_items_in_display_order(session, booking.id)
     if not items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -520,10 +521,7 @@ def duplicate_booking(
         booking_in=booking_in,
         current_user=current_user,
     )
-    # Ensure items are on the response for the client
-    created_items = session.exec(
-        select(BookingItem).where(BookingItem.booking_id == created.id)
-    ).all()
+    created_items = get_booking_items_in_display_order(session, created.id)
     booking_public = BookingPublic.model_validate(created)
     booking_public.items = [BookingItemPublic.model_validate(i) for i in created_items]
     return booking_public
@@ -660,11 +658,7 @@ def list_bookings(
         # Process each booking
         for booking in bookings:
             try:
-                # Fetch items for this booking
-                items = session.exec(
-                    select(BookingItem).where(BookingItem.booking_id == booking.id)
-                ).all()
-
+                items = get_booking_items_in_display_order(session, booking.id)
                 booking_public = BookingPublic.model_validate(booking)
                 booking_public.items = [
                     BookingItemPublic.model_validate(item) for item in items
@@ -749,12 +743,10 @@ def get_booking_by_id(
                 detail=f"Booking with ID {booking_id} not found",
             )
 
-        # Fetch items separately with error handling
+        # Fetch items in display order (tickets first, then merch)
         items = []
         try:
-            items = session.exec(
-                select(BookingItem).where(BookingItem.booking_id == booking.id)
-            ).all()
+            items = get_booking_items_in_display_order(session, booking.id)
 
             if not items:
                 logger.warning(f"Booking {booking_id} has no items")
@@ -852,6 +844,12 @@ def update_booking(
                 detail=f"Booking with ID {booking_id} not found",
             )
 
+        if booking.status == BookingStatus.checked_in:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot update a checked-in booking",
+            )
+
         # Admin endpoint: allow editing past bookings (refunds, corrections)
         ensure_booking_update_allowed(
             booking=booking,
@@ -877,21 +875,13 @@ def update_booking(
                 detail=f"Cannot update these fields via PATCH: {', '.join(invalid_fields)}",
             )
 
-        # Process item quantity updates (draft/pending_payment only)
+        # Process item quantity updates (allowed for all statuses except checked_in, which is rejected above)
         # Use booking_in (Pydantic model) so we get objects; pop from update_data so it is not applied as a booking field
         item_quantity_updates: list[BookingItemQuantityUpdate] | None = getattr(
             booking_in, "item_quantity_updates", None
         )
         update_data.pop("item_quantity_updates", None)
         if item_quantity_updates:
-            if booking.status not in (
-                BookingStatus.draft,
-                BookingStatus.pending_payment,
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Item quantities can only be updated for draft or pending_payment bookings",
-                )
             items = session.exec(
                 select(BookingItem).where(BookingItem.booking_id == booking.id)
             ).all()
@@ -967,6 +957,19 @@ def update_booking(
             )
             booking.subtotal = new_subtotal
             session.add(booking)
+            # Recompute tax and total from mission tax rate so pricing stays consistent
+            trip = session.get(Trip, items[0].trip_id)
+            if trip:
+                mission = session.get(Mission, trip.mission_id)
+                if mission is not None:
+                    new_tax, new_total = compute_booking_totals(
+                        new_subtotal,
+                        booking.discount_amount,
+                        mission.sales_tax_rate,
+                        booking.tip_amount,
+                    )
+                    update_data["tax_amount"] = new_tax
+                    update_data["total_amount"] = new_total
 
         # Validate status transitions
         status_changed = False
@@ -1132,9 +1135,7 @@ def update_booking(
                         f"Failed to send booking status update email: {str(e)}"
                     )
 
-            items = session.exec(
-                select(BookingItem).where(BookingItem.booking_id == booking.id)
-            ).all()
+            items = get_booking_items_in_display_order(session, booking.id)
             booking_public = BookingPublic.model_validate(booking)
             booking_public.items = [
                 BookingItemPublic.model_validate(item) for item in items
@@ -1259,12 +1260,7 @@ def check_in_booking(
         session.commit()
         session.refresh(booking)
 
-        # Fetch updated items for response
-        updated_items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
-
-        # Build response
+        updated_items = get_booking_items_in_display_order(session, booking.id)
         booking_public = BookingPublic.model_validate(booking)
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in updated_items
@@ -1336,9 +1332,7 @@ def revert_check_in(
         session.commit()
         session.refresh(booking)
 
-        updated_items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
+        updated_items = get_booking_items_in_display_order(session, booking.id)
         booking_public = BookingPublic.model_validate(booking)
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in updated_items
@@ -1407,9 +1401,13 @@ def resend_booking_confirmation_email(
                 detail="Email service is not available",
             )
 
-        # Get mission name and prepare booking items
+        # Get mission name, booking items, and experience display for email
         mission_name = get_mission_name_for_booking(session, booking)
         booking_items = prepare_booking_items_for_email(booking)
+        items = get_booking_items_in_display_order(session, booking.id)
+        experience_display = (
+            build_experience_display_dict(session, items) if items else None
+        )
         qr_code_base64 = booking.qr_code_base64 or generate_qr_code(
             booking.confirmation_code
         )
@@ -1423,6 +1421,7 @@ def resend_booking_confirmation_email(
             booking_items=booking_items,
             total_amount=booking.total_amount / 100.0,  # cents to dollars for display
             qr_code_base64=qr_code_base64,
+            experience_display=experience_display,
         )
 
         send_email(
@@ -1619,12 +1618,7 @@ def process_refund(
             )
             # Don't fail the refund if email sending fails
 
-        # Fetch updated items for response
-        updated_items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
-
-        # Build response
+        updated_items = get_booking_items_in_display_order(session, booking.id)
         booking_public = BookingPublic.model_validate(booking)
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in updated_items

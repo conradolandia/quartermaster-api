@@ -136,6 +136,9 @@ export type BookingExperienceDisplay = {
   launch_timezone?: string | null
   launch_summary?: string | null
   boat_name?: string | null
+  provider_name?: string | null
+  departure_location?: string | null
+  map_link?: string | null
 }
 
 export type BookingItemCreate = {

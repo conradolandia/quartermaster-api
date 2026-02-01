@@ -1,5 +1,6 @@
 import {
   Badge,
+  Separator,
   Box,
   Button,
   ButtonGroup,
@@ -16,7 +17,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   FiArrowLeft,
   FiCheck,
@@ -91,6 +92,18 @@ export default function BookingDetails({
         confirmationCode,
       }),
   })
+
+  const displayItems = useMemo(() => {
+    if (!booking?.items?.length) return []
+    return [...booking.items].sort((a, b) => {
+      const aTicket = !a.trip_merchandise_id ? 0 : 1
+      const bTicket = !b.trip_merchandise_id ? 0 : 1
+      if (aTicket !== bTicket) return aTicket - bTicket
+      const typeCmp = (a.item_type ?? "").localeCompare(b.item_type ?? "")
+      if (typeCmp !== 0) return typeCmp
+      return (a.id ?? "").localeCompare(b.id ?? "")
+    })
+  }, [booking?.items])
 
   const checkInMutation = useMutation({
     mutationFn: () => BookingsService.checkInBooking({ confirmationCode }),
@@ -303,16 +316,18 @@ export default function BookingDetails({
               Resend Email
             </Flex>
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setEditModalOpen(true)}
-          >
-            <Flex align="center" gap={2}>
-              <FiEdit />
-              Edit Booking
-            </Flex>
-          </Button>
+          {booking.status !== "checked_in" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditModalOpen(true)}
+            >
+              <Flex align="center" gap={2}>
+                <FiEdit />
+                Edit Booking
+              </Flex>
+            </Button>
+          )}
           {booking.status === "confirmed" && (
             <Button
               size="sm"
@@ -347,6 +362,7 @@ export default function BookingDetails({
             editModalOpen={editModalOpen}
             onEditModalOpenChange={setEditModalOpen}
             onOpenRawData={() => setJsonDialogOpen(true)}
+            editDisabled={booking.status === "checked_in"}
           />
         </Flex>
       </Flex>
@@ -614,11 +630,11 @@ export default function BookingDetails({
                     const reason =
                       booking.refund_reason?.trim() ??
                       itemWithRefund?.refund_reason?.trim() ??
-                      "Not recorded"
+                      "No reason recorded"
                     const notes =
                       booking.refund_notes?.trim() ??
                       itemWithRefund?.refund_notes?.trim() ??
-                      "Not recorded"
+                      ""
                     return (
                       <>
                         <Flex gap={4} mb={2} alignItems="baseline">
@@ -629,10 +645,12 @@ export default function BookingDetails({
                           <Text fontWeight="bold">Refund reason:</Text>
                           <Text>{reason}</Text>
                         </Flex>
-                        <Flex gap={4} alignItems="baseline">
-                          <Text fontWeight="bold">Refund notes:</Text>
-                          <Text>{notes}</Text>
-                        </Flex>
+                        {notes !== "" && (
+                          <Flex gap={4} alignItems="baseline">
+                            <Text fontWeight="bold">Refund notes:</Text>
+                            <Text>{notes}</Text>
+                          </Flex>
+                        )}
                       </>
                     )
                   })()}
@@ -714,6 +732,7 @@ export default function BookingDetails({
                 <Heading size="sm" mb={3}>
                   Pricing Breakdown
                 </Heading>
+                <Separator mb={3} />
                 <VStack align="stretch" gap={2}>
                   <Flex justify="space-between">
                     <Text>Subtotal:</Text>
@@ -733,13 +752,11 @@ export default function BookingDetails({
                     <Text>Tip:</Text>
                     <Text>${formatCents(booking.tip_amount)}</Text>
                   </Flex>
+                  <Separator />
                   <Flex
                     justify="space-between"
                     fontWeight="bold"
                     fontSize="lg"
-                    pt={2}
-                    borderTop="1px"
-                    borderColor="dark.border.secondary"
                   >
                     <Text>Total:</Text>
                     <Text>${formatCents(booking.total_amount)}</Text>
@@ -758,7 +775,7 @@ export default function BookingDetails({
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {booking.items.map((item, index) => (
+                    {displayItems.map((item, index) => (
                       <Table.Row key={index}>
                         <Table.Cell>
                           <Text fontWeight="medium">
@@ -812,10 +829,11 @@ export default function BookingDetails({
         </Box>
 
         {booking.items && booking.items.length > 0 && (
-          <Box>
-            <Heading size="md" mb={4}>
+          <Box my={5}>
+            <Heading size="md" mb={3}>
               Mission, launch & trip
             </Heading>
+            <Separator mb={3} />
             <BookingExperienceDetails
               booking={booking}
               usePublicApis={false}

@@ -1,4 +1,12 @@
-import { Box, Flex, Grid, Heading, Text, VStack } from "@chakra-ui/react"
+import {
+  Box,
+  Flex,
+  Grid,
+  Heading,
+  Link,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 
@@ -175,11 +183,43 @@ export default function BookingExperienceDetails({
                     )}
                   />
                 )}
+                {exp.trip_type === "launch_viewing" &&
+                  exp.launch_timestamp &&
+                  exp.launch_timezone && (
+                    <Row
+                      label="Launch time"
+                      value={formatDateTimeInLocationTz(
+                        exp.launch_timestamp,
+                        exp.launch_timezone,
+                      )}
+                    />
+                  )}
               </>
             )}
           </VStack>
           <VStack align="stretch" gap={3}>
+            {exp.provider_name && (
+              <Row label="Provider" value={exp.provider_name} />
+            )}
             {exp.boat_name && <Row label="Boat" value={exp.boat_name} />}
+            {exp.departure_location && (
+              <Row
+                label="Departure location"
+                value={
+                  exp.map_link ? (
+                    <Link
+                      href={exp.map_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {exp.departure_location}
+                    </Link>
+                  ) : (
+                    exp.departure_location
+                  )
+                }
+              />
+            )}
           </VStack>
         </Grid>
       </Box>
@@ -244,11 +284,43 @@ export default function BookingExperienceDetails({
                 label="Departure"
                 value={formatDateTimeInLocationTz(trip.departure_time, tz)}
               />
+              {trip.type === "launch_viewing" &&
+                launch?.launch_timestamp &&
+                launch?.timezone && (
+                  <Row
+                    label="Launch time"
+                    value={formatDateTimeInLocationTz(
+                      launch.launch_timestamp,
+                      launch.timezone,
+                    )}
+                  />
+                )}
             </>
           )}
         </VStack>
         <VStack align="stretch" gap={3}>
+          {boat?.provider?.name && (
+            <Row label="Provider" value={boat.provider.name} />
+          )}
           {boat && <Row label="Boat" value={boat.name} />}
+          {boat?.provider?.address && (
+            <Row
+              label="Departure location"
+              value={
+                boat.provider.map_link ? (
+                  <Link
+                    href={boat.provider.map_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {boat.provider.address}
+                  </Link>
+                ) : (
+                  boat.provider.address
+                )
+              }
+            />
+          )}
         </VStack>
       </Grid>
     </Box>

@@ -4,9 +4,10 @@ TripBoat CRUD operations.
 
 import uuid
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from app.models import TripBoat, TripBoatCreate, TripBoatUpdate
+from app.models import Boat, TripBoat, TripBoatCreate, TripBoatUpdate
 
 
 def get_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat | None:
@@ -21,6 +22,22 @@ def get_trip_boats_by_trip(
     return session.exec(
         select(TripBoat)
         .where(TripBoat.trip_id == trip_id)
+        .order_by(TripBoat.created_at.asc(), TripBoat.id.asc())
+        .offset(skip)
+        .limit(limit)
+    ).all()
+
+
+def get_trip_boats_by_trip_with_boat_provider(
+    *, session: Session, trip_id: uuid.UUID, skip: int = 0, limit: int = 100
+) -> list[TripBoat]:
+    """Get trip boats by trip with boat and provider loaded (for public booking form)."""
+    return session.exec(
+        select(TripBoat)
+        .where(TripBoat.trip_id == trip_id)
+        .options(
+            selectinload(TripBoat.boat).selectinload(Boat.provider),
+        )
         .order_by(TripBoat.created_at.asc(), TripBoat.id.asc())
         .offset(skip)
         .limit(limit)

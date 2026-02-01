@@ -1163,6 +1163,9 @@ class BookingExperienceDisplay(SQLModel):
     launch_timezone: str | None = None
     launch_summary: str | None = None
     boat_name: str | None = None
+    provider_name: str | None = None
+    departure_location: str | None = None
+    map_link: str | None = None
 
 
 class BookingPublic(BookingBase):

@@ -25,6 +25,8 @@ interface BookingActionsMenuProps {
   onEditModalOpenChange?: (open: boolean) => void
   /** When provided, shows a Raw data item in the menu that calls this. */
   onOpenRawData?: () => void
+  /** When true, Edit is hidden (e.g. checked-in bookings cannot be edited). */
+  editDisabled?: boolean
 }
 
 const BookingActionsMenu = ({
@@ -34,6 +36,7 @@ const BookingActionsMenu = ({
   editModalOpen: controlledEditOpen,
   onEditModalOpenChange,
   onOpenRawData,
+  editDisabled = false,
 }: BookingActionsMenuProps) => {
   const [internalEditOpen, setInternalEditOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -97,7 +100,7 @@ const BookingActionsMenu = ({
               Raw data
             </MenuItem>
           )}
-          {!isEditControlled && (
+          {!isEditControlled && !editDisabled && (
             <MenuItem value="edit" onClick={handleOpenEdit}>
               <FiEdit />
               Edit Booking

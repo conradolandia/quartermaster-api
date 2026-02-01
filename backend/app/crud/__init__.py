@@ -109,6 +109,7 @@ from .trip_boats import (
     get_trip_boat,
     get_trip_boats_by_boat,
     get_trip_boats_by_trip,
+    get_trip_boats_by_trip_with_boat_provider,
     get_trip_boats_for_trip_ids,
     update_trip_boat,
 )
@@ -220,6 +221,7 @@ __all__ = [
     "get_trip_boat",
     "get_trip_boats_by_boat",
     "get_trip_boats_by_trip",
+    "get_trip_boats_by_trip_with_boat_provider",
     "get_trip_boats_for_trip_ids",
     "update_trip_boat",
     # Trip Merchandise

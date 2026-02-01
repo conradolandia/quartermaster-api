@@ -15,13 +15,18 @@ import base64
 import io
 import logging
 import secrets
+import uuid
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import qrcode
 from fastapi import HTTPException, status
+from sqlalchemy import nulls_first
 from sqlmodel import Session, select
 
+from app import crud
 from app.core.config import settings
-from app.models import Booking, BookingItem, Mission, Trip
+from app.models import Booking, BookingItem, Launch, Location, Mission, Trip
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -117,6 +122,26 @@ def validate_confirmation_code(confirmation_code: str) -> None:
         )
 
 
+def get_booking_items_in_display_order(
+    session: Session, booking_id: uuid.UUID
+) -> list[BookingItem]:
+    """
+    Return booking items in display order: tickets first (trip_merchandise_id null),
+    then merchandise; within each group by item_type, then id.
+    """
+    return list(
+        session.exec(
+            select(BookingItem)
+            .where(BookingItem.booking_id == booking_id)
+            .order_by(
+                nulls_first(BookingItem.trip_merchandise_id.asc()),
+                BookingItem.item_type,
+                BookingItem.id,
+            )
+        ).all()
+    )
+
+
 def get_booking_with_items(
     session: Session, confirmation_code: str, include_qr_generation: bool = True
 ) -> Booking | None:
@@ -148,11 +173,9 @@ def get_booking_with_items(
             detail="Booking not found with the provided confirmation code",
         )
 
-    # Fetch items
+    # Fetch items in display order (tickets first, then merch)
     try:
-        items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
+        items = get_booking_items_in_display_order(session, booking.id)
 
         if not items:
             logger.warning(f"Booking found but has no items: {booking.id}")
@@ -221,3 +244,84 @@ def prepare_booking_items_for_email(booking: Booking) -> list[dict]:
             }
         )
     return booking_items
+
+
+def _format_dt_iso_for_email(iso: str | None, tz: str | None) -> str | None:
+    """Format ISO datetime in timezone for email display."""
+    if not iso or not tz:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        return dt.astimezone(ZoneInfo(tz)).strftime("%b %d, %Y at %I:%M %p")
+    except Exception:
+        return iso
+
+
+def build_experience_display_dict(session: Session, items: list) -> dict | None:
+    """
+    Build experience display dict from first booking item (trip/mission/launch/boat/provider).
+    Used for public booking detail and confirmation email.
+
+    Returns:
+        Dict with BookingExperienceDisplay fields plus check_in_display, boarding_display,
+        departure_display, launch_time_display for email. None if no items or trip.
+    """
+    if not items:
+        return None
+    first = items[0]
+    trip = session.get(Trip, first.trip_id)
+    if not trip:
+        return None
+    mission = session.get(Mission, trip.mission_id) if trip.mission_id else None
+    launch = (
+        session.get(Launch, mission.launch_id)
+        if mission and mission.launch_id
+        else None
+    )
+    trip_boats = crud.get_trip_boats_by_trip_with_boat_provider(
+        session=session, trip_id=trip.id
+    )
+    selected_tb = next(
+        (tb for tb in trip_boats if tb.boat_id == first.boat_id),
+        None,
+    )
+    boat = selected_tb.boat if selected_tb else None
+    provider = boat.provider if boat else None
+    location = (
+        session.get(Location, launch.location_id)
+        if launch and launch.location_id
+        else None
+    )
+    tz = location.timezone if location else None
+
+    def _dt_iso(dt):
+        return dt.isoformat() if hasattr(dt, "isoformat") and dt else None
+
+    check_in_iso = _dt_iso(trip.check_in_time)
+    boarding_iso = _dt_iso(trip.boarding_time)
+    departure_iso = _dt_iso(trip.departure_time)
+    launch_ts_iso = _dt_iso(launch.launch_timestamp) if launch else None
+
+    return {
+        "trip_name": (trip.name or "").strip() or None,
+        "trip_type": trip.type,
+        "departure_time": departure_iso,
+        "trip_timezone": tz,
+        "check_in_time": check_in_iso,
+        "boarding_time": boarding_iso,
+        "mission_name": mission.name if mission else None,
+        "launch_name": launch.name if launch else None,
+        "launch_timestamp": launch_ts_iso,
+        "launch_timezone": tz,
+        "launch_summary": launch.summary if launch else None,
+        "boat_name": boat.name if boat else None,
+        "provider_name": provider.name if provider else None,
+        "departure_location": provider.address if provider else None,
+        "map_link": provider.map_link if provider else None,
+        "check_in_display": _format_dt_iso_for_email(check_in_iso, tz),
+        "boarding_display": _format_dt_iso_for_email(boarding_iso, tz),
+        "departure_display": _format_dt_iso_for_email(departure_iso, tz),
+        "launch_time_display": _format_dt_iso_for_email(launch_ts_iso, tz)
+        if trip.type == "launch_viewing"
+        else None,
+    }

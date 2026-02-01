@@ -17,23 +17,19 @@ from app.api import deps
 from app.core.config import settings
 from app.core.stripe import update_payment_intent_amount
 from app.models import (
-    Boat,
     Booking,
     BookingDraftUpdate,
     BookingExperienceDisplay,
-    BookingItem,
     BookingItemPublic,
     BookingPublic,
     BookingStatus,
-    Launch,
-    Location,
-    Mission,
-    Trip,
 )
 from app.utils import generate_booking_confirmation_email, send_email
 
 from .booking_utils import (
+    build_experience_display_dict,
     generate_qr_code,
+    get_booking_items_in_display_order,
     get_booking_with_items,
     get_mission_name_for_booking,
     prepare_booking_items_for_email,
@@ -189,9 +185,7 @@ def update_draft_booking_by_confirmation_code(
                     booking.total_amount,
                 )
 
-        items = session.exec(
-            select(BookingItem).where(BookingItem.booking_id == booking.id)
-        ).all()
+        items = get_booking_items_in_display_order(session, booking.id)
         booking_public = BookingPublic.model_validate(booking)
         booking_public.items = [
             BookingItemPublic.model_validate(item) for item in items
@@ -223,12 +217,9 @@ def get_booking_by_confirmation_code(
         # Get booking with items and QR code generation
         booking = get_booking_with_items(session, confirmation_code)
 
-        # Fetch items
         items = []
         try:
-            items = session.exec(
-                select(BookingItem).where(BookingItem.booking_id == booking.id)
-            ).all()
+            items = get_booking_items_in_display_order(session, booking.id)
 
             if not items:
                 logger.warning(f"Booking found but has no items: {booking.id}")
@@ -244,44 +235,11 @@ def get_booking_by_confirmation_code(
 
         # Populate experience_display from first item (trip/mission/launch/boat) so public detail works without read_public_trip (which 404s for past trips)
         if items:
-            first = items[0]
-            trip = session.get(Trip, first.trip_id)
-            if trip:
-                mission = (
-                    session.get(Mission, trip.mission_id) if trip.mission_id else None
-                )
-                launch = (
-                    session.get(Launch, mission.launch_id)
-                    if mission and mission.launch_id
-                    else None
-                )
-                boat = session.get(Boat, first.boat_id) if first.boat_id else None
-                # Trip and Launch tables have no timezone; get from launch's location (same as TripPublic/LaunchPublic)
-                location = (
-                    session.get(Location, launch.location_id)
-                    if launch and launch.location_id
-                    else None
-                )
-                tz = location.timezone if location else None
-
-                def _dt_iso(dt):
-                    return dt.isoformat() if hasattr(dt, "isoformat") and dt else None
-
+            exp_dict = build_experience_display_dict(session, items)
+            if exp_dict:
+                model_fields = set(BookingExperienceDisplay.model_fields)
                 booking_public.experience_display = BookingExperienceDisplay(
-                    trip_name=(trip.name or "").strip() or None,
-                    trip_type=trip.type,
-                    departure_time=_dt_iso(trip.departure_time),
-                    trip_timezone=tz,
-                    check_in_time=_dt_iso(trip.check_in_time),
-                    boarding_time=_dt_iso(trip.boarding_time),
-                    mission_name=mission.name if mission else None,
-                    launch_name=launch.name if launch else None,
-                    launch_timestamp=_dt_iso(launch.launch_timestamp)
-                    if launch
-                    else None,
-                    launch_timezone=tz,
-                    launch_summary=launch.summary if launch else None,
-                    boat_name=boat.name if boat else None,
+                    **{k: v for k, v in exp_dict.items() if k in model_fields}
                 )
 
         return booking_public
@@ -342,9 +300,13 @@ def resend_booking_confirmation_email(
                 detail="Email service is not available",
             )
 
-        # Get mission name and prepare booking items
+        # Get mission name, booking items, and experience display for email
         mission_name = get_mission_name_for_booking(session, booking)
         booking_items = prepare_booking_items_for_email(booking)
+        items = get_booking_items_in_display_order(session, booking.id)
+        experience_display = (
+            build_experience_display_dict(session, items) if items else None
+        )
         qr_code_base64 = booking.qr_code_base64 or generate_qr_code(
             booking.confirmation_code
         )
@@ -358,6 +320,7 @@ def resend_booking_confirmation_email(
             booking_items=booking_items,
             total_amount=booking.total_amount / 100.0,  # cents to dollars for display
             qr_code_base64=qr_code_base64,
+            experience_display=experience_display,
         )
 
         send_email(

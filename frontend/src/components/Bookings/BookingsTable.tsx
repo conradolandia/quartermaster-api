@@ -670,7 +670,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   </VStack>
                 </Table.Cell>
                 <Table.Cell onClick={(e) => e.stopPropagation()}>
-                  <BookingActionsMenu booking={booking} />
+                  <BookingActionsMenu
+                    booking={booking}
+                    editDisabled={booking.status === "checked_in"}
+                  />
                 </Table.Cell>
               </Table.Row>
             ))}

@@ -328,14 +328,16 @@ const CheckInInterface = ({
                   <FiX />
                   Reset
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditOpen(true)}
-                  disabled={checkInMutation.isPending}
-                >
-                  <FiEdit />
-                  Edit Booking
-                </Button>
+                {currentBooking.status !== "checked_in" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditOpen(true)}
+                    disabled={checkInMutation.isPending}
+                  >
+                    <FiEdit />
+                    Edit Booking
+                  </Button>
+                )}
                 {currentBooking.status === "confirmed" && (
                   <Button
                     colorPalette="green"

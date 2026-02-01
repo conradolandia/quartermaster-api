@@ -35,6 +35,46 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
             items_html += f"{item['quantity']}x {item['type']} - ${item['price_per_unit']:.2f} each<br>"
         context["booking_items_html"] = items_html
 
+    # Pre-process experience_display to HTML for trip details section (Provider, Boat, Departure location, times)
+    if "experience_display" in context and context["experience_display"]:
+        exp = context["experience_display"]
+        parts = []
+        if exp.get("mission_name"):
+            parts.append(f"<strong>Mission:</strong> {exp['mission_name']}<br>")
+        if exp.get("launch_name"):
+            parts.append(f"<strong>Launch:</strong> {exp['launch_name']}<br>")
+        if exp.get("trip_name") or exp.get("trip_type"):
+            trip_label = (exp.get("trip_name") or "").strip()
+            if trip_label and exp.get("trip_type"):
+                trip_label += f" – {exp['trip_type'].replace('_', ' ').title()}"
+            elif exp.get("trip_type"):
+                trip_label = exp["trip_type"].replace("_", " ").title()
+            parts.append(f"<strong>Trip:</strong> {trip_label}<br>")
+        if exp.get("check_in_display"):
+            parts.append(f"<strong>Check-in:</strong> {exp['check_in_display']}<br>")
+        if exp.get("boarding_display"):
+            parts.append(f"<strong>Boarding:</strong> {exp['boarding_display']}<br>")
+        if exp.get("departure_display"):
+            parts.append(f"<strong>Departure:</strong> {exp['departure_display']}<br>")
+        if exp.get("launch_time_display"):
+            parts.append(
+                f"<strong>Launch time:</strong> {exp['launch_time_display']}<br>"
+            )
+        if exp.get("provider_name"):
+            parts.append(f"<strong>Provider:</strong> {exp['provider_name']}<br>")
+        if exp.get("boat_name"):
+            parts.append(f"<strong>Boat:</strong> {exp['boat_name']}<br>")
+        if exp.get("departure_location"):
+            if exp.get("map_link"):
+                parts.append(
+                    f'<strong>Departure location:</strong> <a href="{exp["map_link"]}" style="color:#fda801;">{exp["departure_location"]}</a><br>'
+                )
+            else:
+                parts.append(
+                    f"<strong>Departure location:</strong> {exp['departure_location']}<br>"
+                )
+        context["experience_details_html"] = "".join(parts) if parts else ""
+
     html_content = Template(template_str).render(context)
     return html_content
 
@@ -91,6 +131,7 @@ def generate_booking_confirmation_email(
     booking_items: list[dict],
     total_amount: float,
     qr_code_base64: str | None = None,
+    experience_display: dict | None = None,
 ) -> EmailData:
     """
     Generate booking confirmation email with booking details and tickets.
@@ -103,6 +144,7 @@ def generate_booking_confirmation_email(
         booking_items: List of booked items with details
         total_amount: Total amount paid
         qr_code_base64: Optional base64-encoded PNG of the booking QR code for the email
+        experience_display: Optional trip/boat/departure details for email (Provider, Boat, Departure location, times)
 
     Returns:
         EmailData containing the subject and HTML content
@@ -121,23 +163,27 @@ def generate_booking_confirmation_email(
         len(qr_b64),
     )
 
+    context: dict[str, Any] = {
+        "project_name": email_brand,
+        "base_url": base_url,
+        "user_name": user_name,
+        "confirmation_code": confirmation_code,
+        "mission_name": mission_name,
+        "booking_items": booking_items,
+        "total_amount": total_amount,
+        "confirmation_link": confirmation_link,
+        "email": email_to,
+        "qr_code_base64": qr_b64,
+        "is_cancellation": False,  # Explicitly set to False for regular bookings
+        "is_refund": False,  # Explicitly set to False for regular bookings
+    }
+    if experience_display:
+        context["experience_display"] = experience_display
+
     # Render the email template
     html_content = render_email_template(
         template_name="booking_confirmation.html",
-        context={
-            "project_name": email_brand,
-            "base_url": base_url,
-            "user_name": user_name,
-            "confirmation_code": confirmation_code,
-            "mission_name": mission_name,
-            "booking_items": booking_items,
-            "total_amount": total_amount,
-            "confirmation_link": confirmation_link,
-            "email": email_to,
-            "qr_code_base64": qr_b64,
-            "is_cancellation": False,  # Explicitly set to False for regular bookings
-            "is_refund": False,  # Explicitly set to False for regular bookings
-        },
+        context=context,
     )
 
     return EmailData(html_content=html_content, subject=subject)

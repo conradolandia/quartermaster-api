@@ -5,7 +5,9 @@ import {
   Grid,
   HStack,
   Heading,
+  Link,
   Select,
+  Separator,
   Spinner,
   Text,
   VStack,
@@ -448,7 +450,7 @@ const Step1TripSelection = ({
               tripBoats.length > 1 && (
                 <Card.Root bg="bg.panel">
                   <Card.Body>
-                    <Heading size="2xl" mb={3}>
+                    <Heading size="2xl" mb={3} fontWeight="200">
                       Choose Your Boat
                     </Heading>
                     <Text color="text.muted" mb={6}>
@@ -507,22 +509,28 @@ const Step1TripSelection = ({
                 </Card.Root>
               )}
 
-            {/* Trip Details and Ticket types in the same row */}
+            {/* Trip Details, Boat & departure, and Ticket types in the same row */}
             {bookingData.selectedTripId && (
               <Grid
-                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                templateColumns={{ base: "1fr", md: "1fr 1fr 1fr" }}
                 gap={4}
                 alignSelf="stretch"
               >
                 <Card.Root bg="bg.panel">
                   <Card.Body>
-                    <Heading size="2xl" mb={3}>
+                    <Heading size="2xl" mb={3} fontWeight="200">
                       Trip Details
                     </Heading>
+                    <Separator mb={3} />
                     {(() => {
                       const selectedTrip = allTrips?.data?.find(
                         (t: TripPublic) => t.id === bookingData.selectedTripId,
                       )
+                      const selectedLaunch = selectedTrip
+                        ? launches.find(
+                            (l) => l.id === bookingData.selectedLaunchId,
+                          )
+                        : null
                       if (!selectedTrip) return null
                       return (
                         <VStack align="stretch" gap={2}>
@@ -557,6 +565,94 @@ const Step1TripSelection = ({
                               )}
                             </Text>
                           </HStack>
+                          {selectedTrip.type === "launch_viewing" &&
+                            selectedLaunch?.launch_timestamp &&
+                            selectedLaunch?.timezone && (
+                              <HStack justify="space-between">
+                                <Text fontWeight="medium">Launch time:</Text>
+                                <Text>
+                                  {formatTripTime(
+                                    selectedLaunch.launch_timestamp,
+                                    selectedLaunch.timezone,
+                                  )}
+                                </Text>
+                              </HStack>
+                            )}
+                        </VStack>
+                      )
+                    })()}
+                  </Card.Body>
+                </Card.Root>
+
+                {/* Boat & departure: Provider, Boat, Departure location */}
+                <Card.Root bg="bg.panel">
+                  <Card.Body>
+                    <Heading size="2xl" mb={3} fontWeight="200">
+                      Boat & departure
+                    </Heading>
+                    <Separator mb={3} />
+                    {(() => {
+                      if (
+                        !bookingData.selectedBoatId ||
+                        !tripBoats ||
+                        tripBoats.length === 0
+                      ) {
+                        return (
+                          <Text color="text.muted">
+                            Select a boat to see provider and departure
+                            location.
+                          </Text>
+                        )
+                      }
+                      const selectedTb = tripBoats.find(
+                        (tb) =>
+                          String(tb.boat_id) ===
+                          String(bookingData.selectedBoatId),
+                      )
+                      const boat = selectedTb?.boat
+                      if (!boat) {
+                        return (
+                          <Text color="text.muted">
+                            Select a boat to see provider and departure
+                            location.
+                          </Text>
+                        )
+                      }
+                      return (
+                        <VStack align="stretch" gap={2}>
+                          {boat.provider?.name && (
+                            <HStack justify="space-between">
+                              <Text fontWeight="medium">Provider:</Text>
+                              <Text>{boat.provider.name}</Text>
+                            </HStack>
+                          )}
+                          <Separator mb={3} />
+                          <HStack justify="space-between">
+                            <Text fontWeight="medium">Boat:</Text>
+                            <Text>{boat.name}</Text>
+                          </HStack>
+                          <Separator mb={3} />
+                          {boat.provider?.address && (
+                            <HStack justify="space-between">
+                              <Text fontWeight="medium">
+                                Departure location:
+                              </Text>
+                              <Text textAlign="right" flex={1} minW={0}>
+                                {boat.provider.map_link ? (
+                                  <Link
+                                    href={boat.provider.map_link}
+                                    target="_blank"
+                                    colorPalette="blue"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {boat.provider.address}
+                                  </Link>
+                                ) : (
+                                  boat.provider.address
+                                )}
+                              </Text>
+                            </HStack>
+                          )}
                         </VStack>
                       )
                     })()}
@@ -573,7 +669,7 @@ const Step1TripSelection = ({
                     return (
                       <Card.Root bg="bg.panel">
                         <Card.Body>
-                          <Heading size="2xl" mb={3}>
+                          <Heading size="2xl" mb={3} fontWeight="200">
                             Ticket types
                           </Heading>
                           <Text color="text.muted">
@@ -592,7 +688,7 @@ const Step1TripSelection = ({
                     return (
                       <Card.Root bg="bg.panel">
                         <Card.Body>
-                          <Heading size="2xl" mb={3}>
+                          <Heading size="2xl" mb={3} fontWeight="200">
                             Ticket types
                           </Heading>
                           <Text fontSize="sm" color="text.muted">
@@ -605,9 +701,10 @@ const Step1TripSelection = ({
                   return (
                     <Card.Root bg="bg.panel">
                       <Card.Body>
-                        <Heading size="2xl" mb={3}>
+                        <Heading size="2xl" mb={3} fontWeight="200">
                           Ticket types
                         </Heading>
+                        <Separator mb={3} />
                         <VStack align="stretch" gap={1}>
                           {pricing.map((p) => (
                             <Text key={p.ticket_type} fontSize="lg">

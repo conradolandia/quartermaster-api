@@ -12,7 +12,7 @@ from app.core.stripe import (
 from app.models import Booking, BookingStatus, Mission, Trip
 from app.utils import generate_booking_confirmation_email, send_email
 
-from .booking_utils import generate_qr_code
+from .booking_utils import build_experience_display_dict, generate_qr_code
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -71,6 +71,8 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
             booking.confirmation_code
         )
 
+        experience_display = build_experience_display_dict(session, list(booking.items))
+
         # Generate and send the email
         email_data = generate_booking_confirmation_email(
             email_to=booking.user_email,
@@ -80,6 +82,7 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
             booking_items=booking_items,
             total_amount=booking.total_amount / 100.0,  # cents to dollars for display
             qr_code_base64=qr_code_base64,
+            experience_display=experience_display,
         )
 
         send_email(

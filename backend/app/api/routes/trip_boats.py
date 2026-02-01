@@ -294,7 +294,7 @@ def read_public_trip_boats_by_trip(
             detail="Tickets are not yet available for this trip",
         )
 
-    trip_boats = crud.get_trip_boats_by_trip(
+    trip_boats = crud.get_trip_boats_by_trip_with_boat_provider(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
     paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
