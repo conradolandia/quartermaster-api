@@ -165,8 +165,29 @@ If you don't want to start with the default models and want to remove them / mod
 
 ## Email Templates
 
-The email templates are in `./backend/app/email-templates/`. Here, there are two directories: `build` and `src`. The `src` directory contains the source files that are used to build the final email templates. The `build` directory contains the final email templates that are used by the application.
+The email templates are in `./backend/app/email-templates/`. The `src` directory holds MJML sources; the `build` directory holds the HTML used by the application. Always regenerate the build from MJML; do not edit the HTML by hand.
 
-Before continuing, ensure you have the [MJML extension](https://marketplace.visualstudio.com/items?itemName=attilabuti.vscode-mjml) installed in your VS Code.
+**Build (from project root):**
 
-Once you have the MJML extension installed, you can create a new email template in the `src` directory. After creating the new email template and with the `.mjml` file open in your editor, open the command palette with `Ctrl+Shift+P` and search for `MJML: Export to HTML`. This will convert the `.mjml` file to a `.html` file and now you can save it in the build directory.
+```bash
+./scripts/build-email-templates.sh
+```
+
+This compiles `src/*.mjml` into `build/*.html` using the MJML CLI (via npx). Node.js must be installed.
+
+To edit templates: change the `.mjml` files in `src/`, then run the script above. You can also use the [MJML VS Code extension](https://marketplace.visualstudio.com/items?itemName=attilabuti.vscode-mjml) and "MJML: Export to HTML" for a single file; save the output into `build/` or run the script to refresh all.
+
+## QR codes
+
+Booking QR codes encode `{base}/check-in?code={confirmation_code}`. The base comes from `QR_CODE_BASE_URL` or `FRONTEND_HOST`. Stored QR images live in `booking.qr_code_base64`.
+
+**After changing `QR_CODE_BASE_URL`** (or the check-in URL format), regenerate stored QR codes so scans point to the new URL:
+
+1. Set the new `QR_CODE_BASE_URL` in your environment (e.g. `.env`).
+2. From the project root, run:
+
+```bash
+cd backend && python scripts/force_update_qr_codes.py
+```
+
+This clears and regenerates every booking’s QR code using the current settings. New bookings get a QR code at creation; this script updates existing rows only.

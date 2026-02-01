@@ -1120,6 +1120,9 @@ def resend_booking_confirmation_email(
         # Get mission name and prepare booking items
         mission_name = get_mission_name_for_booking(session, booking)
         booking_items = prepare_booking_items_for_email(booking)
+        qr_code_base64 = booking.qr_code_base64 or generate_qr_code(
+            booking.confirmation_code
+        )
 
         # Generate and send the email
         email_data = generate_booking_confirmation_email(
@@ -1129,6 +1132,7 @@ def resend_booking_confirmation_email(
             mission_name=mission_name,
             booking_items=booking_items,
             total_amount=booking.total_amount / 100.0,  # cents to dollars for display
+            qr_code_base64=qr_code_base64,
         )
 
         send_email(

@@ -8,11 +8,13 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
 import { FiMail, FiPrinter } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
+import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
 interface BookingConfirmationProps {
@@ -22,6 +24,8 @@ interface BookingConfirmationProps {
 const BookingConfirmation = ({
   confirmationCode,
 }: BookingConfirmationProps) => {
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const [emailSending, setEmailSending] = useState(false)
   const {
     data: booking,
     isLoading,
@@ -67,7 +71,7 @@ const BookingConfirmation = ({
 
   const handleEmail = async () => {
     if (!confirmationCode) return
-
+    setEmailSending(true)
     try {
       const apiUrl = (import.meta as any).env?.VITE_API_URL || ""
       const response = await fetch(
@@ -77,14 +81,18 @@ const BookingConfirmation = ({
         },
       )
       if (response.ok) {
-        console.log("Email sent successfully")
-        // You could show a success toast here
+        showSuccessToast("Confirmation email sent successfully")
       } else {
-        console.error("Failed to resend email")
-        // You could show an error toast here
+        const data = await response.json().catch(() => ({}))
+        const detail = data?.detail
+        showErrorToast(
+          typeof detail === "string" ? detail : "Failed to send confirmation email",
+        )
       }
-    } catch (error) {
-      console.error("Error resending email:", error)
+    } catch {
+      showErrorToast("Failed to send confirmation email")
+    } finally {
+      setEmailSending(false)
     }
   }
 
@@ -233,7 +241,12 @@ const BookingConfirmation = ({
                 <FiPrinter /> Print Tickets
               </Button>
 
-              <Button onClick={handleEmail} variant="outline">
+              <Button
+                onClick={handleEmail}
+                variant="outline"
+                loading={emailSending}
+                disabled={emailSending}
+              >
                 <FiMail /> Resend Email
               </Button>
             </VStack>

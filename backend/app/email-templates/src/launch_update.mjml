@@ -3,43 +3,37 @@
     <mj-title>Launch Update</mj-title>
     <mj-preview>Important update about your upcoming launch</mj-preview>
     <mj-attributes>
-      <mj-all font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-all>
-      <mj-text font-weight="400" font-size="16px" color="#000000" line-height="24px" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-text>
+      <mj-all font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-all>
+      <mj-text font-weight="400" font-size="16px" color="#19232d" line-height="24px" font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-text>
     </mj-attributes>
     <mj-style inline="inline">
       .body-section {
-        -webkit-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
-        -moz-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
-        box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
+        -webkit-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        -moz-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
-    </mj-style>
-    <mj-style inline="inline">
       .text-link {
-        color: #5e6ebf
+        color: #fda801;
       }
-    </mj-style>
-    <mj-style inline="inline">
       .footer-link {
-        color: #888888
+        color: #a0a0a0;
       }
     </mj-style>
   </mj-head>
-  <mj-body background-color="#E7E7E7" width="600px">
-    <mj-section full-width="full-width" background-color="#040B4F" padding-bottom="0">
+  <mj-body background-color="#e8eaed" width="600px">
+    <mj-section full-width="full-width" background-color="#19232d" padding-top="24px" padding-bottom="20px">
       <mj-column width="100%">
-        <mj-text color="#ffffff" font-weight="bold" align="center" font-size="18px" letter-spacing="1px" padding-top="20px">
-          Star✦Fleet Tours
-        </mj-text>
-        <mj-text color="#17CBC4" align="center" font-size="13px" padding-top="0" font-weight="bold">
+        <mj-image src="{{ base_url }}/assets/images/sf-logo-hat.png" alt="Star✦Fleet Tours" href="{{ base_url }}" width="200px" align="center"></mj-image>
+        <mj-text color="#fda801" align="center" font-size="13px" padding-top="4px" font-weight="bold" letter-spacing="0.5px">
           LAUNCH UPDATE
         </mj-text>
       </mj-column>
     </mj-section>
 
     <mj-wrapper padding-top="0" padding-bottom="0" css-class="body-section">
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="24px" padding-bottom="24px">
         <mj-column width="100%">
-          <mj-text color="#212b35" font-weight="bold" font-size="20px">
+          <mj-text color="#19232d" font-weight="bold" font-size="20px">
             Update for {{ mission_name }}
           </mj-text>
 
@@ -53,15 +47,15 @@
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">
-          <mj-divider border-color="#DFE3E8" border-width="1px" />
+          <mj-divider border-color="#4a5a67" border-width="1px" />
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">
-          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+          <mj-text color="#19232d" font-weight="bold" font-size="18px" padding-bottom="0">
             Update Details
           </mj-text>
           <mj-text color="#637381" font-size="16px">
@@ -70,54 +64,51 @@
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">
-          <mj-divider border-color="#DFE3E8" border-width="1px" />
+          <mj-divider border-color="#4a5a67" border-width="1px" />
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">
-          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+          <mj-text color="#19232d" font-weight="bold" font-size="18px" padding-bottom="0">
             Your Booking
           </mj-text>
           <mj-text color="#637381" font-size="16px">
             Confirmation Code: <strong>{{ confirmation_code }}</strong>
           </mj-text>
-          <mj-button background-color="#040B4F" color="white" font-size="17px" align="center" padding="15px 30px" border-radius="4px" href="{{ confirmation_link }}" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+          <mj-button background-color="#fda801" color="#19232d" font-size="16px" align="center" padding="14px 28px" border-radius="4px" href="{{ confirmation_link }}" font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="bold">
             View Your Booking
           </mj-button>
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0">
         <mj-column width="100%">
-          <mj-divider border-color="#DFE3E8" border-width="1px" />
+          <mj-divider border-color="#4a5a67" border-width="1px" />
         </mj-column>
       </mj-section>
 
-      <mj-section background-color="#ffffff" padding-left="15px" padding-right="15px" padding-top="0">
+      <mj-section background-color="#ffffff" padding-left="24px" padding-right="24px" padding-top="0" padding-bottom="24px">
         <mj-column width="100%">
-          <mj-text color="#212b35" font-weight="bold" font-size="18px" padding-bottom="0">
+          <mj-text color="#19232d" font-weight="bold" font-size="18px" padding-bottom="0">
             Need Help?
           </mj-text>
           <mj-text color="#637381" font-size="16px">
-            If you have any questions or need assistance, please contact us at support@star-fleet.tours.
+            If you have any questions or need assistance, please contact us at <a href="mailto:fleetcommand@star-fleet.tours" class="text-link">FleetCommand@Star-Fleet.Tours</a>, or reply to this email.
           </mj-text>
         </mj-column>
       </mj-section>
     </mj-wrapper>
 
     <mj-wrapper full-width="full-width">
-      <mj-section>
+      <mj-section background-color="#28343B" padding-top="20px" padding-bottom="20px">
         <mj-column width="100%" padding="0">
-          <mj-text color="#445566" font-size="14px" align="center" line-height="20px">
-            Star✦Fleet Tours - Making space accessible to everyone
+          <mj-text color="#a0a0a0" font-size="12px" align="center" line-height="20px">
+            You received this email because you opted in to receive launch updates, or the administrators decided this was an urgent update.
           </mj-text>
-          <mj-text color="#445566" font-size="12px" align="center" line-height="20px">
-            You received this email because you opted in to receive launch updates.
-          </mj-text>
-          <mj-text color="#445566" font-size="12px" align="center" line-height="20px">
+          <mj-text color="#a0a0a0" font-size="12px" align="center" line-height="20px" padding-top="4px">
             © 2023 Star✦Fleet Tours, All Rights Reserved.
           </mj-text>
         </mj-column>

@@ -61,6 +61,8 @@ class Settings(BaseSettings):
         ]
 
     PROJECT_NAME: str
+    # Brand name shown in passenger-facing email subjects and body (e.g. "Star✦Fleet Tours"). If unset, PROJECT_NAME is used.
+    EMAIL_BRAND_NAME: str | None = None
     SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
@@ -93,7 +95,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:
         if not self.EMAILS_FROM_NAME:
-            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+            self.EMAILS_FROM_NAME = self.EMAIL_BRAND_NAME or self.PROJECT_NAME
         return self
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48

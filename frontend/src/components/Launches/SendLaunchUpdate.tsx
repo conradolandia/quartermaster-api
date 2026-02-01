@@ -48,10 +48,11 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const contentRef = useRef(null)
 
+  const apiUrl = (import.meta as any).env?.VITE_API_URL || ""
   const sendUpdateMutation = useMutation({
     mutationFn: async (data: SendUpdateData) => {
       const response = await fetch(
-        `/api/v1/launches/${launch.id}/send-update`,
+        `${apiUrl}/api/v1/launches/${launch.id}/send-update`,
         {
           method: "POST",
           headers: {

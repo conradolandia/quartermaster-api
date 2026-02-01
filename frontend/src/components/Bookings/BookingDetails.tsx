@@ -40,6 +40,7 @@ export default function BookingDetails({
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
+  const [emailSending, setEmailSending] = useState(false)
 
   const {
     data: booking,
@@ -74,6 +75,7 @@ export default function BookingDetails({
   }
 
   const handleEmail = async () => {
+    setEmailSending(true)
     try {
       const apiUrl = (import.meta as any).env?.VITE_API_URL || ""
       const response = await fetch(
@@ -83,12 +85,18 @@ export default function BookingDetails({
         },
       )
       if (response.ok) {
-        console.log("Email sent successfully")
+        showSuccessToast("Confirmation email sent successfully")
       } else {
-        console.error("Failed to resend email")
+        const data = await response.json().catch(() => ({}))
+        const detail = data?.detail
+        showErrorToast(
+          typeof detail === "string" ? detail : "Failed to send confirmation email",
+        )
       }
-    } catch (error) {
-      console.error("Error resending email:", error)
+    } catch {
+      showErrorToast("Failed to send confirmation email")
+    } finally {
+      setEmailSending(false)
     }
   }
 
@@ -146,7 +154,13 @@ export default function BookingDetails({
               Print
             </Flex>
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleEmail}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleEmail}
+            loading={emailSending}
+            disabled={emailSending}
+          >
             <Flex align="center" gap={2}>
               <FiMail />
               Resend Email

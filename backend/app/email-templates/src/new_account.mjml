@@ -1,14 +1,64 @@
 <mjml>
-  <mj-body background-color="#fafbfc">
-    <mj-section background-color="#fff" padding="40px 20px">
-      <mj-column vertical-align="middle" width="100%">
-        <mj-text align="center" padding="35px" font-size="20px" color="#333">{{ project_name }} - New Account</mj-text>
-        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555"><span>Welcome to your new account!</span></mj-text>
-        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Here are your account details:</mj-text>
-        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Username: {{ username }}</mj-text>
-        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Password: {{ password }}</mj-text>
-        <mj-button align="center" font-size="18px" background-color="#009688" border-radius="8px" color="#fff" href="{{ link }}" padding="15px 30px">Go to Dashboard</mj-button>
-        <mj-divider border-color="#ccc" border-width="2px"></mj-divider>
+  <mj-head>
+    <mj-title>New Account</mj-title>
+    <mj-preview>Your Star✦Fleet Tours account has been created</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-all>
+      <mj-text font-weight="400" font-size="16px" color="#19232d" line-height="24px" font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif"></mj-text>
+    </mj-attributes>
+    <mj-style inline="inline">
+      .body-section {
+        -webkit-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        -moz-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .text-link {
+        color: #fda801;
+      }
+      .footer-link {
+        color: #a0a0a0;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#e8eaed" width="600px">
+    <mj-section full-width="full-width" background-color="#19232d" padding-top="24px" padding-bottom="20px">
+      <mj-column width="100%">
+        <mj-image src="{{ base_url }}/assets/images/sf-logo-hat.png" alt="Star✦Fleet Tours" href="{{ base_url }}" width="200px" align="center"></mj-image>
+        <mj-text color="#fda801" align="center" font-size="13px" padding-top="4px" font-weight="bold" letter-spacing="0.5px">
+          NEW ACCOUNT
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="24px" css-class="body-section">
+      <mj-column width="100%">
+        <mj-text color="#19232d" font-weight="bold" font-size="20px">
+          {{ project_name }} - New Account
+        </mj-text>
+        <mj-text color="#637381" font-size="16px">
+          Welcome to your new account!
+        </mj-text>
+        <mj-text color="#637381" font-size="16px">
+          Here are your account details:
+        </mj-text>
+        <mj-text color="#637381" font-size="16px">
+          Username: {{ username }}
+        </mj-text>
+        <mj-text color="#637381" font-size="16px">
+          Password: {{ password }}
+        </mj-text>
+        <mj-button background-color="#fda801" color="#19232d" font-size="16px" align="center" padding="14px 28px" border-radius="4px" href="{{ link }}" font-family="Raleway, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="bold">
+          Go to Dashboard
+        </mj-button>
+        <mj-divider border-color="#4a5a67" border-width="1px" padding-top="20px" />
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#28343B" padding-top="20px" padding-bottom="20px">
+      <mj-column width="100%" padding="0">
+        <mj-text color="#a0a0a0" font-size="12px" align="center" line-height="20px">
+          © 2023 Star✦Fleet Tours, All Rights Reserved.
+        </mj-text>
       </mj-column>
     </mj-section>
   </mj-body>

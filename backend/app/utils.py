@@ -68,11 +68,16 @@ def send_email(
 
 
 def generate_test_email(email_to: str) -> EmailData:
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Test email"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Test email"
+    base_url = settings.FRONTEND_HOST
     html_content = render_email_template(
         template_name="test_email.html",
-        context={"project_name": settings.PROJECT_NAME, "email": email_to},
+        context={
+            "project_name": email_brand,
+            "base_url": base_url,
+            "email": email_to,
+        },
     )
     return EmailData(html_content=html_content, subject=subject)
 
@@ -85,6 +90,7 @@ def generate_booking_confirmation_email(
     mission_name: str,
     booking_items: list[dict],
     total_amount: float,
+    qr_code_base64: str | None = None,
 ) -> EmailData:
     """
     Generate booking confirmation email with booking details and tickets.
@@ -96,22 +102,24 @@ def generate_booking_confirmation_email(
         mission_name: Name of the mission/launch
         booking_items: List of booked items with details
         total_amount: Total amount paid
+        qr_code_base64: Optional base64-encoded PNG of the booking QR code for the email
 
     Returns:
         EmailData containing the subject and HTML content
     """
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Booking Confirmation #{confirmation_code}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Booking Confirmation #{confirmation_code}"
 
     # Create the confirmation link (unified public route)
-    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+    base_url = settings.FRONTEND_HOST
     confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
     # Render the email template
     html_content = render_email_template(
         template_name="booking_confirmation.html",
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "user_name": user_name,
             "confirmation_code": confirmation_code,
             "mission_name": mission_name,
@@ -119,6 +127,7 @@ def generate_booking_confirmation_email(
             "total_amount": total_amount,
             "confirmation_link": confirmation_link,
             "email": email_to,
+            "qr_code_base64": qr_code_base64 or "",
             "is_cancellation": False,  # Explicitly set to False for regular bookings
             "is_refund": False,  # Explicitly set to False for regular bookings
         },
@@ -146,21 +155,23 @@ def generate_booking_cancelled_email(
     Returns:
         EmailData containing the subject and HTML content
     """
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Booking Cancellation #{confirmation_code}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Booking Cancellation #{confirmation_code}"
 
+    base_url = settings.FRONTEND_HOST
     # Use the confirmation template for now, with a custom message
     # A dedicated cancellation template could be created later
     html_content = render_email_template(
         template_name="booking_confirmation.html",  # Reuse existing template as a base
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "user_name": user_name,
             "confirmation_code": confirmation_code,
             "mission_name": mission_name,
             "booking_items": [],
             "total_amount": 0.0,
-            "confirmation_link": settings.FRONTEND_HOST,
+            "confirmation_link": f"{base_url}/bookings?code={confirmation_code}",
             "is_cancellation": True,  # Flag for template conditional
             "cancellation_message": f"Your booking #{confirmation_code} for {mission_name} has been cancelled.",
             "email": email_to,
@@ -191,21 +202,23 @@ def generate_booking_refunded_email(
     Returns:
         EmailData containing the subject and HTML content
     """
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Refund Processed for Booking #{confirmation_code}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Refund Processed for Booking #{confirmation_code}"
 
+    base_url = settings.FRONTEND_HOST
     # Use the confirmation template for now, with a custom message
     # A dedicated refund template could be created later
     html_content = render_email_template(
         template_name="booking_confirmation.html",  # Reuse existing template as a base
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "user_name": user_name,
             "confirmation_code": confirmation_code,
             "mission_name": mission_name,
             "booking_items": [],
             "total_amount": refund_amount,
-            "confirmation_link": settings.FRONTEND_HOST,
+            "confirmation_link": f"{base_url}/bookings?code={confirmation_code}",
             "is_refund": True,  # Flag for template conditional
             "refund_message": f"Your refund of ${refund_amount:.2f} for booking #{confirmation_code} has been processed.",
             "email": email_to,
@@ -236,18 +249,19 @@ def generate_launch_update_email(
     Returns:
         EmailData containing the subject and HTML content
     """
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Launch Update: {mission_name}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Launch Update: {mission_name}"
 
     # Create the confirmation link
-    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+    base_url = settings.FRONTEND_HOST
     confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
     # Render the email template
     html_content = render_email_template(
         template_name="launch_update.html",
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "user_name": user_name,
             "confirmation_code": confirmation_code,
             "mission_name": mission_name,
@@ -261,13 +275,15 @@ def generate_launch_update_email(
 
 
 def generate_reset_password_email(email_to: str, email: str, token: str) -> EmailData:
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Password recovery for user {email}"
-    link = f"{settings.FRONTEND_HOST}/reset-password?token={token}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - Password recovery for user {email}"
+    base_url = settings.FRONTEND_HOST
+    link = f"{base_url}/reset-password?token={token}"
     html_content = render_email_template(
         template_name="reset_password.html",
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "username": email,
             "email": email_to,
             "valid_hours": settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS,
@@ -280,16 +296,18 @@ def generate_reset_password_email(email_to: str, email: str, token: str) -> Emai
 def generate_new_account_email(
     email_to: str, username: str, password: str
 ) -> EmailData:
-    project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - New account for user {username}"
+    email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
+    subject = f"{email_brand} - New account for user {username}"
+    base_url = settings.FRONTEND_HOST
     html_content = render_email_template(
         template_name="new_account.html",
         context={
-            "project_name": settings.PROJECT_NAME,
+            "project_name": email_brand,
+            "base_url": base_url,
             "username": username,
             "password": password,
             "email": email_to,
-            "link": settings.FRONTEND_HOST,
+            "link": base_url,
         },
     )
     return EmailData(html_content=html_content, subject=subject)
