@@ -227,11 +227,7 @@ const Step3CustomerInfo = ({
               </Checkbox>
 
               <Text fontSize="xs" color="dark.text.secondary">
-                By checking this box, you agree to our booking&nbsp;
-                <Link href="https://www.star-fleet.tours/details" target="_blank">terms and conditions</Link>&nbsp;
-                and&nbsp;
-                <Link href="https://www.star-fleet.tours/current" target="_blank">scrub policy</Link>&nbsp;
-                and acknowledge that you will receive booking confirmations and updates via email.
+                By checking this box, you agree to our booking <Link href="https://www.star-fleet.tours/details" target="_blank">terms and conditions</Link> and <Link href="https://www.star-fleet.tours/current" target="_blank">scrub policy</Link> and acknowledge that you will receive booking confirmations and updates via email.
               </Text>
             </VStack>
           </Box>
