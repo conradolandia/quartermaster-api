@@ -366,6 +366,9 @@ const EditBooking = ({
                                   <Table.Cell>
                                     <Text>
                                       {getItemTypeLabel(item.item_type)}
+                                      {item.variant_option
+                                        ? ` – ${item.variant_option}`
+                                        : ""}
                                     </Text>
                                   </Table.Cell>
                                   <Table.Cell>
@@ -476,6 +479,9 @@ const EditBooking = ({
                                   <Table.Cell>
                                     <Text>
                                       {getItemTypeLabel(item.item_type)}
+                                      {item.variant_option
+                                        ? ` – ${item.variant_option}`
+                                        : ""}
                                     </Text>
                                   </Table.Cell>
                                   <Table.Cell>
@@ -585,7 +591,13 @@ const EditBooking = ({
                       .map((item) => (
                         <Box key={item.id} mb={2}>
                           <Text fontSize="sm" color="status.error">
-                            <strong>{getItemTypeLabel(item.item_type)}:</strong>
+                            <strong>
+                              {getItemTypeLabel(item.item_type)}
+                              {item.variant_option
+                                ? ` – ${item.variant_option}`
+                                : ""}
+                              :
+                            </strong>
                             {item.refund_reason &&
                               ` Reason: ${item.refund_reason}`}
                             {item.refund_notes &&

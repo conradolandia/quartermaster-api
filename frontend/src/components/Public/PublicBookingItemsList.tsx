@@ -13,9 +13,12 @@ interface PublicBookingItemsListProps {
 
 const formatItemType = (item: BookingItemPublic): string => {
   if (item.trip_merchandise_id) {
-    return `Merchandise: ${item.item_type
+    const name = item.item_type
       .replace(/_/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase())}`
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+    return item.variant_option
+      ? `Merchandise: ${name} – ${item.variant_option}`
+      : `Merchandise: ${name}`
   }
   const type = item.item_type
     .replace(/_/g, " ")

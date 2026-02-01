@@ -27,7 +27,7 @@ import {
   MissionsService,
   type TripBoatPublicWithAvailability,
   TripBoatsService,
-  type TripPublic,
+  type TripWithStats,
   TripsService,
 } from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
@@ -45,7 +45,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
-import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
+import { formatCents, formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
 type SortableColumn =
@@ -55,6 +55,8 @@ type SortableColumn =
   | "check_in_time"
   | "departure_time"
   | "active"
+  | "total_bookings"
+  | "total_sales"
 type SortDirection = "asc" | "desc"
 
 const tripsSearchSchema = z.object({
@@ -68,6 +70,8 @@ const tripsSearchSchema = z.object({
       "check_in_time",
       "departure_time",
       "active",
+      "total_bookings",
+      "total_sales",
     ])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
@@ -191,8 +195,8 @@ function TripsTable() {
   const effectiveSortDirection = sortDirection || "desc"
 
   tripsToShow = tripsToShow.sort((a, b) => {
-    let aValue: any = a[effectiveSortBy as keyof TripPublic]
-    let bValue: any = b[effectiveSortBy as keyof TripPublic]
+    let aValue: unknown = a[effectiveSortBy as keyof TripWithStats]
+    let bValue: unknown = b[effectiveSortBy as keyof TripWithStats]
 
     // Handle date sorting
     if (
@@ -201,6 +205,15 @@ function TripsTable() {
     ) {
       aValue = parseApiDate(aValue as string).getTime()
       bValue = parseApiDate(bValue as string).getTime()
+    }
+
+    // Handle numeric stats for sorting
+    if (
+      effectiveSortBy === "total_bookings" ||
+      effectiveSortBy === "total_sales"
+    ) {
+      aValue = typeof aValue === "number" ? aValue : 0
+      bValue = typeof bValue === "number" ? bValue : 0
     }
 
     // Handle boolean sorting
@@ -336,12 +349,24 @@ function TripsTable() {
                 w="sm"
                 fontWeight="bold"
                 cursor="pointer"
-                onClick={() => handleSort("check_in_time")}
+                onClick={() => handleSort("total_bookings")}
                 display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
-                  Check-in Time
-                  <SortIcon column="check_in_time" />
+                  Bookings
+                  <SortIcon column="total_bookings" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("total_sales")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Sales
+                  <SortIcon column="total_sales" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -416,7 +441,15 @@ function TripsTable() {
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
-                    {renderTripDate(trip.check_in_time, trip.timezone)}
+                    {(trip as TripWithStats).total_bookings ?? 0}
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    maxW="sm"
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    ${formatCents((trip as TripWithStats).total_sales ?? 0)}
                   </Table.Cell>
                   <Table.Cell
                     truncate

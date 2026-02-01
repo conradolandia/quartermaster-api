@@ -17,6 +17,8 @@ import { FiDownload, FiFilter } from "react-icons/fi"
 
 import {
   BookingsService,
+  type BoatPublic,
+  BoatsService,
   type MissionPublic,
   MissionsService,
   type TripPublic,
@@ -70,6 +72,7 @@ const AMOUNT_FIELD_KEYS = [
 const CSVExportInterface = () => {
   const [selectedMissionId, setSelectedMissionId] = useState("")
   const [selectedTripId, setSelectedTripId] = useState("")
+  const [selectedBoatId, setSelectedBoatId] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [selectedFields, setSelectedFields] = useState<Set<string>>(
     new Set(CSV_FIELDS.map((f) => f.key)), // All fields selected by default
@@ -90,8 +93,15 @@ const CSVExportInterface = () => {
     queryFn: () => TripsService.readTrips({ limit: 100 }),
   })
 
+  // Fetch boats for filtering
+  const { data: boatsData } = useQuery({
+    queryKey: ["boats"],
+    queryFn: () => BoatsService.readBoats({ limit: 200 }),
+  })
+
   const missions = missionsData?.data || []
   const trips = tripsData?.data || []
+  const boats = boatsData?.data || []
 
   // Filter trips by selected mission
   const filteredTrips = selectedMissionId
@@ -112,6 +122,13 @@ const CSVExportInterface = () => {
         trip.timezone,
       )}`,
       value: trip.id,
+    })),
+  })
+
+  const boatsCollection = createListCollection({
+    items: boats.map((boat: BoatPublic) => ({
+      label: boat.name,
+      value: boat.id,
     })),
   })
 
@@ -136,6 +153,7 @@ const CSVExportInterface = () => {
       const response = await BookingsService.exportBookingsCsv({
         missionId: selectedMissionId || undefined,
         tripId: selectedTripId || undefined,
+        boatId: selectedBoatId || undefined,
         bookingStatus: selectedStatus || undefined,
         fields: fieldsParam,
       })
@@ -157,6 +175,10 @@ const CSVExportInterface = () => {
       if (selectedTripId) {
         const trip = trips.find((t: TripPublic) => t.id === selectedTripId)
         filename += `_${trip?.type?.replace(/\s+/g, "_") || "trip"}`
+      }
+      if (selectedBoatId) {
+        const boat = boats.find((b: BoatPublic) => b.id === selectedBoatId)
+        filename += `_${boat?.name?.replace(/\s+/g, "_") || "boat"}`
       }
       if (selectedStatus) {
         filename += `_${selectedStatus}`
@@ -182,6 +204,7 @@ const CSVExportInterface = () => {
   const handleReset = () => {
     setSelectedMissionId("")
     setSelectedTripId("")
+    setSelectedBoatId("")
     setSelectedStatus("")
     setSelectedFields(new Set(CSV_FIELDS.map((f) => f.key))) // Reset to all fields
   }
@@ -222,9 +245,45 @@ const CSVExportInterface = () => {
     selectedFields.has("ticket_types_price") ||
     selectedFields.has("ticket_types_total")
 
-  // Trip is required when ticket-type fields are selected
+  // When ticket-type fields are selected, mission, trip, and boat are required
   const tripRequired = hasTicketTypeFields
-  const canExport = !isExporting && (!tripRequired || selectedTripId)
+  const missionRequired = hasTicketTypeFields
+  const boatRequired = hasTicketTypeFields
+  const canExport: boolean =
+    !isExporting &&
+    !!(
+      !tripRequired ||
+      (selectedTripId &&
+        (!missionRequired || selectedMissionId) &&
+        (!boatRequired || selectedBoatId))
+    )
+
+  // Check if current filters would return any bookings (only when export would be allowed)
+  const { data: exportPreviewData, isLoading: isLoadingExportPreview } =
+    useQuery({
+      queryKey: [
+        "bookings-export-preview",
+        selectedMissionId,
+        selectedTripId,
+        selectedBoatId,
+        selectedStatus,
+      ],
+      queryFn: () =>
+        BookingsService.listBookings({
+          skip: 0,
+          limit: 1,
+          missionId: selectedMissionId || undefined,
+          tripId: selectedTripId || undefined,
+          boatId: selectedBoatId || undefined,
+          status: selectedStatus || undefined,
+        }),
+      enabled: canExport,
+    })
+
+  const exportTotal = exportPreviewData?.total ?? 0
+  const hasNoData =
+    canExport && !isLoadingExportPreview && exportTotal === 0
+  const exportDisabled = !canExport || isExporting || hasNoData
 
   return (
     <VStack gap={6} align="stretch">
@@ -237,10 +296,11 @@ const CSVExportInterface = () => {
             <Text color="text.muted">
               Export booking data to CSV format with optional filtering by
               mission, trip, or status.
-              {hasTicketTypeFields && (
+              {hasTicketTypeFields && !selectedTripId && (
                 <Text as="span" display="block" mt={1} color="orange.600">
-                  Note: Trip selection is required when exporting ticket-type
-                  columns to ensure accurate column headers.
+                  Note: Mission, trip, and boat selection are required when
+                  exporting ticket-type columns to ensure accurate column
+                  headers.
                 </Text>
               )}
             </Text>
@@ -271,7 +331,10 @@ const CSVExportInterface = () => {
                 gridTemplateColumns="repeat(auto-fill, minmax(250px, 1fr))"
                 gap={3}
               >
-                {CSV_FIELDS.map((field) => (
+                {(boatRequired
+                  ? CSV_FIELDS.filter((f) => f.key !== "boat_name")
+                  : CSV_FIELDS
+                ).map((field) => (
                   <Checkbox
                     key={field.key}
                     checked={selectedFields.has(field.key)}
@@ -289,7 +352,13 @@ const CSVExportInterface = () => {
               <HStack gap={4} align="end">
                 <Box flex={1}>
                   <Text fontWeight="medium" mb={2}>
-                    Mission (Optional)
+                    Mission{" "}
+                    {missionRequired && (
+                      <Text as="span" color="red.500">
+                        *
+                      </Text>
+                    )}
+                    {missionRequired ? " (Required)" : " (Optional)"}
                   </Text>
                   <Select.Root
                     collection={missionsCollection}
@@ -339,20 +408,21 @@ const CSVExportInterface = () => {
                   <Select.Root
                     collection={tripsCollection}
                     value={selectedTripId ? [selectedTripId] : []}
-                    onValueChange={(details) =>
+                    onValueChange={(details) => {
                       setSelectedTripId(details.value[0] || "")
-                    }
-                    disabled={!selectedMissionId}
+                      setSelectedBoatId("")
+                    }}
+                    disabled={missionRequired && !selectedMissionId}
                   >
                     <Select.Control width="100%">
                       <Select.Trigger>
                         <Select.ValueText
                           placeholder={
-                            selectedMissionId
-                              ? tripRequired
+                            missionRequired && !selectedMissionId
+                              ? "Select mission first"
+                              : tripRequired
                                 ? "Select a trip"
                                 : "All trips"
-                              : "Select mission first"
                           }
                         />
                       </Select.Trigger>
@@ -363,6 +433,57 @@ const CSVExportInterface = () => {
                     <Select.Positioner>
                       <Select.Content minWidth="300px">
                         {tripsCollection.items.map((item) => (
+                          <Select.Item key={item.value} item={item}>
+                            {item.label}
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select.Root>
+                </Box>
+
+                <Box flex={1}>
+                  <Text fontWeight="medium" mb={2}>
+                    Boat{" "}
+                    {boatRequired && (
+                      <Text as="span" color="red.500">
+                        *
+                      </Text>
+                    )}
+                    {boatRequired ? " (Required)" : " (Optional)"}
+                  </Text>
+                  {boatRequired && !selectedBoatId && (
+                    <Text fontSize="sm" color="orange.600" mb={1}>
+                      Boat selection is required when exporting ticket-type
+                      columns
+                    </Text>
+                  )}
+                  <Select.Root
+                    collection={boatsCollection}
+                    value={selectedBoatId ? [selectedBoatId] : []}
+                    onValueChange={(details) =>
+                      setSelectedBoatId(details.value[0] || "")
+                    }
+                    disabled={boatRequired && !selectedTripId}
+                  >
+                    <Select.Control width="100%">
+                      <Select.Trigger>
+                        <Select.ValueText
+                          placeholder={
+                            boatRequired && !selectedTripId
+                              ? "Select trip first"
+                              : "All boats"
+                          }
+                        />
+                      </Select.Trigger>
+                      <Select.IndicatorGroup>
+                        <Select.Indicator />
+                      </Select.IndicatorGroup>
+                    </Select.Control>
+                    <Select.Positioner>
+                      <Select.Content minWidth="300px">
+                        {boatsCollection.items.map((item) => (
                           <Select.Item key={item.value} item={item}>
                             {item.label}
                             <Select.ItemIndicator />
@@ -408,6 +529,11 @@ const CSVExportInterface = () => {
             </VStack>
 
             {/* Export Actions */}
+            {hasNoData && (
+              <Text color="orange.600" fontSize="sm">
+                The table has no data.
+              </Text>
+            )}
             <HStack gap={4} justify="flex-end">
               <Button
                 variant="outline"
@@ -421,7 +547,7 @@ const CSVExportInterface = () => {
                 colorPalette="blue"
                 onClick={handleExport}
                 loading={isExporting}
-                disabled={!canExport}
+                disabled={exportDisabled}
               >
                 <FiDownload />
                 {isExporting ? "Exporting..." : "Export CSV"}

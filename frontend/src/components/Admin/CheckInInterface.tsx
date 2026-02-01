@@ -28,6 +28,10 @@ import {
 } from "@/components/ui/dialog"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import EditBooking from "@/components/Bookings/EditBooking"
+import {
+  getRefundedCents,
+  isPartiallyRefunded,
+} from "@/components/Bookings/types"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import { useEffect } from "react"
@@ -222,15 +226,22 @@ const CheckInInterface = ({
         <>
           <Card.Root>
             <Card.Header>
-              <HStack justify="space-between">
+              <HStack justify="space-between" flexWrap="wrap" gap={2}>
                 <Heading size="md">Booking Details</Heading>
-                <Badge
-                  colorPalette={getStatusColor(
-                    currentBooking.status || "unknown",
+                <HStack gap={2}>
+                  <Badge
+                    colorPalette={getStatusColor(
+                      currentBooking.status || "unknown",
+                    )}
+                  >
+                    {getStatusText(currentBooking.status || "unknown")}
+                  </Badge>
+                  {isPartiallyRefunded(currentBooking) && (
+                    <Text fontSize="sm" color="text.muted">
+                      Refunded ${formatCents(getRefundedCents(currentBooking))}
+                    </Text>
                   )}
-                >
-                  {getStatusText(currentBooking.status || "unknown")}
-                </Badge>
+                </HStack>
               </HStack>
             </Card.Header>
             <Card.Body>

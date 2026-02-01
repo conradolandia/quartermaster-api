@@ -55,6 +55,8 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
       description: merchandise.description ?? "",
       price: merchandise.price / 100,
       quantity_available: merchandise.quantity_available,
+      variant_name: merchandise.variant_name ?? "",
+      variant_options: merchandise.variant_options ?? "",
     },
   })
 
@@ -65,6 +67,8 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
         description: merchandise.description ?? "",
         price: merchandise.price / 100,
         quantity_available: merchandise.quantity_available,
+        variant_name: merchandise.variant_name ?? "",
+        variant_options: merchandise.variant_options ?? "",
       })
     }
   }, [
@@ -74,6 +78,8 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
     merchandise.description,
     merchandise.price,
     merchandise.quantity_available,
+    merchandise.variant_name,
+    merchandise.variant_options,
     reset,
   ])
 
@@ -100,6 +106,8 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
     mutation.mutate({
       ...data,
       price: data.price != null ? Math.round(data.price * 100) : undefined,
+      variant_name: data.variant_name?.trim() || undefined,
+      variant_options: data.variant_options?.trim() || undefined,
     })
   }
 
@@ -214,6 +222,38 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
                       <NumberInput.Input />
                     </NumberInput.Root>
                   )}
+                />
+              </Field>
+              <Field
+                label="Variant name (optional)"
+                invalid={!!errors.variant_name}
+                errorText={errors.variant_name?.message}
+              >
+                <Input
+                  id="variant_name"
+                  {...register("variant_name", {
+                    maxLength: {
+                      value: 64,
+                      message: "Variant name cannot exceed 64 characters",
+                    },
+                  })}
+                  placeholder="e.g. Size"
+                />
+              </Field>
+              <Field
+                label="Variant options (optional, comma-separated)"
+                invalid={!!errors.variant_options}
+                errorText={errors.variant_options?.message}
+              >
+                <Input
+                  id="variant_options"
+                  {...register("variant_options", {
+                    maxLength: {
+                      value: 500,
+                      message: "Variant options cannot exceed 500 characters",
+                    },
+                  })}
+                  placeholder="e.g. S, M, L"
                 />
               </Field>
             </VStack>

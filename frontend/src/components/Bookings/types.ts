@@ -1,4 +1,13 @@
+import type { BookingPublic } from "@/client"
 import { z } from "zod"
+
+/** Sum of ticket quantities (items without trip_merchandise_id) for a booking. */
+export function totalTicketQuantity(booking: BookingPublic | undefined): number {
+  if (!booking?.items) return 0
+  return booking.items
+    .filter((item) => !item.trip_merchandise_id)
+    .reduce((sum, item) => sum + item.quantity, 0)
+}
 
 // Define sortable columns
 export type SortableColumn =
@@ -32,6 +41,17 @@ export const bookingsSearchSchema = z.object({
     .catch("created_at"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
 })
+
+export function getRefundedCents(booking: BookingPublic | undefined): number {
+  return booking?.refunded_amount_cents ?? 0
+}
+
+export function isPartiallyRefunded(
+  booking: BookingPublic | undefined,
+): boolean {
+  if (!booking) return false
+  return booking.status !== "refunded" && getRefundedCents(booking) > 0
+}
 
 // Helper function to get status color
 export const getStatusColor = (status: string) => {

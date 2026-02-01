@@ -255,6 +255,16 @@ def _create_booking_impl(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Merchandise not found",
                 )
+            if m.variant_options:
+                allowed = [o.strip() for o in m.variant_options.split(",") if o.strip()]
+                if not item.variant_option or item.variant_option not in allowed:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"Merchandise '{m.name}' requires a valid {m.variant_name or 'variant'}: "
+                            f"one of {allowed}"
+                        ),
+                    )
             effective_qty = (
                 tm.quantity_available_override
                 if tm.quantity_available_override is not None
@@ -383,6 +393,7 @@ def _create_booking_impl(
             status=item.status,
             refund_reason=item.refund_reason,
             refund_notes=item.refund_notes,
+            variant_option=item.variant_option,
         )
         booking_items.append(booking_item)
 
@@ -499,6 +510,7 @@ def duplicate_booking(
                 status=BookingItemStatus.active,
                 refund_reason=None,
                 refund_notes=None,
+                variant_option=item.variant_option,
             )
             for item in items
         ],
@@ -532,13 +544,14 @@ def list_bookings(
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
+    boat_id: uuid.UUID | None = None,
     status: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, trip_id, or status.
+    Optionally filter by mission_id, trip_id, boat_id, or status.
     """
     try:
         # Parameter validation
@@ -563,8 +576,8 @@ def list_bookings(
         # Build base query
         base_query = select(Booking)
 
-        # Apply mission/trip filter if provided (join via BookingItem, optionally Trip)
-        if mission_id or trip_id:
+        # Apply mission/trip/boat filter if provided (join via BookingItem, optionally Trip)
+        if mission_id or trip_id or boat_id:
             base_query = base_query.join(
                 BookingItem, BookingItem.booking_id == Booking.id
             )
@@ -574,11 +587,15 @@ def list_bookings(
                 ).where(Trip.mission_id == mission_id)
             if trip_id:
                 base_query = base_query.where(BookingItem.trip_id == trip_id)
+            if boat_id:
+                base_query = base_query.where(BookingItem.boat_id == boat_id)
             base_query = base_query.distinct()
             if mission_id:
                 logger.info(f"Filtering bookings by mission_id: {mission_id}")
             if trip_id:
                 logger.info(f"Filtering bookings by trip_id: {trip_id}")
+            if boat_id:
+                logger.info(f"Filtering bookings by boat_id: {boat_id}")
 
         # Apply status filter if provided
         if status:
@@ -589,7 +606,7 @@ def list_bookings(
         total_count = 0
         try:
             count_query = select(func.count(Booking.id.distinct()))
-            if mission_id or trip_id:
+            if mission_id or trip_id or boat_id:
                 count_query = count_query.select_from(Booking).join(
                     BookingItem, BookingItem.booking_id == Booking.id
                 )
@@ -599,8 +616,10 @@ def list_bookings(
                     ).where(Trip.mission_id == mission_id)
                 if trip_id:
                     count_query = count_query.where(BookingItem.trip_id == trip_id)
+                if boat_id:
+                    count_query = count_query.where(BookingItem.boat_id == boat_id)
             if status:
-                if not (mission_id or trip_id):
+                if not (mission_id or trip_id or boat_id):
                     count_query = count_query.select_from(Booking)
                 count_query = count_query.where(Booking.status == status)
             total_count = session.exec(count_query).first()
@@ -1466,7 +1485,7 @@ def process_refund(
                 detail="Booking not found with the provided confirmation code",
             )
 
-        # Validate booking status
+        # Validate booking status (refunded = terminal; partial refunds keep confirmed/checked_in/completed)
         if booking.status not in [
             BookingStatus.confirmed,
             BookingStatus.checked_in,
@@ -1480,19 +1499,29 @@ def process_refund(
                 detail=f"Cannot refund booking with status '{booking.status}'. Booking must be 'confirmed', 'checked_in', or 'completed'.",
             )
 
+        refunded_so_far = getattr(booking, "refunded_amount_cents", 0) or 0
+        remaining_refundable = booking.total_amount - refunded_so_far
+        if remaining_refundable <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No remaining amount to refund for this booking.",
+            )
+
         # Validate refund amount (all in cents)
         amount_to_refund = (
             refund_amount_cents
             if refund_amount_cents is not None
-            else booking.total_amount
+            else remaining_refundable
         )
-        if (
-            refund_amount_cents is not None
-            and refund_amount_cents > booking.total_amount
-        ):
+        if amount_to_refund > remaining_refundable:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Refund amount cannot exceed the total booking amount",
+                detail=f"Refund amount cannot exceed remaining refundable amount (${remaining_refundable / 100:.2f}).",
+            )
+        if amount_to_refund <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Refund amount must be positive.",
             )
 
         # Process Stripe refund if payment intent exists
@@ -1519,20 +1548,21 @@ def process_refund(
                 f"No payment intent found for booking {confirmation_code}, processing refund without Stripe"
             )
 
-        # Update booking status to refunded
-        booking.status = BookingStatus.refunded
+        # Update cumulative refund and status only when fully refunded
+        booking.refunded_amount_cents = refunded_so_far + amount_to_refund
         session.add(booking)
 
-        # Update all booking items to refunded status with reason and notes
         items = session.exec(
             select(BookingItem).where(BookingItem.booking_id == booking.id)
         ).all()
 
-        for item in items:
-            item.status = BookingItemStatus.refunded
-            item.refund_reason = refund_reason
-            item.refund_notes = refund_notes
-            session.add(item)
+        if booking.refunded_amount_cents >= booking.total_amount:
+            booking.status = BookingStatus.refunded
+            for item in items:
+                item.status = BookingItemStatus.refunded
+                item.refund_reason = refund_reason
+                item.refund_notes = refund_notes
+                session.add(item)
 
         # Commit all changes
         session.commit()
@@ -1604,13 +1634,14 @@ def export_bookings_csv(
     session: Session = Depends(deps.get_db),
     mission_id: str | None = None,
     trip_id: str | None = None,
+    boat_id: str | None = None,
     booking_status: str | None = None,
     fields: str | None = None,  # Comma-separated list of field names
 ) -> Response:
     """
     Export bookings data to CSV format.
 
-    Supports filtering by mission_id, trip_id, and booking_status.
+    Supports filtering by mission_id, trip_id, boat_id, and booking_status.
     Supports field selection via the fields parameter (comma-separated list of field names).
     Available fields: confirmation_code, customer_name, email, phone, billing_address,
     status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
@@ -1635,14 +1666,19 @@ def export_bookings_csv(
         # Apply filters
         conditions = []
 
-        if mission_id or trip_id:
-            # Join with BookingItem if we need to filter by mission or trip
+        if mission_id or trip_id or boat_id:
+            # Join with BookingItem if we need to filter by mission, trip, or boat
             query = query.join(BookingItem)
 
             if mission_id:
                 conditions.append(BookingItem.trip.has(Trip.mission_id == mission_id))
             if trip_id:
                 conditions.append(BookingItem.trip_id == trip_id)
+            if boat_id:
+                try:
+                    conditions.append(BookingItem.boat_id == uuid.UUID(boat_id))
+                except (ValueError, TypeError):
+                    pass
 
         if booking_status:
             conditions.append(Booking.status == booking_status)
@@ -1669,11 +1705,29 @@ def export_bookings_csv(
             or (not fields)
         )  # Default includes ticket_types
 
-        # Determine ticket types: from effective pricing if trip_id provided, else from booking items
+        # Determine ticket types: from effective pricing if trip_id (and optionally boat_id) provided, else from booking items
         if trip_id and will_include_ticket_types:
-            sorted_ticket_types = crud.get_effective_ticket_types_for_trip(
-                session=session, trip_id=trip_id
-            )
+            if boat_id:
+                try:
+                    trip_uuid = uuid.UUID(trip_id)
+                    boat_uuid = uuid.UUID(boat_id)
+                except (ValueError, TypeError):
+                    trip_uuid = boat_uuid = None
+                if trip_uuid and boat_uuid:
+                    pricing = crud.get_effective_pricing(
+                        session=session,
+                        trip_id=trip_uuid,
+                        boat_id=boat_uuid,
+                    )
+                    sorted_ticket_types = [p.ticket_type for p in pricing]
+                else:
+                    sorted_ticket_types = crud.get_effective_ticket_types_for_trip(
+                        session=session, trip_id=uuid.UUID(trip_id)
+                    )
+            else:
+                sorted_ticket_types = crud.get_effective_ticket_types_for_trip(
+                    session=session, trip_id=uuid.UUID(trip_id)
+                )
         else:
             # Fallback: collect from booking items (for exports without trip selection)
             def normalize_ticket_type(raw: str) -> str:
@@ -1755,6 +1809,10 @@ def export_bookings_csv(
         if not selected_fields:
             selected_fields = list(base_fields.keys()) + ["ticket_types", "swag"]
 
+        # When boat is specified, boat name column is redundant (same boat for all rows)
+        if boat_id:
+            selected_fields = [f for f in selected_fields if f != "boat_name"]
+
         # Which ticket/swag sub-columns to include
         include_ticket_quantity = (
             "ticket_types" in selected_fields
@@ -1799,10 +1857,16 @@ def export_bookings_csv(
 
         # Write booking data - one row per booking
         for booking in bookings:
-            # Get booking items (filter by trip_id if provided)
+            # Get booking items (filter by trip_id and boat_id when provided)
             item_query = select(BookingItem).where(BookingItem.booking_id == booking.id)
             if trip_id:
                 item_query = item_query.where(BookingItem.trip_id == trip_id)
+            if boat_id:
+                try:
+                    boat_uuid = uuid.UUID(boat_id)
+                    item_query = item_query.where(BookingItem.boat_id == boat_uuid)
+                except (ValueError, TypeError):
+                    pass
             items = session.exec(item_query).all()
 
             # Aggregate items by type
@@ -1831,6 +1895,8 @@ def export_bookings_csv(
                 if item.trip_merchandise_id:
                     # Merchandise item - item_type contains the merchandise name
                     merch_name = item.item_type
+                    if item.variant_option:
+                        merch_name = f"{merch_name} – {item.variant_option}"
                     swag_items.append(
                         f"{merch_name} x{item.quantity}"
                         if item.quantity > 1

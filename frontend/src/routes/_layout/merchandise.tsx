@@ -217,6 +217,13 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
+                w="sm"
+                fontWeight="bold"
+                display={{ base: "none", md: "table-cell" }}
+              >
+                Variations
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
                 minW="180px"
                 fontWeight="bold"
                 textAlign="center"
@@ -241,6 +248,15 @@ function MerchandiseTable() {
                 <Table.Cell>{formatCents(item.price)}</Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {item.quantity_available}
+                </Table.Cell>
+                <Table.Cell
+                  display={{ base: "none", md: "table-cell" }}
+                  truncate
+                  maxW="xs"
+                >
+                  {item.variant_name && item.variant_options
+                    ? `${item.variant_name}: ${item.variant_options}`
+                    : "—"}
                 </Table.Cell>
                 <Table.Cell minW="220px" textAlign="center">
                   <Flex gap={2} flexWrap="wrap" justify="center">

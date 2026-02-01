@@ -175,6 +175,7 @@ const Step4Review = ({
           quantity: item.quantity,
           price_per_unit: item.price_per_unit,
           trip_merchandise_id: item.trip_merchandise_id,
+          variant_option: item.variant_option,
         })),
         subtotal: bookingData.subtotal,
         discount_amount: bookingData.discount_amount,
@@ -496,6 +497,9 @@ const Step4Review = ({
                       {item.item_type
                         .replace("_", " ")
                         .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {item.variant_option
+                        ? ` – ${item.variant_option}`
+                        : ""}
                     </Text>
                     <Text fontSize="sm" color="gray.400">
                       Quantity: {item.quantity}

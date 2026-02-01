@@ -37,7 +37,12 @@ import {
 import { DialogActionTrigger } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
-import { formatDate, getStatusColor } from "./types"
+import {
+  formatDate,
+  getRefundedCents,
+  getStatusColor,
+  isPartiallyRefunded,
+} from "./types"
 
 interface BookingDetailsProps {
   confirmationCode: string
@@ -346,12 +351,17 @@ export default function BookingDetails({
                   </Box>
                 )}
                 <Box flex="1">
-                  <Flex gap={4} mb={2} alignItems="baseline">
+                  <Flex gap={4} mb={2} alignItems="baseline" flexWrap="wrap">
                     <Text fontWeight="bold">Status:</Text>
                     <Badge colorPalette={getStatusColor(booking.status || "")}>
                       {booking.status?.replace("_", " ").toUpperCase() ||
                         "UNKNOWN"}
                     </Badge>
+                    {isPartiallyRefunded(booking) && (
+                      <Text fontSize="sm" color="text.muted">
+                        Partially refunded: ${formatCents(getRefundedCents(booking))}
+                      </Text>
+                    )}
                   </Flex>
                   <Flex gap={4} mb={2} alignItems="baseline">
                     <Text fontWeight="bold">Created:</Text>
@@ -496,6 +506,9 @@ export default function BookingDetails({
                             {item.item_type
                               .replace("_", " ")
                               .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                            {item.variant_option
+                              ? ` – ${item.variant_option}`
+                              : ""}
                           </Text>
                           {item.trip_merchandise_id && (
                             <Text fontSize="sm" color="gray.400">

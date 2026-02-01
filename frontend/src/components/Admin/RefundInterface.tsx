@@ -20,6 +20,10 @@ import { FiChevronDown, FiChevronUp, FiSearch, FiX } from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import {
+  getRefundedCents,
+  isPartiallyRefunded,
+} from "@/components/Bookings/types"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
@@ -58,7 +62,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       }),
     onSuccess: (booking) => {
       setCurrentBooking(booking)
-      setRefundAmount(booking.total_amount) // Default to full amount
+      const refunded = getRefundedCents(booking)
+      const remaining = booking.total_amount - refunded
+      setRefundAmount(remaining > 0 ? remaining : null)
       showSuccessToast("Booking found successfully")
     },
     onError: (error: any) => {
@@ -118,8 +124,11 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       return
     }
 
-    if (refundAmount !== null && refundAmount > currentBooking.total_amount) {
-      showErrorToast("Refund amount cannot exceed the total booking amount")
+    const remaining = currentBooking.total_amount - getRefundedCents(currentBooking)
+    if (refundAmount !== null && refundAmount > remaining) {
+      showErrorToast(
+        `Refund amount cannot exceed remaining refundable amount ($${formatCents(remaining)})`,
+      )
       return
     }
 
@@ -167,8 +176,13 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     currentBooking &&
     ["confirmed", "checked_in", "completed"].includes(
       currentBooking.status || "unknown",
-    )
+    ) &&
+    getRefundedCents(currentBooking) < currentBooking.total_amount
   const isRefunded = currentBooking?.status === "refunded"
+  const partiallyRefunded = currentBooking && isPartiallyRefunded(currentBooking)
+  const remainingRefundable = currentBooking
+    ? currentBooking.total_amount - getRefundedCents(currentBooking)
+    : 0
 
   return (
     <VStack gap={6} align="stretch">
@@ -296,6 +310,18 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   <Heading size="md">Process Refund</Heading>
 
                   <VStack gap={4} align="stretch">
+                    {partiallyRefunded && (
+                      <HStack gap={4} flexWrap="wrap">
+                        <Text fontSize="sm" color="text.muted">
+                          Already refunded: $
+                          {formatCents(getRefundedCents(currentBooking))}
+                        </Text>
+                        <Text fontSize="sm" color="text.muted">
+                          Remaining refundable: $
+                          {formatCents(remainingRefundable)}
+                        </Text>
+                      </HStack>
+                    )}
                     {/* Refund Amount */}
                     <Box>
                       <Text fontWeight="medium" mb={2}>
@@ -303,7 +329,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                       </Text>
                       <NumberInput.Root
                         value={(
-                          (refundAmount ?? currentBooking.total_amount) / 100
+                          (refundAmount ?? remainingRefundable) / 100
                         ).toFixed(2)}
                         onValueChange={(details) => {
                           const dollars =
@@ -311,7 +337,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                           setRefundAmount(Math.round(dollars * 100))
                         }}
                         min={0}
-                        max={currentBooking.total_amount / 100}
+                        max={remainingRefundable / 100}
                         step={0.01}
                       >
                         <NumberInput.Input placeholder="0.00" />
@@ -325,7 +351,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         </NumberInput.Control>
                       </NumberInput.Root>
                       <Text fontSize="sm" color="text.muted" mt={1}>
-                        Maximum: ${formatCents(currentBooking.total_amount)}
+                        Maximum: ${formatCents(remainingRefundable)}
                       </Text>
                     </Box>
 

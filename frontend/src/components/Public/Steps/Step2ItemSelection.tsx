@@ -8,9 +8,11 @@ import {
   IconButton,
   Input,
   NumberInput,
+  Select,
   Separator,
   Text,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
@@ -53,6 +55,9 @@ const Step2ItemSelection = ({
   )
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
+  const [merchandiseVariantByKey, setMerchandiseVariantByKey] = useState<
+    Record<string, string>
+  >({})
 
   // Fetch trip details to get jurisdiction for tax rate (using public endpoint)
   const { data: tripData } = useQuery({
@@ -309,13 +314,28 @@ const Step2ItemSelection = ({
     }
   }
 
-  const addMerchandise = (merchandise: TripMerchandisePublic) => {
+  const variantOptionsList = (opts: string | null | undefined): string[] =>
+    opts
+      ? opts.split(",").map((o) => o.trim()).filter(Boolean)
+      : []
+
+  const addMerchandise = (
+    merchandise: TripMerchandisePublic,
+    variantOption?: string,
+  ) => {
+    const options = variantOptionsList(merchandise.variant_options)
+    const requiredVariant = options.length > 0
+    if (requiredVariant && !variantOption) return
+    if (requiredVariant && variantOption && !options.includes(variantOption))
+      return
+
     const existingItem = bookingData.selectedItems.find(
-      (item) => item.trip_merchandise_id === merchandise.id,
+      (item) =>
+        item.trip_merchandise_id === merchandise.id &&
+        (item.variant_option ?? undefined) === (variantOption ?? undefined),
     )
 
     if (existingItem) {
-      // Increment quantity if available
       if (existingItem.quantity < merchandise.quantity_available) {
         const updatedItems = bookingData.selectedItems.map((item) =>
           item === existingItem
@@ -325,13 +345,13 @@ const Step2ItemSelection = ({
         updateBookingData({ selectedItems: updatedItems })
       }
     } else {
-      // Add new item
       const newItem = {
         trip_id: bookingData.selectedTripId,
         item_type: merchandise.name,
         quantity: 1,
         price_per_unit: merchandise.price,
         trip_merchandise_id: merchandise.id,
+        variant_option: variantOption ?? undefined,
       }
       updateBookingData({
         selectedItems: [...bookingData.selectedItems, newItem],
@@ -464,42 +484,106 @@ const Step2ItemSelection = ({
                   Merchandise
                 </Heading>
                 <VStack gap={3} align="stretch">
-                  {tripMerchandise.map((merchandise: TripMerchandisePublic) => (
-                    <HStack key={merchandise.id} justify="space-between">
-                      <Box flex={1}>
-                        <Text fontWeight="medium" fontSize="lg">
-                          {merchandise.name}
-                        </Text>
-                        {merchandise.description && (
-                          <Text fontSize="sm" color="gray.400" lineClamp={2}>
-                            {merchandise.description}
+                  {tripMerchandise.map((merchandise: TripMerchandisePublic) => {
+                    const options = variantOptionsList(
+                      merchandise.variant_options,
+                    )
+                    const hasVariants = options.length > 0
+                    const selectedVariant =
+                      merchandiseVariantByKey[merchandise.id] ?? options[0]
+                    return (
+                      <HStack
+                        key={merchandise.id}
+                        justify="space-between"
+                        align="end"
+                        gap={2}
+                      >
+                        <Box flex={1}>
+                          <Text fontWeight="medium" fontSize="lg">
+                            {merchandise.name}
                           </Text>
-                        )}
-                        <HStack gap={2} mt={1}>
-                          <Text fontSize="sm" color="gray.400">
-                            ${formatCents(merchandise.price)} each
-                          </Text>
-                          <Badge
-                            colorPalette={
-                              merchandise.quantity_available > 0
-                                ? "green"
-                                : "red"
+                          {merchandise.description && (
+                            <Text
+                              fontSize="sm"
+                              color="gray.400"
+                              lineClamp={2}
+                            >
+                              {merchandise.description}
+                            </Text>
+                          )}
+                          <HStack gap={2} mt={1}>
+                            <Text fontSize="sm" color="gray.400">
+                              ${formatCents(merchandise.price)} each
+                            </Text>
+                            <Badge
+                              colorPalette={
+                                merchandise.quantity_available > 0
+                                  ? "green"
+                                  : "red"
+                              }
+                            >
+                              {merchandise.quantity_available} available
+                            </Badge>
+                          </HStack>
+                        </Box>
+                        <HStack gap={2} align="end">
+                          {hasVariants && (
+                            <Select.Root
+                              size="sm"
+                              width="min(120px, 25vw)"
+                              value={[selectedVariant]}
+                              onValueChange={(e) =>
+                                setMerchandiseVariantByKey((prev) => ({
+                                  ...prev,
+                                  [merchandise.id]: e.value[0] ?? "",
+                                }))
+                              }
+                              collection={createListCollection({
+                                items: options.map((o) => ({
+                                  label: o,
+                                  value: o,
+                                })),
+                              })}
+                            >
+                              <Select.Control>
+                                <Select.Trigger>
+                                  <Select.ValueText placeholder="Variant" />
+                                </Select.Trigger>
+                              </Select.Control>
+                              <Select.Positioner>
+                                <Select.Content>
+                                  {options.map((o) => (
+                                    <Select.Item
+                                      key={o}
+                                      item={{ label: o, value: o }}
+                                    >
+                                      {o}
+                                    </Select.Item>
+                                  ))}
+                                </Select.Content>
+                              </Select.Positioner>
+                            </Select.Root>
+                          )}
+                          <Button
+                            size="sm"
+                            colorPalette="blue"
+                            disabled={
+                              merchandise.quantity_available === 0 ||
+                              (hasVariants && !selectedVariant)
+                            }
+                            onClick={() =>
+                              addMerchandise(
+                                merchandise,
+                                hasVariants ? selectedVariant : undefined,
+                              )
                             }
                           >
-                            {merchandise.quantity_available} available
-                          </Badge>
+                            Add
+                          </Button>
                         </HStack>
-                      </Box>
-                      <Button
-                        size="sm"
-                        colorPalette="blue"
-                        disabled={merchandise.quantity_available === 0}
-                        onClick={() => addMerchandise(merchandise)}
-                      >
-                        Add
-                      </Button>
-                    </HStack>
-                  ))}
+                      </HStack>
+                    )
+                  })}
                 </VStack>
               </Card.Body>
             </Card.Root>
@@ -529,7 +613,9 @@ const Step2ItemSelection = ({
                     )
 
                     const itemName = merchandise
-                      ? merchandise.name
+                      ? item.variant_option
+                        ? `${merchandise.name} – ${item.variant_option}`
+                        : merchandise.name
                       : pricing
                         ? pricing.ticket_type
                             .replace("_", " ")

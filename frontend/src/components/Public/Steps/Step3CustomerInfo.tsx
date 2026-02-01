@@ -313,6 +313,9 @@ const Step3CustomerInfo = ({
                     <Flex gap={4} align="baseline" w="100%">
                       <Text fontWeight="medium">
                         {formatItemName(item.item_type)}
+                        {item.variant_option
+                          ? ` – ${item.variant_option}`
+                          : ""}
                       </Text>
                       <Text
                         color="text.muted"

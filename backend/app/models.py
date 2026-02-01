@@ -636,8 +636,18 @@ class TripPublic(TripBase):
         return dt.isoformat()
 
 
+class TripWithStats(TripPublic):
+    total_bookings: int = 0
+    total_sales: int = 0  # cents (sum of booking.total_amount)
+
+
 class TripsPublic(SQLModel):
     data: list[TripPublic]
+    count: int
+
+
+class TripsWithStatsPublic(SQLModel):
+    data: list[TripWithStats]
     count: int
 
 
@@ -804,6 +814,9 @@ class MerchandiseBase(SQLModel):
     description: str | None = Field(default=None, max_length=1000)
     price: int = Field(ge=0)  # cents
     quantity_available: int = Field(ge=0)
+    # Single variant dimension: e.g. variant_name="Size", variant_options=["S","M","L"]
+    variant_name: str | None = Field(default=None, max_length=64)
+    variant_options: str | None = Field(default=None, max_length=500)  # comma-separated
 
 
 class MerchandiseCreate(MerchandiseBase):
@@ -815,6 +828,8 @@ class MerchandiseUpdate(SQLModel):
     description: str | None = Field(default=None, max_length=1000)
     price: int | None = Field(default=None, ge=0)  # cents
     quantity_available: int | None = Field(default=None, ge=0)
+    variant_name: str | None = Field(default=None, max_length=64)
+    variant_options: str | None = Field(default=None, max_length=500)  # comma-separated
 
 
 class Merchandise(MerchandiseBase, table=True):
@@ -902,6 +917,8 @@ class TripMerchandisePublic(SQLModel):
     description: str | None
     price: int  # cents
     quantity_available: int
+    variant_name: str | None = None
+    variant_options: str | None = None  # comma-separated; frontend splits to list
     created_at: datetime
     updated_at: datetime
 
@@ -940,6 +957,8 @@ class BookingItemBase(SQLModel):
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
+    # Selected variant for merchandise (e.g. "M" when variant_name is "Size")
+    variant_option: str | None = Field(default=None, max_length=64)
 
 
 class BookingItemCreate(SQLModel):
@@ -954,6 +973,7 @@ class BookingItemCreate(SQLModel):
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
+    variant_option: str | None = Field(default=None, max_length=64)
 
 
 class BookingItemUpdate(SQLModel):
@@ -1020,6 +1040,7 @@ class BookingBase(SQLModel):
     tax_amount: int = Field(ge=0)  # cents
     tip_amount: int = Field(ge=0)  # cents
     total_amount: int = Field(ge=0)  # cents
+    refunded_amount_cents: int = Field(default=0, ge=0)  # cumulative refunds
     payment_intent_id: str | None = Field(default=None, max_length=255)
     special_requests: str | None = Field(default=None, max_length=1000)
     status: BookingStatus = Field(default=BookingStatus.draft)

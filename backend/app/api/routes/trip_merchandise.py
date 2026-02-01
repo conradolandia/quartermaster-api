@@ -40,6 +40,8 @@ def _trip_merchandise_to_public(
         description=m.description,
         price=price,
         quantity_available=qty,
+        variant_name=m.variant_name,
+        variant_options=m.variant_options,
         created_at=tm.created_at,
         updated_at=tm.updated_at,
     )

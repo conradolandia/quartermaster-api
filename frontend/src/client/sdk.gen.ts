@@ -605,12 +605,13 @@ export class BookingsService {
   /**
    * List Bookings
    * List/search bookings (admin only).
-   * Optionally filter by mission_id, trip_id, or status.
+   * Optionally filter by mission_id, trip_id, boat_id, or status.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.missionId
    * @param data.tripId
+   * @param data.boatId
    * @param data.status
    * @param data.sortBy
    * @param data.sortDirection
@@ -628,6 +629,7 @@ export class BookingsService {
         limit: data.limit,
         mission_id: data.missionId,
         trip_id: data.tripId,
+        boat_id: data.boatId,
         status: data.status,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
@@ -837,7 +839,7 @@ export class BookingsService {
    * Export Bookings Csv
    * Export bookings data to CSV format.
    *
-   * Supports filtering by mission_id, trip_id, and booking_status.
+   * Supports filtering by mission_id, trip_id, boat_id, and booking_status.
    * Supports field selection via the fields parameter (comma-separated list of field names).
    * Available fields: confirmation_code, customer_name, email, phone, billing_address,
    * status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
@@ -852,6 +854,7 @@ export class BookingsService {
    * @param data The data for the request.
    * @param data.missionId
    * @param data.tripId
+   * @param data.boatId
    * @param data.bookingStatus
    * @param data.fields
    * @returns unknown Successful Response
@@ -866,6 +869,7 @@ export class BookingsService {
       query: {
         mission_id: data.missionId,
         trip_id: data.tripId,
+        boat_id: data.boatId,
         booking_status: data.bookingStatus,
         fields: data.fields,
       },
@@ -2961,11 +2965,11 @@ export class TripMerchandiseService {
 export class TripsService {
   /**
    * Read Trips
-   * Retrieve trips.
+   * Retrieve trips with booking statistics.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
-   * @returns TripsPublic Successful Response
+   * @returns TripsWithStatsPublic Successful Response
    * @throws ApiError
    */
   public static readTrips(

@@ -3,9 +3,11 @@ import {
   HStack,
   IconButton,
   Input,
+  Select,
   Text,
   Textarea,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
@@ -65,6 +67,8 @@ interface TripMerchandiseData {
   description?: string | null
   price: number
   quantity_available: number
+  variant_name?: string | null
+  variant_options?: string | null
 }
 
 // Interface for selected booking item
@@ -74,6 +78,7 @@ interface SelectedBookingItem {
   quantity: number
   price_per_unit: number
   merchandise_id?: string // For merchandise items
+  variant_option?: string
 }
 
 const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
@@ -95,6 +100,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [selectedBoatId, setSelectedBoatId] = useState<string>("")
   const [discountInput, setDiscountInput] = useState<number>(0)
   const [discountCode, setDiscountCode] = useState<string>("")
+  const [merchandiseVariantByKey, setMerchandiseVariantByKey] = useState<
+    Record<string, string>
+  >({})
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
   const [markAsPaid, setMarkAsPaid] = useState<boolean>(true) // Default to true for admin bookings
@@ -417,6 +425,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       status: "active",
       refund_reason: null,
       refund_notes: null,
+      variant_option: item.variant_option ?? null,
     }))
 
     // Generate confirmation code before submitting
@@ -477,13 +486,25 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     }
   }
 
-  // Add merchandise item
-  const addMerchandiseItem = (merchandiseId: string) => {
+  const variantOptionsList = (opts: string | null | undefined): string[] =>
+    opts ? opts.split(",").map((o) => o.trim()).filter(Boolean) : []
+
+  // Add merchandise item (optionally with variant)
+  const addMerchandiseItem = (
+    merchandiseId: string,
+    variantOption?: string,
+  ) => {
     const merchandise = tripMerchandise.find((m) => m.id === merchandiseId)
     if (!merchandise || merchandise.quantity_available <= 0) return
+    const options = variantOptionsList(merchandise.variant_options)
+    const hasVariants = options.length > 0
+    if (hasVariants && (!variantOption || !options.includes(variantOption)))
+      return
 
     const existingItem = selectedItems.find(
-      (item) => item.merchandise_id === merchandiseId,
+      (item) =>
+        item.merchandise_id === merchandiseId &&
+        (item.variant_option ?? undefined) === (variantOption ?? undefined),
     )
     if (existingItem) {
       if (existingItem.quantity >= merchandise.quantity_available) return
@@ -503,6 +524,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
           quantity: 1,
           price_per_unit: merchandise.price,
           merchandise_id: merchandiseId,
+          variant_option: variantOption,
         },
       ])
     }
@@ -551,7 +573,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       const merchandise = tripMerchandise.find(
         (m) => m.id === item.merchandise_id,
       )
-      return merchandise?.name || "Merchandise"
+      const name = merchandise?.name || "Merchandise"
+      return item.variant_option ? `${name} – ${item.variant_option}` : name
     }
     return item.item_type
       .replace(/_/g, " ")
@@ -767,22 +790,85 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                       borderRadius="md"
                     >
                       <Text fontWeight="medium">Merchandise</Text>
-                      <HStack gap={2} flexWrap="wrap">
-                        {tripMerchandise.map((merchandise) => (
-                          <Button
-                            key={merchandise.id}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => addMerchandiseItem(merchandise.id)}
-                            disabled={merchandise.quantity_available <= 0}
-                          >
-                            <FiPlus style={{ marginRight: "4px" }} />
-                            {merchandise.name} - $
-                            {formatCents(merchandise.price)} (
-                            {merchandise.quantity_available} available)
-                          </Button>
-                        ))}
-                      </HStack>
+                      <VStack gap={2} align="stretch">
+                        {tripMerchandise.map((merchandise) => {
+                          const options = variantOptionsList(
+                            merchandise.variant_options,
+                          )
+                          const hasVariants = options.length > 0
+                          const selectedVariant =
+                            merchandiseVariantByKey[merchandise.id] ??
+                            options[0]
+                          return (
+                            <HStack
+                              key={merchandise.id}
+                              gap={2}
+                              align="center"
+                              flexWrap="wrap"
+                            >
+                              <Text fontSize="sm">
+                                {merchandise.name} - $
+                                {formatCents(merchandise.price)} (
+                                {merchandise.quantity_available} available)
+                              </Text>
+                              {hasVariants && (
+                                <Select.Root
+                                  size="sm"
+                                  width="min(100px, 20vw)"
+                                  value={[selectedVariant]}
+                                  onValueChange={(e) =>
+                                    setMerchandiseVariantByKey((prev) => ({
+                                      ...prev,
+                                      [merchandise.id]: e.value[0] ?? "",
+                                    }))
+                                  }
+                                  collection={createListCollection({
+                                    items: options.map((o) => ({
+                                      label: o,
+                                      value: o,
+                                    })),
+                                  })}
+                                >
+                                  <Select.Control>
+                                    <Select.Trigger>
+                                      <Select.ValueText placeholder="Variant" />
+                                    </Select.Trigger>
+                                  </Select.Control>
+                                  <Select.Positioner>
+                                    <Select.Content>
+                                      {options.map((o) => (
+                                        <Select.Item
+                                          key={o}
+                                          item={{ label: o, value: o }}
+                                        >
+                                          {o}
+                                        </Select.Item>
+                                      ))}
+                                    </Select.Content>
+                                  </Select.Positioner>
+                                </Select.Root>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  addMerchandiseItem(
+                                    merchandise.id,
+                                    hasVariants ? selectedVariant : undefined,
+                                  )
+                                }
+                                disabled={
+                                  merchandise.quantity_available <= 0 ||
+                                  (hasVariants && !selectedVariant)
+                                }
+                              >
+                                <FiPlus style={{ marginRight: "4px" }} />
+                                Add
+                              </Button>
+                            </HStack>
+                          )
+                        })}
+                      </VStack>
                     </VStack>
                   )}
 

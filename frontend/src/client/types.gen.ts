@@ -148,6 +148,7 @@ export type BookingItemCreate = {
   status?: BookingItemStatus
   refund_reason?: string | null
   refund_notes?: string | null
+  variant_option?: string | null
 }
 
 export type BookingItemPublic = {
@@ -161,6 +162,7 @@ export type BookingItemPublic = {
   status?: BookingItemStatus
   refund_reason?: string | null
   refund_notes?: string | null
+  variant_option?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -187,6 +189,7 @@ export type BookingPublic = {
   tax_amount: number
   tip_amount: number
   total_amount: number
+  refunded_amount_cents?: number
   payment_intent_id?: string | null
   special_requests?: string | null
   status?: BookingStatus
@@ -412,6 +415,8 @@ export type MerchandiseCreate = {
   description?: string | null
   price: number
   quantity_available: number
+  variant_name?: string | null
+  variant_options?: string | null
 }
 
 export type MerchandisePublic = {
@@ -419,6 +424,8 @@ export type MerchandisePublic = {
   description?: string | null
   price: number
   quantity_available: number
+  variant_name?: string | null
+  variant_options?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -434,6 +441,8 @@ export type MerchandiseUpdate = {
   description?: string | null
   price?: number | null
   quantity_available?: number | null
+  variant_name?: string | null
+  variant_options?: string | null
 }
 
 export type Message = {
@@ -646,6 +655,8 @@ export type TripMerchandisePublic = {
   description: string | null
   price: number
   quantity_available: number
+  variant_name?: string | null
+  variant_options?: string | null
   created_at: string
   updated_at: string
 }
@@ -675,6 +686,11 @@ export type TripsPublic = {
   count: number
 }
 
+export type TripsWithStatsPublic = {
+  data: Array<TripWithStats>
+  count: number
+}
+
 export type TripUpdate = {
   mission_id?: string | null
   name?: string | null
@@ -683,6 +699,23 @@ export type TripUpdate = {
   check_in_time?: string | null
   boarding_time?: string | null
   departure_time?: string | null
+}
+
+export type TripWithStats = {
+  mission_id: string
+  name?: string | null
+  type: string
+  active?: boolean
+  check_in_time: string
+  boarding_time: string
+  departure_time: string
+  id: string
+  created_at: string
+  updated_at: string
+  trip_boats?: Array<TripBoatPublic>
+  timezone?: string
+  total_bookings?: number
+  total_sales?: number
 }
 
 export type UpdatePassword = {
@@ -821,6 +854,7 @@ export type BookingsCreateBookingData = {
 export type BookingsCreateBookingResponse = BookingPublic
 
 export type BookingsListBookingsData = {
+  boatId?: string | null
   limit?: number
   missionId?: string | null
   skip?: number
@@ -883,6 +917,7 @@ export type BookingsProcessRefundData = {
 export type BookingsProcessRefundResponse = BookingPublic
 
 export type BookingsExportBookingsCsvData = {
+  boatId?: string | null
   bookingStatus?: string | null
   fields?: string | null
   missionId?: string | null
@@ -1452,7 +1487,7 @@ export type TripsReadTripsData = {
   skip?: number
 }
 
-export type TripsReadTripsResponse = TripsPublic
+export type TripsReadTripsResponse = TripsWithStatsPublic
 
 export type TripsCreateTripData = {
   requestBody: TripCreate

@@ -19,7 +19,9 @@ from app.models import (
     TripCreate,
     TripPublic,
     TripsPublic,
+    TripsWithStatsPublic,
     TripUpdate,
+    TripWithStats,
 )
 from app.services.date_validator import (
     ensure_aware,
@@ -54,7 +56,7 @@ def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
 
 @router.get(
     "/",
-    response_model=TripsPublic,
+    response_model=TripsWithStatsPublic,
     dependencies=[Depends(get_current_active_superuser)],
 )
 def read_trips(
@@ -64,9 +66,9 @@ def read_trips(
     limit: int = 100,
 ) -> Any:
     """
-    Retrieve trips.
+    Retrieve trips with booking statistics.
     """
-    trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
+    trips = crud.get_trips_with_stats(session=session, skip=skip, limit=limit)
     count = crud.get_trips_count(session=session)
     if trips:
         trip_ids = [t["id"] for t in trips]
@@ -86,7 +88,9 @@ def read_trips(
                 )
                 for tb in trip_boats_by_trip.get(t["id"], [])
             ]
-    return TripsPublic(data=trips, count=count)
+    return TripsWithStatsPublic(
+        data=[TripWithStats.model_validate(t) for t in trips], count=count
+    )
 
 
 @router.post(

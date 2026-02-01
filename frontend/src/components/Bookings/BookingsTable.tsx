@@ -15,7 +15,12 @@ import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { FiArrowDown, FiArrowUp, FiCopy, FiX } from "react-icons/fi"
 
-import { BookingsService, MissionsService, TripsService } from "@/client"
+import {
+  BoatsService,
+  BookingsService,
+  MissionsService,
+  TripsService,
+} from "@/client"
 import type { TripPublic } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import PendingBookings from "@/components/Pending/PendingBookings"
@@ -34,7 +39,10 @@ import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import {
   type SortDirection,
   type SortableColumn,
+  getRefundedCents,
   getStatusColor,
+  isPartiallyRefunded,
+  totalTicketQuantity,
 } from "./types"
 
 interface BookingsTableProps {
@@ -59,6 +67,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   )
   const [tripId, setTripId] = useState<string | undefined>(
     initialSearch.get("tripId") || undefined,
+  )
+  const [boatId, setBoatId] = useState<string | undefined>(
+    initialSearch.get("boatId") || undefined,
   )
   const [statusFilter, setStatusFilter] = useState<string | undefined>(
     initialSearch.get("status") || undefined,
@@ -94,7 +105,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  // Fetch bookings with mission, trip, status filters and sorting
+  // Fetch bookings with mission, trip, boat, status filters and sorting
   const {
     data: bookingsData,
     isLoading,
@@ -106,6 +117,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       effectivePageSize,
       missionId,
       tripId,
+      boatId,
       statusFilter,
       sortBy,
       sortDirection,
@@ -116,6 +128,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         limit: effectivePageSize,
         missionId: missionId || undefined,
         tripId: tripId || undefined,
+        boatId: boatId || undefined,
         status: statusFilter || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
@@ -134,6 +147,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     queryFn: () => TripsService.readTrips({ limit: 500 }),
   })
 
+  // Fetch boats for filter dropdown
+  const { data: boatsData } = useQuery({
+    queryKey: ["boats"],
+    queryFn: () => BoatsService.readBoats({ limit: 200 }),
+  })
+
   // Fetch all bookings to determine which missions have bookings
   const { data: allBookingsData } = useQuery({
     queryKey: ["all-bookings-for-missions"],
@@ -144,6 +163,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const count = bookingsData?.total || 0
   const missions = missionsData?.data || []
   const trips = tripsData?.data || []
+  const boats = boatsData?.data || []
 
   // Filter missions to only show those with existing bookings
   const missionsWithBookings = missions.filter((mission: any) =>
@@ -177,6 +197,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const updateFiltersInUrl = (updates: {
     missionId?: string
     tripId?: string
+    boatId?: string
     status?: string
   }) => {
     const params = new URLSearchParams(window.location.search)
@@ -187,6 +208,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     if (updates.tripId !== undefined) {
       if (updates.tripId) params.set("tripId", updates.tripId)
       else params.delete("tripId")
+    }
+    if (updates.boatId !== undefined) {
+      if (updates.boatId) params.set("boatId", updates.boatId)
+      else params.delete("boatId")
     }
     if (updates.status !== undefined) {
       if (updates.status) params.set("status", updates.status)
@@ -212,7 +237,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   const handleTripFilter = (selectedTripId?: string) => {
     setTripId(selectedTripId)
-    updateFiltersInUrl({ tripId: selectedTripId })
+    setBoatId(undefined)
+    updateFiltersInUrl({ tripId: selectedTripId, boatId: undefined })
+  }
+
+  const handleBoatFilter = (selectedBoatId?: string) => {
+    setBoatId(selectedBoatId)
+    updateFiltersInUrl({ boatId: selectedBoatId })
   }
 
   const handleStatusFilter = (selectedStatus?: string) => {
@@ -301,6 +332,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
+  const boatsCollection = createListCollection({
+    items: [
+      { label: "All Boats", value: "" },
+      ...boats.map((boat: { id: string; name: string }) => ({
+        label: boat.name,
+        value: boat.id,
+      })),
+    ],
+  })
+
   const statusCollection = createListCollection({
     items: [
       { label: "All Statuses", value: "" },
@@ -364,6 +405,32 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Select.Item>
               ))}
             </Select.Content>
+            </Select.Positioner>
+        </Select.Root>
+        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+          Boat:
+        </Text>
+        <Select.Root
+          collection={boatsCollection}
+          size="xs"
+          width="200px"
+          borderColor="white"
+          value={boatId ? [boatId] : [""]}
+          onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
+        >
+          <Select.Control width="100%">
+            <Select.Trigger>
+              <Select.ValueText placeholder="All Boats" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content minWidth="220px">
+              {boatsCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
           </Select.Positioner>
         </Select.Root>
         <Text fontSize="sm" fontWeight="medium" color="text.secondary">
@@ -392,17 +459,19 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             </Select.Content>
           </Select.Positioner>
         </Select.Root>
-        {(missionId || tripId || statusFilter) && (
+        {(missionId || tripId || boatId || statusFilter) && (
           <Button
             size="sm"
             variant="ghost"
             onClick={() => {
               setMissionId(undefined)
               setTripId(undefined)
+              setBoatId(undefined)
               setStatusFilter(undefined)
               updateFiltersInUrl({
                 missionId: undefined,
                 tripId: undefined,
+                boatId: undefined,
                 status: undefined,
               })
             }}
@@ -500,6 +569,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="total_amount" />
                 </Flex>
               </Table.ColumnHeader>
+              <Table.ColumnHeader w="20" fontWeight="bold">
+                Qty
+              </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="sm"
                 fontWeight="bold"
@@ -557,16 +629,24 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge colorPalette={getStatusColor(booking.status || "")}>
-                    {booking.status?.replace("_", " ").toUpperCase() ||
-                      "UNKNOWN"}
-                  </Badge>
+                  <VStack align="start" gap={0}>
+                    <Badge colorPalette={getStatusColor(booking.status || "")}>
+                      {booking.status?.replace("_", " ").toUpperCase() ||
+                        "UNKNOWN"}
+                    </Badge>
+                    {isPartiallyRefunded(booking) && (
+                      <Text fontSize="xs" color="text.muted">
+                        Refunded ${formatCents(getRefundedCents(booking))}
+                      </Text>
+                    )}
+                  </VStack>
                 </Table.Cell>
                 <Table.Cell>
                   <Text fontWeight="bold">
                     ${formatCents(booking.total_amount)}
                   </Text>
                 </Table.Cell>
+                <Table.Cell>{totalTicketQuantity(booking)}</Table.Cell>
                 <Table.Cell>
                   <VStack align="start" gap={0}>
                     <Text>

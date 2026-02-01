@@ -127,6 +127,7 @@ from .trips import (
     get_trips_by_mission,
     get_trips_count,
     get_trips_no_relationships,
+    get_trips_with_stats,
     update_trip,
 )
 from .users import (
@@ -211,6 +212,7 @@ __all__ = [
     "get_trips_by_mission",
     "get_trips_count",
     "get_trips_no_relationships",
+    "get_trips_with_stats",
     "update_trip",
     # Trip Boats
     "create_trip_boat",

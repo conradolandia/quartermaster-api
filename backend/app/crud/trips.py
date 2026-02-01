@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, select, text
 
-from app.models import Trip, TripCreate, TripUpdate
+from app.models import Booking, BookingItem, Trip, TripCreate, TripUpdate
 
 
 def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
@@ -65,6 +65,72 @@ def get_trips_no_relationships(
                 "created_at": row[8],
                 "updated_at": row[9],
                 "timezone": row[10] or "UTC",
+            }
+        )
+
+    return trips_data
+
+
+def get_trips_with_stats(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> list[dict]:
+    """
+    Get trips without loading relationships, with total_bookings and total_sales.
+    Returns dictionaries with trip data plus total_bookings and total_sales.
+    """
+    result = session.exec(
+        text(
+            """
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.check_in_time,
+                   t.boarding_time, t.departure_time, t.created_at, t.updated_at,
+                   loc.timezone
+            FROM trip t
+            JOIN mission m ON t.mission_id = m.id
+            JOIN launch l ON m.launch_id = l.id
+            JOIN location loc ON l.location_id = loc.id
+            ORDER BY t.check_in_time DESC
+            LIMIT :limit OFFSET :skip
+        """
+        ).params(limit=limit, skip=skip)
+    ).all()
+
+    trips_data = []
+    for row in result:
+        trip_id = row[0]
+        # Count distinct bookings for this trip (confirmed, checked_in, completed)
+        bookings_statement = (
+            select(func.count(func.distinct(Booking.id)))
+            .select_from(Booking)
+            .join(BookingItem, Booking.id == BookingItem.booking_id)
+            .where(BookingItem.trip_id == trip_id)
+            .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
+        )
+        total_bookings = session.exec(bookings_statement).first() or 0
+        # Sum total sales for this trip (cents)
+        sales_statement = (
+            select(func.sum(Booking.total_amount))
+            .select_from(Booking)
+            .join(BookingItem, Booking.id == BookingItem.booking_id)
+            .where(BookingItem.trip_id == trip_id)
+            .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
+        )
+        total_sales = session.exec(sales_statement).first() or 0
+
+        trips_data.append(
+            {
+                "id": row[0],
+                "mission_id": row[1],
+                "name": row[2],
+                "type": row[3],
+                "active": row[4],
+                "check_in_time": row[5],
+                "boarding_time": row[6],
+                "departure_time": row[7],
+                "created_at": row[8],
+                "updated_at": row[9],
+                "timezone": row[10] or "UTC",
+                "total_bookings": total_bookings,
+                "total_sales": int(total_sales) if total_sales is not None else 0,
             }
         )
 

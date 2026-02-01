@@ -29,6 +29,7 @@ export interface BookingStepData {
     quantity: number
     price_per_unit: number
     trip_merchandise_id?: string
+    variant_option?: string
   }>
 
   // Step 3: Customer Information
@@ -77,6 +78,7 @@ function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
       quantity: item.quantity,
       price_per_unit: item.price_per_unit,
       trip_merchandise_id: item.trip_merchandise_id ?? undefined,
+      variant_option: item.variant_option ?? undefined,
     })),
     customerInfo: {
       first_name,
