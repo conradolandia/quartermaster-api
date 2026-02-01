@@ -1,10 +1,12 @@
 import {
   Box,
+  Flex,
   Link,
   Button,
   HStack,
   Heading,
   Input,
+  Separator,
   Text,
   Textarea,
   VStack,
@@ -24,14 +26,26 @@ interface CustomerInfo {
   terms_accepted: boolean
 }
 
+interface SelectedItem {
+  trip_id: string
+  item_type: string
+  quantity: number
+  price_per_unit: number
+  trip_merchandise_id?: string
+}
+
 interface BookingStepData {
-  selectedItems: any[]
+  selectedItems: SelectedItem[]
   subtotal: number
   discount_amount: number
   tax_amount: number
   tip: number
   total: number
   customerInfo: CustomerInfo
+}
+
+function formatItemName(itemType: string): string {
+  return itemType.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
 }
 
 interface Step3CustomerInfoProps {
@@ -86,7 +100,7 @@ const Step3CustomerInfo = ({
 
   return (
     <Box>
-      <Heading size="lg" mb={6}>
+      <Heading size="5xl" mb={8} fontWeight="200">
         Your Information
       </Heading>
 
@@ -94,7 +108,7 @@ const Step3CustomerInfo = ({
         {/* Left Column - Customer Information */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
-            <Heading size="sm" mb={4}>
+            <Heading size="2xl" mb={4} fontWeight="200">
               Contact Information
             </Heading>
             <VStack gap={4} align="stretch">
@@ -209,10 +223,10 @@ const Step3CustomerInfo = ({
                   updateCustomerInfo("terms_accepted", checked === true)
                 }
               >
-                I agree to the terms and conditions *
+                I agree to the terms and conditions <span style={{ color: "red" }}>*</span>
               </Checkbox>
 
-              <Text fontSize="sm" color="dark.text.secondary">
+              <Text fontSize="xs" color="dark.text.secondary">
                 By checking this box, you agree to our booking&nbsp;
                 <Link href="https://www.star-fleet.tours/details" target="_blank">terms and conditions</Link>&nbsp;
                 and&nbsp;
@@ -225,23 +239,45 @@ const Step3CustomerInfo = ({
 
         {/* Right Column - Booking Summary */}
         <VStack gap={4} align="stretch" flex={1}>
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-            <Heading size="sm" mb={4}>
+            <Heading size="2xl" mb={4} fontWeight="200">
               Booking Summary
             </Heading>
             <VStack
               gap={3}
               align="stretch"
-              p={3}
+              px={5}
+              py={4}
               bg={"bg.accent"}
               borderRadius="md"
             >
-              <HStack justify="space-between">
-                <Text fontWeight="bold">Selected Items:</Text>
-                <Text fontWeight="medium">
-                  {bookingData.selectedItems.length} items
-                </Text>
-              </HStack>
+              <Heading size="xl" fontWeight="200">Selected Items</Heading>
+              <Separator />
+              <VStack gap={2} align="stretch" w="100%">
+                {bookingData.selectedItems.map((item, index) => {
+                  const lineTotal = item.quantity * item.price_per_unit
+                  return (
+                    <HStack
+                      key={index}
+                      justify="space-between"
+                      align="baseline"
+                      fontSize="sm"
+                    >
+                      <Flex gap={4} align="baseline" w="100%">
+                        <Text fontWeight="medium">
+                          {formatItemName(item.item_type)}
+                        </Text>
+                        <Text color="text.muted" fontWeight="normal" textAlign="start">
+                          ({item.quantity} × ${formatCents(item.price_per_unit)})
+                        </Text>
+                      </Flex>
+                      <Text fontWeight="medium">
+                        ${formatCents(lineTotal)}
+                      </Text>
+                    </HStack>
+                  )
+                })}
+              </VStack>
+              <Separator />
 
               <HStack justify="space-between">
                 <Text fontWeight="bold">Subtotal:</Text>
@@ -287,7 +323,6 @@ const Step3CustomerInfo = ({
                 </Text>
               </HStack>
             </VStack>
-          </Box>
         </VStack>
       </HStack>
 

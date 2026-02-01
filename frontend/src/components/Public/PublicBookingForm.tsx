@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Heading, Text, Image, VStack, Span } from "@chakra-ui/react"
 import { useEffect, useRef, useState } from "react"
-import { useSearch } from "@tanstack/react-router"
+import { useNavigate, useSearch } from "@tanstack/react-router"
 
 import Logo from "/assets/images/qm-logo.svg"
 import type { BookingPublic } from "@/client"
@@ -122,6 +122,7 @@ const PublicBookingForm = ({
 }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
   const search = useSearch({ from: "/book" })
+  const navigate = useNavigate({ from: "/book" })
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   /** Survives Step4Review remounts (e.g. Strict Mode); prevents double booking create. */
   const createBookingStartedRef = useRef(false)
@@ -177,6 +178,20 @@ const PublicBookingForm = ({
       }))
     }
   }, [search.discount])
+
+  // When user applies a new discount code in Step2, sync it to the URL so the link stays shareable
+  useEffect(() => {
+    const urlDiscount = search.discount ?? ""
+    const dataDiscount = bookingData.discount_code ?? ""
+    if (dataDiscount !== urlDiscount) {
+      navigate({
+        search: (prev: { discount?: string; access?: string; code?: string }) => ({
+          ...prev,
+          discount: dataDiscount || undefined,
+        }),
+      })
+    }
+  }, [bookingData.discount_code, search.discount, navigate])
 
   // Apply discount code ID from AccessGate (access code validation)
   useEffect(() => {

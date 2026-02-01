@@ -122,6 +122,7 @@ const Step2ItemSelection = ({
       setDiscountCodeError("")
       setAppliedDiscountCode(null)
       setDiscountAmount(0)
+      updateBookingData({ discount_code: "" })
       return
     }
 
@@ -137,6 +138,7 @@ const Step2ItemSelection = ({
 
       setAppliedDiscountCode(discountCodeData)
       setDiscountCodeError("")
+      updateBookingData({ discount_code: code.trim() })
 
       // API: percentage = 0-100 (e.g. 10 for 10%), fixed_amount = cents (e.g. 500 for $5)
       let calculatedDiscount = 0
@@ -366,7 +368,7 @@ const Step2ItemSelection = ({
   return (
     <VStack gap={6} align="stretch">
       <Box>
-        <Heading size="md" mb={4}>
+        <Heading size="5xl" mb={2} fontWeight="200">
           Select Tickets & Merchandise
         </Heading>
         <Text color="text.muted" mb={6}>
@@ -400,14 +402,14 @@ const Step2ItemSelection = ({
           {tripPricing && tripPricing.length > 0 && (
             <Card.Root bg="bg.panel">
               <Card.Body>
-                <Heading size="sm" mb={4}>
+                <Heading size="2xl" mb={4}>
                   Tickets
                 </Heading>
                 <VStack gap={3} align="stretch">
                   {tripPricing.map((pricing: EffectivePricingItem) => (
                     <HStack key={pricing.ticket_type} justify="space-between">
                       <Box>
-                        <Text fontWeight="medium">
+                        <Text fontWeight="medium" fontSize="lg">
                           {pricing.ticket_type
                             .replace("_", " ")
                             .replace(/\b\w/g, (l) => l.toUpperCase())}
@@ -441,14 +443,14 @@ const Step2ItemSelection = ({
           {tripMerchandise && tripMerchandise.length > 0 && (
             <Card.Root bg="bg.panel">
               <Card.Body>
-                <Heading size="sm" mb={4}>
+                <Heading size="2xl" mb={4}>
                   Merchandise
                 </Heading>
                 <VStack gap={3} align="stretch">
                   {tripMerchandise.map((merchandise: TripMerchandisePublic) => (
                     <HStack key={merchandise.id} justify="space-between">
                       <Box flex={1}>
-                        <Text fontWeight="medium">{merchandise.name}</Text>
+                        <Text fontWeight="medium" fontSize="lg">{merchandise.name}</Text>
                         {merchandise.description && (
                           <Text fontSize="sm" color="gray.400" lineClamp={2}>
                             {merchandise.description}
@@ -490,7 +492,7 @@ const Step2ItemSelection = ({
           {/* Selected Items */}
           <Card.Root bg="bg.panel">
             <Card.Body>
-              <Heading size="sm" mb={4}>
+              <Heading size="2xl" mb={4}>
                 Selected Items
               </Heading>
               {bookingData.selectedItems.length === 0 ? (
@@ -594,16 +596,17 @@ const Step2ItemSelection = ({
           {/* Pricing Summary */}
           <Card.Root bg="bg.panel">
             <Card.Body>
-              <Heading size="sm" mb={4}>
+              <Heading size="2xl" mb={4}>
                 Pricing Summary
               </Heading>
               <VStack gap={3} align="stretch">
                 <HStack justify="space-between">
-                  <Text>Subtotal:</Text>
-                  <Text fontWeight="semibold">
+                  <Text fontWeight="medium" fontSize="lg">Subtotal:</Text>
+                  <Text fontWeight="semibold" fontSize="lg">
                     ${formatCents(bookingData.subtotal)}
                   </Text>
                 </HStack>
+                <Separator />
 
                 <VStack align="stretch" gap={2}>
                   <HStack justify="space-between">
@@ -637,28 +640,56 @@ const Step2ItemSelection = ({
                       <Text fontSize="sm" color="green.500">
                         {appliedDiscountCode.code} applied
                       </Text>
-                      <Text fontSize="sm" color="green.500">
+                      <Text fontSize="sm" color="green.500" fontWeight="semibold">
                         -${formatCents(bookingData.discount_amount)}
                       </Text>
                     </HStack>
                   )}
                 </VStack>
 
+                <Separator />
+
                 <HStack justify="space-between">
-                  <Text>Tax Rate (%):</Text>
-                  <Text fontSize="sm" color="gray.400">
-                    {taxRatePercent.toFixed(2)}%
+                  <Text>Tax ({taxRatePercent.toFixed(2)}%):</Text>
+                  <Text fontSize="sm" fontWeight="semibold">
+                  ${formatCents(bookingData.tax_amount)}
                   </Text>
                 </HStack>
 
-                <HStack justify="space-between">
-                  <Text>Tax Amount:</Text>
-                  <Text>${formatCents(bookingData.tax_amount)}</Text>
-                </HStack>
+                <Separator />
 
                 <VStack align="stretch" gap={2}>
                   <HStack justify="space-between">
-                    <Text>Tip:</Text>
+                    {/* Suggested tip amounts */}
+                    <HStack gap={2}>
+                      <Text>Tip:</Text>
+                      {[10, 15, 20, 25].map((percentage) => {
+                        const currentSubtotal = bookingData.selectedItems.reduce((sum, item) => {
+                          return sum + item.price_per_unit * item.quantity
+                        }, 0)
+                        const effectiveDiscount = Math.min(discountAmount, currentSubtotal)
+                        const suggestedAmount = Math.round(
+                          Math.max(0, (currentSubtotal - effectiveDiscount) * (percentage / 100)),
+                        )
+                        return (
+                          <Button
+                            key={percentage}
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setTip(suggestedAmount)}
+                          >
+                            {percentage}%
+                          </Button>
+                        )
+                      })}
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => setTip(0)}
+                      >
+                        No tip
+                      </Button>
+                    </HStack>
                     <NumberInput.Root
                       size="sm"
                       min={0}
@@ -672,46 +703,15 @@ const Step2ItemSelection = ({
                       <NumberInput.Input />
                     </NumberInput.Root>
                   </HStack>
-
-                  {/* Suggested tip amounts */}
-                  <HStack gap={2} justify="center">
-                    <Text fontSize="sm" color="text.muted">Quick tip:</Text>
-                    {[10, 15, 20, 25].map((percentage) => {
-                      const currentSubtotal = bookingData.selectedItems.reduce((sum, item) => {
-                        return sum + item.price_per_unit * item.quantity
-                      }, 0)
-                      const effectiveDiscount = Math.min(discountAmount, currentSubtotal)
-                      const suggestedAmount = Math.round(
-                        Math.max(0, (currentSubtotal - effectiveDiscount) * (percentage / 100)),
-                      )
-                      return (
-                        <Button
-                          key={percentage}
-                          size="xs"
-                          variant="outline"
-                          onClick={() => setTip(suggestedAmount)}
-                        >
-                          {percentage}%
-                        </Button>
-                      )
-                    })}
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={() => setTip(0)}
-                    >
-                      No tip
-                    </Button>
-                  </HStack>
                 </VStack>
 
                 <Separator />
 
                 <HStack justify="space-between">
-                  <Text fontWeight="bold" fontSize="lg">
+                  <Text fontWeight="bold" fontSize="xl">
                     Total:
                   </Text>
-                  <Text fontWeight="bold" fontSize="lg">
+                  <Text fontWeight="bold" fontSize="xl">
                     ${formatCents(bookingData.total)}
                   </Text>
                 </HStack>
