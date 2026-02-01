@@ -777,6 +777,29 @@ def get_booking_by_id(
         )
 
 
+def ensure_booking_update_allowed(
+    *,
+    booking: Booking,
+    session: Session,
+    allow_past_edit: bool = False,
+) -> None:
+    """
+    Raise if the booking cannot be updated (e.g. trip departed and past edits not allowed).
+    When allow_past_edit is True, past bookings may be updated and a log line is written.
+    """
+    if not is_booking_past(booking, session):
+        return
+    if not allow_past_edit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot update booking for a trip that has already departed",
+        )
+    logger.info(
+        "Updating booking %s for a trip that has already departed (override)",
+        booking.id,
+    )
+
+
 @router.patch(
     "/id/{booking_id}",
     response_model=BookingPublic,
@@ -810,15 +833,12 @@ def update_booking(
                 detail=f"Booking with ID {booking_id} not found",
             )
 
-        # Check if booking's trip is in the past and prevent editing unless override is allowed
-        # Note: allow_past_edit parameter would need to be added to the function signature
-        # For now, we'll check but allow superusers to edit (they have access to this endpoint)
-        if is_booking_past(booking, session):
-            # Allow superusers to edit past bookings (for refunds, corrections)
-            # This endpoint already requires superuser authentication
-            logger.info(
-                f"Updating booking {booking_id} for a trip that has already departed (superuser override)"
-            )
+        # Admin endpoint: allow editing past bookings (refunds, corrections)
+        ensure_booking_update_allowed(
+            booking=booking,
+            session=session,
+            allow_past_edit=True,
+        )
 
         # 1. Enforce business rules
         # Disallow updates to items (raw) via PATCH; item_quantity_updates handled below
@@ -839,9 +859,11 @@ def update_booking(
             )
 
         # Process item quantity updates (draft/pending_payment only)
-        item_quantity_updates: list[BookingItemQuantityUpdate] | None = update_data.pop(
-            "item_quantity_updates", None
+        # Use booking_in (Pydantic model) so we get objects; pop from update_data so it is not applied as a booking field
+        item_quantity_updates: list[BookingItemQuantityUpdate] | None = getattr(
+            booking_in, "item_quantity_updates", None
         )
+        update_data.pop("item_quantity_updates", None)
         if item_quantity_updates:
             if booking.status not in (
                 BookingStatus.draft,
@@ -936,30 +958,28 @@ def update_booking(
             new_status = update_data["status"]
             if new_status != old_status:
                 status_changed = True
-
-            # Define valid status transitions
-            valid_transitions = {
-                "draft": [
-                    "confirmed",
-                    "cancelled",
-                ],  # Allow draft -> confirmed for admin bookings
-                "pending_payment": ["confirmed", "cancelled", "completed"],
-                "confirmed": ["checked_in", "cancelled", "refunded"],
-                "checked_in": ["completed", "refunded"],
-                "completed": ["refunded"],
-                "cancelled": [],  # Terminal state
-                "refunded": [],  # Terminal state
-            }
-
-            if new_status not in valid_transitions.get(old_status, []):
-                logger.warning(
-                    f"Invalid status transition for booking {booking_id}: "
-                    f"{old_status} -> {new_status}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Cannot transition from '{old_status}' to '{new_status}'",
-                )
+                # Define valid status transitions (only check when status actually changes)
+                valid_transitions = {
+                    "draft": [
+                        "confirmed",
+                        "cancelled",
+                    ],  # Allow draft -> confirmed for admin bookings
+                    "pending_payment": ["confirmed", "cancelled", "completed"],
+                    "confirmed": ["checked_in", "cancelled", "refunded"],
+                    "checked_in": ["completed", "refunded"],
+                    "completed": ["refunded"],
+                    "cancelled": [],  # Terminal state
+                    "refunded": [],  # Terminal state
+                }
+                if new_status not in valid_transitions.get(old_status, []):
+                    logger.warning(
+                        f"Invalid status transition for booking {booking_id}: "
+                        f"{old_status} -> {new_status}"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cannot transition from '{old_status}' to '{new_status}'",
+                    )
 
         # Tip must be non-negative
         if "tip_amount" in update_data and update_data["tip_amount"] is not None:
@@ -1245,6 +1265,79 @@ def check_in_booking(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during check-in. Please try again later.",
+        )
+
+
+@router.post(
+    "/revert-check-in/{confirmation_code}",
+    response_model=BookingPublic,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+    operation_id="bookings_revert_check_in",
+)
+def revert_check_in(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> BookingPublic:
+    """
+    Revert a checked-in booking back to confirmed.
+
+    Allowed only when booking status is checked_in. Sets booking status to
+    confirmed and all booking items back to active.
+    """
+    try:
+        validate_confirmation_code(confirmation_code)
+
+        booking = session.exec(
+            select(Booking).where(Booking.confirmation_code == confirmation_code)
+        ).first()
+
+        if not booking:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Booking not found with the provided confirmation code",
+            )
+
+        if booking.status != BookingStatus.checked_in:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot revert check-in: booking status is '{booking.status}', not 'checked_in'.",
+            )
+
+        booking.status = BookingStatus.confirmed
+        session.add(booking)
+
+        items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+        for item in items:
+            item.status = BookingItemStatus.active
+            session.add(item)
+
+        session.commit()
+        session.refresh(booking)
+
+        updated_items = session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+        booking_public = BookingPublic.model_validate(booking)
+        booking_public.items = [
+            BookingItemPublic.model_validate(item) for item in updated_items
+        ]
+
+        logger.info(f"Reverted check-in for booking {confirmation_code}")
+        return booking_public
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.exception(
+            f"Unexpected error reverting check-in for {confirmation_code}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later.",
         )
 
 

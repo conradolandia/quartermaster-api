@@ -42,6 +42,8 @@ import type {
   BookingsUpdateBookingResponse,
   BookingsCheckInBookingData,
   BookingsCheckInBookingResponse,
+  BookingsRevertCheckInData,
+  BookingsRevertCheckInResponse,
   BookingPublicResendBookingConfirmationEmailData,
   BookingPublicResendBookingConfirmationEmailResponse,
   BookingsProcessRefundData,
@@ -734,6 +736,32 @@ export class BookingsService {
       query: {
         trip_id: data.tripId,
         boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Revert Check In
+   * Revert a checked-in booking back to confirmed.
+   *
+   * Allowed only when booking status is checked_in. Sets booking status to
+   * confirmed and all booking items back to active.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static revertCheckIn(
+    data: BookingsRevertCheckInData,
+  ): CancelablePromise<BookingsRevertCheckInResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/revert-check-in/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
       },
       errors: {
         422: "Validation Error",

@@ -1085,7 +1085,6 @@ class Booking(BookingBase, table=True):
         sa_column=Column(
             DateTime(timezone=True),
             nullable=False,
-            onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
     updated_at: datetime = Field(

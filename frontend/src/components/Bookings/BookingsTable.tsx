@@ -8,6 +8,7 @@ import {
   Select,
   Table,
   Text,
+  VStack,
   createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -419,7 +420,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="sm"
+                w="24"
+                maxW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("confirmation_code")}
@@ -521,12 +523,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 cursor="pointer"
                 onClick={() => onBookingClick(booking.confirmation_code)}
               >
-                <Table.Cell>
+                <Table.Cell w="24" maxW="28">
                   <Flex align="center" gap={2}>
                     <Text
                       fontFamily="mono"
                       fontWeight="bold"
                       color="accent.default"
+                      title={booking.confirmation_code}
                     >
                       {booking.confirmation_code}
                     </Text>
@@ -544,10 +547,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   </Flex>
                 </Table.Cell>
                 <Table.Cell>{booking.user_name}</Table.Cell>
-                <Table.Cell display={{ base: "none", md: "table-cell" }}>
+                <Table.Cell display={{ base: "none", md: "table-cell" }} truncate maxW="sm">
                   {booking.user_email}
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell display={{ base: "none", lg: "table-cell" }} truncate maxW="sm">
                   {booking.user_phone}
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
@@ -565,10 +568,26 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  {new Date(booking.created_at).toLocaleString(undefined, {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
+                  <VStack align="start" gap={0}>
+                    <Text>
+                      {new Date(booking.created_at).toLocaleString(undefined, {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </Text>
+                    {booking.updated_at && (
+                      <Text fontSize="xs" color="text.muted">
+                        UPD:{" "}
+                        {new Date(booking.updated_at).toLocaleString(
+                          undefined,
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                        )}
+                      </Text>
+                    )}
+                  </VStack>
                 </Table.Cell>
                 <Table.Cell onClick={(e) => e.stopPropagation()}>
                   <BookingActionsMenu booking={booking} />

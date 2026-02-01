@@ -859,6 +859,12 @@ export type BookingsCheckInBookingData = {
 
 export type BookingsCheckInBookingResponse = BookingPublic
 
+export type BookingsRevertCheckInData = {
+  confirmationCode: string
+}
+
+export type BookingsRevertCheckInResponse = BookingPublic
+
 export type BookingPublicResendBookingConfirmationEmailData = {
   confirmationCode: string
 }

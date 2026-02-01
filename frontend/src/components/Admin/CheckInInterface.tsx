@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  ButtonGroup,
   Card,
   Grid,
   HStack,
@@ -12,9 +13,19 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCheck, FiEdit, FiSearch, FiX } from "react-icons/fi"
+import { FiCheck, FiCornerUpLeft, FiEdit, FiSearch, FiX } from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
+import {
+  DialogActionTrigger,
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import EditBooking from "@/components/Bookings/EditBooking"
 import useCustomToast from "@/hooks/useCustomToast"
@@ -36,6 +47,7 @@ const CheckInInterface = ({
     null,
   )
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -67,10 +79,26 @@ const CheckInInterface = ({
       setCurrentBooking(booking)
       onBookingCheckedIn?.(booking)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      setCheckInConfirmOpen(false)
     },
     onError: (error: any) => {
       showErrorToast(
         error?.response?.data?.detail || "Failed to check in booking",
+      )
+    },
+  })
+
+  const revertCheckInMutation = useMutation({
+    mutationFn: ({ code }: { code: string }) =>
+      BookingsService.revertCheckIn({ confirmationCode: code }),
+    onSuccess: (booking) => {
+      showSuccessToast("Check-in reverted; booking is confirmed again")
+      setCurrentBooking(booking)
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
+    },
+    onError: (error: any) => {
+      showErrorToast(
+        error?.response?.data?.detail || "Failed to revert check-in",
       )
     },
   })
@@ -90,8 +118,12 @@ const CheckInInterface = ({
     lookupBookingMutation.mutate(confirmationCode.trim())
   }
 
-  const handleCheckIn = () => {
+  const handleCheckInClick = () => {
     if (!currentBooking) return
+    setCheckInConfirmOpen(true)
+  }
+
+  const handleCheckInConfirm = () => {
     checkInMutation.mutate({ code: confirmationCode })
   }
 
@@ -293,17 +325,32 @@ const CheckInInterface = ({
                   <FiEdit />
                   Edit Booking
                 </Button>
-                <Button
-                  colorPalette="green"
-                  onClick={handleCheckIn}
-                  loading={checkInMutation.isPending}
-                  disabled={currentBooking.status === "checked_in"}
-                >
-                  <FiCheck />
-                  {currentBooking.status === "checked_in"
-                    ? "Already Checked In"
-                    : "Check In"}
-                </Button>
+                {currentBooking.status === "confirmed" && (
+                  <Button
+                    colorPalette="green"
+                    onClick={handleCheckInClick}
+                    loading={checkInMutation.isPending}
+                  >
+                    <FiCheck />
+                    Check In
+                  </Button>
+                )}
+                {currentBooking.status === "checked_in" && (
+                  <Button
+                    variant="outline"
+                    colorPalette="orange"
+                    onClick={() =>
+                      revertCheckInMutation.mutate({
+                        code: confirmationCode,
+                      })
+                    }
+                    loading={revertCheckInMutation.isPending}
+                    title="Revert check-in so the booking is confirmed again"
+                  >
+                    <FiCornerUpLeft />
+                    Revert Check-in
+                  </Button>
+                )}
               </HStack>
             </Card.Body>
           </Card.Root>
@@ -317,6 +364,48 @@ const CheckInInterface = ({
               void refetchCurrentBooking()
             }}
           />
+
+          <DialogRoot
+            open={checkInConfirmOpen}
+            onOpenChange={({ open }) => setCheckInConfirmOpen(open)}
+            size={{ base: "xs", md: "sm" }}
+            placement="center"
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm check-in</DialogTitle>
+              </DialogHeader>
+              <DialogCloseTrigger />
+              <DialogBody>
+                <Text>
+                  Check in booking{" "}
+                  <Text as="span" fontFamily="mono" fontWeight="bold">
+                    {currentBooking.confirmation_code}
+                  </Text>{" "}
+                  for{" "}
+                  <Text as="span" fontWeight="bold">
+                    {currentBooking.user_name}
+                  </Text>
+                  ?
+                </Text>
+              </DialogBody>
+              <DialogFooter>
+                <ButtonGroup>
+                  <DialogActionTrigger asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogActionTrigger>
+                  <Button
+                    colorPalette="green"
+                    onClick={handleCheckInConfirm}
+                    loading={checkInMutation.isPending}
+                    disabled={checkInMutation.isPending}
+                  >
+                    {checkInMutation.isPending ? "Checking in..." : "Check In"}
+                  </Button>
+                </ButtonGroup>
+              </DialogFooter>
+            </DialogContent>
+          </DialogRoot>
         </>
       )}
     </VStack>

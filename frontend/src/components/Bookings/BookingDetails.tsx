@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  ButtonGroup,
   Container,
   Flex,
   Heading,
@@ -12,19 +13,28 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { FiArrowLeft, FiCheck, FiCode, FiMail, FiPrinter } from "react-icons/fi"
+import {
+  FiArrowLeft,
+  FiCheck,
+  FiCode,
+  FiCornerUpLeft,
+  FiMail,
+  FiPrinter,
+} from "react-icons/fi"
 
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import {
   DialogBody,
+  DialogCloseTrigger,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DialogActionTrigger } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import { formatDate, getStatusColor } from "./types"
@@ -40,6 +50,7 @@ export default function BookingDetails({
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
+  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false)
   const [emailSending, setEmailSending] = useState(false)
 
   const {
@@ -59,10 +70,26 @@ export default function BookingDetails({
     onSuccess: (updated) => {
       showSuccessToast("Booking checked in successfully")
       queryClient.setQueryData(["booking", confirmationCode], updated)
+      setCheckInConfirmOpen(false)
     },
     onError: (err: unknown) => {
       const detail = (err as { body?: { detail?: string } })?.body?.detail
       showErrorToast(typeof detail === "string" ? detail : "Failed to check in")
+    },
+  })
+
+  const revertCheckInMutation = useMutation({
+    mutationFn: () =>
+      BookingsService.revertCheckIn({ confirmationCode }),
+    onSuccess: (updated) => {
+      showSuccessToast("Check-in reverted; booking is confirmed again")
+      queryClient.setQueryData(["booking", confirmationCode], updated)
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { body?: { detail?: string } })?.body?.detail
+      showErrorToast(
+        typeof detail === "string" ? detail : "Failed to revert check-in",
+      )
     },
   })
 
@@ -188,23 +215,75 @@ export default function BookingDetails({
               Raw data
             </Flex>
           </Button>
-          <Button
-            size="sm"
-            colorPalette="green"
-            onClick={() => checkInMutation.mutate()}
-            loading={checkInMutation.isPending}
-            disabled={booking.status === "checked_in"}
-          >
-            <Flex align="center" gap={2}>
-              <FiCheck />
-              {booking.status === "checked_in"
-                ? "Already Checked In"
-                : "Check In"}
-            </Flex>
-          </Button>
+          {booking.status === "confirmed" && (
+            <Button
+              size="sm"
+              colorPalette="green"
+              onClick={() => setCheckInConfirmOpen(true)}
+              loading={checkInMutation.isPending}
+            >
+              <Flex align="center" gap={2}>
+                <FiCheck />
+                Check In
+              </Flex>
+            </Button>
+          )}
+          {booking.status === "checked_in" && (
+            <Button
+              size="sm"
+              variant="outline"
+              colorPalette="orange"
+              onClick={() => revertCheckInMutation.mutate()}
+              loading={revertCheckInMutation.isPending}
+              title="Revert check-in so the booking is confirmed again"
+            >
+              <Flex align="center" gap={2}>
+                <FiCornerUpLeft />
+                Revert Check-in
+              </Flex>
+            </Button>
+          )}
           <BookingActionsMenu booking={booking} />
         </Flex>
       </Flex>
+
+      <DialogRoot
+        open={checkInConfirmOpen}
+        onOpenChange={({ open }) => setCheckInConfirmOpen(open)}
+        size={{ base: "xs", md: "sm" }}
+        placement="center"
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm check-in</DialogTitle>
+          </DialogHeader>
+          <DialogCloseTrigger />
+          <DialogBody>
+            <Text>
+              Check in booking{" "}
+              <Text as="span" fontFamily="mono" fontWeight="bold">
+                {booking.confirmation_code}
+              </Text>{" "}
+              for <Text as="span" fontWeight="bold">{booking.user_name}</Text>?
+            </Text>
+          </DialogBody>
+          <DialogFooter>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogActionTrigger>
+              <Button
+                colorPalette="green"
+                onClick={() => checkInMutation.mutate()}
+                loading={checkInMutation.isPending}
+                disabled={checkInMutation.isPending}
+              >
+                {checkInMutation.isPending ? "Checking in..." : "Check In"}
+              </Button>
+            </ButtonGroup>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
 
       <DialogRoot
         open={jsonDialogOpen}
