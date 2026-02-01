@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { FiEdit, FiTrash2 } from "react-icons/fi"
+import { FiCopy, FiEdit, FiTrash2 } from "react-icons/fi"
 
-import type { BookingPublic } from "@/client"
+import { BookingsService, type BookingPublic } from "@/client"
 import {
   MenuContent,
   MenuItem,
@@ -9,6 +9,9 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu"
 import { IconButton } from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
 
@@ -20,6 +23,35 @@ interface BookingActionsMenuProps {
 const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [editingBooking, setEditingBooking] = useState<BookingPublic | null>(
+    null,
+  )
+  const queryClient = useQueryClient()
+  const { showSuccessToast } = useCustomToast()
+
+  const duplicateMutation = useMutation({
+    mutationFn: () =>
+      BookingsService.duplicateBooking({ bookingId: booking.id }),
+    onSuccess: (duplicated) => {
+      setEditingBooking(duplicated)
+      setEditModalOpen(true)
+      showSuccessToast("Booking duplicated. Edit the new draft below.")
+    },
+    onError: handleError,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
+    },
+  })
+
+  const handleOpenEdit = () => {
+    setEditingBooking(null)
+    setEditModalOpen(true)
+  }
+
+  const handleCloseEdit = () => {
+    setEditModalOpen(false)
+    setEditingBooking(null)
+  }
 
   return (
     <>
@@ -35,9 +67,17 @@ const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
           </IconButton>
         </MenuTrigger>
         <MenuContent>
-          <MenuItem value="edit" onClick={() => setEditModalOpen(true)}>
+          <MenuItem value="edit" onClick={handleOpenEdit}>
             <FiEdit />
             Edit Booking
+          </MenuItem>
+          <MenuItem
+            value="duplicate"
+            onClick={() => duplicateMutation.mutate()}
+            disabled={duplicateMutation.isPending}
+          >
+            <FiCopy />
+            Duplicate
           </MenuItem>
           <MenuItem
             value="cancel"
@@ -50,11 +90,11 @@ const BookingActionsMenu = ({ booking, disabled }: BookingActionsMenuProps) => {
         </MenuContent>
       </MenuRoot>
       <EditBooking
-        booking={booking}
+        booking={editingBooking ?? booking}
         isOpen={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
+        onClose={handleCloseEdit}
         onSuccess={() => {
-          // This will trigger a refetch via the mutation's onSettled
+          queryClient.invalidateQueries({ queryKey: ["bookings"] })
         }}
       />
       <DeleteBooking

@@ -166,6 +166,14 @@ export type BookingItemPublic = {
   updated_at: string
 }
 
+/**
+ * Payload to update a single booking item's quantity (draft/pending_payment only).
+ */
+export type BookingItemQuantityUpdate = {
+  id: string
+  quantity: number
+}
+
 export type BookingItemStatus = "active" | "refunded" | "fulfilled"
 
 export type BookingPublic = {
@@ -213,6 +221,10 @@ export type BookingStatus =
   | "refunded"
 
 export type BookingUpdate = {
+  user_name?: string | null
+  user_email?: string | null
+  user_phone?: string | null
+  billing_address?: string | null
   status?: BookingStatus | null
   special_requests?: string | null
   tip_amount?: number | null
@@ -221,6 +233,7 @@ export type BookingUpdate = {
   total_amount?: number | null
   launch_updates_pref?: boolean | null
   discount_code_id?: string | null
+  item_quantity_updates?: Array<BookingItemQuantityUpdate> | null
 }
 
 export type DiscountCodeCreate = {
@@ -818,6 +831,12 @@ export type BookingsListBookingsData = {
 }
 
 export type BookingsListBookingsResponse = BookingsPaginatedResponse
+
+export type BookingsDuplicateBookingData = {
+  bookingId: string
+}
+
+export type BookingsDuplicateBookingResponse = BookingPublic
 
 export type BookingsGetBookingByIdData = {
   bookingId: string

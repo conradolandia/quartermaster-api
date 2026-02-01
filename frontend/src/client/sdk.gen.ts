@@ -34,6 +34,8 @@ import type {
   BookingsCreateBookingResponse,
   BookingsListBookingsData,
   BookingsListBookingsResponse,
+  BookingsDuplicateBookingData,
+  BookingsDuplicateBookingResponse,
   BookingsGetBookingByIdData,
   BookingsGetBookingByIdResponse,
   BookingsUpdateBookingData,
@@ -627,6 +629,30 @@ export class BookingsService {
         status: data.status,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Duplicate Booking
+   * Duplicate a booking as a new draft (admin only).
+   * Copies customer data and items; new booking has status draft and a new confirmation code.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static duplicateBooking(
+    data: BookingsDuplicateBookingData,
+  ): CancelablePromise<BookingsDuplicateBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/id/{booking_id}/duplicate",
+      path: {
+        booking_id: data.bookingId,
       },
       errors: {
         422: "Validation Error",

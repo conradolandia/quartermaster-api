@@ -962,6 +962,13 @@ class BookingItemUpdate(SQLModel):
     refund_notes: str | None = None
 
 
+class BookingItemQuantityUpdate(SQLModel):
+    """Payload to update a single booking item's quantity (draft/pending_payment only)."""
+
+    id: uuid.UUID = Field(foreign_key="bookingitem.id")
+    quantity: int = Field(ge=1)
+
+
 class BookingItem(BookingItemBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
@@ -1040,6 +1047,10 @@ class BookingCreate(SQLModel):
 
 
 class BookingUpdate(SQLModel):
+    user_name: str | None = Field(default=None, max_length=255)
+    user_email: str | None = Field(default=None, max_length=255)
+    user_phone: str | None = Field(default=None, max_length=40)
+    billing_address: str | None = Field(default=None, max_length=1000)
     status: BookingStatus | None = None
     special_requests: str | None = None
     tip_amount: int | None = None  # cents
@@ -1048,6 +1059,7 @@ class BookingUpdate(SQLModel):
     total_amount: int | None = None  # cents
     launch_updates_pref: bool | None = None
     discount_code_id: uuid.UUID | None = None
+    item_quantity_updates: list[BookingItemQuantityUpdate] | None = None
 
 
 class BookingDraftUpdate(SQLModel):

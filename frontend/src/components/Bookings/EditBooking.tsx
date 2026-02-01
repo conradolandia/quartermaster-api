@@ -35,7 +35,12 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef } from "react"
-import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import {
+  Controller,
+  type SubmitHandler,
+  useFieldArray,
+  useForm,
+} from "react-hook-form"
 
 interface EditBookingProps {
   booking: BookingPublic
@@ -64,9 +69,10 @@ const EditBooking = ({
   const bookingTrip = tripsData?.data?.find((t: any) =>
     booking.items?.some((item: any) => item.trip_id === t.id),
   )
-  const isPast = bookingTrip
-    ? parseApiDate(bookingTrip.departure_time) < new Date()
-    : false
+  const tripDeparted =
+    bookingTrip && parseApiDate(bookingTrip.departure_time) < new Date()
+  // Block editing non-draft bookings for departed trips; drafts (e.g. duplicates) stay editable
+  const isPast = tripDeparted && booking.status !== "draft"
 
   // Get boats for display
   const { data: boatsData } = useQuery({
@@ -86,6 +92,10 @@ const EditBooking = ({
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
+      user_name: booking.user_name,
+      user_email: booking.user_email,
+      user_phone: booking.user_phone,
+      billing_address: booking.billing_address,
       status: booking.status,
       special_requests: booking.special_requests,
       tip_amount: booking.tip_amount,
@@ -93,13 +103,42 @@ const EditBooking = ({
       tax_amount: booking.tax_amount,
       total_amount: booking.total_amount,
       launch_updates_pref: booking.launch_updates_pref,
+      item_quantity_updates:
+        booking.items?.map((i) => ({ id: i.id, quantity: i.quantity })) ?? [],
     },
   })
+
+  useFieldArray({
+    control,
+    name: "item_quantity_updates",
+  })
+
+  // Sync form to current booking when dialog opens or booking changes (e.g. after duplicate)
+  useEffect(() => {
+    if (isOpen && booking) {
+      reset({
+        user_name: booking.user_name,
+        user_email: booking.user_email,
+        user_phone: booking.user_phone,
+        billing_address: booking.billing_address,
+        status: booking.status,
+        special_requests: booking.special_requests,
+        tip_amount: booking.tip_amount,
+        discount_amount: booking.discount_amount,
+        tax_amount: booking.tax_amount,
+        total_amount: booking.total_amount,
+        launch_updates_pref: booking.launch_updates_pref,
+        item_quantity_updates:
+          booking.items?.map((i) => ({ id: i.id, quantity: i.quantity })) ?? [],
+      })
+    }
+  }, [isOpen, booking?.id, reset, booking])
 
   // Watch form values for auto-calculation
   const watchedDiscountAmount = watch("discount_amount")
   const watchedTaxAmount = watch("tax_amount")
   const watchedTipAmount = watch("tip_amount")
+  const watchedItemQuantities = watch("item_quantity_updates")
 
   // Auto-calculate total based on original subtotal and updated values
   useEffect(() => {
@@ -206,55 +245,76 @@ const EditBooking = ({
             {!isPast && <Text mb={4}>Update booking information.</Text>}
             <VStack gap={4}>
               <Field
-                label="Confirmation Code"
-                helperText="This field is read-only"
+                invalid={!!errors.user_name}
+                errorText={errors.user_name?.message}
+                label="Customer Name"
               >
                 <Input
-                  value={booking.confirmation_code}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
-                />
-              </Field>
-
-              <Field label="Customer Name" helperText="This field is read-only">
-                <Input
-                  value={booking.user_name}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
+                  id="user_name"
+                  {...register("user_name", {
+                    maxLength: {
+                      value: 255,
+                      message: "Name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Customer name"
+                  disabled={isPast}
                 />
               </Field>
 
               <Field
+                invalid={!!errors.user_email}
+                errorText={errors.user_email?.message}
                 label="Customer Email"
-                helperText="This field is read-only"
               >
                 <Input
-                  value={booking.user_email}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
+                  id="user_email"
+                  type="email"
+                  {...register("user_email", {
+                    maxLength: {
+                      value: 255,
+                      message: "Email cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="customer@example.com"
+                  disabled={isPast}
                 />
               </Field>
 
               <Field
+                invalid={!!errors.user_phone}
+                errorText={errors.user_phone?.message}
                 label="Customer Phone"
-                helperText="This field is read-only"
               >
                 <Input
-                  value={booking.user_phone}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
+                  id="user_phone"
+                  {...register("user_phone", {
+                    maxLength: {
+                      value: 40,
+                      message: "Phone cannot exceed 40 characters",
+                    },
+                  })}
+                  placeholder="Phone number"
+                  disabled={isPast}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.billing_address}
+                errorText={errors.billing_address?.message}
+                label="Billing Address"
+              >
+                <Textarea
+                  id="billing_address"
+                  {...register("billing_address", {
+                    maxLength: {
+                      value: 1000,
+                      message: "Billing address cannot exceed 1000 characters",
+                    },
+                  })}
+                  placeholder="Billing address"
+                  rows={3}
+                  disabled={isPast}
                 />
               </Field>
 
@@ -272,73 +332,236 @@ const EditBooking = ({
                 />
               </Field>
 
-              {/* Booking Items Display */}
-              <Box w="full">
-                <Text fontWeight="semibold" mb={3}>
-                  Booking Items
-                </Text>
-                {booking.items && booking.items.length > 0 ? (
-                  <Table.Root size={"xs" as any} variant="outline">
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>Trip</Table.ColumnHeader>
-                        <Table.ColumnHeader>Boat</Table.ColumnHeader>
-                        <Table.ColumnHeader>Type</Table.ColumnHeader>
-                        <Table.ColumnHeader>Qty</Table.ColumnHeader>
-                        <Table.ColumnHeader>Price</Table.ColumnHeader>
-                        <Table.ColumnHeader>Total</Table.ColumnHeader>
-                        <Table.ColumnHeader>Status</Table.ColumnHeader>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {booking.items.map((item) => (
-                        <Table.Row key={item.id}>
-                          <Table.Cell>
-                            <Text>{getTripName(item.trip_id)}</Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Text>{getBoatName(item.boat_id)}</Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Text>{getItemTypeLabel(item.item_type)}</Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Text>{item.quantity}</Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Text>${formatCents(item.price_per_unit)}</Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Text fontWeight="medium">
-                              $
-                              {formatCents(item.quantity * item.price_per_unit)}
-                            </Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Badge
-                              size="sm"
-                              colorPalette={
-                                item.status === "active"
-                                  ? "green"
-                                  : item.status === "refunded"
-                                    ? "red"
-                                    : "gray"
-                              }
-                            >
-                              {item.status}
-                            </Badge>
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
-                ) : (
-                  <Text color="text.muted" textAlign="center" py={4}>
-                    No booking items found.
-                  </Text>
-                )}
+              {/* Tickets and Merchandise (item_quantity_updates index matches booking.items index) */}
+              {booking.items && booking.items.length > 0 && (
+                <>
+                  <Box w="full">
+                    <Text fontWeight="semibold" mb={3}>
+                      Tickets
+                    </Text>
+                    {booking.items.some((i) => !i.trip_merchandise_id) ? (
+                      <Table.Root size={"xs" as any} variant="outline">
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.ColumnHeader>Trip</Table.ColumnHeader>
+                            <Table.ColumnHeader>Boat</Table.ColumnHeader>
+                            <Table.ColumnHeader>Type</Table.ColumnHeader>
+                            <Table.ColumnHeader>Qty</Table.ColumnHeader>
+                            <Table.ColumnHeader>Price</Table.ColumnHeader>
+                            <Table.ColumnHeader>Total</Table.ColumnHeader>
+                            <Table.ColumnHeader>Status</Table.ColumnHeader>
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {booking.items.map(
+                            (item, index) =>
+                              !item.trip_merchandise_id && (
+                                <Table.Row key={item.id}>
+                                  <Table.Cell>
+                                    <Text>{getTripName(item.trip_id)}</Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text>{getBoatName(item.boat_id)}</Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text>
+                                      {getItemTypeLabel(item.item_type)}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Controller
+                                      name={
+                                        `item_quantity_updates.${index}.quantity` as const
+                                      }
+                                      control={control}
+                                      rules={{
+                                        min: {
+                                          value: 1,
+                                          message: "Min 1",
+                                        },
+                                      }}
+                                      render={({ field }) => (
+                                        <Input
+                                          {...field}
+                                          type="number"
+                                          min={1}
+                                          w="16"
+                                          disabled={isPast}
+                                          value={
+                                            field.value === undefined ||
+                                            field.value === null
+                                              ? 1
+                                              : field.value
+                                          }
+                                          onChange={(e) =>
+                                            field.onChange(
+                                              Math.max(
+                                                1,
+                                                Number.parseInt(
+                                                  e.target.value,
+                                                  10,
+                                                ) || 1,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    />
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text>
+                                      ${formatCents(item.price_per_unit)}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text fontWeight="medium">
+                                      $
+                                      {formatCents(
+                                        (watchedItemQuantities?.[index]
+                                          ?.quantity ?? item.quantity) *
+                                          item.price_per_unit,
+                                      )}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Badge
+                                      size="sm"
+                                      colorPalette={
+                                        item.status === "active"
+                                          ? "green"
+                                          : item.status === "refunded"
+                                            ? "red"
+                                            : "gray"
+                                      }
+                                    >
+                                      {item.status}
+                                    </Badge>
+                                  </Table.Cell>
+                                </Table.Row>
+                              ),
+                          )}
+                        </Table.Body>
+                      </Table.Root>
+                    ) : (
+                      <Text color="text.muted" textAlign="center" py={2}>
+                        No tickets.
+                      </Text>
+                    )}
+                  </Box>
 
-                {/* Show refund information if any items have refund details */}
+                  <Box w="full" mt={4}>
+                    <Text fontWeight="semibold" mb={3}>
+                      Merchandise
+                    </Text>
+                    {booking.items.some((i) => i.trip_merchandise_id) ? (
+                      <Table.Root size={"xs" as any} variant="outline">
+                        <Table.Header>
+                          <Table.Row>
+                            <Table.ColumnHeader>Trip</Table.ColumnHeader>
+                            <Table.ColumnHeader>Type</Table.ColumnHeader>
+                            <Table.ColumnHeader>Qty</Table.ColumnHeader>
+                            <Table.ColumnHeader>Price</Table.ColumnHeader>
+                            <Table.ColumnHeader>Total</Table.ColumnHeader>
+                            <Table.ColumnHeader>Status</Table.ColumnHeader>
+                          </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                          {booking.items.map(
+                            (item, index) =>
+                              item.trip_merchandise_id && (
+                                <Table.Row key={item.id}>
+                                  <Table.Cell>
+                                    <Text>{getTripName(item.trip_id)}</Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text>
+                                      {getItemTypeLabel(item.item_type)}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Controller
+                                      name={
+                                        `item_quantity_updates.${index}.quantity` as const
+                                      }
+                                      control={control}
+                                      rules={{
+                                        min: {
+                                          value: 1,
+                                          message: "Min 1",
+                                        },
+                                      }}
+                                      render={({ field }) => (
+                                        <Input
+                                          {...field}
+                                          type="number"
+                                          min={1}
+                                          w="16"
+                                          disabled={isPast}
+                                          value={
+                                            field.value === undefined ||
+                                            field.value === null
+                                              ? 1
+                                              : field.value
+                                          }
+                                          onChange={(e) =>
+                                            field.onChange(
+                                              Math.max(
+                                                1,
+                                                Number.parseInt(
+                                                  e.target.value,
+                                                  10,
+                                                ) || 1,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    />
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text>
+                                      ${formatCents(item.price_per_unit)}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Text fontWeight="medium">
+                                      $
+                                      {formatCents(
+                                        (watchedItemQuantities?.[index]
+                                          ?.quantity ?? item.quantity) *
+                                          item.price_per_unit,
+                                      )}
+                                    </Text>
+                                  </Table.Cell>
+                                  <Table.Cell>
+                                    <Badge
+                                      size="sm"
+                                      colorPalette={
+                                        item.status === "active"
+                                          ? "green"
+                                          : item.status === "refunded"
+                                            ? "red"
+                                            : "gray"
+                                      }
+                                    >
+                                      {item.status}
+                                    </Badge>
+                                  </Table.Cell>
+                                </Table.Row>
+                              ),
+                          )}
+                        </Table.Body>
+                      </Table.Root>
+                    ) : (
+                      <Text color="text.muted" textAlign="center" py={2}>
+                        No merchandise.
+                      </Text>
+                    )}
+                  </Box>
+                </>
+              )}
+
+              {/* Show refund information if any items have refund details */}
                 {booking.items?.some(
                   (item) => item.refund_reason || item.refund_notes,
                 ) && (
@@ -372,7 +595,6 @@ const EditBooking = ({
                       ))}
                   </Box>
                 )}
-              </Box>
 
               <Field
                 invalid={!!errors.status}

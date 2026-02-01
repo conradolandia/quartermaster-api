@@ -15,7 +15,9 @@ from app.models import (
     Booking,
     BookingCreate,
     BookingItem,
+    BookingItemCreate,
     BookingItemPublic,
+    BookingItemQuantityUpdate,
     BookingItemStatus,
     BookingPublic,
     BookingStatus,
@@ -38,6 +40,7 @@ from app.utils import (
 
 from .booking_utils import (
     generate_qr_code,
+    generate_unique_confirmation_code,
     get_booking_with_items,
     get_mission_name_for_booking,
     prepare_booking_items_for_email,
@@ -60,22 +63,13 @@ class BookingsPaginatedResponse(BaseModel):
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-# --- Public Endpoints ---
-
-
-@router.post("/", response_model=BookingPublic, status_code=status.HTTP_201_CREATED)
-def create_booking(
+def _create_booking_impl(
     *,
-    session: Session = Depends(deps.get_db),
+    session: Session,
     booking_in: BookingCreate,
-    current_user: User | None = Depends(deps.get_optional_current_user),
-) -> BookingPublic:
-    """
-    Create new booking (authentication optional - public or admin).
-    """
-    # current_user is available if authenticated (for admin use), None for public bookings
-    _ = current_user  # Available for future use (e.g., logging, audit trail)
-    # Validate that booking has items
+    current_user: User | None,
+) -> Booking:
+    """Create a new booking from payload; used by create_booking and duplicate_booking."""
     if not booking_in.items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -372,6 +366,7 @@ def create_booking(
         special_requests=booking_in.special_requests,
         status=initial_status,  # Start as draft (can be updated to confirmed for admin)
         launch_updates_pref=booking_in.launch_updates_pref,
+        discount_code_id=booking_in.discount_code_id,
     )
 
     # Create booking items
@@ -424,8 +419,102 @@ def create_booking(
     session.add(booking)
     session.commit()
     session.refresh(booking)
-
+    booking.items = booking_items
     return booking
+
+
+# --- Public Endpoints ---
+
+
+@router.post("/", response_model=BookingPublic, status_code=status.HTTP_201_CREATED)
+def create_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    booking_in: BookingCreate,
+    current_user: User | None = Depends(deps.get_optional_current_user),
+) -> BookingPublic:
+    """
+    Create new booking (authentication optional - public or admin).
+    """
+    return _create_booking_impl(
+        session=session,
+        booking_in=booking_in,
+        current_user=current_user,
+    )
+
+
+@router.post(
+    "/id/{booking_id}/duplicate",
+    response_model=BookingPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+)
+def duplicate_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    booking_id: uuid.UUID,
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> BookingPublic:
+    """
+    Duplicate a booking as a new draft (admin only).
+    Copies customer data and items; new booking has status draft and a new confirmation code.
+    """
+    booking = session.get(Booking, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking {booking_id} not found",
+        )
+    items = session.exec(
+        select(BookingItem).where(BookingItem.booking_id == booking.id)
+    ).all()
+    if not items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking has no items to duplicate",
+        )
+    confirmation_code = generate_unique_confirmation_code(session)
+    booking_in = BookingCreate(
+        confirmation_code=confirmation_code,
+        user_name=booking.user_name,
+        user_email=booking.user_email,
+        user_phone=booking.user_phone,
+        billing_address=booking.billing_address,
+        subtotal=booking.subtotal,
+        discount_amount=booking.discount_amount,
+        tax_amount=booking.tax_amount,
+        tip_amount=booking.tip_amount,
+        total_amount=booking.total_amount,
+        special_requests=booking.special_requests,
+        launch_updates_pref=booking.launch_updates_pref,
+        discount_code_id=booking.discount_code_id,
+        items=[
+            BookingItemCreate(
+                trip_id=item.trip_id,
+                boat_id=item.boat_id,
+                trip_merchandise_id=item.trip_merchandise_id,
+                item_type=item.item_type,
+                quantity=item.quantity,
+                price_per_unit=item.price_per_unit,
+                status=BookingItemStatus.active,
+                refund_reason=None,
+                refund_notes=None,
+            )
+            for item in items
+        ],
+    )
+    created = _create_booking_impl(
+        session=session,
+        booking_in=booking_in,
+        current_user=current_user,
+    )
+    # Ensure items are on the response for the client
+    created_items = session.exec(
+        select(BookingItem).where(BookingItem.booking_id == created.id)
+    ).all()
+    booking_public = BookingPublic.model_validate(created)
+    booking_public.items = [BookingItemPublic.model_validate(i) for i in created_items]
+    return booking_public
 
 
 # --- Admin-Restricted Endpoints (use dependency for access control) ---
@@ -732,7 +821,7 @@ def update_booking(
             )
 
         # 1. Enforce business rules
-        # Disallow updates to items/quantities via PATCH (MVP)
+        # Disallow updates to items (raw) via PATCH; item_quantity_updates handled below
         forbidden_fields = {
             "items",
             "confirmation_code",
@@ -748,6 +837,95 @@ def update_booking(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot update these fields via PATCH: {', '.join(invalid_fields)}",
             )
+
+        # Process item quantity updates (draft/pending_payment only)
+        item_quantity_updates: list[BookingItemQuantityUpdate] | None = update_data.pop(
+            "item_quantity_updates", None
+        )
+        if item_quantity_updates:
+            if booking.status not in (
+                BookingStatus.draft,
+                BookingStatus.pending_payment,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Item quantities can only be updated for draft or pending_payment bookings",
+                )
+            items = session.exec(
+                select(BookingItem).where(BookingItem.booking_id == booking.id)
+            ).all()
+            qty_by_id = {u.id: u.quantity for u in item_quantity_updates}
+            for u in item_quantity_updates:
+                item = session.get(BookingItem, u.id)
+                if not item or item.booking_id != booking.id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Booking item {u.id} not found or does not belong to this booking",
+                    )
+            # Validate ticket capacity with proposed quantities
+            ticket_totals: dict[tuple[uuid.UUID, uuid.UUID, str], int] = defaultdict(
+                int
+            )
+            for item in items:
+                if item.trip_merchandise_id is None:
+                    qty = qty_by_id.get(item.id, item.quantity)
+                    ticket_totals[(item.trip_id, item.boat_id, item.item_type)] += qty
+            for (trip_id, boat_id, item_type), qty in ticket_totals.items():
+                capacities = crud.get_effective_capacity_per_ticket_type(
+                    session=session, trip_id=trip_id, boat_id=boat_id
+                )
+                cap = capacities.get(item_type)
+                if cap is None:
+                    boat = session.get(Boat, boat_id)
+                    boat_name = boat.name if boat else str(boat_id)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"No capacity for ticket type '{item_type}' on boat '{boat_name}'",
+                    )
+                paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+                    session=session, trip_id=trip_id
+                ).get((boat_id, item_type), 0)
+                if paid + qty > cap:
+                    boat = session.get(Boat, boat_id)
+                    boat_name = boat.name if boat else str(boat_id)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+                    )
+            # Apply quantity updates and merchandise inventory
+            for u in item_quantity_updates:
+                item = session.get(BookingItem, u.id)
+                if not item:
+                    continue
+                old_qty = item.quantity
+                new_qty = u.quantity
+                if new_qty == old_qty:
+                    continue
+                if item.trip_merchandise_id:
+                    tm = session.get(TripMerchandise, item.trip_merchandise_id)
+                    if tm:
+                        m = session.get(Merchandise, tm.merchandise_id)
+                        if m:
+                            delta = new_qty - old_qty
+                            if delta > 0:
+                                if m.quantity_available < delta:
+                                    raise HTTPException(
+                                        status_code=status.HTTP_400_BAD_REQUEST,
+                                        detail=f"Insufficient merchandise inventory for item {item.item_type}",
+                                    )
+                                m.quantity_available -= delta
+                            else:
+                                m.quantity_available += abs(delta)
+                            session.add(m)
+                item.quantity = new_qty
+                session.add(item)
+            # Recompute booking subtotal
+            new_subtotal = sum(
+                (qty_by_id.get(item.id, item.quantity) * item.price_per_unit)
+                for item in items
+            )
+            booking.subtotal = new_subtotal
+            session.add(booking)
 
         # Validate status transitions
         status_changed = False

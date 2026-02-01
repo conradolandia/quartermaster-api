@@ -14,6 +14,7 @@ Pricing formula for sales:
 import base64
 import io
 import logging
+import secrets
 
 import qrcode
 from fastapi import HTTPException, status
@@ -73,6 +74,29 @@ def generate_qr_code(confirmation_code: str) -> str:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def generate_unique_confirmation_code(session: Session) -> str:
+    """
+    Generate a unique confirmation code for a new booking.
+
+    Args:
+        session: Database session to check uniqueness
+
+    Returns:
+        A unique 8-character uppercase alphanumeric code
+    """
+    for _ in range(20):
+        code = secrets.token_hex(4).upper()
+        existing = session.exec(
+            select(Booking).where(Booking.confirmation_code == code)
+        ).first()
+        if not existing:
+            return code
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Could not generate unique confirmation code",
+    )
 
 
 def validate_confirmation_code(confirmation_code: str) -> None:
