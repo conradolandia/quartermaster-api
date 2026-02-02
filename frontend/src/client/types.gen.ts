@@ -434,6 +434,7 @@ export type MerchandisePublic = {
   updated_at: string
   variant_name?: string | null
   variant_options?: string | null
+  variations?: Array<MerchandiseVariationPublic> | null
 }
 
 export type MerchandisesPublic = {

@@ -7,6 +7,7 @@ import {
   Heading,
   Icon,
   Table,
+  Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -172,11 +173,11 @@ function MerchandiseTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size={{ base: "sm", md: "md" }} width="100%">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="sm"
+                minW="160px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -187,14 +188,14 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="160px"
                 fontWeight="bold"
                 display={{ base: "none", md: "table-cell" }}
               >
                 Description
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="80px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("price")}
@@ -205,7 +206,7 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="56px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("quantity_available")}
@@ -217,14 +218,14 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                minW="220px"
                 fontWeight="bold"
-                display={{ base: "none", md: "table-cell" }}
+                display={{ base: "none", xl: "table-cell" }}
               >
                 Variations
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="180px"
+                minW="110px"
                 fontWeight="bold"
                 textAlign="center"
               >
@@ -233,43 +234,77 @@ function MerchandiseTable() {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {items.map((item) => (
-              <Table.Row key={item.id} opacity={isPlaceholderData ? 0.5 : 1}>
-                <Table.Cell truncate maxW="sm" fontSize="2xl" fontWeight="300">
-                  {item.name}
-                </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="xs"
-                  display={{ base: "none", md: "table-cell" }}
+            {items.map((item) => {
+              const variations = (item.variations ?? []).filter((v) =>
+                (v.variant_value ?? "").trim(),
+              )
+              return (
+                <Table.Row
+                  key={item.id}
+                  opacity={isPlaceholderData ? 0.5 : 1}
                 >
-                  {item.description ?? "—"}
-                </Table.Cell>
-                <Table.Cell>{formatCents(item.price)}</Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
-                  {item.quantity_available}
-                </Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", md: "table-cell" }}
-                  truncate
-                  maxW="xs"
-                >
-                  {item.variant_options
-                    ? item.variant_options
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean)
-                        .join(", ")
-                    : "—"}
-                </Table.Cell>
-                <Table.Cell minW="220px" textAlign="center">
-                  <Flex gap={2} flexWrap="wrap" justify="center">
-                    <EditMerchandise merchandise={item} />
-                    <DeleteMerchandise id={item.id} />
-                  </Flex>
-                </Table.Cell>
-              </Table.Row>
-            ))}
+                  <Table.Cell
+                    truncate
+                    minW="160px"
+                    fontSize="2xl"
+                    fontWeight="300"
+                  >
+                    {item.name}
+                  </Table.Cell>
+                  <Table.Cell
+                    truncate
+                    minW="160px"
+                    display={{ base: "none", md: "table-cell" }}
+                  >
+                    {item.description ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell minW="80px">{formatCents(item.price)}</Table.Cell>
+                  <Table.Cell
+                    minW="56px"
+                    display={{ base: "none", lg: "table-cell" }}
+                  >
+                    {item.quantity_available}
+                  </Table.Cell>
+                  <Table.Cell
+                    minW="220px"
+                    display={{ base: "none", xl: "table-cell" }}
+                    verticalAlign="top"
+                  >
+                    {variations.length > 0 ? (
+                      <VStack align="stretch" gap={3}>
+                        {variations.map((v) => {
+                          const unfulfilled =
+                            v.quantity_sold - v.quantity_fulfilled
+                          return (
+                            <Box key={v.id}>
+                              <Text>{v.variant_value || "(none)"}</Text>
+                              <Text
+                                fontSize="2xs"
+                                color="text.muted"
+                                mt={0.5}
+                              >
+                                Total: {v.quantity_total}, Sold:{" "}
+                                {v.quantity_sold}, Fulfilled:{" "}
+                                {v.quantity_fulfilled}, Unfulfilled:{" "}
+                                {unfulfilled}
+                              </Text>
+                            </Box>
+                          )
+                        })}
+                      </VStack>
+                    ) : (
+                      "—"
+                    )}
+                  </Table.Cell>
+                  <Table.Cell minW="110px" textAlign="center">
+                    <Flex gap={2} flexWrap="wrap" justify="center">
+                      <EditMerchandise merchandise={item} />
+                      <DeleteMerchandise id={item.id} />
+                    </Flex>
+                  </Table.Cell>
+                </Table.Row>
+              )
+            })}
           </Table.Body>
         </Table.Root>
       </Box>

@@ -262,7 +262,11 @@ def _create_booking_impl(
             variations = crud.list_merchandise_variations_by_merchandise(
                 session=session, merchandise_id=m.id
             )
-            allowed = [v.variant_value for v in variations] if variations else []
+            allowed = (
+                [v.variant_value for v in variations if (v.variant_value or "").strip()]
+                if variations
+                else []
+            )
             if allowed:
                 if not item.variant_option or item.variant_option not in allowed:
                     raise HTTPException(

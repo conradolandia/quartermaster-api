@@ -865,6 +865,8 @@ class MerchandisePublic(MerchandiseBase):
     # Computed from variations at read time (not stored)
     variant_name: str | None = None
     variant_options: str | None = None  # comma-separated
+    # Populated in list endpoint for admin table (per-variation total, sold, fulfilled)
+    variations: list["MerchandiseVariationPublic"] | None = None
 
     @field_serializer("created_at", "updated_at")
     def serialize_datetime_utc(self, dt: datetime):

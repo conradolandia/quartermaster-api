@@ -56,7 +56,9 @@ def _trip_merchandise_to_public(
             else m.quantity_available
         )
     variant_options = (
-        ",".join(v.variant_value for v in variations) if variations else None
+        ",".join(v.variant_value for v in variations if (v.variant_value or "").strip())
+        if variations
+        else None
     )
 
     return TripMerchandisePublic(

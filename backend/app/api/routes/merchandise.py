@@ -33,8 +33,13 @@ def _merchandise_to_public(session: Session, merchandise: Any) -> MerchandisePub
         pub.quantity_available = sum(
             v.quantity_total - v.quantity_sold for v in variations
         )
-        pub.variant_options = ",".join(v.variant_value for v in variations)
+        pub.variant_options = ",".join(
+            v.variant_value for v in variations if (v.variant_value or "").strip()
+        )
         pub.variant_name = None
+        pub.variations = [
+            MerchandiseVariationPublic.model_validate(v) for v in variations
+        ]
     return pub
 
 
