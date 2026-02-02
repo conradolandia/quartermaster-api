@@ -375,8 +375,8 @@ const Step4Review = ({
         : undefined
     const errorMessage = createBookingMutation.isError
       ? apiDetail ??
-        "There was an error creating your booking. Please try again or contact support if the problem persists."
-      : "Payment was successful but we couldn't confirm your booking. Please contact support with your payment details."
+        "There was an error creating your booking. Please try again or contact FleetCommand@Star-Fleet.Tours if the problem persists."
+      : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
 
     return (
       <VStack gap={6} align="stretch">
