@@ -381,7 +381,11 @@ def send_launch_update(
         .join(Trip, Trip.id == BookingItem.trip_id)
         .join(Mission, Mission.id == Trip.mission_id)
         .where(Mission.launch_id == launch_id)
-        .where(Booking.status.in_([BookingStatus.confirmed, BookingStatus.checked_in]))
+        .where(
+            Booking.booking_status.in_(
+                [BookingStatus.confirmed, BookingStatus.checked_in]
+            )
+        )
         .distinct()
     )
 

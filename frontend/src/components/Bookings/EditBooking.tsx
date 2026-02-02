@@ -72,7 +72,7 @@ const EditBooking = ({
   const tripDeparted =
     bookingTrip && parseApiDate(bookingTrip.departure_time) < new Date()
   // Block editing non-draft bookings for departed trips; drafts (e.g. duplicates) stay editable
-  const isPast = tripDeparted && booking.status !== "draft"
+  const isPast = tripDeparted && booking.booking_status !== "draft"
 
   // Get boats for display
   const { data: boatsData } = useQuery({
@@ -96,7 +96,8 @@ const EditBooking = ({
       user_email: booking.user_email,
       user_phone: booking.user_phone,
       billing_address: booking.billing_address,
-      status: booking.status,
+      booking_status: booking.booking_status,
+      payment_status: booking.payment_status ?? undefined,
       special_requests: booking.special_requests,
       tip_amount: booking.tip_amount,
       discount_amount: booking.discount_amount,
@@ -121,7 +122,8 @@ const EditBooking = ({
         user_email: booking.user_email,
         user_phone: booking.user_phone,
         billing_address: booking.billing_address,
-        status: booking.status,
+        booking_status: booking.booking_status,
+        payment_status: booking.payment_status ?? undefined,
         special_requests: booking.special_requests,
         tip_amount: booking.tip_amount,
         discount_amount: booking.discount_amount,
@@ -197,17 +199,32 @@ const EditBooking = ({
   })
 
   const onSubmit: SubmitHandler<BookingUpdate> = async (data) => {
-    mutation.mutate(data)
+    const payload = { ...data }
+    const paymentStatus = payload.payment_status
+    if (
+      paymentStatus === undefined ||
+      paymentStatus === null ||
+      String(paymentStatus) === ""
+    ) {
+      payload.payment_status = undefined
+    }
+    mutation.mutate(payload)
   }
 
-  const statusOptions = [
+  const bookingStatusOptions = [
     { value: "draft", label: "Draft" },
-    { value: "pending_payment", label: "Pending Payment" },
     { value: "confirmed", label: "Confirmed" },
     { value: "checked_in", label: "Checked In" },
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
+  ]
+  const paymentStatusOptions = [
+    { value: "", label: "(none)" },
+    { value: "pending_payment", label: "Pending Payment" },
+    { value: "paid", label: "Paid" },
+    { value: "failed", label: "Failed" },
     { value: "refunded", label: "Refunded" },
+    { value: "partially_refunded", label: "Partially Refunded" },
   ]
 
   const getItemTypeLabel = (itemType: string) => {
@@ -625,12 +642,12 @@ const EditBooking = ({
                 )}
 
               <Field
-                invalid={!!errors.status}
-                errorText={errors.status?.message}
-                label="Status"
+                invalid={!!errors.booking_status}
+                errorText={errors.booking_status?.message}
+                label="Booking Status"
               >
                 <Controller
-                  name="status"
+                  name="booking_status"
                   control={control}
                   render={({ field }) => (
                     <NativeSelect
@@ -638,8 +655,31 @@ const EditBooking = ({
                       value={field.value || ""}
                       disabled={isPast}
                     >
-                      {statusOptions.map((option) => (
+                      {bookingStatusOptions.map((option) => (
                         <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
+                />
+              </Field>
+              <Field
+                invalid={!!errors.payment_status}
+                errorText={errors.payment_status?.message}
+                label="Payment Status"
+              >
+                <Controller
+                  name="payment_status"
+                  control={control}
+                  render={({ field }) => (
+                    <NativeSelect
+                      {...field}
+                      value={field.value ?? ""}
+                      disabled={isPast}
+                    >
+                      {paymentStatusOptions.map((option) => (
+                        <option key={option.value || "none"} value={option.value}>
                           {option.label}
                         </option>
                       ))}

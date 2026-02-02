@@ -615,14 +615,15 @@ export class BookingsService {
   /**
    * List Bookings
    * List/search bookings (admin only).
-   * Optionally filter by mission_id, trip_id, boat_id, or status.
+   * Optionally filter by mission_id, trip_id, boat_id, booking_status, or payment_status.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.missionId
    * @param data.tripId
    * @param data.boatId
-   * @param data.status
+   * @param data.bookingStatus
+   * @param data.paymentStatus
    * @param data.sortBy
    * @param data.sortDirection
    * @returns BookingsPaginatedResponse Successful Response
@@ -640,7 +641,8 @@ export class BookingsService {
         mission_id: data.missionId,
         trip_id: data.tripId,
         boat_id: data.boatId,
-        status: data.status,
+        booking_status: data.bookingStatus,
+        payment_status: data.paymentStatus,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
       },
@@ -847,7 +849,7 @@ export class BookingsService {
    * Supports filtering by mission_id, trip_id, boat_id, and booking_status.
    * Supports field selection via the fields parameter (comma-separated list of field names).
    * Available fields: confirmation_code, customer_name, email, phone, billing_address,
-   * status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
+   * booking_status, payment_status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
    * trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
    * ticket_types_total); swag (or swag_description, swag_total).
    *
@@ -1902,7 +1904,7 @@ export class MerchandiseService {
 
   /**
    * Read Merchandise
-   * Get merchandise by ID.
+   * Get merchandise by ID. Includes variations when present.
    * @param data The data for the request.
    * @param data.merchandiseId
    * @returns MerchandisePublic Successful Response

@@ -23,6 +23,7 @@ from app.models import (
     BookingItemPublic,
     BookingPublic,
     BookingStatus,
+    PaymentStatus,
 )
 from app.utils import generate_booking_confirmation_email, send_email
 
@@ -134,13 +135,10 @@ def update_draft_booking_by_confirmation_code(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Booking not found with the provided confirmation code",
             )
-        if booking.status not in (
-            BookingStatus.draft,
-            BookingStatus.pending_payment,
-        ):
+        if booking.booking_status != BookingStatus.draft:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot update booking with status '{booking.status}'",
+                detail=f"Cannot update booking with booking status '{booking.booking_status}'",
             )
 
         if "tip_amount" in update_data and update_data["tip_amount"] is not None:
@@ -172,7 +170,7 @@ def update_draft_booking_by_confirmation_code(
         if (
             "total_amount" in update_data
             and booking.payment_intent_id
-            and booking.status == BookingStatus.pending_payment
+            and booking.payment_status == PaymentStatus.pending_payment
             and booking.total_amount >= 50
         ):
             updated_pi = update_payment_intent_amount(
@@ -283,7 +281,7 @@ def resend_booking_confirmation_email(
         )
 
         # Only send emails for confirmed bookings
-        if booking.status not in [
+        if booking.booking_status not in [
             BookingStatus.confirmed,
             BookingStatus.checked_in,
             BookingStatus.completed,

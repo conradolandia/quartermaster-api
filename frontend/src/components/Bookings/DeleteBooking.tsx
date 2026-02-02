@@ -38,7 +38,7 @@ const DeleteBooking = ({
     mutationFn: () =>
       BookingsService.updateBooking({
         bookingId: booking.id,
-        requestBody: { status: "cancelled" },
+        requestBody: { booking_status: "cancelled" },
       }),
     onSuccess: () => {
       showSuccessToast("Booking cancelled successfully.")

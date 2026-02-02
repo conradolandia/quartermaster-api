@@ -1114,14 +1114,22 @@ class BookingItemPublic(BookingItemBase):
 
 
 # --- Booking models ---
-class BookingStatus(str, enum.Enum):
-    draft = "draft"
+class PaymentStatus(str, enum.Enum):
     pending_payment = "pending_payment"
+    paid = "paid"
+    failed = "failed"
+    refunded = "refunded"
+    partially_refunded = "partially_refunded"
+
+
+class BookingStatus(str, enum.Enum):
+    """Booking lifecycle: draft, confirmed, checked_in, completed, cancelled."""
+
+    draft = "draft"
     confirmed = "confirmed"
     checked_in = "checked_in"
     completed = "completed"
     cancelled = "cancelled"
-    refunded = "refunded"
 
 
 class BookingBase(SQLModel):
@@ -1140,7 +1148,8 @@ class BookingBase(SQLModel):
     refund_notes: str | None = Field(default=None, max_length=1000)
     payment_intent_id: str | None = Field(default=None, max_length=255)
     special_requests: str | None = Field(default=None, max_length=1000)
-    status: BookingStatus = Field(default=BookingStatus.draft)
+    payment_status: PaymentStatus | None = Field(default=None)
+    booking_status: BookingStatus = Field(default=BookingStatus.draft)
     launch_updates_pref: bool = Field(default=False)
     discount_code_id: uuid.UUID | None = Field(
         default=None, foreign_key="discountcode.id"
@@ -1169,7 +1178,8 @@ class BookingUpdate(SQLModel):
     user_email: str | None = Field(default=None, max_length=255)
     user_phone: str | None = Field(default=None, max_length=40)
     billing_address: str | None = Field(default=None, max_length=1000)
-    status: BookingStatus | None = None
+    booking_status: BookingStatus | None = None
+    payment_status: PaymentStatus | None = None
     special_requests: str | None = None
     tip_amount: int | None = None  # cents
     discount_amount: int | None = None  # cents

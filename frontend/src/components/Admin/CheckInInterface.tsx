@@ -168,6 +168,8 @@ const CheckInInterface = ({
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case "draft":
+        return "Draft"
       case "confirmed":
         return "Confirmed"
       case "checked_in":
@@ -176,8 +178,6 @@ const CheckInInterface = ({
         return "Completed"
       case "cancelled":
         return "Cancelled"
-      case "refunded":
-        return "Refunded"
       default:
         return "Unknown"
     }
@@ -231,10 +231,10 @@ const CheckInInterface = ({
                 <HStack gap={2}>
                   <Badge
                     colorPalette={getStatusColor(
-                      currentBooking.status || "unknown",
+                      currentBooking.booking_status || "unknown",
                     )}
                   >
-                    {getStatusText(currentBooking.status || "unknown")}
+                    {getStatusText(currentBooking.booking_status || "unknown")}
                   </Badge>
                   {isPartiallyRefunded(currentBooking) && (
                     <Text fontSize="sm" color="text.muted">
@@ -328,7 +328,7 @@ const CheckInInterface = ({
                   <FiX />
                   Reset
                 </Button>
-                {currentBooking.status !== "checked_in" && (
+                {currentBooking.booking_status !== "checked_in" && (
                   <Button
                     variant="outline"
                     onClick={() => setIsEditOpen(true)}
@@ -338,7 +338,7 @@ const CheckInInterface = ({
                     Edit Booking
                   </Button>
                 )}
-                {currentBooking.status === "confirmed" && (
+                {currentBooking.booking_status === "confirmed" && (
                   <Button
                     colorPalette="green"
                     onClick={handleCheckInClick}
@@ -348,7 +348,7 @@ const CheckInInterface = ({
                     Check In
                   </Button>
                 )}
-                {currentBooking.status === "checked_in" && (
+                {currentBooking.booking_status === "checked_in" && (
                   <Button
                     variant="outline"
                     colorPalette="orange"

@@ -1,6 +1,7 @@
 import {
   Badge,
   Box,
+  HStack,
   Button,
   Flex,
   Icon,
@@ -13,7 +14,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiCopy, FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiX } from "react-icons/fi"
 
 import {
   BoatsService,
@@ -39,8 +40,9 @@ import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import {
   type SortDirection,
   type SortableColumn,
+  getBookingStatusColor,
+  getPaymentStatusColor,
   getRefundedCents,
-  getStatusColor,
   isPartiallyRefunded,
   totalTicketQuantity,
 } from "./types"
@@ -51,12 +53,18 @@ interface BookingsTableProps {
 
 const BOOKING_STATUSES = [
   "draft",
-  "pending_payment",
   "confirmed",
   "checked_in",
   "completed",
   "cancelled",
+] as const
+
+const PAYMENT_STATUSES = [
+  "pending_payment",
+  "paid",
+  "failed",
   "refunded",
+  "partially_refunded",
 ] as const
 
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
@@ -71,9 +79,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [boatId, setBoatId] = useState<string | undefined>(
     initialSearch.get("boatId") || undefined,
   )
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(
-    initialSearch.get("status") || undefined,
-  )
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<
+    string | undefined
+  >(initialSearch.get("bookingStatus") || undefined)
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<
+    string | undefined
+  >(initialSearch.get("paymentStatus") || undefined)
   const [searchParams, setSearchParams] = useState(initialSearch)
 
   const copyConfirmationCode = (e: React.MouseEvent, code: string) => {
@@ -118,7 +129,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       missionId,
       tripId,
       boatId,
-      statusFilter,
+      bookingStatusFilter,
+      paymentStatusFilter,
       sortBy,
       sortDirection,
     ],
@@ -129,7 +141,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         missionId: missionId || undefined,
         tripId: tripId || undefined,
         boatId: boatId || undefined,
-        status: statusFilter || undefined,
+        bookingStatus: bookingStatusFilter || undefined,
+        paymentStatus: paymentStatusFilter || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
       }),
@@ -198,7 +211,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     missionId?: string
     tripId?: string
     boatId?: string
-    status?: string
+    bookingStatus?: string
+    paymentStatus?: string
   }) => {
     const params = new URLSearchParams(window.location.search)
     if (updates.missionId !== undefined) {
@@ -213,9 +227,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       if (updates.boatId) params.set("boatId", updates.boatId)
       else params.delete("boatId")
     }
-    if (updates.status !== undefined) {
-      if (updates.status) params.set("status", updates.status)
-      else params.delete("status")
+    if (updates.bookingStatus !== undefined) {
+      if (updates.bookingStatus) params.set("bookingStatus", updates.bookingStatus)
+      else params.delete("bookingStatus")
+    }
+    if (updates.paymentStatus !== undefined) {
+      if (updates.paymentStatus) params.set("paymentStatus", updates.paymentStatus)
+      else params.delete("paymentStatus")
     }
     params.set("page", "1")
     window.history.replaceState(
@@ -246,9 +264,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     updateFiltersInUrl({ boatId: selectedBoatId })
   }
 
-  const handleStatusFilter = (selectedStatus?: string) => {
-    setStatusFilter(selectedStatus)
-    updateFiltersInUrl({ status: selectedStatus })
+  const handleBookingStatusFilter = (selected?: string) => {
+    setBookingStatusFilter(selected)
+    updateFiltersInUrl({ bookingStatus: selected })
+  }
+
+  const handlePaymentStatusFilter = (selected?: string) => {
+    setPaymentStatusFilter(selected)
+    updateFiltersInUrl({ paymentStatus: selected })
   }
 
   const handlePageChange = (newPage: number) => {
@@ -342,10 +365,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
-  const statusCollection = createListCollection({
+  const bookingStatusCollection = createListCollection({
     items: [
-      { label: "All Statuses", value: "" },
+      { label: "All booking statuses", value: "" },
       ...BOOKING_STATUSES.map((s) => ({
+        label: s.replace(/_/g, " "),
+        value: s,
+      })),
+    ],
+  })
+
+  const paymentStatusCollection = createListCollection({
+    items: [
+      { label: "All payment statuses", value: "" },
+      ...PAYMENT_STATUSES.map((s) => ({
         label: s.replace(/_/g, " "),
         value: s,
       })),
@@ -434,24 +467,26 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           </Select.Positioner>
         </Select.Root>
         <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Status:
+          Booking:
         </Text>
         <Select.Root
-          collection={statusCollection}
+          collection={bookingStatusCollection}
           size="xs"
-          width="160px"
+          width="140px"
           borderColor="white"
-          value={statusFilter ? [statusFilter] : [""]}
-          onValueChange={(e) => handleStatusFilter(e.value[0] || undefined)}
+          value={bookingStatusFilter ? [bookingStatusFilter] : [""]}
+          onValueChange={(e) =>
+            handleBookingStatusFilter(e.value[0] || undefined)
+          }
         >
           <Select.Control width="100%">
             <Select.Trigger>
-              <Select.ValueText placeholder="All Statuses" />
+              <Select.ValueText placeholder="All" />
             </Select.Trigger>
           </Select.Control>
           <Select.Positioner>
-            <Select.Content minWidth="180px">
-              {statusCollection.items.map((item) => (
+            <Select.Content minWidth="160px">
+              {bookingStatusCollection.items.map((item) => (
                 <Select.Item key={item.value} item={item}>
                   {item.label}
                 </Select.Item>
@@ -459,7 +494,39 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             </Select.Content>
           </Select.Positioner>
         </Select.Root>
-        {(missionId || tripId || boatId || statusFilter) && (
+        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+          Payment:
+        </Text>
+        <Select.Root
+          collection={paymentStatusCollection}
+          size="xs"
+          width="140px"
+          borderColor="white"
+          value={paymentStatusFilter ? [paymentStatusFilter] : [""]}
+          onValueChange={(e) =>
+            handlePaymentStatusFilter(e.value[0] || undefined)
+          }
+        >
+          <Select.Control width="100%">
+            <Select.Trigger>
+              <Select.ValueText placeholder="All" />
+            </Select.Trigger>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content minWidth="180px">
+              {paymentStatusCollection.items.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  {item.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+        {(missionId ||
+          tripId ||
+          boatId ||
+          bookingStatusFilter ||
+          paymentStatusFilter) && (
           <Button
             size="sm"
             variant="ghost"
@@ -467,12 +534,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               setMissionId(undefined)
               setTripId(undefined)
               setBoatId(undefined)
-              setStatusFilter(undefined)
+              setBookingStatusFilter(undefined)
+              setPaymentStatusFilter(undefined)
               updateFiltersInUrl({
                 missionId: undefined,
                 tripId: undefined,
                 boatId: undefined,
-                status: undefined,
+                bookingStatus: undefined,
+                paymentStatus: undefined,
               })
             }}
           >
@@ -489,8 +558,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="24"
-                maxW="28"
+                w="40"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("confirmation_code")}
@@ -501,42 +569,18 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="60"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("user_name")}
               >
                 <Flex align="center">
-                  Name
+                  Customer info
                   <SortIcon column="user_name" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("user_email")}
-                display={{ base: "none", md: "table-cell" }}
-              >
-                <Flex align="center">
-                  Email
-                  <SortIcon column="user_email" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("user_phone")}
-                display={{ base: "none", lg: "table-cell" }}
-              >
-                <Flex align="center">
-                  Phone
-                  <SortIcon column="user_phone" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
+                w="60"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -548,14 +592,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="80"
                 fontWeight="bold"
                 cursor="pointer"
-                onClick={() => handleSort("status")}
+                onClick={() => handleSort("booking_status")}
               >
                 <Flex align="center">
                   Status
-                  <SortIcon column="status" />
+                  <SortIcon column="booking_status" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -618,22 +662,55 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </IconButton>
                   </Flex>
                 </Table.Cell>
-                <Table.Cell>{booking.user_name}</Table.Cell>
-                <Table.Cell display={{ base: "none", md: "table-cell" }} truncate maxW="sm">
-                  {booking.user_email}
-                </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }} truncate maxW="sm">
-                  {booking.user_phone}
+                <Table.Cell minW="60">
+                  <VStack align="stretch" gap={0}>
+                    <Text fontSize="md">{booking.user_name}</Text>
+                    <HStack>
+                      <Icon as={FiMail} boxSize={3} color="text.muted" />
+                      <Text fontSize="xs" color="text.muted" title={booking.user_email}>
+                        {booking.user_email}
+                      </Text>
+                    </HStack>
+                    <HStack>
+                      <Icon as={FiPhone} boxSize={3} color="text.muted" />
+                      <Text fontSize="xs" color="text.muted" title={booking.user_phone}>
+                        {booking.user_phone}
+                      </Text>
+                    </HStack>
+                  </VStack>
                 </Table.Cell>
                 <Table.Cell display={{ base: "none", lg: "table-cell" }}>
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
                 <Table.Cell>
                   <VStack align="start" gap={0}>
-                    <Badge colorPalette={getStatusColor(booking.status || "")}>
-                      {booking.status?.replace("_", " ").toUpperCase() ||
-                        "UNKNOWN"}
-                    </Badge>
+                    <Text fontSize="xs" color="text.muted">
+                      Booking:{" "}
+                      <Badge
+                        size="sm"
+                        colorPalette={getBookingStatusColor(
+                          booking.booking_status || "",
+                        )}
+                      >
+                        {(booking.booking_status || "").replace("_", " ").toUpperCase() ||
+                          "UNKNOWN"}
+                      </Badge>
+                    </Text>
+                    {booking.payment_status && (
+                      <Text fontSize="xs" color="text.muted">
+                        Payment:{" "}
+                        <Badge
+                          size="sm"
+                          colorPalette={getPaymentStatusColor(
+                            booking.payment_status,
+                          )}
+                        >
+                          {(booking.payment_status || "")
+                            .replace("_", " ")
+                            .toUpperCase()}
+                        </Badge>
+                      </Text>
+                    )}
                     {isPartiallyRefunded(booking) && (
                       <Text fontSize="xs" color="text.muted">
                         Refunded ${formatCents(getRefundedCents(booking))}
@@ -672,7 +749,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 <Table.Cell onClick={(e) => e.stopPropagation()}>
                   <BookingActionsMenu
                     booking={booking}
-                    editDisabled={booking.status === "checked_in"}
+                    editDisabled={booking.booking_status === "checked_in"}
                   />
                 </Table.Cell>
               </Table.Row>

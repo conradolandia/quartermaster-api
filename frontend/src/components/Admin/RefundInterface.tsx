@@ -177,10 +177,10 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
   const canRefund =
     currentBooking &&
     ["confirmed", "checked_in", "completed"].includes(
-      currentBooking.status || "unknown",
+      currentBooking.booking_status || "unknown",
     ) &&
     getRefundedCents(currentBooking) < currentBooking.total_amount
-  const isRefunded = currentBooking?.status === "refunded"
+  const isRefunded = currentBooking?.payment_status === "refunded"
   const partiallyRefunded = currentBooking && isPartiallyRefunded(currentBooking)
   const remainingRefundable = currentBooking
     ? currentBooking.total_amount - getRefundedCents(currentBooking)
@@ -228,10 +228,10 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   <Heading size="md">Booking Details</Heading>
                   <Badge
                     colorPalette={getStatusColor(
-                      currentBooking.status || "unknown",
+                      currentBooking.booking_status || "unknown",
                     )}
                   >
-                    {(currentBooking.status || "unknown")
+                    {(currentBooking.booking_status || "unknown")
                       .replace("_", " ")
                       .toUpperCase()}
                   </Badge>
@@ -471,7 +471,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   <Text color="text.muted" textAlign="center">
                     Only bookings with status "confirmed", "checked_in", or
                     "completed" can be refunded. Current status:{" "}
-                    {(currentBooking.status || "unknown")
+                    {(currentBooking.booking_status || "unknown")
                       .replace("_", " ")
                       .toUpperCase()}
                   </Text>

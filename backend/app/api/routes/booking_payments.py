@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.stripe import create_payment_intent, retrieve_payment_intent
-from app.models import Booking, BookingStatus
+from app.models import Booking, BookingStatus, PaymentStatus
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -43,10 +43,10 @@ def initialize_payment(
             )
 
         # Check if booking is in draft status
-        if booking.status != BookingStatus.draft:
+        if booking.booking_status != BookingStatus.draft:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot initialize payment for booking with status '{booking.status}'",
+                detail=f"Cannot initialize payment for booking with booking status '{booking.booking_status}'",
             )
 
         # Check if PaymentIntent already exists
@@ -62,9 +62,9 @@ def initialize_payment(
         # Create PaymentIntent
         payment_intent = create_payment_intent(total_amount_cents)
 
-        # Update booking with PaymentIntent ID and status
+        # Update booking with PaymentIntent ID and payment status (booking_status stays draft)
         booking.payment_intent_id = payment_intent.id
-        booking.status = BookingStatus.pending_payment
+        booking.payment_status = PaymentStatus.pending_payment
 
         session.add(booking)
         session.commit()
@@ -109,10 +109,13 @@ def resume_payment(
                 detail="Booking not found",
             )
 
-        if booking.status != BookingStatus.pending_payment:
+        if (
+            booking.booking_status != BookingStatus.draft
+            or booking.payment_status != PaymentStatus.pending_payment
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot resume payment for booking with status '{booking.status}'",
+                detail=f"Cannot resume payment for booking with booking_status '{booking.booking_status}' and payment_status '{booking.payment_status}'",
             )
 
         if not booking.payment_intent_id:

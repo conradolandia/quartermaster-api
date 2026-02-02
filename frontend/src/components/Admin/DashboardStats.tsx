@@ -47,18 +47,30 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
     totalBookings: bookings.length,
     totalRevenue: bookings
       .filter((booking) =>
-        ["confirmed", "checked_in", "completed"].includes(booking.status || ""),
+        ["confirmed", "checked_in", "completed"].includes(
+          booking.booking_status || "",
+        ),
       )
       .reduce((sum, booking) => sum + booking.total_amount, 0),
     grossRevenue: bookings.reduce(
       (sum, booking) => sum + booking.total_amount,
       0,
     ),
-    confirmedBookings: bookings.filter((b) => b.status === "confirmed").length,
-    checkedInBookings: bookings.filter((b) => b.status === "checked_in").length,
-    completedBookings: bookings.filter((b) => b.status === "completed").length,
-    cancelledBookings: bookings.filter((b) => b.status === "cancelled").length,
-    refundedBookings: bookings.filter((b) => b.status === "refunded").length,
+    confirmedBookings: bookings.filter(
+      (b) => b.booking_status === "confirmed",
+    ).length,
+    checkedInBookings: bookings.filter(
+      (b) => b.booking_status === "checked_in",
+    ).length,
+    completedBookings: bookings.filter(
+      (b) => b.booking_status === "completed",
+    ).length,
+    cancelledBookings: bookings.filter(
+      (b) => b.booking_status === "cancelled",
+    ).length,
+    refundedBookings: bookings.filter(
+      (b) => b.payment_status === "refunded",
+    ).length,
     totalPassengers: bookings.reduce((sum, booking) => {
       return (
         sum +
@@ -385,10 +397,10 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                     <VStack align="end" gap={1}>
                       <Badge
                         colorPalette={getStatusColor(
-                          booking.status || "unknown",
+                          booking.booking_status || "unknown",
                         )}
                       >
-                        {(booking.status || "unknown")
+                        {(booking.booking_status || "unknown")
                           .replace("_", " ")
                           .toUpperCase()}
                       </Badge>
@@ -417,8 +429,8 @@ const getStatusColor = (status: string) => {
       return "purple"
     case "cancelled":
       return "red"
-    case "refunded":
-      return "orange"
+    case "draft":
+      return "gray"
     default:
       return "gray"
   }

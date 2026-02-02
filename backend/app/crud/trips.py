@@ -104,7 +104,7 @@ def get_trips_with_stats(
             .select_from(Booking)
             .join(BookingItem, Booking.id == BookingItem.booking_id)
             .where(BookingItem.trip_id == trip_id)
-            .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
+            .where(Booking.booking_status.in_(["confirmed", "checked_in", "completed"]))
         )
         total_bookings = session.exec(bookings_statement).first() or 0
         # Sum total sales for this trip (cents)
@@ -113,7 +113,7 @@ def get_trips_with_stats(
             .select_from(Booking)
             .join(BookingItem, Booking.id == BookingItem.booking_id)
             .where(BookingItem.trip_id == trip_id)
-            .where(Booking.status.in_(["confirmed", "checked_in", "completed"]))
+            .where(Booking.booking_status.in_(["confirmed", "checked_in", "completed"]))
         )
         total_sales = session.exec(sales_statement).first() or 0
 

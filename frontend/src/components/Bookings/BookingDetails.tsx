@@ -44,8 +44,9 @@ import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import {
   formatDate,
+  getBookingStatusColor,
+  getPaymentStatusColor,
   getRefundedCents,
-  getStatusColor,
   isPartiallyRefunded,
 } from "./types"
 
@@ -278,7 +279,11 @@ export default function BookingDetails({
               Back to Bookings
             </Flex>
           </Button>
-          {booking.status !== "refunded" &&
+          {booking.booking_status &&
+            ["confirmed", "checked_in", "completed"].includes(
+              booking.booking_status,
+            ) &&
+            booking.payment_status !== "refunded" &&
             getRefundedCents(booking) < booking.total_amount && (
               <Button
                 size="sm"
@@ -300,12 +305,12 @@ export default function BookingDetails({
             disabled={
               emailSending ||
               !["confirmed", "checked_in", "completed"].includes(
-                booking?.status ?? "",
+                booking?.booking_status ?? "",
               )
             }
             title={
               !["confirmed", "checked_in", "completed"].includes(
-                booking?.status ?? "",
+                booking?.booking_status ?? "",
               )
                 ? "Resend email is only available for confirmed, checked-in, or completed bookings"
                 : undefined
@@ -316,7 +321,7 @@ export default function BookingDetails({
               Resend Email
             </Flex>
           </Button>
-          {booking.status !== "checked_in" && (
+          {booking.booking_status !== "checked_in" && (
             <Button
               size="sm"
               variant="ghost"
@@ -328,7 +333,7 @@ export default function BookingDetails({
               </Flex>
             </Button>
           )}
-          {booking.status === "confirmed" && (
+          {booking.booking_status === "confirmed" && (
             <Button
               size="sm"
               colorPalette="green"
@@ -341,7 +346,7 @@ export default function BookingDetails({
               </Flex>
             </Button>
           )}
-          {booking.status === "checked_in" && (
+          {booking.booking_status === "checked_in" && (
             <Button
               size="sm"
               variant="outline"
@@ -362,7 +367,7 @@ export default function BookingDetails({
             editModalOpen={editModalOpen}
             onEditModalOpenChange={setEditModalOpen}
             onOpenRawData={() => setJsonDialogOpen(true)}
-            editDisabled={booking.status === "checked_in"}
+            editDisabled={booking.booking_status === "checked_in"}
           />
         </Flex>
       </Flex>
@@ -591,15 +596,35 @@ export default function BookingDetails({
                 )}
                 <Box flex="1">
                   <Flex gap={4} mb={2} alignItems="baseline" flexWrap="wrap">
-                    <Text fontWeight="bold">Status:</Text>
-                    <Badge colorPalette={getStatusColor(booking.status || "")}>
-                      {booking.status?.replace("_", " ").toUpperCase() ||
-                        "UNKNOWN"}
+                    <Text fontWeight="bold">Booking:</Text>
+                    <Badge
+                      colorPalette={getBookingStatusColor(
+                        booking.booking_status || "",
+                      )}
+                    >
+                      {(booking.booking_status || "")
+                        .replace("_", " ")
+                        .toUpperCase() || "UNKNOWN"}
                     </Badge>
-                    {(booking.status === "refunded" ||
+                    {booking.payment_status && (
+                      <>
+                        <Text fontWeight="bold">Payment:</Text>
+                        <Badge
+                          colorPalette={getPaymentStatusColor(
+                            booking.payment_status,
+                          )}
+                        >
+                          {(booking.payment_status || "")
+                            .replace("_", " ")
+                            .toUpperCase()}
+                        </Badge>
+                      </>
+                    )}
+                    {(booking.payment_status === "refunded" ||
+                      booking.payment_status === "partially_refunded" ||
                       getRefundedCents(booking) > 0) && (
                       <Badge colorPalette="red" textTransform="uppercase">
-                        {booking.status === "refunded" ||
+                        {booking.payment_status === "refunded" ||
                         getRefundedCents(booking) >= (booking.total_amount ?? 0)
                           ? "Fully refunded"
                           : "Partially refunded"}
@@ -618,7 +643,8 @@ export default function BookingDetails({
                   )}
                   {(() => {
                     const hasRefund =
-                      booking.status === "refunded" ||
+                      booking.payment_status === "refunded" ||
+                      booking.payment_status === "partially_refunded" ||
                       getRefundedCents(booking) > 0
                     if (!hasRefund) return null
                     // Prefer booking-level reason/notes (set on every refund); fall back to first item

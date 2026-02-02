@@ -173,11 +173,11 @@ const BookingLookup = () => {
                 <Heading size="md">Booking Details</Heading>
                 <Badge
                   colorPalette={getStatusColor(
-                    currentBooking.status || "unknown",
+                    currentBooking.booking_status || "unknown",
                   )}
                   size="lg"
                 >
-                  {(currentBooking.status || "unknown")
+                  {(currentBooking.booking_status || "unknown")
                     .replace("_", " ")
                     .toUpperCase()}
                 </Badge>
@@ -307,7 +307,7 @@ const BookingLookup = () => {
                 <Button variant="outline" onClick={handleReset}>
                   Look Up Another Booking
                 </Button>
-                {currentBooking.status === "confirmed" && (
+                {currentBooking.booking_status === "confirmed" && (
                   <Button
                     colorPalette="blue"
                     onClick={() => {

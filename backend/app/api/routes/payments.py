@@ -9,7 +9,13 @@ from app.core.stripe import (
     create_payment_intent,
     retrieve_payment_intent,
 )
-from app.models import Booking, BookingStatus, Mission, Trip
+from app.models import (
+    Booking,
+    BookingStatus,
+    Mission,
+    PaymentStatus,
+    Trip,
+)
 from app.utils import generate_booking_confirmation_email, send_email
 
 from .booking_utils import build_experience_display_dict, generate_qr_code
@@ -161,17 +167,18 @@ def verify_payment(
         payment_intent_id,
         payment_intent.status,
         booking.confirmation_code,
-        booking.status,
+        booking.booking_status,
     )
     if payment_intent.status == "succeeded":
         # Check if booking is already confirmed to prevent duplicate processing
-        if booking.status == BookingStatus.confirmed:
+        if booking.booking_status == BookingStatus.confirmed:
             logger.info(
                 f"Booking {booking.confirmation_code} already confirmed, skipping duplicate processing"
             )
             return {"status": "succeeded", "booking_status": "confirmed"}
 
-        booking.status = BookingStatus.confirmed
+        booking.booking_status = BookingStatus.confirmed
+        booking.payment_status = PaymentStatus.paid
         session.add(booking)
         session.commit()
         session.refresh(booking)
@@ -192,13 +199,14 @@ def verify_payment(
         return {"status": "requires_capture"}
     elif payment_intent.status == "canceled":
         # Check if booking is already cancelled to prevent duplicate processing
-        if booking.status == BookingStatus.cancelled:
+        if booking.booking_status == BookingStatus.cancelled:
             logger.info(
                 f"Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
             )
             return {"status": "canceled", "booking_status": "cancelled"}
 
-        booking.status = BookingStatus.cancelled
+        booking.booking_status = BookingStatus.cancelled
+        booking.payment_status = PaymentStatus.failed
         session.add(booking)
         session.commit()
         return {"status": "canceled", "booking_status": "cancelled"}
@@ -265,14 +273,15 @@ async def stripe_webhook(
 
         if booking:
             # Check if booking is already confirmed to prevent duplicate processing
-            if booking.status == BookingStatus.confirmed:
+            if booking.booking_status == BookingStatus.confirmed:
                 logger.info(
                     "Webhook: Booking %s already confirmed, skipping duplicate processing",
                     booking.confirmation_code,
                 )
                 return {"status": "success"}
 
-            booking.status = BookingStatus.confirmed
+            booking.booking_status = BookingStatus.confirmed
+            booking.payment_status = PaymentStatus.paid
             session.add(booking)
             session.commit()
             session.refresh(booking)
@@ -298,13 +307,14 @@ async def stripe_webhook(
 
         if booking:
             # Check if booking is already cancelled to prevent duplicate processing
-            if booking.status == BookingStatus.cancelled:
+            if booking.booking_status == BookingStatus.cancelled:
                 logger.info(
                     f"Webhook: Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
                 )
                 return {"status": "success"}
 
-            booking.status = BookingStatus.cancelled
+            booking.booking_status = BookingStatus.cancelled
+            booking.payment_status = PaymentStatus.failed
             session.add(booking)
             session.commit()
 

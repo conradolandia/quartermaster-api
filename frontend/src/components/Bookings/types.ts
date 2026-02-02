@@ -15,7 +15,7 @@ export type SortableColumn =
   | "user_name"
   | "user_email"
   | "user_phone"
-  | "status"
+  | "booking_status"
   | "total_amount"
   | "created_at"
   | "mission_name"
@@ -33,7 +33,7 @@ export const bookingsSearchSchema = z.object({
       "user_name",
       "user_email",
       "user_phone",
-      "status",
+      "booking_status",
       "total_amount",
       "created_at",
       "mission_name",
@@ -50,27 +50,61 @@ export function isPartiallyRefunded(
   booking: BookingPublic | undefined,
 ): boolean {
   if (!booking) return false
-  return booking.status !== "refunded" && getRefundedCents(booking) > 0
+  return (
+    booking.payment_status === "partially_refunded" ||
+    (booking.payment_status !== "refunded" && getRefundedCents(booking) > 0)
+  )
 }
 
-// Helper function to get status color
-export const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
+// Booking status (lifecycle) colors
+export const getBookingStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
     case "confirmed":
       return "green"
-    case "pending_payment":
-      return "yellow"
-    case "cancelled":
-      return "red"
-    case "refunded":
-      return "gray"
     case "checked_in":
       return "blue"
     case "completed":
       return "purple"
+    case "cancelled":
+      return "red"
+    case "draft":
+      return "gray"
     default:
       return "gray"
   }
+}
+
+// Payment status colors
+export const getPaymentStatusColor = (status: string | null | undefined) => {
+  if (!status) return "gray"
+  switch (status.toLowerCase()) {
+    case "paid":
+      return "green"
+    case "pending_payment":
+      return "yellow"
+    case "failed":
+      return "red"
+    case "refunded":
+    case "partially_refunded":
+      return "gray"
+    default:
+      return "gray"
+  }
+}
+
+/** @deprecated Use getBookingStatusColor or getPaymentStatusColor. Maps legacy single status. */
+export const getStatusColor = (status: string) => {
+  const paymentOnly = [
+    "pending_payment",
+    "paid",
+    "failed",
+    "refunded",
+    "partially_refunded",
+  ]
+  if (paymentOnly.includes(status?.toLowerCase())) {
+    return getPaymentStatusColor(status)
+  }
+  return getBookingStatusColor(status)
 }
 
 // Helper function to format dates

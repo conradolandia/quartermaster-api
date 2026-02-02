@@ -120,7 +120,7 @@ def get_paid_ticket_count_per_boat_for_trip(
         .where(BookingItem.trip_id == trip_id)
         .where(BookingItem.trip_merchandise_id.is_(None))
         .where(BookingItem.status == BookingItemStatus.active)
-        .where(Booking.status.in_(paid_statuses))
+        .where(Booking.booking_status.in_(paid_statuses))
         .group_by(BookingItem.boat_id)
     ).all()
     return {boat_id: int(total) for boat_id, total in rows}
@@ -152,7 +152,7 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
         .where(BookingItem.trip_id == trip_id)
         .where(BookingItem.trip_merchandise_id.is_(None))
         .where(BookingItem.status == BookingItemStatus.active)
-        .where(Booking.status.in_(paid_statuses))
+        .where(Booking.booking_status.in_(paid_statuses))
         .group_by(BookingItem.boat_id, BookingItem.item_type)
     ).all()
     return {(boat_id, item_type): int(total) for boat_id, item_type, total in rows}

@@ -26,6 +26,7 @@ from app.models import (
     Merchandise,
     MerchandiseVariation,
     Mission,
+    PaymentStatus,
     Trip,
     TripBoat,
     TripMerchandise,
@@ -373,18 +374,8 @@ def _create_booking_impl(
             detail="Confirmation code already exists. Please try again.",
         )
 
-    # Determine booking status
-    # If superuser and status is provided, use it (for admin bookings marked as paid)
-    # Otherwise, start as draft
-    initial_status = BookingStatus.draft
-    if current_user and current_user.is_superuser:
-        # Check if status was provided in booking_in (via model field if added)
-        # For now, we'll default to draft but allow update after creation
-        # Status can be set via update endpoint after creation
-        pass
-
     # Create booking as draft (no PaymentIntent yet)
-    # Superusers can update status to "confirmed" after creation via update endpoint
+    # Superusers can update booking_status to confirmed after creation via update endpoint
     booking = Booking(
         confirmation_code=confirmation_code,
         user_name=booking_in.user_name,
@@ -398,7 +389,8 @@ def _create_booking_impl(
         total_amount=booking_in.total_amount,
         payment_intent_id=None,  # No PaymentIntent yet
         special_requests=booking_in.special_requests,
-        status=initial_status,  # Start as draft (can be updated to confirmed for admin)
+        booking_status=BookingStatus.draft,
+        payment_status=None,
         launch_updates_pref=booking_in.launch_updates_pref,
         discount_code_id=booking_in.discount_code_id,
     )
@@ -575,13 +567,14 @@ def list_bookings(
     mission_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
     boat_id: uuid.UUID | None = None,
-    status: str | None = None,
+    booking_status: str | None = None,
+    payment_status: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, trip_id, boat_id, or status.
+    Optionally filter by mission_id, trip_id, boat_id, booking_status, or payment_status.
     """
     try:
         # Parameter validation
@@ -627,10 +620,13 @@ def list_bookings(
             if boat_id:
                 logger.info(f"Filtering bookings by boat_id: {boat_id}")
 
-        # Apply status filter if provided
-        if status:
-            base_query = base_query.where(Booking.status == status)
-            logger.info(f"Filtering bookings by status: {status}")
+        # Apply booking_status and payment_status filters if provided
+        if booking_status:
+            base_query = base_query.where(Booking.booking_status == booking_status)
+            logger.info(f"Filtering bookings by booking_status: {booking_status}")
+        if payment_status:
+            base_query = base_query.where(Booking.payment_status == payment_status)
+            logger.info(f"Filtering bookings by payment_status: {payment_status}")
 
         # Get total count first
         total_count = 0
@@ -648,10 +644,17 @@ def list_bookings(
                     count_query = count_query.where(BookingItem.trip_id == trip_id)
                 if boat_id:
                     count_query = count_query.where(BookingItem.boat_id == boat_id)
-            if status:
+            if booking_status or payment_status:
                 if not (mission_id or trip_id or boat_id):
                     count_query = count_query.select_from(Booking)
-                count_query = count_query.where(Booking.status == status)
+            if booking_status:
+                count_query = count_query.where(
+                    Booking.booking_status == booking_status
+                )
+            if payment_status:
+                count_query = count_query.where(
+                    Booking.payment_status == payment_status
+                )
             total_count = session.exec(count_query).first()
             logger.info(f"Total bookings count: {total_count}")
         except Exception as e:
@@ -876,7 +879,7 @@ def update_booking(
                 detail=f"Booking with ID {booking_id} not found",
             )
 
-        if booking.status == BookingStatus.checked_in:
+        if booking.booking_status == BookingStatus.checked_in:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot update a checked-in booking",
@@ -907,13 +910,18 @@ def update_booking(
                 detail=f"Cannot update these fields via PATCH: {', '.join(invalid_fields)}",
             )
 
-        # Process item quantity updates (allowed for all statuses except checked_in, which is rejected above)
+        # Process item quantity updates (allowed for draft only; checked_in rejected above)
         # Use booking_in (Pydantic model) so we get objects; pop from update_data so it is not applied as a booking field
         item_quantity_updates: list[BookingItemQuantityUpdate] | None = getattr(
             booking_in, "item_quantity_updates", None
         )
         update_data.pop("item_quantity_updates", None)
         if item_quantity_updates:
+            if booking.booking_status != BookingStatus.draft:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Item quantities can only be updated for draft bookings",
+                )
             items = session.exec(
                 select(BookingItem).where(BookingItem.booking_id == booking.id)
             ).all()
@@ -1007,37 +1015,45 @@ def update_booking(
                     update_data["tax_amount"] = new_tax
                     update_data["total_amount"] = new_total
 
-        # Validate status transitions
-        status_changed = False
-        new_status = None
-        old_status = booking.status
+        # Validate booking_status and payment_status transitions
+        booking_status_changed = False
+        new_booking_status = None
+        old_booking_status = booking.booking_status
 
-        if "status" in update_data:
-            new_status = update_data["status"]
-            if new_status != old_status:
-                status_changed = True
-                # Define valid status transitions (only check when status actually changes)
+        if "booking_status" in update_data:
+            new_booking_status = update_data["booking_status"]
+            if new_booking_status != old_booking_status:
+                booking_status_changed = True
                 valid_transitions = {
-                    "draft": [
-                        "confirmed",
-                        "cancelled",
-                    ],  # Allow draft -> confirmed for admin bookings
-                    "pending_payment": ["confirmed", "cancelled", "completed"],
-                    "confirmed": ["checked_in", "cancelled", "refunded"],
-                    "checked_in": ["completed", "refunded"],
-                    "completed": ["refunded"],
-                    "cancelled": [],  # Terminal state
-                    "refunded": [],  # Terminal state
+                    BookingStatus.draft: [
+                        BookingStatus.confirmed,
+                        BookingStatus.cancelled,
+                    ],
+                    BookingStatus.confirmed: [
+                        BookingStatus.checked_in,
+                        BookingStatus.cancelled,
+                    ],
+                    BookingStatus.checked_in: [
+                        BookingStatus.completed,
+                        BookingStatus.cancelled,
+                    ],
+                    BookingStatus.completed: [BookingStatus.cancelled],
+                    BookingStatus.cancelled: [],
                 }
-                if new_status not in valid_transitions.get(old_status, []):
+                allowed_next = valid_transitions.get(old_booking_status, [])
+                if new_booking_status not in allowed_next:
                     logger.warning(
-                        f"Invalid status transition for booking {booking_id}: "
-                        f"{old_status} -> {new_status}"
+                        f"Invalid booking_status transition for booking {booking_id}: "
+                        f"{old_booking_status} -> {new_booking_status}"
                     )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Cannot transition from '{old_status}' to '{new_status}'",
+                        detail=f"Cannot transition from '{old_booking_status}' to '{new_booking_status}'",
                     )
+                # Sync payment_status when admin sets cancelled
+                if new_booking_status == BookingStatus.cancelled:
+                    if "payment_status" not in update_data:
+                        update_data["payment_status"] = PaymentStatus.failed
 
         # Tip must be non-negative
         if "tip_amount" in update_data and update_data["tip_amount"] is not None:
@@ -1050,10 +1066,13 @@ def update_booking(
                     detail="Tip amount cannot be negative",
                 )
 
-        # If status is being updated to cancelled or refunded, update BookingItems
-        if "status" in update_data:
-            new_status = update_data["status"]
-            if new_status in ("cancelled", "refunded"):
+        # If booking_status is being updated to cancelled, update BookingItems (refunded vs active)
+        if "booking_status" in update_data:
+            new_booking_status = update_data["booking_status"]
+            new_payment_status = (
+                update_data.get("payment_status") or booking.payment_status
+            )
+            if new_booking_status == BookingStatus.cancelled:
                 try:
                     items = session.exec(
                         select(BookingItem).where(BookingItem.booking_id == booking.id)
@@ -1066,7 +1085,13 @@ def update_booking(
 
                     for item in items:
                         item.status = (
-                            "refunded" if new_status == "refunded" else "active"
+                            BookingItemStatus.refunded
+                            if new_payment_status
+                            in (
+                                PaymentStatus.refunded,
+                                PaymentStatus.partially_refunded,
+                            )
+                            else BookingItemStatus.active
                         )
                         session.add(item)
                 except Exception as e:
@@ -1080,7 +1105,8 @@ def update_booking(
 
         # Only update allowed fields
         allowed_fields = {
-            "status",
+            "booking_status",
+            "payment_status",
             "special_requests",
             "tip_amount",
             "discount_amount",
@@ -1114,37 +1140,22 @@ def update_booking(
             session.refresh(booking)
             logger.info(f"Successfully updated booking {booking_id}")
 
-            # Send email notifications if status changed to cancelled or refunded
+            # Send email notifications if booking_status changed to cancelled
             if (
-                status_changed
+                booking_status_changed
                 and settings.emails_enabled
-                and new_status in ("cancelled", "refunded")
+                and new_booking_status == BookingStatus.cancelled
             ):
                 try:
                     # Get mission name
                     mission = session.get(Mission, booking.mission_id)
                     mission_name = mission.name if mission else "Unknown Mission"
+                    is_refund = booking.payment_status in (
+                        PaymentStatus.refunded,
+                        PaymentStatus.partially_refunded,
+                    )
 
-                    if new_status == "cancelled":
-                        # Send cancellation email
-                        email_data = generate_booking_cancelled_email(
-                            email_to=booking.user_email,
-                            user_name=booking.user_name,
-                            confirmation_code=booking.confirmation_code,
-                            mission_name=mission_name,
-                        )
-
-                        send_email(
-                            email_to=booking.user_email,
-                            subject=email_data.subject,
-                            html_content=email_data.html_content,
-                        )
-
-                        logger.info(
-                            f"Booking cancellation email sent to {booking.user_email}"
-                        )
-
-                    elif new_status == "refunded":
+                    if is_refund:
                         # Send refund confirmation email
                         email_data = generate_booking_refunded_email(
                             email_to=booking.user_email,
@@ -1163,6 +1174,24 @@ def update_booking(
 
                         logger.info(
                             f"Booking refund email sent to {booking.user_email}"
+                        )
+                    else:
+                        # Send cancellation email (e.g. failed payment)
+                        email_data = generate_booking_cancelled_email(
+                            email_to=booking.user_email,
+                            user_name=booking.user_name,
+                            confirmation_code=booking.confirmation_code,
+                            mission_name=mission_name,
+                        )
+
+                        send_email(
+                            email_to=booking.user_email,
+                            subject=email_data.subject,
+                            html_content=email_data.html_content,
+                        )
+
+                        logger.info(
+                            f"Booking cancellation email sent to {booking.user_email}"
                         )
 
                 except Exception as e:
@@ -1249,13 +1278,16 @@ def check_in_booking(
             )
 
         # Validate booking status
-        if booking.status not in [BookingStatus.confirmed, BookingStatus.checked_in]:
+        if booking.booking_status not in [
+            BookingStatus.confirmed,
+            BookingStatus.checked_in,
+        ]:
             logger.warning(
-                f"Invalid booking status for check-in: {booking.status} (confirmation: {confirmation_code})"
+                f"Invalid booking status for check-in: {booking.booking_status} (confirmation: {confirmation_code})"
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot check in booking with status '{booking.status}'. Booking must be 'confirmed'.",
+                detail=f"Cannot check in booking with status '{booking.booking_status}'. Booking must be 'confirmed'.",
             )
 
         # If trip_id and boat_id are provided, validate against booking items
@@ -1280,7 +1312,7 @@ def check_in_booking(
                 )
 
         # Update booking status to checked_in
-        booking.status = BookingStatus.checked_in
+        booking.booking_status = BookingStatus.checked_in
         session.add(booking)
 
         # Update all booking items to fulfilled status and variation quantity_fulfilled
@@ -1356,13 +1388,13 @@ def revert_check_in(
                 detail="Booking not found with the provided confirmation code",
             )
 
-        if booking.status != BookingStatus.checked_in:
+        if booking.booking_status != BookingStatus.checked_in:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot revert check-in: booking status is '{booking.status}', not 'checked_in'.",
+                detail=f"Cannot revert check-in: booking status is '{booking.booking_status}', not 'checked_in'.",
             )
 
-        booking.status = BookingStatus.confirmed
+        booking.booking_status = BookingStatus.confirmed
         session.add(booking)
 
         items = session.exec(
@@ -1435,7 +1467,7 @@ def resend_booking_confirmation_email(
         )
 
         # Only send emails for confirmed bookings
-        if booking.status not in [
+        if booking.booking_status not in [
             BookingStatus.confirmed,
             BookingStatus.checked_in,
             BookingStatus.completed,
@@ -1536,18 +1568,18 @@ def process_refund(
                 detail="Booking not found with the provided confirmation code",
             )
 
-        # Validate booking status (refunded = terminal; partial refunds keep confirmed/checked_in/completed)
-        if booking.status not in [
+        # Validate booking status (cancelled/refunded = terminal; allow confirmed/checked_in/completed)
+        if booking.booking_status not in [
             BookingStatus.confirmed,
             BookingStatus.checked_in,
             BookingStatus.completed,
         ]:
             logger.warning(
-                f"Invalid booking status for refund: {booking.status} (confirmation: {confirmation_code})"
+                f"Invalid booking status for refund: {booking.booking_status} (confirmation: {confirmation_code})"
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot refund booking with status '{booking.status}'. Booking must be 'confirmed', 'checked_in', or 'completed'.",
+                detail=f"Cannot refund booking with status '{booking.booking_status}'. Booking must be 'confirmed', 'checked_in', or 'completed'.",
             )
 
         refunded_so_far = getattr(booking, "refunded_amount_cents", 0) or 0
@@ -1621,7 +1653,8 @@ def process_refund(
             session.add(item)
 
         if booking.refunded_amount_cents >= booking.total_amount:
-            booking.status = BookingStatus.refunded
+            booking.booking_status = BookingStatus.cancelled
+            booking.payment_status = PaymentStatus.refunded
             for item in items:
                 was_fulfilled = item.status == BookingItemStatus.fulfilled
                 item.status = BookingItemStatus.refunded
@@ -1640,6 +1673,10 @@ def process_refund(
                                 0, variation.quantity_fulfilled
                             )
                         session.add(variation)
+        else:
+            # Partial refund: booking becomes cancelled, payment partially_refunded
+            booking.booking_status = BookingStatus.cancelled
+            booking.payment_status = PaymentStatus.partially_refunded
 
         # Commit all changes
         session.commit()
@@ -1726,7 +1763,7 @@ def export_bookings_csv(
     Supports filtering by mission_id, trip_id, boat_id, and booking_status.
     Supports field selection via the fields parameter (comma-separated list of field names).
     Available fields: confirmation_code, customer_name, email, phone, billing_address,
-    status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
+    booking_status, payment_status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
     trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
     ticket_types_total); swag (or swag_description, swag_total).
 
@@ -1763,7 +1800,7 @@ def export_bookings_csv(
                     pass
 
         if booking_status:
-            conditions.append(Booking.status == booking_status)
+            conditions.append(Booking.booking_status == booking_status)
 
         # Apply all conditions
         if conditions:
@@ -2028,7 +2065,8 @@ def export_bookings_csv(
                 "email": booking.user_email,
                 "phone": booking.user_phone,
                 "billing_address": booking.billing_address,
-                "status": booking.status,
+                "booking_status": booking.booking_status,
+                "payment_status": booking.payment_status,
                 "total_amount": round(booking.total_amount / 100, 2),
                 "subtotal": round(booking.subtotal / 100, 2),
                 "discount_amount": round(booking.discount_amount / 100, 2),

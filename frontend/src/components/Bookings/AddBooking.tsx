@@ -380,7 +380,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       if (data.markAsPaid && booking.id) {
         await BookingsService.updateBooking({
           bookingId: booking.id,
-          requestBody: { status: "confirmed" },
+          requestBody: { booking_status: "confirmed" },
         })
       }
 

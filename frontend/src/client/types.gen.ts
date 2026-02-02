@@ -199,7 +199,8 @@ export type BookingPublic = {
   refund_notes?: string | null
   payment_intent_id?: string | null
   special_requests?: string | null
-  status?: BookingStatus
+  payment_status?: PaymentStatus | null
+  booking_status?: BookingStatus
   launch_updates_pref?: boolean
   discount_code_id?: string | null
   id: string
@@ -221,21 +222,23 @@ export type BookingsPaginatedResponse = {
   total_pages: number
 }
 
+/**
+ * Booking lifecycle: draft, confirmed, checked_in, completed, cancelled.
+ */
 export type BookingStatus =
   | "draft"
-  | "pending_payment"
   | "confirmed"
   | "checked_in"
   | "completed"
   | "cancelled"
-  | "refunded"
 
 export type BookingUpdate = {
   user_name?: string | null
   user_email?: string | null
   user_phone?: string | null
   billing_address?: string | null
-  status?: BookingStatus | null
+  booking_status?: BookingStatus | null
+  payment_status?: PaymentStatus | null
   special_requests?: string | null
   tip_amount?: number | null
   discount_amount?: number | null
@@ -536,6 +539,13 @@ export type NewPassword = {
   token: string
   new_password: string
 }
+
+export type PaymentStatus =
+  | "pending_payment"
+  | "paid"
+  | "failed"
+  | "refunded"
+  | "partially_refunded"
 
 export type PrivateUserCreate = {
   email: string
@@ -906,12 +916,13 @@ export type BookingsCreateBookingResponse = BookingPublic
 
 export type BookingsListBookingsData = {
   boatId?: string | null
+  bookingStatus?: string | null
   limit?: number
   missionId?: string | null
+  paymentStatus?: string | null
   skip?: number
   sortBy?: string
   sortDirection?: string
-  status?: string | null
   tripId?: string | null
 }
 

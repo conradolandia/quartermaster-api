@@ -82,12 +82,12 @@ const Step4Review = ({
       return { booking }
     },
     onSuccess: async ({ booking }, code) => {
-      const status = booking.status as string
-      if (CONFIRMED_STATUSES.includes(status)) {
+      const bookingStatus = (booking.booking_status ?? "") as string
+      if (CONFIRMED_STATUSES.includes(bookingStatus)) {
         navigate({ to: "/bookings", search: { code } })
         return
       }
-      if (status === "cancelled" || status === "refunded") {
+      if (bookingStatus === "cancelled") {
         navigate({
           to: "/book",
           search: { discount: search.discount, access: search.access },
