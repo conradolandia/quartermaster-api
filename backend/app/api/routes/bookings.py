@@ -34,7 +34,11 @@ from app.models import (
     TripMerchandise,
     User,
 )
-from app.services.date_validator import ensure_aware, is_booking_past, is_trip_past
+from app.services.date_validator import (
+    effective_booking_mode,
+    is_booking_past,
+    is_trip_past,
+)
 from app.utils import (
     generate_booking_cancelled_email,
     generate_booking_confirmation_email,
@@ -112,16 +116,6 @@ def _create_booking_impl(
                 detail=f"Cannot create booking: Trip {item.trip_id} has already departed",
             )
 
-        # Validate trip sales have opened (if sales_open_at is set)
-        if trip.sales_open_at is not None:
-            now = datetime.now(timezone.utc)
-            sales_open_at = ensure_aware(trip.sales_open_at)
-            if now < sales_open_at:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sales have not yet opened for one or more trips",
-                )
-
         # Ensure all trips belong to the same mission
         if mission_id is None:
             mission_id = trip.mission_id
@@ -145,17 +139,22 @@ def _create_booking_impl(
         )
 
     # Enforce trip booking_mode access control (bypass for authenticated superusers)
+    # Use effective mode: before sales_open_at, mode is one level more restrictive
+    # so early bird codes work before general sale.
+    now = datetime.now(timezone.utc)
     distinct_trip_ids = {item.trip_id for item in booking_in.items}
     trips_with_modes = [(tid, session.get(Trip, tid)) for tid in distinct_trip_ids]
-    any_private = any(
-        getattr(t, "booking_mode", "private") == "private"
-        for _, t in trips_with_modes
-        if t
-    )
+
+    def _effective(t: Trip) -> str:
+        return effective_booking_mode(
+            getattr(t, "booking_mode", "private"),
+            getattr(t, "sales_open_at", None),
+            now,
+        )
+
+    any_private = any(_effective(t) == "private" for _, t in trips_with_modes if t)
     any_early_bird = any(
-        getattr(t, "booking_mode", "private") == "early_bird"
-        for _, t in trips_with_modes
-        if t
+        _effective(t) == "early_bird" for _, t in trips_with_modes if t
     )
     logger.info(
         "create_booking access check: mission_id=%s any_private=%s any_early_bird=%s "

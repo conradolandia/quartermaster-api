@@ -31,6 +31,7 @@ from app.models import (
     TripWithStats,
 )
 from app.services.date_validator import (
+    effective_booking_mode,
     ensure_aware,
     is_trip_past_editable_window,
     validate_trip_dates,
@@ -779,28 +780,23 @@ def read_public_trips(
             )
             continue
 
-        # Filter out trips that are not yet open for sales
+        # Effective mode: before sales_open_at, one level more restrictive
+        # (so early bird codes work before general sale)
         sales_open_at = trip.get("sales_open_at")
-        if sales_open_at is not None:
-            sales_open_at = ensure_aware(sales_open_at)
-            if now < sales_open_at:
-                logger.info(
-                    f"Trip {trip_id} ({trip_name}) filtered out: sales open at {sales_open_at}"
-                )
-                continue
+        effective_mode = effective_booking_mode(booking_mode, sales_open_at, now)
 
         # Count bookable trips for all_trips_require_access_code
-        if booking_mode in ("public", "early_bird"):
+        if effective_mode in ("public", "early_bird"):
             bookable_trip_count += 1
-            if booking_mode == "public":
+            if effective_mode == "public":
                 public_trip_count += 1
 
-        if booking_mode == "private":
+        if effective_mode == "private":
             logger.info(
-                f"Trip {trip_id} ({trip_name}) filtered out: booking_mode is private"
+                f"Trip {trip_id} ({trip_name}) filtered out: effective booking_mode is private"
             )
             continue
-        elif booking_mode == "early_bird":
+        elif effective_mode == "early_bird":
             # Only show if valid access_code is provided
             if not access_code or not discount_code:
                 logger.info(
@@ -818,12 +814,12 @@ def read_public_trips(
                 )
                 continue
             logger.info(
-                f"Trip {trip_id} ({trip_name}) included: early_bird with valid access code"
+                f"Trip {trip_id} ({trip_name}) included: effective early_bird with valid access code"
             )
             public_trips.append(trip)
-        else:  # public
+        else:  # effective_mode == "public"
             logger.info(
-                f"Trip {trip_id} ({trip_name}) included: booking_mode is public"
+                f"Trip {trip_id} ({trip_name}) included: effective booking_mode is public"
             )
             public_trips.append(trip)
 
@@ -907,15 +903,12 @@ def read_public_trip(
             detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
         )
 
-    if trip.sales_open_at is not None:
-        sales_open_at = ensure_aware(trip.sales_open_at)
-        if now < sales_open_at:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sales have not yet opened for this trip",
-            )
-
-    booking_mode = getattr(trip, "booking_mode", "private")
+    # Effective mode: before sales_open_at, one level more restrictive
+    booking_mode = effective_booking_mode(
+        getattr(trip, "booking_mode", "private"),
+        getattr(trip, "sales_open_at", None),
+        now,
+    )
     if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

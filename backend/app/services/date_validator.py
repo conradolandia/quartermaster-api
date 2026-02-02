@@ -34,6 +34,46 @@ def ensure_aware(dt: datetime) -> datetime:
     return dt
 
 
+def effective_booking_mode(
+    booking_mode: str,
+    sales_open_at: datetime | None,
+    now: datetime | None = None,
+) -> str:
+    """
+    Resolve effective booking mode from stored mode and Sales Open date.
+
+    Before sales_open_at, effective mode equals stored mode (what you set).
+    On/after sales_open_at, effective mode is bumped up one level (less
+    restrictive): private -> early_bird -> public. So you set the mode for
+    the early period and Sales Open relaxes it automatically.
+
+    Level order (least to most restrictive): public <- early_bird <- private.
+
+    Args:
+        booking_mode: Stored trip booking_mode (private, early_bird, public).
+        sales_open_at: When to bump modes up; None means no date-based bump.
+        now: Reference time (default: current UTC).
+
+    Returns:
+        Effective mode: "private", "early_bird", or "public".
+    """
+    if now is None:
+        now = _get_now()
+    mode = (
+        booking_mode
+        if booking_mode in ("private", "early_bird", "public")
+        else "private"
+    )
+    if sales_open_at is None or now < ensure_aware(sales_open_at):
+        return mode
+    # On/after Sales Open: bump up one level (less restrictive)
+    if mode == "private":
+        return "early_bird"
+    if mode == "early_bird":
+        return "public"
+    return "public"
+
+
 def is_launch_past(launch: "Launch", now: datetime | None = None) -> bool:
     """
     Check if a launch has already occurred.
