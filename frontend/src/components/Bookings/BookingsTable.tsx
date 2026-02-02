@@ -459,6 +459,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   })
 
   const filterSelectWidth = "160px"
+  const userTz =
+    typeof Intl !== "undefined" && Intl.DateTimeFormat
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC"
 
   return (
     <>
@@ -671,15 +675,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
       <Box overflowX="auto">
         <Table.Root
-          size={{ base: "sm", md: "md" }}
+          size="sm"
           width="100%"
           style={{ tableLayout: "fixed" }}
         >
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="44"
-                minW="36"
+                w="36"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("confirmation_code")}
@@ -690,8 +694,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="60"
-                minW="48"
+                w="52"
+                minW="40"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("user_name")}
@@ -702,7 +706,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="36"
+                w="32"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -714,8 +718,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="48"
-                minW="36"
+                w="40"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("trip_name")}
@@ -727,8 +731,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="48"
-                minW="36"
+                w="40"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("booking_status")}
@@ -739,7 +743,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="24"
+                w="20"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_amount")}
@@ -749,12 +753,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="total_amount" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
+              <Table.ColumnHeader w="12" fontWeight="bold" textAlign="center">
                 Qty
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="44"
-                minW="36"
+                w="36"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("created_at")}
@@ -765,8 +769,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="44"
-                minW="36"
+                w="36"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("updated_at")}
@@ -776,7 +780,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="updated_at" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="24" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
+              <Table.ColumnHeader w="20" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -788,7 +792,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 cursor="pointer"
                 onClick={() => onBookingClick(booking.confirmation_code)}
               >
-                <Table.Cell w="44" minW="36">
+                <Table.Cell w="36" minW="28">
                   <Flex align="center" gap={2}>
                     <Text
                       fontFamily="mono"
@@ -811,7 +815,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </IconButton>
                   </Flex>
                 </Table.Cell>
-                <Table.Cell w="60" minW="48">
+                <Table.Cell w="52" minW="40">
                   <VStack align="stretch" gap={0}>
                     <Text fontSize="md">{booking.user_name}</Text>
                     <HStack gap={1}>
@@ -829,15 +833,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   </VStack>
                 </Table.Cell>
                 <Table.Cell
-                  w="48"
-                  minW="36"
+                  w="40"
+                  minW="28"
                   display={{ base: "none", lg: "table-cell" }}
                 >
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
                 <Table.Cell
-                  w="48"
-                  minW="36"
+                  w="40"
+                  minW="28"
                   display={{ base: "none", lg: "table-cell" }}
                 >
                   {booking.trip_name?.trim() ||
@@ -845,7 +849,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       ? tripTypeToLabel(booking.trip_type)
                       : "N/A")}
                 </Table.Cell>
-                <Table.Cell w="48" minW="36">
+                <Table.Cell w="40" minW="28">
                   <VStack align="start" gap={0}>
                     <Text fontSize="xs" color="text.muted">
                       Booking:{" "}
@@ -878,33 +882,32 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     )}
                   </VStack>
                 </Table.Cell>
-                <Table.Cell w="24">
+                <Table.Cell w="20">
                   <Text fontWeight="bold">
                     ${formatCents(booking.total_amount)}
                   </Text>
                 </Table.Cell>
-                <Table.Cell w="16" textAlign="center">
+                <Table.Cell w="12" textAlign="center">
                   {totalTicketQuantity(booking)}
                 </Table.Cell>
-                <Table.Cell w="44" minW="36">
-                  {parseApiDate(booking.created_at).toLocaleString(undefined, {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
+                <Table.Cell w="36" minW="28">
+                  {formatDateTimeInLocationTz(booking.created_at, userTz) ||
+                    parseApiDate(booking.created_at).toLocaleString(undefined, {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
                 </Table.Cell>
-                <Table.Cell w="44" minW="36">
+                <Table.Cell w="36" minW="28">
                   {booking.updated_at
-                    ? parseApiDate(booking.updated_at).toLocaleString(
+                    ? formatDateTimeInLocationTz(booking.updated_at, userTz) ||
+                      parseApiDate(booking.updated_at).toLocaleString(
                         undefined,
-                        {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        },
+                        { dateStyle: "short", timeStyle: "short" },
                       )
                     : "—"}
                 </Table.Cell>
                 <Table.Cell
-                  w="24"
+                  w="20"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Flex justify="center">

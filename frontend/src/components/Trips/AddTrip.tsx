@@ -522,6 +522,30 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                 <Field
                   label={
                     timezone
+                      ? `Sales Open (${formatLocationTimezoneDisplay(
+                          timezone,
+                        )})`
+                      : "Sales Open"
+                  }
+                  helperText="Trip is not bookable until this time. Leave empty for no restriction."
+                >
+                  <Input
+                    id="sales_open_at"
+                    type="datetime-local"
+                    value={salesOpenAt}
+                    onChange={(e) => setSalesOpenAt(e.target.value)}
+                    placeholder={
+                      timezone
+                        ? `Enter time in ${formatLocationTimezoneDisplay(
+                            timezone,
+                          )}`
+                        : "Select mission for timezone"
+                    }
+                  />
+                </Field>
+                <Field
+                  label={
+                    timezone
                       ? `Departure Time (${formatLocationTimezoneDisplay(
                           timezone,
                         )})`
@@ -539,30 +563,6 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     type="datetime-local"
                     value={departureTime}
                     onChange={(e) => setDepartureTime(e.target.value)}
-                    placeholder={
-                      timezone
-                        ? `Enter time in ${formatLocationTimezoneDisplay(
-                            timezone,
-                          )}`
-                        : "Select mission for timezone"
-                    }
-                  />
-                </Field>
-                <Field
-                  label={
-                    timezone
-                      ? `Sales Open (${formatLocationTimezoneDisplay(
-                          timezone,
-                        )})`
-                      : "Sales Open"
-                  }
-                  helperText="Trip is not bookable until this time. Leave empty for no restriction."
-                >
-                  <Input
-                    id="sales_open_at"
-                    type="datetime-local"
-                    value={salesOpenAt}
-                    onChange={(e) => setSalesOpenAt(e.target.value)}
                     placeholder={
                       timezone
                         ? `Enter time in ${formatLocationTimezoneDisplay(

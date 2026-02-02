@@ -7,6 +7,7 @@ import {
   Flex,
   Heading,
   Icon,
+  Separator,
   Table,
   Text,
   VStack,
@@ -290,11 +291,8 @@ function TripsTable() {
     if (parts) {
       return (
         <Box>
-          <Text fontSize="sm">
-            {parts.dateTime}
-          </Text>
-          <Text fontSize="xs" opacity={0.7}>
-            {parts.timezoneAbbr}
+          <Text fontSize="xs">
+            {parts.dateTime}{" "}{parts.timezoneAbbr}
           </Text>
         </Box>
       )
@@ -315,9 +313,6 @@ function TripsTable() {
   ) => (
     <VStack align="stretch" gap={2}>
       <Box>
-        <Text fontSize="xs" color="gray.500" mb={0.5}>
-          Sales Open
-        </Text>
         {salesOpenAt ? (
           renderTripDate(salesOpenAt, timezone)
         ) : (
@@ -325,12 +320,17 @@ function TripsTable() {
             Not set
           </Text>
         )}
+        <Separator />
+        <Text fontSize="xs" color="gray.400">
+          Sales Open
+        </Text>
       </Box>
       <Box>
-        <Text fontSize="xs" color="gray.500" mb={0.5}>
+        {renderTripDate(departureTime, timezone)}
+        <Separator />
+        <Text fontSize="xs" color="gray.400">
           Departure
         </Text>
-        {renderTripDate(departureTime, timezone)}
       </Box>
     </VStack>
   )
@@ -338,11 +338,16 @@ function TripsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md", lg: "lg" }}>
+        <Table.Root
+          size={{ base: "sm", md: "md", lg: "lg" }}
+          width="100%"
+          style={{ tableLayout: "fixed" }}
+        >
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w={{ base: "sm", lg: "300px" }}
+                w="52"
+                minW="40"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -353,7 +358,8 @@ function TripsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="36"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("type")}
@@ -365,7 +371,8 @@ function TripsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="44"
+                minW="32"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_id")}
@@ -377,8 +384,8 @@ function TripsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
-                minW="200px"
+                w="48"
+                minW="40"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("departure_time")}
@@ -390,19 +397,21 @@ function TripsTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="16"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_bookings")}
                 display={{ base: "none", lg: "table-cell" }}
+                textAlign="center"
               >
-                <Flex align="center">
+                <Flex align="center" justify="center">
                   Seats
                   <SortIcon column="total_bookings" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="32"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_sales")}
@@ -413,28 +422,32 @@ function TripsTable() {
                   <SortIcon column="total_sales" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader w="48" minW="36" fontWeight="bold">
                 Boats
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="20"
+                w="24"
+                minW="20"
                 fontWeight="bold"
                 display={{ base: "none", lg: "table-cell" }}
+                textAlign="center"
               >
                 Mode
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="20"
+                w="24"
+                minW="20"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("active")}
+                textAlign="center"
               >
-                <Flex align="center">
+                <Flex align="center" justify="center">
                   Status
                   <SortIcon column="active" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="20" fontWeight="bold">
+              <Table.ColumnHeader w="32" minW="28" fontWeight="bold">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -447,6 +460,8 @@ function TripsTable() {
               return (
                 <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell
+                    w="52"
+                    minW="40"
                     verticalAlign="top"
                     whiteSpace="normal"
                     wordBreak="break-word"
@@ -456,8 +471,9 @@ function TripsTable() {
                     </Text>
                   </Table.Cell>
                   <Table.Cell
+                    w="36"
+                    minW="28"
                     truncate
-                    maxW="sm"
                     display={{ base: "none", md: "table-cell" }}
                     verticalAlign="top"
                   >
@@ -466,15 +482,19 @@ function TripsTable() {
                       : "Pre-Launch"}
                   </Table.Cell>
                   <Table.Cell
+                    w="44"
+                    minW="32"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
                     {mission?.name || "Unknown"}
                   </Table.Cell>
                   <Table.Cell
+                    w="48"
+                    minW="40"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
-                    minW="200px"
+                    whiteSpace="normal"
                   >
                     {renderScheduleCell(
                       (trip as { sales_open_at?: string | null }).sales_open_at,
@@ -483,20 +503,27 @@ function TripsTable() {
                     )}
                   </Table.Cell>
                   <Table.Cell
+                    w="16"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
+                    textAlign="center"
                   >
                     {(trip as TripWithStats).total_bookings ?? 0}
                   </Table.Cell>
                   <Table.Cell
-                    truncate
-                    maxW="sm"
+                    w="32"
+                    minW="28"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
                     ${formatCents((trip as TripWithStats).total_sales ?? 0)}
                   </Table.Cell>
-                  <Table.Cell maxW="sm" verticalAlign="top">
+                  <Table.Cell
+                    w="48"
+                    minW="36"
+                    verticalAlign="top"
+                    whiteSpace="normal"
+                  >
                     {boats != null && boats.length > 0 ? (
                       <VStack align="stretch" gap={2}>
                         {boats.map((tb) => {
@@ -506,7 +533,7 @@ function TripsTable() {
                           const maxCap = tb.max_capacity
                           return (
                             <Box key={tb.boat_id}>
-                              <Text fontSize="sm" truncate>
+                              <Text fontSize="sm">
                                 {name}
                               </Text>
                               <Text
@@ -529,35 +556,44 @@ function TripsTable() {
                     )}
                   </Table.Cell>
                   <Table.Cell
-                    w="20"
-                    maxW="20"
+                    w="24"
+                    minW="20"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
+                    textAlign="center"
                   >
-                    <Badge
-                      colorPalette={
-                        trip.booking_mode === "public"
-                          ? "blue"
+                    <Flex justify="center">
+                      <Badge
+                        colorPalette={
+                          trip.booking_mode === "public"
+                            ? "blue"
+                            : trip.booking_mode === "early_bird"
+                              ? "purple"
+                              : "gray"
+                        }
+                      >
+                        {trip.booking_mode === "public"
+                          ? "Public"
                           : trip.booking_mode === "early_bird"
-                            ? "purple"
-                            : "gray"
-                      }
-                    >
-                      {trip.booking_mode === "public"
-                        ? "Public"
-                        : trip.booking_mode === "early_bird"
-                          ? "Early Bird"
-                          : "Private"}
-                    </Badge>
+                            ? "Early Bird"
+                            : "Private"}
+                      </Badge>
+                    </Flex>
                   </Table.Cell>
-                  <Table.Cell w="20" maxW="20" verticalAlign="top" paddingY="6">
+                  <Table.Cell
+                    w="24"
+                    minW="20"
+                    verticalAlign="top"
+                    paddingY="6"
+                    textAlign="center"
+                  >
                     <Flex justify="center">
                       <Badge colorPalette={trip.active ? "green" : "red"}>
                         {trip.active ? "Active" : "Inactive"}
                       </Badge>
                     </Flex>
                   </Table.Cell>
-                  <Table.Cell w="20" maxW="20" verticalAlign="top" paddingY="3">
+                  <Table.Cell w="32" minW="28" verticalAlign="top" paddingY="3">
                     <Flex justify="center">
                       <TripActionsMenu trip={trip} />
                     </Flex>

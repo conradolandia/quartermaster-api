@@ -105,8 +105,30 @@ export function formatInLocationTimezoneDisplayParts(
 }
 
 /**
- * Format a UTC date in a location's timezone for display, with timezone abbreviation (e.g. EST, PST).
- * Use when showing event times in the location's time (e.g. launch at Kennedy = America/New_York).
+ * Fallback abbreviations when Intl returns GMT+/- (e.g. America/Bogota -> COT).
+ */
+const TIMEZONE_ABBR_FALLBACK: Record<string, string> = {
+  "America/Bogota": "COT",
+  "America/New_York": "EST", // or EDT depending on date; Intl usually gives EST/EDT
+  "America/Los_Angeles": "PST",
+  "America/Chicago": "CST",
+  "America/Denver": "MST",
+  "America/Phoenix": "MST",
+  "Europe/London": "GMT",
+  "Europe/Paris": "CET",
+  "UTC": "UTC",
+}
+
+function resolveTimezoneAbbr(ianaTimezone: string, fromIntl: string): string {
+  if (!fromIntl || /^GMT[+-]\d+$/.test(fromIntl)) {
+    return TIMEZONE_ABBR_FALLBACK[ianaTimezone] ?? fromIntl ?? ianaTimezone
+  }
+  return fromIntl
+}
+
+/**
+ * Format a UTC date in a location's timezone for display, with timezone abbreviation (e.g. EST, COT).
+ * Uses date-fns-tz "zzz" and a fallback map when Intl returns GMT+/- instead of an abbreviation.
  */
 export function formatInLocationTimezoneWithAbbr(
   utcDate: Date,
@@ -116,12 +138,10 @@ export function formatInLocationTimezoneWithAbbr(
   const dateTime = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
     locale: enUS,
   })
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    timeZoneName: "short",
-  }).formatToParts(utcDate)
-  const timezoneAbbr =
-    parts.find((p) => p.type === "timeZoneName")?.value ?? timezone
+  const fromIntl = formatInTimeZone(utcDate, timezone, "zzz", {
+    locale: enUS,
+  }).trim()
+  const timezoneAbbr = resolveTimezoneAbbr(timezone, fromIntl) || timezone
   return { dateTime, timezoneAbbr }
 }
 
@@ -141,16 +161,16 @@ export function formatDateTimeInLocationTz(
 }
 
 /**
- * Get timezone abbreviation (e.g. EST, PST) for an IANA timezone name.
+ * Get timezone abbreviation (e.g. EST, COT) for an IANA timezone name.
+ * Uses date-fns-tz "zzz" and a fallback map when Intl returns GMT+/-.
  */
 export function getTimezoneAbbr(ianaTimezone: string): string {
   if (!ianaTimezone) return ""
   try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: ianaTimezone,
-      timeZoneName: "short",
-    }).formatToParts(new Date())
-    return parts.find((p) => p.type === "timeZoneName")?.value ?? ianaTimezone
+    const fromIntl = formatInTimeZone(new Date(), ianaTimezone, "zzz", {
+      locale: enUS,
+    }).trim()
+    return resolveTimezoneAbbr(ianaTimezone, fromIntl)
   } catch {
     return ianaTimezone
   }
