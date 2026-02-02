@@ -62,7 +62,13 @@ function Layout() {
       <Navbar />
       <Flex flex="1" overflow="hidden">
         <Sidebar />
-        <Flex flex="1" direction="column" p={4} overflowY="auto">
+        <Flex
+          flex="1"
+          direction="column"
+          p={4}
+          pt={{ base: 14, nav: 4 } as { base: number; nav: number }}
+          overflowY="auto"
+        >
           <Outlet />
         </Flex>
       </Flex>

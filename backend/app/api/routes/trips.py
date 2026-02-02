@@ -50,7 +50,7 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 
 
 def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
-    """Build TripPublic with timezone from trip's mission->launch->location."""
+    """Build TripPublic with timezone and effective_booking_mode."""
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
     tz = "UTC"
     if mission:
@@ -63,6 +63,9 @@ def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
                 tz = location.timezone
     data = trip.model_dump(mode="json", exclude={"mission"})
     data.setdefault("trip_boats", [])
+    data["effective_booking_mode"] = effective_booking_mode(
+        trip.booking_mode, trip.sales_open_at
+    )
     return TripPublic(**data, timezone=tz)
 
 
@@ -88,6 +91,9 @@ def read_trips(
             session=session, trip_ids=trip_ids
         )
         for t in trips:
+            t["effective_booking_mode"] = effective_booking_mode(
+                t.get("booking_mode", "private"), t.get("sales_open_at")
+            )
             t["trip_boats"] = [
                 TripBoatPublic(
                     id=tb.id,
@@ -564,6 +570,8 @@ def delete_trip(
         name=trip.name,
         type=trip.type,
         active=trip.active,
+        booking_mode=trip.booking_mode,
+        sales_open_at=trip.sales_open_at,
         check_in_time=trip.check_in_time,
         boarding_time=trip.boarding_time,
         departure_time=trip.departure_time,
@@ -571,6 +579,9 @@ def delete_trip(
         updated_at=trip.updated_at,
         trip_boats=[],
         timezone=tz,
+        effective_booking_mode=effective_booking_mode(
+            trip.booking_mode, trip.sales_open_at
+        ),
     )
     crud.delete_trip(session=session, trip_id=trip_id)
     return response_data
@@ -617,21 +628,28 @@ def read_trips_by_mission(
     trips = session.exec(statement).unique().all()
     count = len(trips)
 
-    trip_dicts = [
-        {
+    trip_dicts = []
+    for trip in trips:
+        d = {
             "id": trip.id,
             "mission_id": trip.mission_id,
+            "name": trip.name,
             "type": trip.type,
             "active": trip.active,
+            "booking_mode": trip.booking_mode,
+            "sales_open_at": trip.sales_open_at,
             "check_in_time": trip.check_in_time,
             "boarding_time": trip.boarding_time,
             "departure_time": trip.departure_time,
             "created_at": trip.created_at,
             "updated_at": trip.updated_at,
             "timezone": tz,
+            "trip_boats": [],
+            "effective_booking_mode": effective_booking_mode(
+                trip.booking_mode, trip.sales_open_at
+            ),
         }
-        for trip in trips
-    ]
+        trip_dicts.append(d)
 
     return TripsPublic(data=trip_dicts, count=count)
 
@@ -816,11 +834,13 @@ def read_public_trips(
             logger.info(
                 f"Trip {trip_id} ({trip_name}) included: effective early_bird with valid access code"
             )
+            trip["effective_booking_mode"] = effective_mode
             public_trips.append(trip)
         else:  # effective_mode == "public"
             logger.info(
                 f"Trip {trip_id} ({trip_name}) included: effective booking_mode is public"
             )
+            trip["effective_booking_mode"] = effective_mode
             public_trips.append(trip)
 
     # Sort trips by check_in_time (future first)

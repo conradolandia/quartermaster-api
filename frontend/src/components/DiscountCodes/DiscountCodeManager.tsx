@@ -14,7 +14,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
+import { FiCopy, FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   type DiscountCodeCreate,
@@ -47,6 +47,17 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
 
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+
+  const buildBookingUrl = (code: string, isAccessCode: boolean) =>
+    `${window.location.origin}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
+
+  const copyBookingUrl = (code: string, isAccessCode: boolean) => {
+    void navigator.clipboard
+      .writeText(buildBookingUrl(code, isAccessCode))
+      .then(() => {
+        showSuccessToast("Booking URL copied to clipboard")
+      })
+  }
 
   // Fetch discount codes
   const { data: discountCodes, isLoading } = useQuery({
@@ -407,6 +418,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               <Table.ColumnHeader>Uses</Table.ColumnHeader>
               <Table.ColumnHeader>Access Code</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
+              <Table.ColumnHeader>Booking URL</Table.ColumnHeader>
               <Table.ColumnHeader>Actions</Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
@@ -459,6 +471,36 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   >
                     {discountCode.is_active ? "Active" : "Inactive"}
                   </Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <HStack gap={2} align="center">
+                    <Text
+                      fontSize="xs"
+                      color="gray.500"
+                      title={buildBookingUrl(
+                        discountCode.code,
+                        !!discountCode.is_access_code,
+                      )}
+                    >
+                      /book?
+                      {discountCode.is_access_code ? "access" : "discount"}=
+                      {discountCode.code}
+                    </Text>
+                    <IconButton
+                      aria-label="Copy booking URL to clipboard"
+                      title="Copy booking URL"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        copyBookingUrl(
+                          discountCode.code,
+                          !!discountCode.is_access_code,
+                        )
+                      }
+                    >
+                      <FiCopy />
+                    </IconButton>
+                  </HStack>
                 </Table.Cell>
                 <Table.Cell>
                   <HStack>

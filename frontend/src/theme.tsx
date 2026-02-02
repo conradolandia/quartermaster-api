@@ -36,6 +36,9 @@ export const system = createSystem(defaultConfig, {
     },
   },
   theme: {
+    breakpoints: {
+      nav: "960px",
+    },
     tokens: {
       fonts: {
         heading: {

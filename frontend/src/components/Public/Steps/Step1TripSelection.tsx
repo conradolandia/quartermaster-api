@@ -251,11 +251,26 @@ const Step1TripSelection = ({
       )
   }, [launches])
 
-  // If the selected launch has passed, clear launch/trip/boat
+  // Only show launches that have at least one trip visible to the user (in allTrips)
+  const launchIdsWithVisibleTrips = React.useMemo(() => {
+    const ids = new Set<string>()
+    for (const trip of allTrips?.data ?? []) {
+      const mission = missions.find((m: { id: string }) => m.id === trip.mission_id)
+      if (mission?.launch_id) ids.add(mission.launch_id)
+    }
+    return ids
+  }, [allTrips?.data, missions])
+
+  const visibleLaunches = React.useMemo(
+    () => sortedLaunches.filter((l) => launchIdsWithVisibleTrips.has(l.id)),
+    [sortedLaunches, launchIdsWithVisibleTrips],
+  )
+
+  // If the selected launch has passed or has no visible trips, clear launch/trip/boat
   React.useEffect(() => {
     if (
       !bookingData.selectedLaunchId ||
-      sortedLaunches.some((l) => l.id === bookingData.selectedLaunchId)
+      visibleLaunches.some((l) => l.id === bookingData.selectedLaunchId)
     )
       return
     updateBookingData({
@@ -264,7 +279,7 @@ const Step1TripSelection = ({
       selectedBoatId: "",
       boatRemainingCapacity: null,
     })
-  }, [bookingData.selectedLaunchId, sortedLaunches, updateBookingData])
+  }, [bookingData.selectedLaunchId, visibleLaunches, updateBookingData])
 
   const formatTripTime = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)
@@ -301,9 +316,9 @@ const Step1TripSelection = ({
       : dateStr
   }
 
-  // Create collection for launch selection
+  // Create collection for launch selection (only launches with visible trips)
   const launchesCollection = createListCollection({
-    items: sortedLaunches.map((launch) => ({
+    items: visibleLaunches.map((launch) => ({
       label: formatLaunchOptionLabel(launch),
       value: launch.id,
     })),
@@ -371,7 +386,7 @@ const Step1TripSelection = ({
                   </Select.Control>
                   <Select.Positioner>
                     <Select.Content minWidth="400px">
-                      {sortedLaunches.map((launch) => {
+                      {visibleLaunches.map((launch) => {
                         const label = formatLaunchOptionLabel(launch)
                         return (
                           <Select.Item

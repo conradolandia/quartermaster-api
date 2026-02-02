@@ -35,7 +35,7 @@ const Sidebar = () => {
           <IconButton
             variant="ghost"
             color="inherit"
-            display={{ base: "flex", md: "none" }}
+            display={{ base: "flex", nav: "none" } as { base: "flex"; nav: "none" }}
             aria-label="Open Menu"
             position="absolute"
             zIndex="100"
@@ -93,7 +93,7 @@ const Sidebar = () => {
 
       {/* Desktop */}
       <Box
-        display={{ base: "none", md: "flex" }}
+        display={{ base: "none", nav: "flex" } as { base: "none"; nav: "flex" }}
         position="sticky"
         bg="dark.bg.secondary"
         top={0}

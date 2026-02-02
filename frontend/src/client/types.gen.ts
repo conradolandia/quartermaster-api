@@ -747,6 +747,10 @@ export type TripPublic = {
   updated_at: string
   trip_boats?: Array<TripBoatPublic>
   timezone?: string
+  /**
+   * Booking mode in effect (considering sales_open_at); for display.
+   */
+  effective_booking_mode?: string
 }
 
 export type TripsPublic = {
@@ -792,6 +796,10 @@ export type TripWithStats = {
   updated_at: string
   trip_boats?: Array<TripBoatPublic>
   timezone?: string
+  /**
+   * Booking mode in effect (considering sales_open_at); for display.
+   */
+  effective_booking_mode?: string
   total_bookings?: number
   total_sales?: number
 }

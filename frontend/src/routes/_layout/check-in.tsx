@@ -20,14 +20,14 @@ function CheckIn() {
 
   if (!user) {
     return (
-      <Container maxW="full">
+      <Container maxW="full" pt={12}>
         <div>Please log in to access the check-in system.</div>
       </Container>
     )
   }
 
   return (
-    <Container maxW="full">
+    <Container maxW="full" pt={12}>
       <CheckInInterface initialCode={code} />
     </Container>
   )

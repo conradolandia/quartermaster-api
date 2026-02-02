@@ -647,6 +647,10 @@ class TripPublic(TripBase):
     timezone: str = (
         "UTC"  # IANA name from trip's mission->launch->location; for display
     )
+    effective_booking_mode: str = Field(
+        default="private",
+        description="Booking mode in effect (considering sales_open_at); for display.",
+    )
 
     @field_serializer(
         "sales_open_at",
