@@ -554,11 +554,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       </Flex>
 
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root
+          size={{ base: "sm", md: "md" }}
+          width="100%"
+          style={{ tableLayout: "fixed" }}
+        >
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="40"
+                w="44"
+                minW="36"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("confirmation_code")}
@@ -570,6 +575,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="60"
+                minW="48"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("user_name")}
@@ -580,7 +586,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="60"
+                w="48"
+                minW="36"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -592,7 +599,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="80"
+                w="48"
+                minW="36"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("booking_status")}
@@ -603,7 +611,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="24"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_amount")}
@@ -613,11 +621,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="total_amount" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="20" fontWeight="bold">
+              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
                 Qty
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="44"
+                minW="36"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("created_at")}
@@ -627,7 +636,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="created_at" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader w="24" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -639,7 +648,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 cursor="pointer"
                 onClick={() => onBookingClick(booking.confirmation_code)}
               >
-                <Table.Cell w="24" maxW="28">
+                <Table.Cell w="44" minW="36">
                   <Flex align="center" gap={2}>
                     <Text
                       fontFamily="mono"
@@ -662,7 +671,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </IconButton>
                   </Flex>
                 </Table.Cell>
-                <Table.Cell minW="60">
+                <Table.Cell w="60" minW="48">
                   <VStack align="stretch" gap={0}>
                     <Text fontSize="md">{booking.user_name}</Text>
                     <HStack>
@@ -679,10 +688,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </HStack>
                   </VStack>
                 </Table.Cell>
-                <Table.Cell display={{ base: "none", lg: "table-cell" }}>
+                <Table.Cell
+                  w="48"
+                  minW="36"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell w="48" minW="36">
                   <VStack align="start" gap={0}>
                     <Text fontSize="xs" color="text.muted">
                       Booking:{" "}
@@ -718,13 +731,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     )}
                   </VStack>
                 </Table.Cell>
-                <Table.Cell>
+                <Table.Cell w="24">
                   <Text fontWeight="bold">
                     ${formatCents(booking.total_amount)}
                   </Text>
                 </Table.Cell>
-                <Table.Cell>{totalTicketQuantity(booking)}</Table.Cell>
-                <Table.Cell>
+                <Table.Cell w="16" textAlign="center">
+                  {totalTicketQuantity(booking)}
+                </Table.Cell>
+                <Table.Cell w="44" minW="36">
                   <VStack align="start" gap={0}>
                     <Text>
                       {new Date(booking.created_at).toLocaleString(undefined, {
@@ -746,11 +761,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     )}
                   </VStack>
                 </Table.Cell>
-                <Table.Cell onClick={(e) => e.stopPropagation()}>
-                  <BookingActionsMenu
-                    booking={booking}
-                    editDisabled={booking.booking_status === "checked_in"}
-                  />
+                <Table.Cell
+                  w="24"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Flex justify="center">
+                    <BookingActionsMenu
+                      booking={booking}
+                      editDisabled={booking.booking_status === "checked_in"}
+                    />
+                  </Flex>
                 </Table.Cell>
               </Table.Row>
             ))}
