@@ -23,20 +23,24 @@ export const NativeSelect = React.forwardRef<
     sm: {
       padding: "0.375rem",
       fontSize: "0.875rem",
+      minHeight: "2rem",
     },
     md: {
       padding: "0.5rem",
       fontSize: "1rem",
+      minHeight: "2.5rem",
     },
     lg: {
       padding: "0.625rem",
       fontSize: "1.125rem",
+      minHeight: "3rem",
     },
   }
 
   const baseStyles: React.CSSProperties = {
     width: "100%",
     padding: sizeStyles[size].padding,
+    minHeight: sizeStyles[size].minHeight,
     borderRadius: "0.375rem",
     border: "1px solid",
     borderColor: "inherit",

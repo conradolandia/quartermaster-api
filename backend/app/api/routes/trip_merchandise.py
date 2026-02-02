@@ -206,7 +206,7 @@ def update_trip_merchandise(
             detail="Merchandise not found",
         )
     logger.info("Updated trip merchandise: %s", trip_merchandise_id)
-    return _trip_merchandise_to_public(trip_merchandise, m)
+    return _trip_merchandise_to_public(session, trip_merchandise, m)
 
 
 @router.delete(

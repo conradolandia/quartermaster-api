@@ -1522,9 +1522,25 @@ const EditTrip = ({
                           >
                             <VStack align="start" flex={1}>
                               <Text fontWeight="medium">{item.name}</Text>
-                              <HStack fontSize="sm" color="gray.500">
+                              <HStack fontSize="sm" color="gray.500" gap={2} flexWrap="wrap">
                                 <Text>${formatCents(item.price)} each</Text>
-                                <Text>Qty: {item.quantity_available}</Text>
+                                {item.variations_availability?.length ? (
+                                  <Text>
+                                    {item.variations_availability
+                                      .map(
+                                        (v) =>
+                                          `${v.variant_value}: ${v.quantity_available}`,
+                                      )
+                                      .join(", ")}
+                                  </Text>
+                                ) : item.variant_options ? (
+                                  <Text>
+                                    Options: {item.variant_options} (qty{" "}
+                                    {item.quantity_available})
+                                  </Text>
+                                ) : (
+                                  <Text>Qty: {item.quantity_available}</Text>
+                                )}
                               </HStack>
                             </VStack>
                             <IconButton
@@ -1550,11 +1566,37 @@ const EditTrip = ({
                       {isAddingMerchandise ? (
                         <Box mt={2} p={3} borderWidth="1px" borderRadius="md">
                           <VStack gap={3}>
-                            <HStack width="100%">
-                              <Box flex={1}>
+                            <HStack width="100%" align="stretch" gap={4}>
+                              <Box
+                                flex={1}
+                                display="flex"
+                                flexDirection="column"
+                                minW={0}
+                              >
                                 <Text fontSize="sm" mb={1}>
                                   Catalog item
                                 </Text>
+                                {(() => {
+                                  const selected = catalogMerchandise?.data?.find(
+                                    (m) => m.id === merchandiseForm.merchandise_id,
+                                  )
+                                  if (
+                                    !selected ||
+                                    (selected.variations?.length ?? 0) > 0
+                                  )
+                                    return null
+                                  return (
+                                    <Text
+                                      fontSize="xs"
+                                      color="gray.500"
+                                      mt={1}
+                                    >
+                                      No variants. Add variants in Merchandise
+                                      catalog to show per-option availability.
+                                    </Text>
+                                  )
+                                })()}
+                                <Box flex={1} minHeight={2} />
                                 <NativeSelect
                                   value={merchandiseForm.merchandise_id}
                                   onChange={(e) =>
@@ -1565,18 +1607,38 @@ const EditTrip = ({
                                   }
                                   placeholder="Select merchandise"
                                 >
-                                  {catalogMerchandise?.data?.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.name} — ${formatCents(m.price)} (qty{" "}
-                                      {m.quantity_available})
-                                    </option>
-                                  ))}
+                                  {catalogMerchandise?.data?.map((m) => {
+                                    const hasVariations =
+                                      (m.variations?.length ?? 0) > 0
+                                    const qtyLabel = hasVariations
+                                      ? m.variations!
+                                          .map(
+                                            (v) =>
+                                              `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                          )
+                                          .join(", ")
+                                      : m.variant_options
+                                        ? `${m.variant_options} (qty ${m.quantity_available})`
+                                        : `qty ${m.quantity_available}`
+                                    return (
+                                      <option key={m.id} value={m.id}>
+                                        {m.name} — ${formatCents(m.price)} (
+                                        {qtyLabel})
+                                      </option>
+                                    )
+                                  })}
                                 </NativeSelect>
                               </Box>
-                              <Box flex={1}>
+                              <Box
+                                flex={1}
+                                display="flex"
+                                flexDirection="column"
+                                minW={0}
+                              >
                                 <Text fontSize="sm" mb={1}>
                                   Price override ($, optional)
                                 </Text>
+                                <Box flex={1} minHeight={2} />
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -1591,10 +1653,24 @@ const EditTrip = ({
                                   placeholder="Use catalog price"
                                 />
                               </Box>
-                              <Box flex={1}>
+                              <Box
+                                flex={1}
+                                display="flex"
+                                flexDirection="column"
+                                minW={0}
+                              >
                                 <Text fontSize="sm" mb={1}>
                                   Quantity override (optional)
                                 </Text>
+                                {catalogMerchandise?.data?.find(
+                                  (m) => m.id === merchandiseForm.merchandise_id,
+                                )?.variations?.length ? (
+                                  <Text fontSize="xs" color="gray.500" mt={1}>
+                                    Cap on total for this trip. Per-variant
+                                    availability comes from catalog.
+                                  </Text>
+                                ) : null}
+                                <Box flex={1} minHeight={2} />
                                 <Input
                                   type="number"
                                   min={0}
@@ -1608,7 +1684,13 @@ const EditTrip = ({
                                         e.target.value,
                                     })
                                   }
-                                  placeholder="Use catalog qty"
+                                  placeholder={
+                                    catalogMerchandise?.data?.find(
+                                      (m) => m.id === merchandiseForm.merchandise_id,
+                                    )?.variations?.length
+                                      ? "Max total for trip"
+                                      : "Use catalog qty"
+                                  }
                                 />
                               </Box>
                             </HStack>

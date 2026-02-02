@@ -97,7 +97,7 @@ def read_merchandise(
     merchandise_id: uuid.UUID,
 ) -> Any:
     """
-    Get merchandise by ID.
+    Get merchandise by ID. Includes variations when present.
     """
     merchandise = crud.get_merchandise(session=session, merchandise_id=merchandise_id)
     if not merchandise:
@@ -105,7 +105,7 @@ def read_merchandise(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Merchandise with ID {merchandise_id} not found",
         )
-    return merchandise
+    return _merchandise_to_public(session, merchandise)
 
 
 @router.put(
