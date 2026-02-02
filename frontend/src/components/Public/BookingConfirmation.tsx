@@ -105,7 +105,7 @@ const BookingConfirmation = ({
             Booking Confirmed!
           </Heading>
           <Text color="gray.200" mb={1}>
-            Your rocket launch experience has been successfully booked.
+            Your Star Fleet experience has been successfully booked.
           </Text>
           <Text fontSize="sm" color="gray.400">
             A confirmation email has been sent to {booking.user_email}.
@@ -180,7 +180,7 @@ const BookingConfirmation = ({
               <BookingExperienceDetails
                 booking={booking}
                 usePublicApis
-                heading="Mission, launch & trip"
+                heading="Launch and trip details"
               />
             </Box>
           )}

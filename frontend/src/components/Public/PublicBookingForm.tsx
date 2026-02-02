@@ -107,7 +107,7 @@ const STEPS = [
   {
     id: 1,
     title: "Select Launch & Trip",
-    description: "Choose your launch, then trip and boat",
+    description: "Choose your launch, trip and boat",
   },
   {
     id: 2,
@@ -349,7 +349,7 @@ const PublicBookingForm = ({
                   Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
                 </Heading>
                 <VStack gap={1} align="right" textAlign="right">
-                  <Heading size="2xl">Book Your Rocket Launch</Heading>
+                  <Heading size="2xl">Book Your Star Fleet Experiance</Heading>
                   <Text
                     fontSize="md"
                     color="whiteAlpha.800"

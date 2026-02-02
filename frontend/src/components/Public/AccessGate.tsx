@@ -232,7 +232,7 @@ const AccessGate = ({
     // Access code is valid but no trips are available
     heading = "No Trips Available"
     errorMessage =
-      "Your access code is valid, but there are currently no trips available for booking. Please check back later or contact support."
+      "Your access code is valid, but there are currently no trips available for booking. Please check back later or contact Star Fleet at FleetCommand@Star-Fleet.Tours."
   } else if (accessCodeValidation) {
     // Access code validation failed
     heading = "Access Denied"
