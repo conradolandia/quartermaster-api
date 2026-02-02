@@ -15,7 +15,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiCopy, FiSearch, FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiSearch, FiX } from "react-icons/fi"
 
 import {
   BoatsService,
@@ -100,6 +100,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     initialSearch.get("search") || "",
   )
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [searchParams, setSearchParams] = useState(initialSearch)
 
   const copyConfirmationCode = (e: React.MouseEvent, code: string) => {
@@ -137,6 +138,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         `${window.location.pathname}?${params.toString()}`,
       )
       setSearchParams(new URLSearchParams(params.toString()))
+      // Refocus search input after update so user can keep typing without re-clicking
+      setTimeout(() => searchInputRef.current?.focus(), 0)
     }, 300)
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
@@ -161,6 +164,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const {
     data: bookingsData,
     isLoading,
+    isFetching,
     error,
   } = useQuery({
     queryKey: [
@@ -190,6 +194,23 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         sortDirection: sortDirection,
       }),
   })
+
+  // Refocus search input when query finishes so table re-render doesn't leave focus lost
+  const wasFetchingRef = useRef(false)
+  useEffect(() => {
+    if (wasFetchingRef.current && !isFetching && debouncedSearchQuery) {
+      const active = document.activeElement
+      const searchHadFocus =
+        !active ||
+        active === document.body ||
+        searchInputRef.current === active ||
+        searchInputRef.current?.contains(active)
+      if (searchHadFocus) {
+        setTimeout(() => searchInputRef.current?.focus(), 0)
+      }
+    }
+    wasFetchingRef.current = isFetching
+  }, [isFetching, debouncedSearchQuery])
 
   // Fetch missions for filter dropdown
   const { data: missionsData } = useQuery({
@@ -421,7 +442,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     items: [
       { label: "All booking statuses", value: "" },
       ...BOOKING_STATUSES.map((s) => ({
-        label: s.replace(/_/g, " "),
+        label: s.replace(/_/g, " ").toUpperCase(),
         value: s,
       })),
     ],
@@ -431,7 +452,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     items: [
       { label: "All payment statuses", value: "" },
       ...PAYMENT_STATUSES.map((s) => ({
-        label: s.replace(/_/g, " "),
+        label: s.replace(/_/g, " ").toUpperCase(),
         value: s,
       })),
     ],
@@ -441,9 +462,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   return (
     <>
-      <Flex gap={3} align="center" flexWrap="wrap" justify="space-between" mb={4}>
+      <Flex
+        key="bookings-filter-bar"
+        gap={3}
+        align="center"
+        flexWrap="wrap"
+        mb={4}
+      >
         <InputGroup maxWidth="320px" startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}>
           <Input
+            ref={searchInputRef}
             size="xs"
             placeholder="Search code, name, email, phone"
             value={searchQuery}
@@ -595,39 +623,50 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             </Select.Positioner>
           </Select.Root>
         </HStack>
-        {(missionId ||
-          tripId ||
-          boatId ||
-          bookingStatusFilter ||
-          paymentStatusFilter ||
-          debouncedSearchQuery) && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setMissionId(undefined)
-                setTripId(undefined)
-                setBoatId(undefined)
-                setBookingStatusFilter(undefined)
-                setPaymentStatusFilter(undefined)
-                setSearchQuery("")
-                setDebouncedSearchQuery("")
-                updateFiltersInUrl({
-                  missionId: undefined,
-                  tripId: undefined,
-                  boatId: undefined,
-                  bookingStatus: undefined,
-                  paymentStatus: undefined,
-                  search: undefined,
-                })
-              }}
-            >
-              <Flex align="center" gap={1}>
-                <FiX />
-                Clear filters
-              </Flex>
-            </Button>
-          )}
+        <Button
+          size="sm"
+          variant="ghost"
+          visibility={
+            missionId ||
+            tripId ||
+            boatId ||
+            bookingStatusFilter ||
+            paymentStatusFilter ||
+            debouncedSearchQuery
+              ? "visible"
+              : "hidden"
+          }
+          disabled={
+            !missionId &&
+            !tripId &&
+            !boatId &&
+            !bookingStatusFilter &&
+            !paymentStatusFilter &&
+            !debouncedSearchQuery
+          }
+          onClick={() => {
+            setMissionId(undefined)
+            setTripId(undefined)
+            setBoatId(undefined)
+            setBookingStatusFilter(undefined)
+            setPaymentStatusFilter(undefined)
+            setSearchQuery("")
+            setDebouncedSearchQuery("")
+            updateFiltersInUrl({
+              missionId: undefined,
+              tripId: undefined,
+              boatId: undefined,
+              bookingStatus: undefined,
+              paymentStatus: undefined,
+              search: undefined,
+            })
+          }}
+        >
+          <Flex align="center" gap={1}>
+            <FiX />
+            Clear filters
+          </Flex>
+        </Button>
       </Flex>
 
       <Box overflowX="auto">
@@ -651,8 +690,19 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="48"
-                minW="36"
+                w="60"
+                minW="48"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("user_name")}
+              >
+                <Flex align="center">
+                  Customer info
+                  <SortIcon column="user_name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="36"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -760,6 +810,23 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       <Icon as={FiCopy} boxSize={4} />
                     </IconButton>
                   </Flex>
+                </Table.Cell>
+                <Table.Cell w="60" minW="48">
+                  <VStack align="stretch" gap={0}>
+                    <Text fontSize="md">{booking.user_name}</Text>
+                    <HStack gap={1}>
+                      <Icon as={FiMail} boxSize={3} color="text.muted" />
+                      <Text fontSize="xs" color="text.muted" title={booking.user_email}>
+                        {booking.user_email}
+                      </Text>
+                    </HStack>
+                    <HStack gap={1}>
+                      <Icon as={FiPhone} boxSize={3} color="text.muted" />
+                      <Text fontSize="xs" color="text.muted" title={booking.user_phone}>
+                        {booking.user_phone}
+                      </Text>
+                    </HStack>
+                  </VStack>
                 </Table.Cell>
                 <Table.Cell
                   w="48"
