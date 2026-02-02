@@ -1,3 +1,5 @@
+import React from "react"
+
 import type { JurisdictionPublic } from "../../client"
 import { ActionsMenu } from "../ui/actions-menu"
 import DeleteJurisdiction from "../Jurisdictions/DeleteJurisdiction"

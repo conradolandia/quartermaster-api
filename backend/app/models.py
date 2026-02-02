@@ -372,7 +372,6 @@ class MissionBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     launch_id: uuid.UUID = Field(foreign_key="launch.id")
     active: bool = Field(default=True)
-    sales_open_at: datetime | None = None
     refund_cutoff_hours: int = Field(default=12, ge=0, le=72)
 
 
@@ -384,15 +383,11 @@ class MissionUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     launch_id: uuid.UUID | None = None
     active: bool | None = None
-    sales_open_at: datetime | None = None
     refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
 
 
 class Mission(MissionBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    sales_open_at: datetime | None = Field(
-        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
-    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
@@ -558,13 +553,32 @@ class TripBase(SQLModel):
     booking_mode: str = Field(
         default="private", max_length=20
     )  # private, early_bird, public
+    sales_open_at: datetime | None = None  # trip not bookable until this instant
     check_in_time: datetime
     boarding_time: datetime
     departure_time: datetime
 
 
-class TripCreate(TripBase):
-    pass
+class TripCreate(SQLModel):
+    """API request: departure time plus minute offsets; check_in/boarding are computed."""
+
+    mission_id: uuid.UUID = Field(foreign_key="mission.id")
+    name: str | None = Field(default=None, max_length=255)
+    type: str = Field(max_length=50)  # launch_viewing or pre_launch
+    active: bool = Field(default=True)
+    booking_mode: str = Field(default="private", max_length=20)
+    sales_open_at: datetime | None = None
+    departure_time: datetime
+    boarding_minutes_before_departure: int | None = Field(
+        default=None,
+        ge=0,
+        description="Minutes before departure when boarding starts; default by type",
+    )
+    checkin_minutes_before_boarding: int | None = Field(
+        default=None,
+        ge=0,
+        description="Minutes before boarding when check-in opens; default by type",
+    )
 
 
 class TripUpdate(SQLModel):
@@ -573,13 +587,21 @@ class TripUpdate(SQLModel):
     type: str | None = Field(default=None, max_length=50)
     active: bool | None = None
     booking_mode: str | None = Field(default=None, max_length=20)
-    check_in_time: datetime | None = None
-    boarding_time: datetime | None = None
+    sales_open_at: datetime | None = None
     departure_time: datetime | None = None
+    boarding_minutes_before_departure: int | None = Field(
+        default=None, ge=0, description="Minutes before departure when boarding starts"
+    )
+    checkin_minutes_before_boarding: int | None = Field(
+        default=None, ge=0, description="Minutes before boarding when check-in opens"
+    )
 
 
 class Trip(TripBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    sales_open_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
     check_in_time: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
@@ -627,10 +649,17 @@ class TripPublic(TripBase):
     )
 
     @field_serializer(
-        "check_in_time", "boarding_time", "departure_time", "created_at", "updated_at"
+        "sales_open_at",
+        "check_in_time",
+        "boarding_time",
+        "departure_time",
+        "created_at",
+        "updated_at",
     )
-    def serialize_datetime_utc(self, dt: datetime):
+    def serialize_datetime_utc(self, dt: datetime | None):
         """Serialize datetimes with Z so clients parse as UTC and display in local time."""
+        if dt is None:
+            return None
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.isoformat()
@@ -1273,6 +1302,8 @@ class BookingPublic(BookingBase):
     qr_code_base64: str | None = None
     mission_id: uuid.UUID | None = None
     mission_name: str | None = None
+    trip_name: str | None = None
+    trip_type: str | None = None
     discount_code: "DiscountCodePublic | None" = None
     experience_display: "BookingExperienceDisplay | None" = None
 

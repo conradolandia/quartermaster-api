@@ -39,22 +39,22 @@ Missions are bookable events tied to a Launch. A single Launch can have multiple
 | `name` | string | Yes | - | Mission name |
 | `launch_id` | UUID | Yes | - | Reference to an existing Launch |
 | `active` | boolean | No | `true` | Whether the mission is active |
-| `booking_mode` | string | No | `private` | Who can book: `private`, `early_bird`, or `public` |
-| `sales_open_at` | datetime | No | - | When ticket sales open (ISO 8601) |
 | `refund_cutoff_hours` | integer | No | `12` | Hours before launch when refunds close (0-72) |
 
 ### Trip
 
-Trips are specific departures within a Mission. Customers book seats on Trips.
+Trips are specific departures within a Mission. Customers book seats on Trips. Check-in and boarding times are computed from departure time and minute offsets.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `mission_id` | UUID | Yes | - | Reference to an existing Mission |
-| `type` | string | Yes | - | Trip type (max 50 chars, e.g., "boat", "bus") |
+| `mission_id` | UUID | Yes (single) | - | Reference to an existing Mission (or use `mission_ref` in multi-doc) |
+| `type` | string | Yes | - | `launch_viewing` or `pre_launch` |
+| `departure_time` | datetime | Yes | - | When the trip departs (ISO 8601). Check-in and boarding are derived from this and the offset fields. |
+| `boarding_minutes_before_departure` | integer | No | 30 (launch_viewing), 15 (pre_launch) | Minutes before departure when boarding starts |
+| `checkin_minutes_before_boarding` | integer | No | 30 (launch_viewing), 15 (pre_launch) | Minutes before boarding when check-in opens |
 | `name` | string | No | - | Optional label for the trip |
-| `check_in_time` | datetime | Yes | - | When passengers should check in (ISO 8601) |
-| `boarding_time` | datetime | Yes | - | When boarding begins (ISO 8601) |
-| `departure_time` | datetime | Yes | - | When the trip departs (ISO 8601) |
+| `booking_mode` | string | No | `private` | Who can book: `private`, `early_bird`, or `public` |
+| `sales_open_at` | datetime | No | - | When ticket sales open for this trip (ISO 8601). Trip is not bookable until this instant. |
 | `active` | boolean | No | `true` | Whether the trip is active |
 
 ## Datetime Format

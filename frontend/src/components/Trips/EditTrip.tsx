@@ -65,14 +65,22 @@ interface EditTripProps {
   initialTab?: EditTripTab
   /** When set, trigger button shows this label instead of "Edit Trip". */
   triggerLabel?: string
+  /** When provided, dialog open state is controlled (e.g. open after duplicate). */
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const EditTrip = ({
   trip,
   initialTab = "basic-info",
   triggerLabel = "Edit Trip",
+  isOpen: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: EditTripProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isOpen = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const [missionId, setMissionId] = useState(trip.mission_id)
   const [name, setName] = useState(trip.name ?? "")
   const [type, setType] = useState(trip.type)
@@ -82,17 +90,33 @@ const EditTrip = ({
   )
 
   const tz = trip.timezone ?? "UTC"
-  // Check if trip is in the past (parse API datetime as UTC for correct comparison)
-  const isPast = parseApiDate(trip.departure_time) < new Date()
-  const [checkInTime, setCheckInTime] = useState(
-    formatInLocationTimezone(parseApiDate(trip.check_in_time), tz),
-  )
-  const [boardingTime, setBoardingTime] = useState(
-    formatInLocationTimezone(parseApiDate(trip.boarding_time), tz),
-  )
+  const dep = parseApiDate(trip.departure_time)
+  const board = parseApiDate(trip.boarding_time)
+  const checkIn = parseApiDate(trip.check_in_time)
+  // Editable up to 24h after departure (for delays/scrubs)
+  const editableUntil = new Date(dep.getTime() + 24 * 60 * 60 * 1000)
+  const isPast = new Date() > editableUntil
   const [departureTime, setDepartureTime] = useState(
-    formatInLocationTimezone(parseApiDate(trip.departure_time), tz),
+    formatInLocationTimezone(dep, tz),
   )
+  const [salesOpenAt, setSalesOpenAt] = useState(
+    (trip as { sales_open_at?: string | null }).sales_open_at
+      ? formatInLocationTimezone(
+          parseApiDate(
+            (trip as { sales_open_at?: string | null }).sales_open_at!,
+          ),
+          tz,
+        )
+      : "",
+  )
+  const [boardingMinutesBeforeDeparture, setBoardingMinutesBeforeDeparture] =
+    useState(() =>
+      Math.round((dep.getTime() - board.getTime()) / (60 * 1000)),
+    )
+  const [checkinMinutesBeforeBoarding, setCheckinMinutesBeforeBoarding] =
+    useState(() =>
+      Math.round((board.getTime() - checkIn.getTime()) / (60 * 1000)),
+    )
   const [boatsData, setBoatsData] = useState<any[]>([])
   const [tripBoats, setTripBoats] = useState<any[]>([])
   const [selectedBoatId, setSelectedBoatId] = useState("")
@@ -143,7 +167,7 @@ const EditTrip = ({
       }),
     onSuccess: () => {
       showSuccessToast("Trip updated successfully.")
-      setIsOpen(false)
+      setOpen(false)
     },
     onError: (err: ApiError) => {
       handleError(err)
@@ -386,7 +410,7 @@ const EditTrip = ({
     setEditingOverridePrice("")
   }, [selectedTripBoatForPricing?.id])
 
-  // Sync inputs when dialog opens or trip changes (location timezone)
+  // Sync inputs when dialog opens or trip changes (e.g. after duplicate)
   useEffect(() => {
     if (isOpen) {
       const zone = trip.timezone ?? "UTC"
@@ -395,14 +419,23 @@ const EditTrip = ({
       setType(trip.type)
       setActive(trip.active ?? true)
       setBookingMode(trip.booking_mode ?? "private")
-      setCheckInTime(
-        formatInLocationTimezone(parseApiDate(trip.check_in_time), zone),
-      )
-      setBoardingTime(
-        formatInLocationTimezone(parseApiDate(trip.boarding_time), zone),
-      )
       setDepartureTime(
         formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
+      )
+      const salesOpen = (trip as { sales_open_at?: string | null }).sales_open_at
+      setSalesOpenAt(
+        salesOpen
+          ? formatInLocationTimezone(parseApiDate(salesOpen), zone)
+          : "",
+      )
+      const d = parseApiDate(trip.departure_time)
+      const b = parseApiDate(trip.boarding_time)
+      const c = parseApiDate(trip.check_in_time)
+      setBoardingMinutesBeforeDeparture(
+        Math.round((d.getTime() - b.getTime()) / (60 * 1000)),
+      )
+      setCheckinMinutesBeforeBoarding(
+        Math.round((b.getTime() - c.getTime()) / (60 * 1000)),
       )
     }
   }, [
@@ -417,6 +450,7 @@ const EditTrip = ({
     trip.boarding_time,
     trip.departure_time,
     trip.timezone,
+    (trip as { sales_open_at?: string | null }).sales_open_at,
   ])
 
   // Create a map of boat ids to boat objects for quick lookup
@@ -506,7 +540,12 @@ const EditTrip = ({
   }
 
   const handleSubmit = () => {
-    if (!missionId || !checkInTime || !boardingTime || !departureTime) return
+    if (!missionId || !departureTime) return
+    if (
+      boardingMinutesBeforeDeparture < 0 ||
+      checkinMinutesBeforeBoarding < 0
+    )
+      return
 
     mutation.mutate({
       mission_id: missionId,
@@ -514,9 +553,12 @@ const EditTrip = ({
       type: type,
       active: active,
       booking_mode: bookingMode,
-      check_in_time: parseLocationTimeToUtc(checkInTime, tz),
-      boarding_time: parseLocationTimeToUtc(boardingTime, tz),
+      sales_open_at: salesOpenAt
+        ? parseLocationTimeToUtc(salesOpenAt, tz)
+        : null,
       departure_time: parseLocationTimeToUtc(departureTime, tz),
+      boarding_minutes_before_departure: boardingMinutesBeforeDeparture,
+      checkin_minutes_before_boarding: checkinMinutesBeforeBoarding,
     })
   }
 
@@ -526,22 +568,26 @@ const EditTrip = ({
         size={{ base: "xs", md: "md" }}
         placement="center"
         open={isOpen}
-        onOpenChange={({ open }) => setIsOpen(open)}
+        onOpenChange={({ open }) => setOpen(open)}
       >
-        <DialogTrigger asChild>
-          <Button
-            variant="ghost"
-            disabled={isPast}
-            title={
-              isPast
-                ? "This trip has already departed and cannot be edited"
-                : ""
-            }
-          >
-            <FiEdit fontSize="16px" />
-            {triggerLabel}
-          </Button>
-        </DialogTrigger>
+        {!isControlled && (
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              disabled={isPast}
+              title={
+                isPast
+                  ? "This trip is no longer editable (more than 24 hours after departure)"
+                  : ""
+              }
+            >
+              <FiEdit fontSize="16px" />
+              {triggerLabel}
+            </Button>
+          </DialogTrigger>
+        )}
 
         <DialogContent ref={contentRef}>
           <form
@@ -557,9 +603,8 @@ const EditTrip = ({
             <DialogBody>
               {isPast && (
                 <Text mb={4} color="orange.500">
-                  This trip has already departed and cannot be edited. Contact a
-                  system administrator if you need to make changes to past
-                  trips.
+                  This trip is no longer editable (more than 24 hours after
+                  departure). Contact an administrator if you need to change it.
                 </Text>
               )}
               <Tabs.Root defaultValue={initialTab} variant="subtle">
@@ -628,33 +673,6 @@ const EditTrip = ({
                       </NativeSelect>
                     </Field>
 
-                    <Field label={`Check-in Time (${tz})`} required>
-                      <Input
-                        id="check_in_time"
-                        type="datetime-local"
-                        value={checkInTime}
-                        onChange={(e) => setCheckInTime(e.target.value)}
-                        placeholder={`Enter time in ${tz}`}
-                        disabled={mutation.isPending || isPast}
-                      />
-                    </Field>
-
-                    <Field
-                      label={`Boarding Time (${formatLocationTimezoneDisplay(
-                        tz,
-                      )})`}
-                      required
-                    >
-                      <Input
-                        id="boarding_time"
-                        type="datetime-local"
-                        value={boardingTime}
-                        onChange={(e) => setBoardingTime(e.target.value)}
-                        placeholder={`Enter time in ${tz}`}
-                        disabled={mutation.isPending || isPast}
-                      />
-                    </Field>
-
                     <Field
                       label={`Departure Time (${formatLocationTimezoneDisplay(
                         tz,
@@ -667,6 +685,64 @@ const EditTrip = ({
                         value={departureTime}
                         onChange={(e) => setDepartureTime(e.target.value)}
                         placeholder={`Enter time in ${tz}`}
+                        disabled={mutation.isPending || isPast}
+                      />
+                    </Field>
+
+                    <Field
+                      label={`Sales Open (${formatLocationTimezoneDisplay(
+                        tz,
+                      )})`}
+                      helperText="Trip is not bookable until this time. Leave empty for no restriction."
+                    >
+                      <Input
+                        id="sales_open_at"
+                        type="datetime-local"
+                        value={salesOpenAt}
+                        onChange={(e) => setSalesOpenAt(e.target.value)}
+                        placeholder={`Enter time in ${tz}`}
+                        disabled={mutation.isPending || isPast}
+                      />
+                    </Field>
+
+                    <Field
+                      label="Boarding (minutes before departure)"
+                      helperText="When boarding starts relative to departure"
+                    >
+                      <Input
+                        id="boarding_minutes"
+                        type="number"
+                        min={0}
+                        value={boardingMinutesBeforeDeparture}
+                        onChange={(e) =>
+                          setBoardingMinutesBeforeDeparture(
+                            Math.max(
+                              0,
+                              parseInt(e.target.value, 10) || 0,
+                            ),
+                          )
+                        }
+                        disabled={mutation.isPending || isPast}
+                      />
+                    </Field>
+
+                    <Field
+                      label="Check-in (minutes before boarding)"
+                      helperText="When check-in opens relative to boarding"
+                    >
+                      <Input
+                        id="checkin_minutes"
+                        type="number"
+                        min={0}
+                        value={checkinMinutesBeforeBoarding}
+                        onChange={(e) =>
+                          setCheckinMinutesBeforeBoarding(
+                            Math.max(
+                              0,
+                              parseInt(e.target.value, 10) || 0,
+                            ),
+                          )
+                        }
                         disabled={mutation.isPending || isPast}
                       />
                     </Field>
@@ -1750,8 +1826,6 @@ const EditTrip = ({
                   disabled={
                     isPast ||
                     !missionId ||
-                    !checkInTime ||
-                    !boardingTime ||
                     !departureTime ||
                     mutation.isPending
                   }

@@ -16,6 +16,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   BoatsService,
+  LaunchesService,
   MerchandiseService,
   MissionsService,
   TripBoatPricingService,
@@ -40,8 +41,10 @@ import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatCents,
+  formatInLocationTimezone,
   formatLocationTimezoneDisplay,
   handleError,
+  parseApiDate,
   parseLocationTimeToUtc,
 } from "@/utils"
 
@@ -86,9 +89,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [type, setType] = useState("launch_viewing")
   const [active, setActive] = useState(true)
   const [bookingMode, setBookingMode] = useState("private")
-  const [checkInTime, setCheckInTime] = useState("")
-  const [boardingTime, setBoardingTime] = useState("")
   const [departureTime, setDepartureTime] = useState("")
+  const [salesOpenAt, setSalesOpenAt] = useState("")
+  const [boardingMinutesBeforeDeparture, setBoardingMinutesBeforeDeparture] =
+    useState(30)
+  const [checkinMinutesBeforeBoarding, setCheckinMinutesBeforeBoarding] =
+    useState(30)
   const { showSuccessToast } = useCustomToast()
   const queryClient = useQueryClient()
   const contentRef = useRef(null)
@@ -133,6 +139,13 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   })
   const timezone = missionData?.timezone ?? null
 
+  const { data: launchData } = useQuery({
+    queryKey: ["launch-for-add-trip", missionData?.launch_id],
+    queryFn: () =>
+      LaunchesService.readLaunch({ launchId: missionData!.launch_id }),
+    enabled: !!missionData?.launch_id && isOpen,
+  })
+
   const { data: catalogMerchandise } = useQuery({
     queryKey: ["merchandise-catalog"],
     queryFn: () =>
@@ -147,6 +160,34 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     }
   }, [allBoats])
 
+  // Default offsets by type: launch_viewing 30/30, pre_launch 15/15
+  useEffect(() => {
+    if (type === "launch_viewing") {
+      setBoardingMinutesBeforeDeparture(30)
+      setCheckinMinutesBeforeBoarding(30)
+    } else {
+      setBoardingMinutesBeforeDeparture(15)
+      setCheckinMinutesBeforeBoarding(15)
+    }
+  }, [type])
+
+  // Pre-fill departure from launch (launch - 2h) when type is launch_viewing and mission/launch loaded (only when empty)
+  useEffect(() => {
+    if (
+      !isOpen ||
+      type !== "launch_viewing" ||
+      !launchData?.launch_timestamp ||
+      !timezone ||
+      departureTime.trim() !== ""
+    )
+      return
+    const launchDate = parseApiDate(launchData.launch_timestamp)
+    const departureDate = new Date(
+      launchDate.getTime() - 2 * 60 * 60 * 1000,
+    )
+    setDepartureTime(formatInLocationTimezone(departureDate, timezone))
+  }, [isOpen, type, launchData?.launch_timestamp, timezone, departureTime])
+
   // Reset form on close
   useEffect(() => {
     if (!isOpen) {
@@ -155,9 +196,10 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setType("launch_viewing")
       setActive(true)
       setBookingMode("private")
-      setCheckInTime("")
-      setBoardingTime("")
       setDepartureTime("")
+      setSalesOpenAt("")
+      setBoardingMinutesBeforeDeparture(30)
+      setCheckinMinutesBeforeBoarding(30)
       setSelectedBoats([])
       setSelectedBoatId("")
       setMaxCapacity(undefined)
@@ -353,9 +395,10 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setType("launch_viewing")
       setActive(true)
       setBookingMode("private")
-      setCheckInTime("")
-      setBoardingTime("")
       setDepartureTime("")
+      setSalesOpenAt("")
+      setBoardingMinutesBeforeDeparture(30)
+      setCheckinMinutesBeforeBoarding(30)
       setSelectedBoats([])
       setSelectedPricing([])
       setSelectedMerchandise([])
@@ -372,13 +415,16 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   })
 
   const handleSubmit = async () => {
-    if (!missionId || !checkInTime || !boardingTime || !departureTime) return
-    // Require at least one boat
+    if (!missionId || !departureTime) return
+    if (
+      boardingMinutesBeforeDeparture < 0 ||
+      checkinMinutesBeforeBoarding < 0
+    )
+      return
     if (selectedBoats.length === 0) {
       showSuccessToast("Please add at least one boat to the trip")
       return
     }
-    // Require at least one ticket price
     if (selectedPricing.length === 0) {
       showSuccessToast(
         "Please configure at least one ticket price (e.g., Adult)",
@@ -393,9 +439,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       type: type,
       active: active,
       booking_mode: bookingMode,
-      check_in_time: parseLocationTimeToUtc(checkInTime, tz),
-      boarding_time: parseLocationTimeToUtc(boardingTime, tz),
+      sales_open_at: salesOpenAt
+        ? parseLocationTimeToUtc(salesOpenAt, tz)
+        : null,
       departure_time: parseLocationTimeToUtc(departureTime, tz),
+      boarding_minutes_before_departure: boardingMinutesBeforeDeparture,
+      checkin_minutes_before_boarding: checkinMinutesBeforeBoarding,
     })
   }
 
@@ -473,58 +522,15 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                 <Field
                   label={
                     timezone
-                      ? `Check-in Time (${formatLocationTimezoneDisplay(
-                          timezone,
-                        )})`
-                      : "Check-in Time"
-                  }
-                  required
-                >
-                  <Input
-                    id="check_in_time"
-                    type="datetime-local"
-                    value={checkInTime}
-                    onChange={(e) => setCheckInTime(e.target.value)}
-                    placeholder={
-                      timezone
-                        ? `Enter time in ${formatLocationTimezoneDisplay(
-                            timezone,
-                          )}`
-                        : "Select mission for timezone"
-                    }
-                  />
-                </Field>
-                <Field
-                  label={
-                    timezone
-                      ? `Boarding Time (${formatLocationTimezoneDisplay(
-                          timezone,
-                        )})`
-                      : "Boarding Time"
-                  }
-                  required
-                >
-                  <Input
-                    id="boarding_time"
-                    type="datetime-local"
-                    value={boardingTime}
-                    onChange={(e) => setBoardingTime(e.target.value)}
-                    placeholder={
-                      timezone
-                        ? `Enter time in ${formatLocationTimezoneDisplay(
-                            timezone,
-                          )}`
-                        : "Select mission for timezone"
-                    }
-                  />
-                </Field>
-                <Field
-                  label={
-                    timezone
                       ? `Departure Time (${formatLocationTimezoneDisplay(
                           timezone,
                         )})`
                       : "Departure Time"
+                  }
+                  helperText={
+                    type === "launch_viewing" && launchData
+                      ? "Pre-filled from launch time minus 2 hours"
+                      : undefined
                   }
                   required
                 >
@@ -539,6 +545,62 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             timezone,
                           )}`
                         : "Select mission for timezone"
+                    }
+                  />
+                </Field>
+                <Field
+                  label={
+                    timezone
+                      ? `Sales Open (${formatLocationTimezoneDisplay(
+                          timezone,
+                        )})`
+                      : "Sales Open"
+                  }
+                  helperText="Trip is not bookable until this time. Leave empty for no restriction."
+                >
+                  <Input
+                    id="sales_open_at"
+                    type="datetime-local"
+                    value={salesOpenAt}
+                    onChange={(e) => setSalesOpenAt(e.target.value)}
+                    placeholder={
+                      timezone
+                        ? `Enter time in ${formatLocationTimezoneDisplay(
+                            timezone,
+                          )}`
+                        : "Select mission for timezone"
+                    }
+                  />
+                </Field>
+                <Field
+                  label="Boarding (minutes before departure)"
+                  helperText="When boarding starts relative to departure"
+                >
+                  <Input
+                    id="boarding_minutes"
+                    type="number"
+                    min={0}
+                    value={boardingMinutesBeforeDeparture}
+                    onChange={(e) =>
+                      setBoardingMinutesBeforeDeparture(
+                        Math.max(0, parseInt(e.target.value, 10) || 0),
+                      )
+                    }
+                  />
+                </Field>
+                <Field
+                  label="Check-in (minutes before boarding)"
+                  helperText="When check-in opens relative to boarding"
+                >
+                  <Input
+                    id="checkin_minutes"
+                    type="number"
+                    min={0}
+                    value={checkinMinutesBeforeBoarding}
+                    onChange={(e) =>
+                      setCheckinMinutesBeforeBoarding(
+                        Math.max(0, parseInt(e.target.value, 10) || 0),
+                      )
                     }
                   />
                 </Field>
@@ -953,8 +1015,6 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
               loading={mutation.isPending}
               disabled={
                 !missionId ||
-                !checkInTime ||
-                !boardingTime ||
                 !departureTime ||
                 selectedBoats.length === 0 ||
                 mutation.isPending

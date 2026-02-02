@@ -36,14 +36,12 @@ import {
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
 import { formatCents } from "@/utils"
-import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns (must match MissionWithStats keys)
 type SortableColumn =
   | "name"
   | "launch_id"
   | "trip_count"
-  | "sales_open_at"
   | "active"
   | "total_bookings"
   | "total_sales"
@@ -57,7 +55,6 @@ const missionsSearchSchema = z.object({
       "name",
       "launch_id",
       "trip_count",
-      "sales_open_at",
       "active",
       "total_bookings",
       "total_sales",
@@ -77,12 +74,6 @@ const sortMissions = (
   return [...missions].sort((a, b) => {
     let aValue: unknown = a[sortBy]
     let bValue: unknown = b[sortBy]
-
-    // Special handling for dates (parse as UTC for correct ordering)
-    if (sortBy === "sales_open_at") {
-      aValue = a.sales_open_at ? parseApiDate(a.sales_open_at).getTime() : 0
-      bValue = b.sales_open_at ? parseApiDate(b.sales_open_at).getTime() : 0
-    }
 
     // Coerce optional numeric stats to 0 for sorting
     if (
@@ -216,34 +207,6 @@ function Missions() {
     )
   }
 
-  const renderSalesOpenAt = (
-    dateString: string | null | undefined,
-    timezone?: string | null,
-  ) => {
-    if (!dateString) return "Not set"
-    const d = parseApiDate(dateString)
-    const parts = timezone
-      ? formatInLocationTimezoneWithAbbr(d, timezone)
-      : null
-    if (parts) {
-      return (
-        <>
-          {parts.dateTime}
-          <Text as="span" display="block" fontSize="xs" opacity={0.7}>
-            {parts.timezoneAbbr}
-          </Text>
-        </>
-      )
-    }
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
   return (
     <Container maxW="full">
       <Flex justify="space-between" align="center" pt={12} pb={4}>
@@ -310,19 +273,6 @@ function Missions() {
                   </Flex>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader
-                  w="sm"
-                  minW="140px"
-                  fontWeight="bold"
-                  cursor="pointer"
-                  onClick={() => handleSort("sales_open_at")}
-                  display={{ base: "none", lg: "table-cell" }}
-                >
-                  <Flex align="center">
-                    Sales Open
-                    <SortIcon column="sales_open_at" />
-                  </Flex>
-                </Table.ColumnHeader>
-                <Table.ColumnHeader
                   w="30"
                   fontWeight="bold"
                   cursor="pointer"
@@ -381,12 +331,6 @@ function Missions() {
                   </Table.Cell>
                   <Table.Cell
                     display={{ base: "none", lg: "table-cell" }}
-                    minW="140px"
-                  >
-                    {renderSalesOpenAt(mission.sales_open_at, mission.timezone)}
-                  </Table.Cell>
-                  <Table.Cell
-                    display={{ base: "none", lg: "table-cell" }}
                     textAlign="center"
                     w="12"
                   >
@@ -414,7 +358,6 @@ function Missions() {
                         mission={{
                           ...mission,
                           active: mission.active ?? false,
-                          sales_open_at: mission.sales_open_at ?? null,
                           refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
                         }}
                       />

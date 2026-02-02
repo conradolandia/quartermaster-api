@@ -5,7 +5,8 @@
 # Missions: use launch_ref (0-based index into launches in this file) or
 #   launch_id (UUID string) to reference an existing launch.
 # Trips: use mission_ref (0-based index into missions in this file) or
-#   mission_id (UUID string) to reference an existing mission.
+#   mission_id (UUID string). Required: type, departure_time.
+#   Optional: boarding_minutes_before_departure, checkin_minutes_before_boarding (defaults by type).
 
 launches:
   - name: "SpaceX Falcon 9 - Starlink Group 6-1"
@@ -15,34 +16,32 @@ launches:
 
 missions:
   - name: "Starlink 6-1 River Cruise"
-    launch_ref: 0  # References first launch above
+    launch_ref: 0
     active: true
-    booking_mode: "public"
-    sales_open_at: "2024-05-01T00:00:00Z"
     refund_cutoff_hours: 24
   - name: "Starlink 6-1 VIP Viewing"
     launch_ref: 0
     active: true
-    booking_mode: "early_bird"
     refund_cutoff_hours: 12
 
 trips:
-  - mission_ref: 0  # First mission
-    type: "boat"
-    check_in_time: "2024-06-15T15:00:00Z"
-    boarding_time: "2024-06-15T15:45:00Z"
+  - mission_ref: 0
+    type: "launch_viewing"
     departure_time: "2024-06-15T16:30:00Z"
+    sales_open_at: "2024-05-01T00:00:00Z"
+    boarding_minutes_before_departure: 45
+    checkin_minutes_before_boarding: 45
     active: true
   - mission_ref: 0
-    type: "boat"
+    type: "launch_viewing"
     name: "Afternoon departure"
-    check_in_time: "2024-06-15T17:00:00Z"
-    boarding_time: "2024-06-15T17:45:00Z"
     departure_time: "2024-06-15T18:15:00Z"
+    boarding_minutes_before_departure: 45
+    checkin_minutes_before_boarding: 45
     active: true
-  - mission_ref: 1  # Second mission
-    type: "bus"
-    check_in_time: "2024-06-15T14:00:00Z"
-    boarding_time: "2024-06-15T14:30:00Z"
+  - mission_ref: 1
+    type: "pre_launch"
     departure_time: "2024-06-15T15:00:00Z"
+    boarding_minutes_before_departure: 15
+    checkin_minutes_before_boarding: 15
     active: true

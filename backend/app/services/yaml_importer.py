@@ -4,7 +4,18 @@ from datetime import datetime
 
 from sqlmodel import Session
 
-from app.models import Launch, LaunchCreate, Mission, MissionCreate, Trip, TripCreate
+from app.models import (
+    Launch,
+    LaunchCreate,
+    Mission,
+    MissionCreate,
+    Trip,
+    TripBase,
+)
+from app.services.trip_times import (
+    compute_trip_times_from_departure_and_offsets,
+    get_default_offsets_for_type,
+)
 from app.services.yaml_validator import YamlValidator
 
 logger = logging.getLogger(__name__)
@@ -87,7 +98,6 @@ class YamlImporter:
                 if isinstance(data["launch_id"], str)
                 else data["launch_id"],
                 active=data.get("active", True),
-                sales_open_at=_parse_dt(data.get("sales_open_at")),
                 refund_cutoff_hours=data.get("refund_cutoff_hours", 12),
             )
 
@@ -122,18 +132,42 @@ class YamlImporter:
             # Validate YAML
             data = YamlValidator.validate_yaml_content(yaml_content, "trip")
 
-            # Convert to TripCreate
-            trip_data = TripCreate(
-                mission_id=uuid.UUID(data["mission_id"])
+            departure_time = _parse_dt(data["departure_time"])
+            if not departure_time:
+                raise ValueError("departure_time is required")
+            trip_type = data["type"]
+            boarding_min = data.get("boarding_minutes_before_departure")
+            checkin_min = data.get("checkin_minutes_before_boarding")
+            if boarding_min is None or checkin_min is None:
+                default_boarding, default_checkin = get_default_offsets_for_type(
+                    trip_type
+                )
+                if boarding_min is None:
+                    boarding_min = default_boarding
+                if checkin_min is None:
+                    checkin_min = default_checkin
+            (
+                check_in_time,
+                boarding_time,
+                _,
+            ) = compute_trip_times_from_departure_and_offsets(
+                departure_time, boarding_min, checkin_min
+            )
+            mission_id = (
+                uuid.UUID(data["mission_id"])
                 if isinstance(data["mission_id"], str)
-                else data["mission_id"],
+                else data["mission_id"]
+            )
+            trip_data = TripBase(
+                mission_id=mission_id,
                 name=data.get("name"),
-                type=data["type"],
+                type=trip_type,
                 active=data.get("active", True),
                 booking_mode=data.get("booking_mode", "private"),
-                check_in_time=_parse_dt(data["check_in_time"]),
-                boarding_time=_parse_dt(data["boarding_time"]),
-                departure_time=_parse_dt(data["departure_time"]),
+                sales_open_at=_parse_dt(data.get("sales_open_at")),
+                check_in_time=check_in_time,
+                boarding_time=boarding_time,
+                departure_time=departure_time,
             )
 
             # Create trip in database
@@ -210,17 +244,37 @@ class YamlImporter:
                     mission_id = created_missions[item["mission_ref"]].id
                 elif isinstance(mission_id, str):
                     mission_id = uuid.UUID(mission_id)
-                elif isinstance(mission_id, str):
-                    mission_id = uuid.UUID(mission_id)
-                trip_data = TripCreate(
+                departure_time = _parse_dt(item["departure_time"])
+                if not departure_time:
+                    raise ValueError("departure_time is required for trip")
+                trip_type = item["type"]
+                boarding_min = item.get("boarding_minutes_before_departure")
+                checkin_min = item.get("checkin_minutes_before_boarding")
+                if boarding_min is None or checkin_min is None:
+                    default_boarding, default_checkin = get_default_offsets_for_type(
+                        trip_type
+                    )
+                    if boarding_min is None:
+                        boarding_min = default_boarding
+                    if checkin_min is None:
+                        checkin_min = default_checkin
+                (
+                    check_in_time,
+                    boarding_time,
+                    _,
+                ) = compute_trip_times_from_departure_and_offsets(
+                    departure_time, boarding_min, checkin_min
+                )
+                trip_data = TripBase(
                     mission_id=mission_id,
                     name=item.get("name"),
-                    type=item["type"],
+                    type=trip_type,
                     active=item.get("active", True),
                     booking_mode=item.get("booking_mode", "private"),
-                    check_in_time=_parse_dt(item["check_in_time"]),
-                    boarding_time=_parse_dt(item["boarding_time"]),
-                    departure_time=_parse_dt(item["departure_time"]),
+                    sales_open_at=_parse_dt(item.get("sales_open_at")),
+                    check_in_time=check_in_time,
+                    boarding_time=boarding_time,
+                    departure_time=departure_time,
                 )
                 trip = Trip.model_validate(trip_data)
                 self.session.add(trip)

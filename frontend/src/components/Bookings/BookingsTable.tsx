@@ -6,6 +6,7 @@ import {
   Flex,
   Icon,
   IconButton,
+  Input,
   Select,
   Table,
   Text,
@@ -13,8 +14,8 @@ import {
   createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiX } from "react-icons/fi"
+import { useEffect, useRef, useState } from "react"
+import { FiArrowDown, FiArrowUp, FiCopy, FiSearch, FiX } from "react-icons/fi"
 
 import {
   BoatsService,
@@ -25,6 +26,7 @@ import {
 import type { TripPublic } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import PendingBookings from "@/components/Pending/PendingBookings"
+import { InputGroup } from "@/components/ui/input-group"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -36,10 +38,16 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import {
+  formatCents,
+  formatDateTimeInLocationTz,
+  parseApiDate,
+} from "@/utils"
 import {
   type SortDirection,
   type SortableColumn,
+  formatBookingStatusLabel,
+  formatPaymentStatusLabel,
   getBookingStatusColor,
   getPaymentStatusColor,
   getRefundedCents,
@@ -85,6 +93,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<
     string | undefined
   >(initialSearch.get("paymentStatus") || undefined)
+  const [searchQuery, setSearchQuery] = useState<string>(
+    initialSearch.get("search") || "",
+  )
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>(
+    initialSearch.get("search") || "",
+  )
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchParams, setSearchParams] = useState(initialSearch)
 
   const copyConfirmationCode = (e: React.MouseEvent, code: string) => {
@@ -106,17 +121,43 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const sortDirection =
     (searchParams.get("sortDirection") as SortDirection) || "desc"
 
-  // Listen for URL changes
+  // Debounce search: update URL and API trigger after user stops typing
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => {
+      const trimmed = searchQuery.trim()
+      setDebouncedSearchQuery(trimmed)
+      const params = new URLSearchParams(window.location.search)
+      if (trimmed) params.set("search", trimmed)
+      else params.delete("search")
+      params.set("page", "1")
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}?${params.toString()}`,
+      )
+      setSearchParams(new URLSearchParams(params.toString()))
+    }, 300)
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
+  }, [searchQuery])
+
+  // Listen for URL changes (e.g. browser back/forward)
   useEffect(() => {
     const handlePopState = () => {
-      setSearchParams(new URLSearchParams(window.location.search))
+      const params = new URLSearchParams(window.location.search)
+      setSearchParams(params)
+      const search = params.get("search") || ""
+      setSearchQuery(search)
+      setDebouncedSearchQuery(search)
     }
 
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  // Fetch bookings with mission, trip, boat, status filters and sorting
+  // Fetch bookings with mission, trip, boat, status, search filters and sorting
   const {
     data: bookingsData,
     isLoading,
@@ -131,6 +172,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       boatId,
       bookingStatusFilter,
       paymentStatusFilter,
+      debouncedSearchQuery || null,
       sortBy,
       sortDirection,
     ],
@@ -143,6 +185,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         boatId: boatId || undefined,
         bookingStatus: bookingStatusFilter || undefined,
         paymentStatus: paymentStatusFilter || undefined,
+        search: debouncedSearchQuery || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
       }),
@@ -213,6 +256,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     boatId?: string
     bookingStatus?: string
     paymentStatus?: string
+    search?: string
   }) => {
     const params = new URLSearchParams(window.location.search)
     if (updates.missionId !== undefined) {
@@ -235,6 +279,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       if (updates.paymentStatus) params.set("paymentStatus", updates.paymentStatus)
       else params.delete("paymentStatus")
     }
+    if (updates.search !== undefined) {
+      if (updates.search) params.set("search", updates.search)
+      else params.delete("search")
+    }
     params.set("page", "1")
     window.history.replaceState(
       {},
@@ -242,6 +290,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       `${window.location.pathname}?${params.toString()}`,
     )
     setSearchParams(new URLSearchParams(params.toString()))
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
   }
 
   const handleMissionFilter = (selectedMissionId?: string) => {
@@ -385,172 +437,197 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
+  const filterSelectWidth = "160px"
+
   return (
     <>
-      <Flex mb={4} gap={3} align="center" flexWrap="wrap">
-        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Mission:
-        </Text>
-        <Select.Root
-          collection={missionsCollection}
-          size="xs"
-          width="250px"
-          borderColor="white"
-          value={missionId ? [missionId] : [""]}
-          onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
-        >
-          <Select.Control width="100%">
-            <Select.Trigger>
-              <Select.ValueText placeholder="All Missions" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content minWidth="300px">
-              {missionsCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Trip:
-        </Text>
-        <Select.Root
-          collection={tripsCollection}
-          size="xs"
-          width="280px"
-          borderColor="white"
-          value={tripId ? [tripId] : [""]}
-          onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
-        >
-          <Select.Control width="100%">
-            <Select.Trigger>
-              <Select.ValueText placeholder="All Trips" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content minWidth="320px">
-              {tripsCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
+      <Flex gap={3} align="center" flexWrap="wrap" justify="space-between" mb={4}>
+        <InputGroup maxWidth="320px" startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}>
+          <Input
+            size="xs"
+            placeholder="Search code, name, email, phone"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            borderColor="white"
+          />
+        </InputGroup>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Mission:
+          </Text>
+          <Select.Root
+            collection={missionsCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={missionId ? [missionId] : [""]}
+            onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All Missions" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="300px">
+                {missionsCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
             </Select.Positioner>
-        </Select.Root>
-        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Boat:
-        </Text>
-        <Select.Root
-          collection={boatsCollection}
-          size="xs"
-          width="200px"
-          borderColor="white"
-          value={boatId ? [boatId] : [""]}
-          onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
-        >
-          <Select.Control width="100%">
-            <Select.Trigger>
-              <Select.ValueText placeholder="All Boats" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content minWidth="220px">
-              {boatsCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Booking:
-        </Text>
-        <Select.Root
-          collection={bookingStatusCollection}
-          size="xs"
-          width="140px"
-          borderColor="white"
-          value={bookingStatusFilter ? [bookingStatusFilter] : [""]}
-          onValueChange={(e) =>
-            handleBookingStatusFilter(e.value[0] || undefined)
-          }
-        >
-          <Select.Control width="100%">
-            <Select.Trigger>
-              <Select.ValueText placeholder="All" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content minWidth="160px">
-              {bookingStatusCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
-        <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-          Payment:
-        </Text>
-        <Select.Root
-          collection={paymentStatusCollection}
-          size="xs"
-          width="140px"
-          borderColor="white"
-          value={paymentStatusFilter ? [paymentStatusFilter] : [""]}
-          onValueChange={(e) =>
-            handlePaymentStatusFilter(e.value[0] || undefined)
-          }
-        >
-          <Select.Control width="100%">
-            <Select.Trigger>
-              <Select.ValueText placeholder="All" />
-            </Select.Trigger>
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content minWidth="180px">
-              {paymentStatusCollection.items.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  {item.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select.Root>
+          </Select.Root>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Trip:
+          </Text>
+          <Select.Root
+            collection={tripsCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={tripId ? [tripId] : [""]}
+            onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All Trips" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="320px">
+                {tripsCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Boat:
+          </Text>
+          <Select.Root
+            collection={boatsCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={boatId ? [boatId] : [""]}
+            onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All Boats" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="220px">
+                {boatsCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Booking:
+          </Text>
+          <Select.Root
+            collection={bookingStatusCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={bookingStatusFilter ? [bookingStatusFilter] : [""]}
+            onValueChange={(e) =>
+              handleBookingStatusFilter(e.value[0] || undefined)
+            }
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="160px">
+                {bookingStatusCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Payment:
+          </Text>
+          <Select.Root
+            collection={paymentStatusCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={paymentStatusFilter ? [paymentStatusFilter] : [""]}
+            onValueChange={(e) =>
+              handlePaymentStatusFilter(e.value[0] || undefined)
+            }
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="180px">
+                {paymentStatusCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
         {(missionId ||
           tripId ||
           boatId ||
           bookingStatusFilter ||
-          paymentStatusFilter) && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setMissionId(undefined)
-              setTripId(undefined)
-              setBoatId(undefined)
-              setBookingStatusFilter(undefined)
-              setPaymentStatusFilter(undefined)
-              updateFiltersInUrl({
-                missionId: undefined,
-                tripId: undefined,
-                boatId: undefined,
-                bookingStatus: undefined,
-                paymentStatus: undefined,
-              })
-            }}
-          >
-            <Flex align="center" gap={1}>
-              <FiX />
-              Clear filters
-            </Flex>
-          </Button>
-        )}
+          paymentStatusFilter ||
+          debouncedSearchQuery) && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMissionId(undefined)
+                setTripId(undefined)
+                setBoatId(undefined)
+                setBookingStatusFilter(undefined)
+                setPaymentStatusFilter(undefined)
+                setSearchQuery("")
+                setDebouncedSearchQuery("")
+                updateFiltersInUrl({
+                  missionId: undefined,
+                  tripId: undefined,
+                  boatId: undefined,
+                  bookingStatus: undefined,
+                  paymentStatus: undefined,
+                  search: undefined,
+                })
+              }}
+            >
+              <Flex align="center" gap={1}>
+                <FiX />
+                Clear filters
+              </Flex>
+            </Button>
+          )}
       </Flex>
 
       <Box overflowX="auto">
@@ -574,18 +651,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="60"
-                minW="48"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("user_name")}
-              >
-                <Flex align="center">
-                  Customer info
-                  <SortIcon column="user_name" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
                 w="48"
                 minW="36"
                 fontWeight="bold"
@@ -596,6 +661,19 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 <Flex align="center">
                   Mission
                   <SortIcon column="mission_name" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="48"
+                minW="36"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("trip_name")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Trip
+                  <SortIcon column="trip_name" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -632,8 +710,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 onClick={() => handleSort("created_at")}
               >
                 <Flex align="center">
-                  Created
+                  Created at
                   <SortIcon column="created_at" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="44"
+                minW="36"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("updated_at")}
+              >
+                <Flex align="center">
+                  Updated at
+                  <SortIcon column="updated_at" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader w="24" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
@@ -671,29 +761,22 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </IconButton>
                   </Flex>
                 </Table.Cell>
-                <Table.Cell w="60" minW="48">
-                  <VStack align="stretch" gap={0}>
-                    <Text fontSize="md">{booking.user_name}</Text>
-                    <HStack>
-                      <Icon as={FiMail} boxSize={3} color="text.muted" />
-                      <Text fontSize="xs" color="text.muted" title={booking.user_email}>
-                        {booking.user_email}
-                      </Text>
-                    </HStack>
-                    <HStack>
-                      <Icon as={FiPhone} boxSize={3} color="text.muted" />
-                      <Text fontSize="xs" color="text.muted" title={booking.user_phone}>
-                        {booking.user_phone}
-                      </Text>
-                    </HStack>
-                  </VStack>
-                </Table.Cell>
                 <Table.Cell
                   w="48"
                   minW="36"
                   display={{ base: "none", lg: "table-cell" }}
                 >
                   {booking.mission_name || "N/A"}
+                </Table.Cell>
+                <Table.Cell
+                  w="48"
+                  minW="36"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {booking.trip_name?.trim() ||
+                    (booking.trip_type
+                      ? tripTypeToLabel(booking.trip_type)
+                      : "N/A")}
                 </Table.Cell>
                 <Table.Cell w="48" minW="36">
                   <VStack align="start" gap={0}>
@@ -705,8 +788,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                           booking.booking_status || "",
                         )}
                       >
-                        {(booking.booking_status || "").replace("_", " ").toUpperCase() ||
-                          "UNKNOWN"}
+                        {formatBookingStatusLabel(booking.booking_status)}
                       </Badge>
                     </Text>
                     {booking.payment_status && (
@@ -718,9 +800,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                             booking.payment_status,
                           )}
                         >
-                          {(booking.payment_status || "")
-                            .replace("_", " ")
-                            .toUpperCase()}
+                          {formatPaymentStatusLabel(booking.payment_status)}
                         </Badge>
                       </Text>
                     )}
@@ -740,26 +820,21 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   {totalTicketQuantity(booking)}
                 </Table.Cell>
                 <Table.Cell w="44" minW="36">
-                  <VStack align="start" gap={0}>
-                    <Text>
-                      {new Date(booking.created_at).toLocaleString(undefined, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </Text>
-                    {booking.updated_at && (
-                      <Text fontSize="xs" color="text.muted">
-                        UPD:{" "}
-                        {new Date(booking.updated_at).toLocaleString(
-                          undefined,
-                          {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          },
-                        )}
-                      </Text>
-                    )}
-                  </VStack>
+                  {parseApiDate(booking.created_at).toLocaleString(undefined, {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </Table.Cell>
+                <Table.Cell w="44" minW="36">
+                  {booking.updated_at
+                    ? parseApiDate(booking.updated_at).toLocaleString(
+                        undefined,
+                        {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        },
+                      )
+                    : "—"}
                 </Table.Cell>
                 <Table.Cell
                   w="24"

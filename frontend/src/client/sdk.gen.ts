@@ -92,6 +92,8 @@ import type {
   LaunchesReadLaunchesResponse,
   LaunchesCreateLaunchData,
   LaunchesCreateLaunchResponse,
+  LaunchesDuplicateLaunchData,
+  LaunchesDuplicateLaunchResponse,
   LaunchesReadLaunchData,
   LaunchesReadLaunchResponse,
   LaunchesUpdateLaunchData,
@@ -131,6 +133,8 @@ import type {
   MerchandiseReadMerchandiseListResponse,
   MerchandiseCreateMerchandiseData,
   MerchandiseCreateMerchandiseResponse,
+  MerchandiseDuplicateMerchandiseData,
+  MerchandiseDuplicateMerchandiseResponse,
   MerchandiseReadMerchandiseData,
   MerchandiseReadMerchandiseResponse,
   MerchandiseUpdateMerchandiseData,
@@ -151,6 +155,8 @@ import type {
   MissionsReadMissionsResponse,
   MissionsCreateMissionData,
   MissionsCreateMissionResponse,
+  MissionsDuplicateMissionData,
+  MissionsDuplicateMissionResponse,
   MissionsReadMissionData,
   MissionsReadMissionResponse,
   MissionsUpdateMissionData,
@@ -234,6 +240,8 @@ import type {
   TripsUpdateTripResponse,
   TripsDeleteTripData,
   TripsDeleteTripResponse,
+  TripsDuplicateTripData,
+  TripsDuplicateTripResponse,
   TripsReassignTripBoatData,
   TripsReassignTripBoatResponse,
   TripsReadTripCapacityData,
@@ -615,7 +623,8 @@ export class BookingsService {
   /**
    * List Bookings
    * List/search bookings (admin only).
-   * Optionally filter by mission_id, trip_id, boat_id, booking_status, or payment_status.
+   * Optionally filter by mission_id, trip_id, boat_id, booking_status, payment_status.
+   * Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
@@ -624,6 +633,7 @@ export class BookingsService {
    * @param data.boatId
    * @param data.bookingStatus
    * @param data.paymentStatus
+   * @param data.search
    * @param data.sortBy
    * @param data.sortDirection
    * @returns BookingsPaginatedResponse Successful Response
@@ -643,6 +653,7 @@ export class BookingsService {
         boat_id: data.boatId,
         booking_status: data.bookingStatus,
         payment_status: data.paymentStatus,
+        search: data.search,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
       },
@@ -1415,6 +1426,30 @@ export class LaunchesService {
   }
 
   /**
+   * Duplicate Launch
+   * Duplicate launch: create a new launch with the same location, name (copy),
+   * launch_timestamp, and summary.
+   * @param data The data for the request.
+   * @param data.launchId
+   * @returns LaunchPublic Successful Response
+   * @throws ApiError
+   */
+  public static duplicateLaunch(
+    data: LaunchesDuplicateLaunchData,
+  ): CancelablePromise<LaunchesDuplicateLaunchResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/launches/{launch_id}/duplicate",
+      path: {
+        launch_id: data.launchId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Read Launch
    * Get launch by ID.
    * @param data The data for the request.
@@ -1903,6 +1938,30 @@ export class MerchandiseService {
   }
 
   /**
+   * Duplicate Merchandise
+   * Duplicate merchandise: create a new item with the same name (copy), description,
+   * price, and variations (with quantity_total copied; quantity_sold/fulfilled reset to 0).
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @returns MerchandisePublic Successful Response
+   * @throws ApiError
+   */
+  public static duplicateMerchandise(
+    data: MerchandiseDuplicateMerchandiseData,
+  ): CancelablePromise<MerchandiseDuplicateMerchandiseResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/merchandise/{merchandise_id}/duplicate",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Read Merchandise
    * Get merchandise by ID. Includes variations when present.
    * @param data The data for the request.
@@ -2144,6 +2203,30 @@ export class MissionsService {
       url: "/api/v1/missions/",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Duplicate Mission
+   * Duplicate mission: create a new mission with the same launch, name (copy),
+   * active, and refund_cutoff_hours.
+   * @param data The data for the request.
+   * @param data.missionId
+   * @returns MissionPublic Successful Response
+   * @throws ApiError
+   */
+  public static duplicateMission(
+    data: MissionsDuplicateMissionData,
+  ): CancelablePromise<MissionsDuplicateMissionResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/missions/{mission_id}/duplicate",
+      path: {
+        mission_id: data.missionId,
+      },
       errors: {
         422: "Validation Error",
       },
@@ -3124,7 +3207,7 @@ export class TripsService {
 
   /**
    * Create Trip
-   * Create new trip.
+   * Create new trip. Departure time plus minute offsets; check-in and boarding times are computed.
    * @param data The data for the request.
    * @param data.requestBody
    * @returns TripPublic Successful Response
@@ -3211,6 +3294,30 @@ export class TripsService {
     return __request(OpenAPI, {
       method: "DELETE",
       url: "/api/v1/trips/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Duplicate Trip
+   * Duplicate a trip: create a new trip with the same mission, times, boats,
+   * ticket pricing, and merchandise. The new trip name is "{original name} (copy)".
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static duplicateTrip(
+    data: TripsDuplicateTripData,
+  ): CancelablePromise<TripsDuplicateTripResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/{trip_id}/duplicate",
       path: {
         trip_id: data.tripId,
       },
@@ -3564,7 +3671,7 @@ export class UsersService {
 
   /**
    * Delete User
-   * Delete a user (superuser only).
+   * Delete a user (superuser only). Superusers cannot delete themselves.
    * @param data The data for the request.
    * @param data.userId
    * @returns Message Successful Response

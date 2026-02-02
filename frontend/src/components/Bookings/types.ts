@@ -18,7 +18,10 @@ export type SortableColumn =
   | "booking_status"
   | "total_amount"
   | "created_at"
+  | "updated_at"
   | "mission_name"
+  | "trip_name"
+  | "trip_type"
 
 export type SortDirection = "asc" | "desc"
 
@@ -36,7 +39,10 @@ export const bookingsSearchSchema = z.object({
       "booking_status",
       "total_amount",
       "created_at",
+      "updated_at",
       "mission_name",
+      "trip_name",
+      "trip_type",
     ])
     .catch("created_at"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
@@ -71,6 +77,48 @@ export const getBookingStatusColor = (status: string) => {
       return "gray"
     default:
       return "gray"
+  }
+}
+
+/** Human-readable label for booking_status (uppercase for badges). Handles null/undefined and known values. */
+export function formatBookingStatusLabel(
+  status: string | null | undefined,
+): string {
+  if (status == null || status === "") return "—"
+  switch (status.toLowerCase()) {
+    case "draft":
+      return "DRAFT"
+    case "confirmed":
+      return "CONFIRMED"
+    case "checked_in":
+      return "CHECKED IN"
+    case "completed":
+      return "COMPLETED"
+    case "cancelled":
+      return "CANCELLED"
+    default:
+      return status.replace(/_/g, " ").toUpperCase()
+  }
+}
+
+/** Human-readable label for payment_status (uppercase for badges). */
+export function formatPaymentStatusLabel(
+  status: string | null | undefined,
+): string {
+  if (status == null || status === "") return "—"
+  switch (status.toLowerCase()) {
+    case "pending_payment":
+      return "PENDING PAYMENT"
+    case "paid":
+      return "PAID"
+    case "failed":
+      return "FAILED"
+    case "refunded":
+      return "REFUNDED"
+    case "partially_refunded":
+      return "PARTIALLY REFUNDED"
+    default:
+      return status.replace(/_/g, " ").toUpperCase()
   }
 }
 

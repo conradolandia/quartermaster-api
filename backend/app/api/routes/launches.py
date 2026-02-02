@@ -95,6 +95,39 @@ def create_launch(
     return _launch_to_public(session, launch)
 
 
+@router.post(
+    "/{launch_id}/duplicate",
+    response_model=LaunchPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def duplicate_launch(
+    *,
+    session: Session = Depends(deps.get_db),
+    launch_id: uuid.UUID,
+) -> Any:
+    """
+    Duplicate launch: create a new launch with the same location, name (copy),
+    launch_timestamp, and summary.
+    """
+    launch = crud.get_launch(session=session, launch_id=launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch with ID {launch_id} not found",
+        )
+    copy_name = (launch.name or "Launch").strip()
+    copy_name = f"{copy_name} (copy)" if copy_name else "Launch (copy)"
+    launch_in = LaunchCreate(
+        name=copy_name,
+        location_id=launch.location_id,
+        launch_timestamp=launch.launch_timestamp,
+        summary=launch.summary,
+    )
+    new_launch = crud.create_launch(session=session, launch_in=launch_in)
+    return _launch_to_public(session, new_launch)
+
+
 @router.get(
     "/{launch_id}",
     response_model=LaunchPublic,

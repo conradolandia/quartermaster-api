@@ -86,6 +86,71 @@ def create_merchandise(
     return _merchandise_to_public(session, merchandise)
 
 
+@router.post(
+    "/{merchandise_id}/duplicate",
+    response_model=MerchandisePublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def duplicate_merchandise(
+    *,
+    session: Session = Depends(deps.get_db),
+    merchandise_id: uuid.UUID,
+) -> Any:
+    """
+    Duplicate merchandise: create a new item with the same name (copy), description,
+    price, and variations (with quantity_total copied; quantity_sold/fulfilled reset to 0).
+    """
+    merchandise = crud.get_merchandise(session=session, merchandise_id=merchandise_id)
+    if not merchandise:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Merchandise with ID {merchandise_id} not found",
+        )
+    copy_name = (merchandise.name or "Merchandise").strip()
+    copy_name = f"{copy_name} (copy)" if copy_name else "Merchandise (copy)"
+    merchandise_in = MerchandiseCreate(
+        name=copy_name,
+        description=merchandise.description,
+        price=merchandise.price,
+        quantity_available=0,
+    )
+    new_merchandise = crud.create_merchandise(
+        session=session, merchandise_in=merchandise_in
+    )
+    variations = crud.list_merchandise_variations_by_merchandise(
+        session=session, merchandise_id=merchandise_id
+    )
+    new_variations = crud.list_merchandise_variations_by_merchandise(
+        session=session, merchandise_id=new_merchandise.id
+    )
+    default_var = next((v for v in new_variations if v.variant_value == ""), None)
+    for v in variations:
+        if v.variant_value == "" and default_var:
+            crud.update_merchandise_variation(
+                session=session,
+                db_obj=default_var,
+                obj_in=MerchandiseVariationUpdate(
+                    quantity_total=v.quantity_total,
+                    quantity_sold=0,
+                    quantity_fulfilled=0,
+                ),
+            )
+        elif v.variant_value != "":
+            crud.create_merchandise_variation(
+                session=session,
+                variation_in=MerchandiseVariationCreate(
+                    merchandise_id=new_merchandise.id,
+                    variant_value=v.variant_value,
+                    quantity_total=v.quantity_total,
+                    quantity_sold=0,
+                    quantity_fulfilled=0,
+                ),
+            )
+    logger.info("Duplicated merchandise %s -> %s", merchandise_id, new_merchandise.id)
+    return _merchandise_to_public(session, new_merchandise)
+
+
 @router.get(
     "/{merchandise_id}",
     response_model=MerchandisePublic,

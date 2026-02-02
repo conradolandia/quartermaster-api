@@ -5,13 +5,11 @@
 # Before importing, ensure the launch_id references an existing Launch.
 #
 # Required fields: name, launch_id
-# Optional fields: active, public, sales_open_at, refund_cutoff_hours
+# Optional fields: active, refund_cutoff_hours
 
 name: "Starlink 6-1 River Cruise"
 launch_id: "b2c3d4e5-f6a7-8901-bcde-f23456789012"  # Replace with actual Launch UUID
 
 # Optional settings
 active: true
-booking_mode: "public"  # private | early_bird | public
-sales_open_at: "2024-05-01T00:00:00Z"
 refund_cutoff_hours: 24

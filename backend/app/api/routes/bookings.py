@@ -1,10 +1,12 @@
 import logging
 import uuid
 from collections import defaultdict
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from pydantic import BaseModel
+from sqlalchemy import nulls_first, or_
 from sqlmodel import Session, func, select
 
 from app import crud
@@ -32,7 +34,7 @@ from app.models import (
     TripMerchandise,
     User,
 )
-from app.services.date_validator import is_booking_past, is_trip_past
+from app.services.date_validator import ensure_aware, is_booking_past, is_trip_past
 from app.utils import (
     generate_booking_cancelled_email,
     generate_booking_confirmation_email,
@@ -109,6 +111,16 @@ def _create_booking_impl(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot create booking: Trip {item.trip_id} has already departed",
             )
+
+        # Validate trip sales have opened (if sales_open_at is set)
+        if trip.sales_open_at is not None:
+            now = datetime.now(timezone.utc)
+            sales_open_at = ensure_aware(trip.sales_open_at)
+            if now < sales_open_at:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sales have not yet opened for one or more trips",
+                )
 
         # Ensure all trips belong to the same mission
         if mission_id is None:
@@ -569,12 +581,14 @@ def list_bookings(
     boat_id: uuid.UUID | None = None,
     booking_status: str | None = None,
     payment_status: str | None = None,
+    search: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, trip_id, boat_id, booking_status, or payment_status.
+    Optionally filter by mission_id, trip_id, boat_id, booking_status, payment_status.
+    Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
     """
     try:
         # Parameter validation
@@ -628,6 +642,19 @@ def list_bookings(
             base_query = base_query.where(Booking.payment_status == payment_status)
             logger.info(f"Filtering bookings by payment_status: {payment_status}")
 
+        # Apply text search on confirmation_code, name, email, phone (case-insensitive)
+        search_term = search.strip() if search else ""
+        if search_term:
+            pattern = f"%{search_term}%"
+            search_cond = or_(
+                Booking.confirmation_code.ilike(pattern),
+                Booking.user_name.ilike(pattern),
+                Booking.user_email.ilike(pattern),
+                Booking.user_phone.ilike(pattern),
+            )
+            base_query = base_query.where(search_cond)
+            logger.info(f"Filtering bookings by search: {search_term!r}")
+
         # Get total count first
         total_count = 0
         try:
@@ -655,6 +682,8 @@ def list_bookings(
                 count_query = count_query.where(
                     Booking.payment_status == payment_status
                 )
+            if search_term:
+                count_query = count_query.where(search_cond)
             total_count = session.exec(count_query).first()
             logger.info(f"Total bookings count: {total_count}")
         except Exception as e:
@@ -664,12 +693,34 @@ def list_bookings(
                 detail="Error counting bookings",
             )
 
-        # Apply sorting
-        sort_column = getattr(Booking, sort_by, Booking.created_at)
-        if sort_direction.lower() == "asc":
-            order_clause = sort_column.asc()
+        # Apply sorting (trip_name/trip_type use first item's trip by display order)
+        sort_by_trip = sort_by in ("trip_name", "trip_type")
+        if sort_by_trip:
+            # Correlated subquery: trip name/type of first booking item (display order)
+            first_item_trip = (
+                select(Trip.name if sort_by == "trip_name" else Trip.type)
+                .select_from(BookingItem)
+                .join(Trip, Trip.id == BookingItem.trip_id)
+                .where(BookingItem.booking_id == Booking.id)
+                .order_by(
+                    nulls_first(BookingItem.trip_merchandise_id.asc()),
+                    BookingItem.item_type,
+                    BookingItem.id,
+                )
+                .limit(1)
+                .correlate(Booking)
+                .scalar_subquery()
+            )
+            if sort_direction.lower() == "asc":
+                order_clause = first_item_trip.asc().nulls_last()
+            else:
+                order_clause = first_item_trip.desc().nulls_first()
         else:
-            order_clause = sort_column.desc()
+            sort_column = getattr(Booking, sort_by, Booking.created_at)
+            if sort_direction.lower() == "asc":
+                order_clause = sort_column.asc()
+            else:
+                order_clause = sort_column.desc()
 
         # Fetch bookings with sorting
         bookings = []
@@ -699,11 +750,13 @@ def list_bookings(
                     BookingItemPublic.model_validate(item) for item in items
                 ]
 
-                # Get mission information from first booking item
+                # Get mission and trip information from first booking item
                 if items and len(items) > 0:
                     trip = session.get(Trip, items[0].trip_id)
                     if trip:
                         booking_public.mission_id = trip.mission_id
+                        booking_public.trip_name = trip.name
+                        booking_public.trip_type = trip.type
                         mission = session.get(Mission, trip.mission_id)
                         if mission:
                             booking_public.mission_name = mission.name

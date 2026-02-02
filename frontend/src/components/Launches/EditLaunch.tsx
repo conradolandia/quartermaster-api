@@ -40,10 +40,20 @@ import { Field } from "../ui/field"
 
 interface EditLaunchProps {
   launch: LaunchPublic
+  /** When provided, dialog open state is controlled (e.g. open after duplicate). */
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-const EditLaunch = ({ launch }: EditLaunchProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+const EditLaunch = ({
+  launch,
+  isOpen: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: EditLaunchProps) => {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isOpen = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -102,7 +112,7 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
     onSuccess: () => {
       showSuccessToast("Launch updated successfully.")
       reset()
-      setIsOpen(false)
+      setOpen(false)
     },
     onError: (err: ApiError) => {
       handleError(err)
@@ -128,22 +138,26 @@ const EditLaunch = ({ launch }: EditLaunchProps) => {
       size={{ base: "xs", md: "md" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => setOpen(open)}
     >
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          disabled={isPast}
-          title={
-            isPast
-              ? "This launch has already occurred and cannot be edited"
-              : ""
-          }
-        >
-          <FaExchangeAlt fontSize="16px" />
-          Edit Launch
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            disabled={isPast}
+            title={
+              isPast
+                ? "This launch has already occurred and cannot be edited"
+                : ""
+            }
+          >
+            <FaExchangeAlt fontSize="16px" />
+            Edit Launch
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent ref={contentRef}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>

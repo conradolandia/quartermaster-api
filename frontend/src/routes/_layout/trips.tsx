@@ -203,8 +203,10 @@ function TripsTable() {
       effectiveSortBy === "check_in_time" ||
       effectiveSortBy === "departure_time"
     ) {
-      aValue = parseApiDate(aValue as string).getTime()
-      bValue = parseApiDate(bValue as string).getTime()
+      const aStr = aValue as string | null | undefined
+      const bStr = bValue as string | null | undefined
+      aValue = aStr ? parseApiDate(aStr).getTime() : 0
+      bValue = bStr ? parseApiDate(bStr).getTime() : 0
     }
 
     // Handle numeric stats for sorting
@@ -306,6 +308,33 @@ function TripsTable() {
     })
   }
 
+  const renderScheduleCell = (
+    salesOpenAt: string | null | undefined,
+    departureTime: string,
+    timezone?: string | null,
+  ) => (
+    <VStack align="stretch" gap={2}>
+      <Box>
+        <Text fontSize="xs" color="gray.500" mb={0.5}>
+          Sales Open
+        </Text>
+        {salesOpenAt ? (
+          renderTripDate(salesOpenAt, timezone)
+        ) : (
+          <Text fontSize="sm" color="gray.400">
+            Not set
+          </Text>
+        )}
+      </Box>
+      <Box>
+        <Text fontSize="xs" color="gray.500" mb={0.5}>
+          Departure
+        </Text>
+        {renderTripDate(departureTime, timezone)}
+      </Box>
+    </VStack>
+  )
+
   return (
     <>
       <Box overflowX="auto">
@@ -349,6 +378,19 @@ function TripsTable() {
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="sm"
+                minW="200px"
+                fontWeight="bold"
+                cursor="pointer"
+                onClick={() => handleSort("departure_time")}
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                <Flex align="center">
+                  Schedule
+                  <SortIcon column="departure_time" />
+                </Flex>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="sm"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_bookings")}
@@ -371,30 +413,18 @@ function TripsTable() {
                   <SortIcon column="total_sales" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("departure_time")}
-                display={{ base: "none", lg: "table-cell" }}
-              >
-                <Flex align="center">
-                  Departure
-                  <SortIcon column="departure_time" />
-                </Flex>
-              </Table.ColumnHeader>
               <Table.ColumnHeader w="sm" fontWeight="bold">
                 Boats
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="20"
                 fontWeight="bold"
                 display={{ base: "none", lg: "table-cell" }}
               >
                 Mode
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="sm"
+                w="20"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("active")}
@@ -404,7 +434,7 @@ function TripsTable() {
                   <SortIcon column="active" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="sm" fontWeight="bold">
+              <Table.ColumnHeader w="20" fontWeight="bold">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -444,6 +474,17 @@ function TripsTable() {
                   <Table.Cell
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
+                    minW="200px"
+                  >
+                    {renderScheduleCell(
+                      (trip as { sales_open_at?: string | null }).sales_open_at,
+                      trip.departure_time,
+                      trip.timezone,
+                    )}
+                  </Table.Cell>
+                  <Table.Cell
+                    display={{ base: "none", lg: "table-cell" }}
+                    verticalAlign="top"
                   >
                     {(trip as TripWithStats).total_bookings ?? 0}
                   </Table.Cell>
@@ -454,14 +495,6 @@ function TripsTable() {
                     verticalAlign="top"
                   >
                     ${formatCents((trip as TripWithStats).total_sales ?? 0)}
-                  </Table.Cell>
-                  <Table.Cell
-                    truncate
-                    maxW="sm"
-                    display={{ base: "none", lg: "table-cell" }}
-                    verticalAlign="top"
-                  >
-                    {renderTripDate(trip.departure_time, trip.timezone)}
                   </Table.Cell>
                   <Table.Cell maxW="sm" verticalAlign="top">
                     {boats != null && boats.length > 0 ? (
@@ -496,7 +529,8 @@ function TripsTable() {
                     )}
                   </Table.Cell>
                   <Table.Cell
-                    maxW="sm"
+                    w="20"
+                    maxW="20"
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
@@ -516,14 +550,14 @@ function TripsTable() {
                           : "Private"}
                     </Badge>
                   </Table.Cell>
-                  <Table.Cell verticalAlign="top" paddingY="6">
+                  <Table.Cell w="20" maxW="20" verticalAlign="top" paddingY="6">
                     <Flex justify="center">
                       <Badge colorPalette={trip.active ? "green" : "red"}>
                         {trip.active ? "Active" : "Inactive"}
                       </Badge>
                     </Flex>
                   </Table.Cell>
-                  <Table.Cell verticalAlign="top" paddingY="3">
+                  <Table.Cell w="20" maxW="20" verticalAlign="top" paddingY="3">
                     <Flex justify="center">
                       <TripActionsMenu trip={trip} />
                     </Flex>

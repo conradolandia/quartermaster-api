@@ -25,7 +25,6 @@ export interface PublicMission {
   launch_id: string
   active: boolean
   public: boolean
-  sales_open_at: string | null
   refund_cutoff_hours: number | null
   created_at: string
   updated_at: string
@@ -41,6 +40,7 @@ export interface PublicTrip {
   name: string
   mission_id: string
   active: boolean
+  sales_open_at: string | null
   created_at: string
   updated_at: string
 }

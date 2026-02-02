@@ -19,9 +19,9 @@ from app.models import (
     Provider,
     ProviderCreate,
     Trip,
+    TripBase,
     TripBoat,
     TripBoatCreate,
-    TripCreate,
     User,
     UserCreate,
 )
@@ -126,15 +126,10 @@ def init_db(session: Session) -> None:
         select(Mission).where(Mission.name == "Default Mission")
     ).first()
     if not mission:
-        # Create a mission with sales opening 7 days before launch
-        sales_open_date = launch.launch_timestamp - timedelta(days=7)
-
         mission_in = MissionCreate(
             name="Default Mission",
             launch_id=launch.id,
             active=True,
-            public=True,
-            sales_open_at=sales_open_date,
             refund_cutoff_hours=12,
         )
         mission = crud.create_mission(session=session, mission_in=mission_in)
@@ -156,17 +151,20 @@ def init_db(session: Session) -> None:
         select(Trip).where(Trip.mission_id == mission.id, Trip.type == "launch_viewing")
     ).first()
     if not trip:
-        # Create times based on the launch time
+        # Departure 2h before launch; boarding 30 min before departure; check-in 30 min before boarding
         launch_time = launch.launch_timestamp
-        check_in_time = launch_time - timedelta(hours=3)
-        boarding_time = launch_time - timedelta(hours=2, minutes=30)
         departure_time = launch_time - timedelta(hours=2)
+        boarding_time = departure_time - timedelta(minutes=30)
+        check_in_time = boarding_time - timedelta(minutes=30)
 
-        trip_in = TripCreate(
+        sales_open_at = launch_time - timedelta(days=7)
+        trip_in = TripBase(
             mission_id=mission.id,
             name=None,
             type="launch_viewing",
             active=True,
+            booking_mode="private",
+            sales_open_at=sales_open_at,
             check_in_time=check_in_time,
             boarding_time=boarding_time,
             departure_time=departure_time,

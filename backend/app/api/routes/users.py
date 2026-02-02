@@ -195,10 +195,18 @@ def update_user(
 
 
 @router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
-def delete_user(session: SessionDep, user_id: uuid.UUID) -> Message:
+def delete_user(
+    session: SessionDep,
+    user_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_active_superuser)],
+) -> Message:
     """
-    Delete a user (superuser only).
+    Delete a user (superuser only). Superusers cannot delete themselves.
     """
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=403, detail="Super users are not allowed to delete themselves"
+        )
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

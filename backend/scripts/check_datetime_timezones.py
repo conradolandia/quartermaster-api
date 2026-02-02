@@ -77,11 +77,6 @@ def check_missions(session: Session) -> list[dict]:
 
     for mission in missions:
         results.append(
-            check_datetime_field(
-                mission.sales_open_at, "sales_open_at", str(mission.id)
-            )
-        )
-        results.append(
             check_datetime_field(mission.created_at, "created_at", str(mission.id))
         )
         if mission.updated_at:
@@ -155,7 +150,7 @@ def generate_summary(results: list[dict]) -> dict:
         if "launch_timestamp" in field_name:
             entity_type = "Launch"
         elif "sales_open_at" in field_name:
-            entity_type = "Mission"
+            entity_type = "Trip"
         elif any(
             x in field_name
             for x in ["check_in_time", "boarding_time", "departure_time"]

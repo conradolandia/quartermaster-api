@@ -166,7 +166,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" color="dark.accent.primary">
           <FiEdit fontSize="16px" />
           Edit
         </Button>

@@ -12,7 +12,9 @@ from app.tests.utils.utils import random_email, random_lower_string
 from app.utils import generate_password_reset_token
 
 
-def test_get_access_token(client: TestClient) -> None:
+def test_get_access_token(client: TestClient, db: Session) -> None:
+    # Request db so init_db runs and creates the first superuser
+    _ = db
     login_data = {
         "username": settings.FIRST_SUPERUSER,
         "password": settings.FIRST_SUPERUSER_PASSWORD,
@@ -48,10 +50,7 @@ def test_use_access_token(
 def test_recovery_password(
     client: TestClient, normal_user_token_headers: dict[str, str]
 ) -> None:
-    with (
-        patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
-        patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
-    ):
+    with patch("app.api.routes.login.send_email"):
         email = "test@example.com"
         r = client.post(
             f"{settings.API_V1_STR}/password-recovery/{email}",

@@ -5,6 +5,7 @@ import { BookingsService, type BookingPublic } from "../../client"
 import { MenuItem } from "../ui/menu"
 import { ActionsMenu } from "../ui/actions-menu"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Button } from "@chakra-ui/react"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import DeleteBooking from "../Bookings/DeleteBooking"
@@ -72,40 +73,82 @@ const BookingActionsMenu = ({
   return (
     <>
       <ActionsMenu ariaLabel="Booking actions" disabled={disabled}>
-          {onPrint && (
-            <MenuItem value="print" onClick={onPrint}>
-              <FiPrinter />
+        {onPrint && (
+          <MenuItem value="print" onClick={onPrint} asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiPrinter fontSize="16px" />
               Print
-            </MenuItem>
-          )}
-          {onOpenRawData && (
-            <MenuItem value="raw-data" onClick={onOpenRawData}>
-              <FiCode />
+            </Button>
+          </MenuItem>
+        )}
+        {onOpenRawData && (
+          <MenuItem value="raw-data" onClick={onOpenRawData} asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiCode fontSize="16px" />
               Raw data
-            </MenuItem>
-          )}
-          {!isEditControlled && !editDisabled && (
-            <MenuItem value="edit" onClick={handleOpenEdit}>
-              <FiEdit />
+            </Button>
+          </MenuItem>
+        )}
+        {!isEditControlled && !editDisabled && (
+          <MenuItem value="edit" onClick={handleOpenEdit} asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiEdit fontSize="16px" />
               Edit Booking
-            </MenuItem>
-          )}
-          <MenuItem
-            value="duplicate"
-            onClick={() => duplicateMutation.mutate()}
+            </Button>
+          </MenuItem>
+        )}
+        <MenuItem
+          value="duplicate"
+          onClick={() => duplicateMutation.mutate()}
+          disabled={duplicateMutation.isPending}
+          asChild
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
             disabled={duplicateMutation.isPending}
           >
-            <FiCopy />
+            <FiCopy fontSize="16px" />
             Duplicate
-          </MenuItem>
-          <MenuItem
-            value="cancel"
-            onClick={() => setDeleteModalOpen(true)}
+          </Button>
+        </MenuItem>
+        <MenuItem
+          value="cancel"
+          onClick={() => setDeleteModalOpen(true)}
+          asChild
+        >
+          <Button
+            variant="ghost"
+            size="sm"
             color="status.error"
+            justifyContent="start"
+            w="full"
           >
-            <FiTrash2 />
+            <FiTrash2 fontSize="16px" />
             Cancel Booking
-          </MenuItem>
+          </Button>
+        </MenuItem>
       </ActionsMenu>
       <EditBooking
         booking={editingBooking ?? booking}

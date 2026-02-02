@@ -1,3 +1,5 @@
+import React from "react"
+
 import type { LocationPublic } from "../../client"
 import { ActionsMenu } from "../ui/actions-menu"
 import DeleteLocation from "../Locations/DeleteLocation"

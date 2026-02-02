@@ -104,7 +104,7 @@ const SendLaunchUpdate = ({ launch }: SendLaunchUpdateProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button variant="ghost" size="sm" color="dark.accent.primary">
           <FiMail fontSize="16px" />
           Send Update
         </Button>

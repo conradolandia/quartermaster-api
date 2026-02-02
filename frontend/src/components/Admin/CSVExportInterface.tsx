@@ -296,7 +296,10 @@ const CSVExportInterface = () => {
             <Text color="text.muted">
               Export booking data to CSV format with optional filtering by
               mission, trip, or status.
-              {hasTicketTypeFields && !selectedTripId && (
+              {hasTicketTypeFields &&
+                ((missionRequired && !selectedMissionId) ||
+                  (tripRequired && !selectedTripId) ||
+                  (boatRequired && !selectedBoatId)) && (
                 <Text as="span" display="block" mt={1} color="orange.600">
                   Note: Mission, trip, and boat selection are required when
                   exporting ticket-type columns to ensure accurate column

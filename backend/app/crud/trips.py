@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, select, text
 
-from app.models import Booking, BookingItem, Trip, TripCreate, TripUpdate
+from app.models import Booking, BookingItem, Trip, TripBase, TripUpdate
 
 
 def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
@@ -38,7 +38,7 @@ def get_trips_no_relationships(
         text(
             """
             SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
-                   t.check_in_time, t.boarding_time, t.departure_time,
+                   t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
             JOIN mission m ON t.mission_id = m.id
@@ -60,12 +60,13 @@ def get_trips_no_relationships(
                 "type": row[3],
                 "active": row[4],
                 "booking_mode": row[5] or "private",
-                "check_in_time": row[6],
-                "boarding_time": row[7],
-                "departure_time": row[8],
-                "created_at": row[9],
-                "updated_at": row[10],
-                "timezone": row[11] or "UTC",
+                "sales_open_at": row[6],
+                "check_in_time": row[7],
+                "boarding_time": row[8],
+                "departure_time": row[9],
+                "created_at": row[10],
+                "updated_at": row[11],
+                "timezone": row[12] or "UTC",
             }
         )
 
@@ -83,7 +84,7 @@ def get_trips_with_stats(
         text(
             """
             SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
-                   t.check_in_time, t.boarding_time, t.departure_time,
+                   t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
             JOIN mission m ON t.mission_id = m.id
@@ -125,12 +126,13 @@ def get_trips_with_stats(
                 "type": row[3],
                 "active": row[4],
                 "booking_mode": row[5] or "private",
-                "check_in_time": row[6],
-                "boarding_time": row[7],
-                "departure_time": row[8],
-                "created_at": row[9],
-                "updated_at": row[10],
-                "timezone": row[11] or "UTC",
+                "sales_open_at": row[6],
+                "check_in_time": row[7],
+                "boarding_time": row[8],
+                "departure_time": row[9],
+                "created_at": row[10],
+                "updated_at": row[11],
+                "timezone": row[12] or "UTC",
                 "total_bookings": total_bookings,
                 "total_sales": int(total_sales) if total_sales is not None else 0,
             }
@@ -158,8 +160,8 @@ def get_trips_by_mission(
     ).all()
 
 
-def create_trip(*, session: Session, trip_in: TripCreate) -> Trip:
-    """Create a new trip."""
+def create_trip(*, session: Session, trip_in: TripBase) -> Trip:
+    """Create a new trip. Caller must provide check_in_time, boarding_time, departure_time (e.g. from trip_times helper)."""
     db_obj = Trip.model_validate(trip_in)
     session.add(db_obj)
     session.commit()
@@ -167,9 +169,11 @@ def create_trip(*, session: Session, trip_in: TripCreate) -> Trip:
     return db_obj
 
 
-def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate) -> Trip:
-    """Update a trip."""
-    obj_data = obj_in.model_dump(exclude_unset=True)
+def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate | dict) -> Trip:
+    """Update a trip. obj_in can be TripUpdate or a dict (e.g. with computed check_in/boarding/departure times)."""
+    obj_data = (
+        obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
+    )
     db_obj.sqlmodel_update(obj_data)
     session.add(db_obj)
     session.commit()

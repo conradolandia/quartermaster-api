@@ -17,9 +17,8 @@ import { FiArrowDown, FiArrowUp, FiPlus, FiSearch } from "react-icons/fi"
 import { z } from "zod"
 
 import { type MerchandisePublic, MerchandiseService } from "@/client"
+import { MerchandiseActionsMenu } from "@/components/Common/MerchandiseActionsMenu"
 import AddMerchandise from "@/components/Merchandise/AddMerchandise"
-import DeleteMerchandise from "@/components/Merchandise/DeleteMerchandise"
-import EditMerchandise from "@/components/Merchandise/EditMerchandise"
 import PendingMerchandise from "@/components/Pending/PendingMerchandise"
 import {
   DEFAULT_PAGE_SIZE,
@@ -177,7 +176,6 @@ function MerchandiseTable() {
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                minW="160px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -188,14 +186,13 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="160px"
                 fontWeight="bold"
                 display={{ base: "none", md: "table-cell" }}
               >
                 Description
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="80px"
+                w="60px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("price")}
@@ -206,7 +203,7 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="56px"
+                w="60px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("quantity_available")}
@@ -218,14 +215,13 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="220px"
                 fontWeight="bold"
                 display={{ base: "none", xl: "table-cell" }}
               >
                 Variations
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                minW="110px"
+                w="14"
                 fontWeight="bold"
                 textAlign="center"
               >
@@ -245,7 +241,7 @@ function MerchandiseTable() {
                 >
                   <Table.Cell
                     truncate
-                    minW="160px"
+                    w="200px"
                     fontSize="2xl"
                     fontWeight="300"
                   >
@@ -253,42 +249,37 @@ function MerchandiseTable() {
                   </Table.Cell>
                   <Table.Cell
                     truncate
-                    minW="160px"
+                    w="300px"
                     display={{ base: "none", md: "table-cell" }}
                   >
                     {item.description ?? "—"}
                   </Table.Cell>
-                  <Table.Cell minW="80px">{formatCents(item.price)}</Table.Cell>
+                  <Table.Cell minW="60px">{formatCents(item.price)}</Table.Cell>
                   <Table.Cell
-                    minW="56px"
+                    minW="60px"
                     display={{ base: "none", lg: "table-cell" }}
                   >
                     {item.quantity_available}
                   </Table.Cell>
                   <Table.Cell
-                    minW="220px"
                     display={{ base: "none", xl: "table-cell" }}
                     verticalAlign="top"
                   >
                     {variations.length > 0 ? (
-                      <VStack align="stretch" gap={3}>
+                      <VStack align="stretch" gap={0}>
                         {variations.map((v) => {
                           const unfulfilled =
                             v.quantity_sold - v.quantity_fulfilled
                           return (
-                            <Box key={v.id}>
-                              <Text>{v.variant_value || "(none)"}</Text>
-                              <Text
-                                fontSize="2xs"
-                                color="text.muted"
-                                mt={0.5}
-                              >
+                            <Flex key={v.id} gap={2} align="center">
+                              <Text>{v.variant_value}</Text>
+                              <Text color="text.muted">
                                 Total: {v.quantity_total}, Sold:{" "}
                                 {v.quantity_sold}, Fulfilled:{" "}
                                 {v.quantity_fulfilled}, Unfulfilled:{" "}
                                 {unfulfilled}
                               </Text>
-                            </Box>
+                            </Flex>
                           )
                         })}
                       </VStack>
@@ -296,10 +287,9 @@ function MerchandiseTable() {
                       "—"
                     )}
                   </Table.Cell>
-                  <Table.Cell minW="110px" textAlign="center">
-                    <Flex gap={2} flexWrap="wrap" justify="center">
-                      <EditMerchandise merchandise={item} />
-                      <DeleteMerchandise id={item.id} />
+                  <Table.Cell textAlign="center" w="14">
+                    <Flex justify="center">
+                      <MerchandiseActionsMenu merchandise={item} />
                     </Flex>
                   </Table.Cell>
                 </Table.Row>

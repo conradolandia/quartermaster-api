@@ -210,6 +210,8 @@ export type BookingPublic = {
   qr_code_base64?: string | null
   mission_id?: string | null
   mission_name?: string | null
+  trip_name?: string | null
+  trip_type?: string | null
   discount_code?: DiscountCodePublic | null
   experience_display?: BookingExperienceDisplay | null
 }
@@ -486,7 +488,6 @@ export type MissionCreate = {
   name: string
   launch_id: string
   active?: boolean
-  sales_open_at?: string | null
   refund_cutoff_hours?: number
 }
 
@@ -494,7 +495,6 @@ export type MissionPublic = {
   name: string
   launch_id: string
   active?: boolean
-  sales_open_at?: string | null
   refund_cutoff_hours?: number
   id: string
   created_at: string
@@ -516,7 +516,6 @@ export type MissionUpdate = {
   name?: string | null
   launch_id?: string | null
   active?: boolean | null
-  sales_open_at?: string | null
   refund_cutoff_hours?: number | null
 }
 
@@ -524,7 +523,6 @@ export type MissionWithStats = {
   name: string
   launch_id: string
   active?: boolean
-  sales_open_at?: string | null
   refund_cutoff_hours?: number
   id: string
   created_at: string
@@ -681,15 +679,25 @@ export type TripCapacityResponse = {
   used_capacity: number
 }
 
+/**
+ * API request: departure time plus minute offsets; check_in/boarding are computed.
+ */
 export type TripCreate = {
   mission_id: string
   name?: string | null
   type: string
   active?: boolean
   booking_mode?: string
-  check_in_time: string
-  boarding_time: string
+  sales_open_at?: string | null
   departure_time: string
+  /**
+   * Minutes before departure when boarding starts; default by type
+   */
+  boarding_minutes_before_departure?: number | null
+  /**
+   * Minutes before boarding when check-in opens; default by type
+   */
+  checkin_minutes_before_boarding?: number | null
 }
 
 export type TripMerchandiseCreate = {
@@ -730,6 +738,7 @@ export type TripPublic = {
   type: string
   active?: boolean
   booking_mode?: string
+  sales_open_at?: string | null
   check_in_time: string
   boarding_time: string
   departure_time: string
@@ -756,9 +765,16 @@ export type TripUpdate = {
   type?: string | null
   active?: boolean | null
   booking_mode?: string | null
-  check_in_time?: string | null
-  boarding_time?: string | null
+  sales_open_at?: string | null
   departure_time?: string | null
+  /**
+   * Minutes before departure when boarding starts
+   */
+  boarding_minutes_before_departure?: number | null
+  /**
+   * Minutes before boarding when check-in opens
+   */
+  checkin_minutes_before_boarding?: number | null
 }
 
 export type TripWithStats = {
@@ -767,6 +783,7 @@ export type TripWithStats = {
   type: string
   active?: boolean
   booking_mode?: string
+  sales_open_at?: string | null
   check_in_time: string
   boarding_time: string
   departure_time: string
@@ -920,6 +937,7 @@ export type BookingsListBookingsData = {
   limit?: number
   missionId?: string | null
   paymentStatus?: string | null
+  search?: string | null
   skip?: number
   sortBy?: string
   sortDirection?: string
@@ -1131,6 +1149,12 @@ export type LaunchesCreateLaunchData = {
 
 export type LaunchesCreateLaunchResponse = LaunchPublic
 
+export type LaunchesDuplicateLaunchData = {
+  launchId: string
+}
+
+export type LaunchesDuplicateLaunchResponse = LaunchPublic
+
 export type LaunchesReadLaunchData = {
   launchId: string
 }
@@ -1256,6 +1280,12 @@ export type MerchandiseCreateMerchandiseData = {
 
 export type MerchandiseCreateMerchandiseResponse = MerchandisePublic
 
+export type MerchandiseDuplicateMerchandiseData = {
+  merchandiseId: string
+}
+
+export type MerchandiseDuplicateMerchandiseResponse = MerchandisePublic
+
 export type MerchandiseReadMerchandiseData = {
   merchandiseId: string
 }
@@ -1326,6 +1356,12 @@ export type MissionsCreateMissionData = {
 }
 
 export type MissionsCreateMissionResponse = MissionPublic
+
+export type MissionsDuplicateMissionData = {
+  missionId: string
+}
+
+export type MissionsDuplicateMissionResponse = MissionPublic
 
 export type MissionsReadMissionData = {
   missionId: string
@@ -1613,6 +1649,12 @@ export type TripsDeleteTripData = {
 }
 
 export type TripsDeleteTripResponse = TripPublic
+
+export type TripsDuplicateTripData = {
+  tripId: string
+}
+
+export type TripsDuplicateTripResponse = TripPublic
 
 export type TripsReassignTripBoatData = {
   requestBody: ReassignBoatBody

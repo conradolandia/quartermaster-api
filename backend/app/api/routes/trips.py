@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app import crud
@@ -16,8 +17,13 @@ from app.models import (
     DiscountCode,
     PublicTripsResponse,
     Trip,
+    TripBase,
+    TripBoat,
+    TripBoatCreate,
+    TripBoatPricingCreate,
     TripBoatPublic,
     TripCreate,
+    TripMerchandiseCreate,
     TripPublic,
     TripsPublic,
     TripsWithStatsPublic,
@@ -26,9 +32,13 @@ from app.models import (
 )
 from app.services.date_validator import (
     ensure_aware,
-    is_trip_past,
+    is_trip_past_editable_window,
     validate_trip_dates,
     validate_trip_time_ordering,
+)
+from app.services.trip_times import (
+    compute_trip_times_from_departure_and_offsets,
+    get_default_offsets_for_type,
 )
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
@@ -106,17 +116,14 @@ def create_trip(
     trip_in: TripCreate,
 ) -> Any:
     """
-    Create new trip.
+    Create new trip. Departure time plus minute offsets; check-in and boarding times are computed.
     """
-    # Verify that the mission exists
     mission = crud.get_mission(session=session, mission_id=trip_in.mission_id)
     if not mission:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Mission with ID {trip_in.mission_id} not found",
         )
-
-    # Get the launch for date validation
     launch = crud.get_launch(session=session, launch_id=mission.launch_id)
     if not launch:
         raise HTTPException(
@@ -124,26 +131,47 @@ def create_trip(
             detail=f"Launch for mission {trip_in.mission_id} not found",
         )
 
-    # Create temporary trip object for validation
-    temp_trip = Trip.model_validate(trip_in)
+    boarding_min = trip_in.boarding_minutes_before_departure
+    checkin_min = trip_in.checkin_minutes_before_boarding
+    if boarding_min is None or checkin_min is None:
+        default_boarding, default_checkin = get_default_offsets_for_type(trip_in.type)
+        if boarding_min is None:
+            boarding_min = default_boarding
+        if checkin_min is None:
+            checkin_min = default_checkin
 
-    # Validate time ordering
+    (
+        check_in_time,
+        boarding_time,
+        departure_time,
+    ) = compute_trip_times_from_departure_and_offsets(
+        trip_in.departure_time, boarding_min, checkin_min
+    )
+    payload = TripBase(
+        mission_id=trip_in.mission_id,
+        name=trip_in.name,
+        type=trip_in.type,
+        active=trip_in.active,
+        booking_mode=trip_in.booking_mode,
+        sales_open_at=trip_in.sales_open_at,
+        check_in_time=check_in_time,
+        boarding_time=boarding_time,
+        departure_time=departure_time,
+    )
+    temp_trip = Trip.model_validate(payload)
     is_valid, error_msg = validate_trip_time_ordering(temp_trip)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot create trip: {error_msg}",
         )
-
-    # Validate trip dates are coherent with mission/launch
     is_valid, error_msg = validate_trip_dates(temp_trip, mission, launch)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot create trip: {error_msg}",
         )
-
-    trip = crud.create_trip(session=session, trip_in=trip_in)
+    trip = crud.create_trip(session=session, trip_in=payload)
     return _trip_to_public(session, trip)
 
 
@@ -167,6 +195,97 @@ def read_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
     return _trip_to_public(session, trip)
+
+
+@router.post(
+    "/{trip_id}/duplicate",
+    response_model=TripPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def duplicate_trip(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+) -> Any:
+    """
+    Duplicate a trip: create a new trip with the same mission, times, boats,
+    ticket pricing, and merchandise. The new trip name is "{original name} (copy)".
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    copy_name = (trip.name or "Trip").strip()
+    if copy_name:
+        copy_name = f"{copy_name} (copy)"
+    else:
+        copy_name = "Trip (copy)"
+    payload = TripBase(
+        mission_id=trip.mission_id,
+        name=copy_name,
+        type=trip.type,
+        active=trip.active,
+        booking_mode=trip.booking_mode,
+        sales_open_at=trip.sales_open_at,
+        check_in_time=trip.check_in_time,
+        boarding_time=trip.boarding_time,
+        departure_time=trip.departure_time,
+    )
+    new_trip = crud.create_trip(session=session, trip_in=payload)
+    trip_boats = crud.get_trip_boats_by_trip(session=session, trip_id=trip_id)
+    old_to_new_tb: dict[uuid.UUID, Any] = {}
+    for tb in trip_boats:
+        new_tb = crud.create_trip_boat(
+            session=session,
+            trip_boat_in=TripBoatCreate(
+                trip_id=new_trip.id,
+                boat_id=tb.boat_id,
+                max_capacity=tb.max_capacity,
+            ),
+        )
+        old_to_new_tb[tb.id] = new_tb
+    for tb in trip_boats:
+        new_tb = old_to_new_tb.get(tb.id)
+        if not new_tb:
+            continue
+        for pricing in crud.get_trip_boat_pricing_by_trip_boat(
+            session=session, trip_boat_id=tb.id
+        ):
+            crud.create_trip_boat_pricing(
+                session=session,
+                trip_boat_pricing_in=TripBoatPricingCreate(
+                    trip_boat_id=new_tb.id,
+                    ticket_type=pricing.ticket_type,
+                    price=pricing.price,
+                    capacity=pricing.capacity,
+                ),
+            )
+    for tm in crud.get_trip_merchandise_by_trip(session=session, trip_id=trip_id):
+        crud.create_trip_merchandise(
+            session=session,
+            trip_merchandise_in=TripMerchandiseCreate(
+                trip_id=new_trip.id,
+                merchandise_id=tm.merchandise_id,
+                quantity_available_override=tm.quantity_available_override,
+                price_override=tm.price_override,
+            ),
+        )
+    session.refresh(new_trip)
+    trip_with_boats = (
+        session.exec(
+            select(Trip)
+            .where(Trip.id == new_trip.id)
+            .options(
+                selectinload(Trip.trip_boats).selectinload(TripBoat.boat),
+            )
+        )
+        .unique()
+        .one()
+    )
+    return _trip_to_public(session, trip_with_boats)
 
 
 class ReassignBoatBody(BaseModel):
@@ -321,11 +440,11 @@ def update_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
 
-    # Check if trip is in the past and prevent editing unless override is allowed
-    if is_trip_past(trip) and not allow_past_edit:
+    # Block editing after the 24h post-departure window unless override
+    if is_trip_past_editable_window(trip) and not allow_past_edit:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update trip: This trip has already departed. Use allow_past_edit=true to override",
+            detail="Cannot update trip: Trip is no longer editable (more than 24 hours after departure). Use allow_past_edit=true to override",
         )
 
     # Get mission (either existing or new if being updated)
@@ -347,15 +466,42 @@ def update_trip(
             detail=f"Launch for mission {mission_id} not found",
         )
 
-    # Merge update data with existing trip data for validation
     update_data = trip_in.model_dump(exclude_unset=True)
+    time_fields = {
+        "departure_time",
+        "boarding_minutes_before_departure",
+        "checkin_minutes_before_boarding",
+    }
+    if any(f in update_data for f in time_fields):
+        effective_departure = update_data.get("departure_time") or trip.departure_time
+        effective_departure = ensure_aware(effective_departure)
+        boarding_min = update_data.get("boarding_minutes_before_departure")
+        checkin_min = update_data.get("checkin_minutes_before_boarding")
+        if boarding_min is None or checkin_min is None:
+            dep = ensure_aware(trip.departure_time)
+            board = ensure_aware(trip.boarding_time)
+            check_in = ensure_aware(trip.check_in_time)
+            if boarding_min is None:
+                boarding_min = int((dep - board).total_seconds() // 60)
+            if checkin_min is None:
+                checkin_min = int((board - check_in).total_seconds() // 60)
+        (
+            check_in_time,
+            boarding_time,
+            departure_time,
+        ) = compute_trip_times_from_departure_and_offsets(
+            effective_departure, boarding_min, checkin_min
+        )
+        for k in time_fields:
+            update_data.pop(k, None)
+        update_data["check_in_time"] = check_in_time
+        update_data["boarding_time"] = boarding_time
+        update_data["departure_time"] = departure_time
+
     temp_trip_data = {**trip.model_dump(), **update_data}
     temp_trip = Trip.model_validate(temp_trip_data)
-
-    # Validate time ordering if any time fields are being updated
     if any(
-        field in update_data
-        for field in ["check_in_time", "boarding_time", "departure_time"]
+        f in update_data for f in ["check_in_time", "boarding_time", "departure_time"]
     ):
         is_valid, error_msg = validate_trip_time_ordering(temp_trip)
         if not is_valid:
@@ -363,12 +509,6 @@ def update_trip(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot update trip: {error_msg}",
             )
-
-    # Validate trip dates are coherent with mission/launch if dates or mission are being updated
-    if any(
-        field in update_data
-        for field in ["mission_id", "check_in_time", "boarding_time", "departure_time"]
-    ):
         is_valid, error_msg = validate_trip_dates(temp_trip, mission, launch)
         if not is_valid:
             raise HTTPException(
@@ -376,12 +516,12 @@ def update_trip(
                 detail=f"Cannot update trip: {error_msg}",
             )
 
-    trip = crud.update_trip(session=session, db_obj=trip, obj_in=trip_in)
+    trip = crud.update_trip(session=session, db_obj=trip, obj_in=update_data)
 
-    # Log override action if past edit was allowed
-    if allow_past_edit and is_trip_past(trip):
+    # Log override action when editing after the normal editable window
+    if allow_past_edit and is_trip_past_editable_window(trip):
         logger.warning(
-            f"Superuser override: Trip {trip_id} was edited despite being in the past"
+            f"Superuser override: Trip {trip_id} was edited after the 24h post-departure window"
         )
 
     return _trip_to_public(session, trip)
@@ -639,6 +779,16 @@ def read_public_trips(
             )
             continue
 
+        # Filter out trips that are not yet open for sales
+        sales_open_at = trip.get("sales_open_at")
+        if sales_open_at is not None:
+            sales_open_at = ensure_aware(sales_open_at)
+            if now < sales_open_at:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: sales open at {sales_open_at}"
+                )
+                continue
+
         # Count bookable trips for all_trips_require_access_code
         if booking_mode in ("public", "early_bird"):
             bookable_trip_count += 1
@@ -756,6 +906,14 @@ def read_public_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
         )
+
+    if trip.sales_open_at is not None:
+        sales_open_at = ensure_aware(trip.sales_open_at)
+        if now < sales_open_at:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sales have not yet opened for this trip",
+            )
 
     booking_mode = getattr(trip, "booking_mode", "private")
     if booking_mode == "private":

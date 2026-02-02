@@ -96,23 +96,6 @@ def audit_missions(session: Session, now: datetime) -> list[dict[str, Any]]:
                 }
             )
 
-        # Check sales_open_at coherence
-        if mission.sales_open_at:
-            sales_time = ensure_aware(mission.sales_open_at)
-            launch_time = ensure_aware(launch.launch_timestamp)
-            if sales_time >= launch_time:
-                violations.append(
-                    {
-                        "entity_type": "Mission",
-                        "entity_id": str(mission.id),
-                        "entity_name": mission.name,
-                        "violation_type": "sales_open_after_launch",
-                        "description": f"sales_open_at {sales_time} is after launch {launch_time}",
-                        "auto_fixable": False,
-                        "fixed": False,
-                    }
-                )
-
     return violations
 
 
@@ -121,6 +104,21 @@ def audit_trips(session: Session, now: datetime) -> list[dict[str, Any]]:
     violations = []
     trips = session.exec(select(Trip)).unique().all()
     for trip in trips:
+        if trip.sales_open_at is not None:
+            sales_open = ensure_aware(trip.sales_open_at)
+            departure = ensure_aware(trip.departure_time)
+            if sales_open >= departure:
+                violations.append(
+                    {
+                        "entity_type": "Trip",
+                        "entity_id": str(trip.id),
+                        "entity_name": trip.name or str(trip.id),
+                        "violation_type": "sales_open_after_departure",
+                        "description": f"sales_open_at {sales_open} is after departure {departure}",
+                        "auto_fixable": False,
+                        "fixed": False,
+                    }
+                )
         # Check time ordering
         check_in = ensure_aware(trip.check_in_time)
         boarding = ensure_aware(trip.boarding_time)

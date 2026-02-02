@@ -73,7 +73,6 @@ export default function BookingDetails({
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
-  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false)
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
@@ -111,7 +110,6 @@ export default function BookingDetails({
     onSuccess: (updated) => {
       showSuccessToast("Booking checked in successfully")
       queryClient.setQueryData(["booking", confirmationCode], updated)
-      setCheckInConfirmOpen(false)
     },
     onError: (err: unknown) => {
       const detail = (err as { body?: { detail?: string } })?.body?.detail
@@ -337,7 +335,7 @@ export default function BookingDetails({
             <Button
               size="sm"
               colorPalette="green"
-              onClick={() => setCheckInConfirmOpen(true)}
+              onClick={() => checkInMutation.mutate()}
               loading={checkInMutation.isPending}
             >
               <Flex align="center" gap={2}>
@@ -371,44 +369,6 @@ export default function BookingDetails({
           />
         </Flex>
       </Flex>
-
-      <DialogRoot
-        open={checkInConfirmOpen}
-        onOpenChange={({ open }) => setCheckInConfirmOpen(open)}
-        size={{ base: "xs", md: "sm" }}
-        placement="center"
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm check-in</DialogTitle>
-          </DialogHeader>
-          <DialogCloseTrigger />
-          <DialogBody>
-            <Text>
-              Check in booking{" "}
-              <Text as="span" fontFamily="mono" fontWeight="bold">
-                {booking.confirmation_code}
-              </Text>{" "}
-              for <Text as="span" fontWeight="bold">{booking.user_name}</Text>?
-            </Text>
-          </DialogBody>
-          <DialogFooter>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogActionTrigger>
-              <Button
-                colorPalette="green"
-                onClick={() => checkInMutation.mutate()}
-                loading={checkInMutation.isPending}
-                disabled={checkInMutation.isPending}
-              >
-                {checkInMutation.isPending ? "Checking in..." : "Check In"}
-              </Button>
-            </ButtonGroup>
-          </DialogFooter>
-        </DialogContent>
-      </DialogRoot>
 
       <DialogRoot
         open={jsonDialogOpen}

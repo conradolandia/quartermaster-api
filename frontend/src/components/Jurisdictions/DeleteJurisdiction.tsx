@@ -65,7 +65,7 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" colorPalette="red">
+        <Button variant="ghost" size="sm" color="status.error">
           <FaTrash fontSize="16px" />
           Delete
         </Button>

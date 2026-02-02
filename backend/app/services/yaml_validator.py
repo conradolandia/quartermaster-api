@@ -38,29 +38,24 @@ class YamlValidator:
             "name": {"type": "string", "minLength": 1},
             "launch_id": {"type": "string", "format": "uuid"},
             "active": {"type": "boolean"},
-            "sales_open_at": {"type": "string", "format": "date-time"},
             "refund_cutoff_hours": {"type": "integer", "minimum": 0, "maximum": 72},
         },
     }
 
-    # Trip schema
+    # Trip schema: departure_time plus optional minute offsets (defaults by type)
     TRIP_SCHEMA = {
         "type": "object",
-        "required": [
-            "mission_id",
-            "type",
-            "check_in_time",
-            "boarding_time",
-            "departure_time",
-        ],
+        "required": ["mission_id", "type", "departure_time"],
         "properties": {
             "mission_id": {"type": "string", "format": "uuid"},
             "type": {"type": "string", "maxLength": 50},
             "name": {"type": "string", "maxLength": 255},
             "active": {"type": "boolean"},
-            "check_in_time": {"type": "string", "format": "date-time"},
-            "boarding_time": {"type": "string", "format": "date-time"},
+            "booking_mode": {"type": "string", "maxLength": 20},
+            "sales_open_at": {"type": "string", "format": "date-time"},
             "departure_time": {"type": "string", "format": "date-time"},
+            "boarding_minutes_before_departure": {"type": "integer", "minimum": 0},
+            "checkin_minutes_before_boarding": {"type": "integer", "minimum": 0},
         },
     }
 
@@ -73,20 +68,14 @@ class YamlValidator:
             "launch_id": {"type": "string", "format": "uuid"},
             "launch_ref": {"type": "integer", "minimum": 0},
             "active": {"type": "boolean"},
-            "sales_open_at": {"type": "string", "format": "date-time"},
             "refund_cutoff_hours": {"type": "integer", "minimum": 0, "maximum": 72},
         },
     }
 
-    # Trip schema for multi-document (mission_id or mission_ref)
+    # Trip schema for multi-document: departure_time plus optional minute offsets
     TRIP_IN_DOC_SCHEMA = {
         "type": "object",
-        "required": [
-            "type",
-            "check_in_time",
-            "boarding_time",
-            "departure_time",
-        ],
+        "required": ["type", "departure_time"],
         "properties": {
             "mission_id": {"type": "string", "format": "uuid"},
             "mission_ref": {"type": "integer", "minimum": 0},
@@ -94,9 +83,10 @@ class YamlValidator:
             "name": {"type": "string", "maxLength": 255},
             "active": {"type": "boolean"},
             "booking_mode": {"type": "string", "maxLength": 20},
-            "check_in_time": {"type": "string", "format": "date-time"},
-            "boarding_time": {"type": "string", "format": "date-time"},
+            "sales_open_at": {"type": "string", "format": "date-time"},
             "departure_time": {"type": "string", "format": "date-time"},
+            "boarding_minutes_before_departure": {"type": "integer", "minimum": 0},
+            "checkin_minutes_before_boarding": {"type": "integer", "minimum": 0},
         },
     }
 

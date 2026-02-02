@@ -4,16 +4,22 @@
 # A Mission typically has multiple Trips (e.g., morning and afternoon departures).
 # Before importing, ensure the mission_id references an existing Mission.
 #
-# Required fields: mission_id, type, check_in_time, boarding_time, departure_time
-# Optional fields: active
+# Required: mission_id, type, departure_time
+# Optional: boarding_minutes_before_departure, checkin_minutes_before_boarding,
+#   sales_open_at (defaults by type: launch_viewing 30/30, pre_launch 15/15)
 
 mission_id: "c3d4e5f6-a7b8-9012-cdef-345678901234"  # Replace with actual Mission UUID
-type: "boat"  # Trip type (e.g., "boat", "bus", "vip" -  possible future options)
+type: "launch_viewing"  # launch_viewing or pre_launch
 
-# Times should allow enough buffer between each phase
-check_in_time: "2024-06-15T15:00:00Z"   # Guests arrive and check in
-boarding_time: "2024-06-15T15:45:00Z"   # Begin boarding the vessel
-departure_time: "2024-06-15T16:30:00Z"  # Vessel departs for viewing location
+# Departure time (check-in and boarding are computed from offsets)
+departure_time: "2024-06-15T16:30:00Z"
+
+# Optional: minutes before departure when boarding starts; minutes before boarding when check-in opens
+boarding_minutes_before_departure: 30
+checkin_minutes_before_boarding: 30
+
+# Optional: when ticket sales open for this trip (trip not bookable until this instant)
+# sales_open_at: "2024-05-01T00:00:00Z"
 
 # Optional settings
 active: true

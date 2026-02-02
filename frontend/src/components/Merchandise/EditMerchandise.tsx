@@ -312,10 +312,20 @@ const VariationsTable = forwardRef<
 
 interface EditMerchandiseProps {
   merchandise: MerchandisePublic
+  /** When provided, dialog open state is controlled (e.g. open after duplicate). */
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+const EditMerchandise = ({
+  merchandise,
+  isOpen: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: EditMerchandiseProps) => {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isOpen = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -365,7 +375,7 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
     onSuccess: () => {
       showSuccessToast("Merchandise updated successfully.")
       reset()
-      setIsOpen(false)
+      setOpen(false)
     },
     onError: (err: ApiError) => {
       handleError(err)
@@ -453,14 +463,16 @@ const EditMerchandise = ({ merchandise }: EditMerchandiseProps) => {
       size={{ base: "md", md: "xl" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => setOpen(open)}
     >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <FaExchangeAlt fontSize="16px" />
-          Edit
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" color="dark.accent.primary">
+            <FaExchangeAlt fontSize="16px" />
+            Edit
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent ref={contentRef} maxW="2xl">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>

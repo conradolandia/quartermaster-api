@@ -16,13 +16,7 @@ import { FaExchangeAlt } from "react-icons/fa"
 import { Switch } from "../ui/switch"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import {
-  formatInLocationTimezone,
-  formatLocationTimezoneDisplay,
-  handleError,
-  parseApiDate,
-  parseLocationTimeToUtc,
-} from "@/utils"
+import { handleError, parseApiDate } from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -41,7 +35,6 @@ interface Mission {
   name: string
   launch_id: string
   active: boolean
-  sales_open_at: string | null
   refund_cutoff_hours: number
   created_at: string
   updated_at: string
@@ -50,10 +43,20 @@ interface Mission {
 
 interface EditMissionProps {
   mission: Mission
+  /** When provided, dialog open state is controlled (e.g. open after duplicate). */
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-const EditMission = ({ mission }: EditMissionProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+const EditMission = ({
+  mission,
+  isOpen: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: EditMissionProps) => {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isOpen = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const [active, setActive] = useState(mission.active)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -83,12 +86,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
       name: mission.name,
       launch_id: mission.launch_id,
       active: mission.active,
-      sales_open_at: mission.sales_open_at
-        ? formatInLocationTimezone(
-            parseApiDate(mission.sales_open_at),
-            mission.timezone ?? "UTC",
-          )
-        : "",
       refund_cutoff_hours: mission.refund_cutoff_hours,
     },
   })
@@ -101,7 +98,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
       }),
     onSuccess: () => {
       showSuccessToast("Mission updated successfully.")
-      setIsOpen(false)
+      setOpen(false)
       queryClient.invalidateQueries({ queryKey: ["missions"] })
     },
     onError: (err: any) => {
@@ -117,28 +114,17 @@ const EditMission = ({ mission }: EditMissionProps) => {
         name: mission.name,
         launch_id: mission.launch_id,
         active: mission.active,
-        sales_open_at: mission.sales_open_at
-          ? formatInLocationTimezone(
-              parseApiDate(mission.sales_open_at),
-              mission.timezone ?? "UTC",
-            )
-          : "",
         refund_cutoff_hours: mission.refund_cutoff_hours,
       })
     }
   }, [isOpen, mission, reset])
 
   const onSubmit: SubmitHandler<any> = async (data) => {
-    // Format the data before sending
-    // Use local state for active switch
-    const tz = mission.timezone ?? "UTC"
+    // Format the data before sending; use local state for active switch
     const formattedData: any = {
       name: data.name,
       launch_id: data.launch_id,
       active: active,
-      sales_open_at: data.sales_open_at
-        ? parseLocationTimeToUtc(data.sales_open_at, tz)
-        : null,
       refund_cutoff_hours: data.refund_cutoff_hours,
     }
     mutation.mutate(formattedData)
@@ -149,11 +135,14 @@ const EditMission = ({ mission }: EditMissionProps) => {
       size={{ base: "xs", md: "md" }}
       placement="center"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={({ open }) => setOpen(open)}
     >
-      <DialogTrigger asChild>
-        <Button
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button
           variant="ghost"
+          size="sm"
+          color="dark.accent.primary"
           disabled={isPast}
           title={
             isPast
@@ -165,6 +154,7 @@ const EditMission = ({ mission }: EditMissionProps) => {
           Edit Mission
         </Button>
       </DialogTrigger>
+      )}
       <DialogContent ref={contentRef}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
@@ -211,24 +201,6 @@ const EditMission = ({ mission }: EditMissionProps) => {
                       portalRef={contentRef}
                     />
                   )}
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.sales_open_at}
-                errorText={errors.sales_open_at?.message}
-                label={`Sales Open Date & Time (${formatLocationTimezoneDisplay(
-                  mission.timezone ?? "UTC",
-                )})`}
-              >
-                <Input
-                  id="sales_open_at"
-                  {...register("sales_open_at")}
-                  placeholder={`Enter time in ${formatLocationTimezoneDisplay(
-                    mission.timezone ?? "UTC",
-                  )}`}
-                  type="datetime-local"
-                  disabled={isPast}
                 />
               </Field>
 

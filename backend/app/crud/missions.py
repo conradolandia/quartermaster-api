@@ -79,7 +79,7 @@ def get_missions_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT id, name, launch_id, active, sales_open_at, refund_cutoff_hours, created_at, updated_at
+            SELECT id, name, launch_id, active, refund_cutoff_hours, created_at, updated_at
             FROM mission
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
@@ -95,10 +95,9 @@ def get_missions_no_relationships(
                 "name": row[1],
                 "launch_id": row[2],
                 "active": row[3],
-                "sales_open_at": row[4],
-                "refund_cutoff_hours": row[5],
-                "created_at": row[6],
-                "updated_at": row[7],
+                "refund_cutoff_hours": row[4],
+                "created_at": row[5],
+                "updated_at": row[6],
             }
         )
 
@@ -123,7 +122,7 @@ def get_missions_with_stats(
     missions_result = session.exec(
         text(
             """
-            SELECT m.id, m.name, m.launch_id, m.active, m.sales_open_at,
+            SELECT m.id, m.name, m.launch_id, m.active,
                    m.refund_cutoff_hours, m.created_at, m.updated_at, loc.timezone
             FROM mission m
             JOIN launch l ON m.launch_id = l.id
@@ -140,11 +139,10 @@ def get_missions_with_stats(
         mission_name = mission_row[1]
         launch_id = mission_row[2]
         active = mission_row[3]
-        sales_open_at = mission_row[4]
-        refund_cutoff_hours = mission_row[5]
-        created_at = mission_row[6]
-        updated_at = mission_row[7]
-        timezone_val = mission_row[8] or "UTC"
+        refund_cutoff_hours = mission_row[4]
+        created_at = mission_row[5]
+        updated_at = mission_row[6]
+        timezone_val = mission_row[7] or "UTC"
 
         # Get all trips for this mission (just IDs to avoid relationship loading)
         trips_statement = select(Trip.id).where(Trip.mission_id == mission_id)
@@ -188,7 +186,6 @@ def get_missions_with_stats(
                 "name": mission_name,
                 "launch_id": launch_id,
                 "active": active,
-                "sales_open_at": sales_open_at,
                 "refund_cutoff_hours": refund_cutoff_hours,
                 "created_at": created_at,
                 "updated_at": updated_at,

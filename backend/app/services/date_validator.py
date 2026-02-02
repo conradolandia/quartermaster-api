@@ -2,8 +2,11 @@
 Date validation utilities for ensuring coherence across Launch → Mission → Trip → Booking hierarchy.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
+
+# Trips remain editable for this long after departure (e.g. for delays/scrubs)
+TRIP_EDITABLE_HOURS_AFTER_DEPARTURE = 24
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -68,7 +71,11 @@ def is_mission_past(mission: "Mission", session: "Session") -> bool:
 
 def is_trip_past(trip: "Trip", now: datetime | None = None) -> bool:
     """
-    Check if a trip has already departed.
+    Check if a trip has already departed (departure_time is in the past).
+
+    Use this to block creating bookings for departed trips. For blocking trip
+    edits, use is_trip_past_editable_window so edits are allowed up to 24h
+    after departure.
 
     Args:
         trip: Trip instance to check
@@ -80,6 +87,29 @@ def is_trip_past(trip: "Trip", now: datetime | None = None) -> bool:
     if now is None:
         now = _get_now()
     return ensure_aware(trip.departure_time) < now
+
+
+def is_trip_past_editable_window(trip: "Trip", now: datetime | None = None) -> bool:
+    """
+    Check if a trip is past its editable window (no longer editable).
+
+    Trips remain editable for TRIP_EDITABLE_HOURS_AFTER_DEPARTURE (e.g. 24h)
+    after departure to allow last-minute delay/scrub updates.
+
+    Args:
+        trip: Trip instance to check
+        now: Optional datetime to use as reference (defaults to current UTC time)
+
+    Returns:
+        True if now is more than TRIP_EDITABLE_HOURS_AFTER_DEPARTURE after
+        departure_time (trip no longer editable), False otherwise
+    """
+    if now is None:
+        now = _get_now()
+    cutoff = ensure_aware(trip.departure_time) + timedelta(
+        hours=TRIP_EDITABLE_HOURS_AFTER_DEPARTURE
+    )
+    return now > cutoff
 
 
 def is_booking_past(booking: "Booking", session: "Session") -> bool:
@@ -111,31 +141,6 @@ def is_booking_past(booking: "Booking", session: "Session") -> bool:
         return False
 
     return is_trip_past(trip)
-
-
-def validate_mission_dates(
-    mission: "Mission", launch: "Launch"
-) -> tuple[bool, str | None]:
-    """
-    Validate that mission dates are coherent with launch dates.
-
-    Args:
-        mission: Mission instance to validate
-        launch: Launch instance associated with the mission
-
-    Returns:
-        Tuple of (is_valid, error_message)
-        - is_valid: True if dates are valid, False otherwise
-        - error_message: Error message if invalid, None if valid
-    """
-    if mission.sales_open_at is not None:
-        if ensure_aware(mission.sales_open_at) >= ensure_aware(launch.launch_timestamp):
-            return (
-                False,
-                "Sales open date must be before launch timestamp",
-            )
-
-    return (True, None)
 
 
 def validate_trip_time_ordering(trip: "Trip") -> tuple[bool, str | None]:
@@ -192,44 +197,16 @@ def validate_trip_dates(
 
     # For launch_viewing and pre_launch trips, departure should typically be before launch
     # But post-launch trips are allowed (special cases)
-    # We'll allow both but log if departure is after launch for launch_viewing/pre_launch
     if trip.type in ("launch_viewing", "pre_launch"):
         if ensure_aware(trip.departure_time) > ensure_aware(launch.launch_timestamp):
-            # This is allowed but might be unusual - we'll allow it but could log a warning
             pass
 
-    # Mission parameter is reserved for future validations (e.g., checking sales_open_at)
-    _ = mission  # Suppress unused parameter warning
+    if trip.sales_open_at is not None:
+        if ensure_aware(trip.sales_open_at) >= ensure_aware(trip.departure_time):
+            return (
+                False,
+                "Sales open date must be before departure time",
+            )
 
-    return (True, None)
-
-
-def validate_booking_dates(booking: "Booking", trip: "Trip") -> tuple[bool, str | None]:
-    """
-    Validate that booking dates are coherent with trip dates.
-
-    Args:
-        booking: Booking instance to validate
-        trip: Trip instance associated with the booking
-
-    Returns:
-        Tuple of (is_valid, error_message)
-        - is_valid: True if dates are valid, False otherwise
-        - error_message: Error message if invalid, None if valid
-    """
-    now = _get_now()
-
-    # Booking should be for a future trip
-    if ensure_aware(trip.departure_time) < now:
-        return (
-            False,
-            "Cannot create booking for a trip that has already departed",
-        )
-
-    # Booking created_at should be before trip departure (logical check)
-    if ensure_aware(booking.created_at) > ensure_aware(trip.departure_time):
-        # This is unusual but not necessarily invalid (could be a data correction)
-        # We'll allow it but could log a warning
-        pass
-
+    _ = mission
     return (True, None)

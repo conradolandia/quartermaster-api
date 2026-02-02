@@ -27,8 +27,9 @@ def db() -> Generator[Session, None, None]:
             session.rollback()
             print(f"Error during initial test cleanup: {e}")
 
-        # Run database init
+        # Run database init and commit so app requests see the data
         init_db(session)
+        session.commit()
         yield session
 
         # Clean up test data

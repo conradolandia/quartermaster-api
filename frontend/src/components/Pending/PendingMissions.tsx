@@ -7,7 +7,7 @@ const PendingMissions = () => {
         <Table.Row>
           <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>
           <Table.ColumnHeader w="sm">Launch</Table.ColumnHeader>
-          <Table.ColumnHeader w="sm">Sales Open</Table.ColumnHeader>
+          <Table.ColumnHeader w="sm">Trips</Table.ColumnHeader>
           <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
           <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
         </Table.Row>

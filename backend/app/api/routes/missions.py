@@ -15,10 +15,7 @@ from app.models import (
     MissionsWithStatsPublic,
     MissionUpdate,
 )
-from app.services.date_validator import (
-    is_mission_past,
-    validate_mission_dates,
-)
+from app.services.date_validator import is_mission_past
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
 
@@ -78,18 +75,41 @@ def create_mission(
             detail=f"Launch with ID {mission_in.launch_id} not found",
         )
 
-    # Validate mission dates are coherent with launch
-    # Create a temporary mission object to validate
-    temp_mission = Mission.model_validate(mission_in)
-    is_valid, error_msg = validate_mission_dates(temp_mission, launch)
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot create mission: {error_msg}",
-        )
-
     mission = crud.create_mission(session=session, mission_in=mission_in)
     return _mission_to_public(session, mission)
+
+
+@router.post(
+    "/{mission_id}/duplicate",
+    response_model=MissionPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def duplicate_mission(
+    *,
+    session: Session = Depends(deps.get_db),
+    mission_id: uuid.UUID,
+) -> Any:
+    """
+    Duplicate mission: create a new mission with the same launch, name (copy),
+    active, and refund_cutoff_hours.
+    """
+    mission = crud.get_mission(session=session, mission_id=mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mission with ID {mission_id} not found",
+        )
+    copy_name = (mission.name or "Mission").strip()
+    copy_name = f"{copy_name} (copy)" if copy_name else "Mission (copy)"
+    mission_in = MissionCreate(
+        name=copy_name,
+        launch_id=mission.launch_id,
+        active=mission.active,
+        refund_cutoff_hours=mission.refund_cutoff_hours,
+    )
+    new_mission = crud.create_mission(session=session, mission_in=mission_in)
+    return _mission_to_public(session, new_mission)
 
 
 @router.get(
@@ -164,18 +184,6 @@ def update_mission(
             )
         launch = new_launch
 
-    # Validate mission dates are coherent with launch
-    # Merge update data with existing mission data for validation
-    update_data = mission_in.model_dump(exclude_unset=True)
-    temp_mission_data = {**mission.model_dump(), **update_data}
-    temp_mission = Mission.model_validate(temp_mission_data)
-    is_valid, error_msg = validate_mission_dates(temp_mission, launch)
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot update mission: {error_msg}",
-        )
-
     mission = crud.update_mission(session=session, db_obj=mission, obj_in=mission_in)
 
     # Log override action if past edit was allowed
@@ -249,7 +257,6 @@ def read_missions_by_launch(
             "name": mission.name,
             "launch_id": mission.launch_id,
             "active": mission.active,
-            "sales_open_at": mission.sales_open_at,
             "refund_cutoff_hours": mission.refund_cutoff_hours,
             "created_at": mission.created_at,
             "updated_at": mission.updated_at,
@@ -293,7 +300,6 @@ def read_active_missions(
                 "name": mission.name,
                 "launch_id": mission.launch_id,
                 "active": mission.active,
-                "sales_open_at": mission.sales_open_at,
                 "refund_cutoff_hours": mission.refund_cutoff_hours,
                 "created_at": mission.created_at,
                 "updated_at": mission.updated_at,
@@ -332,7 +338,6 @@ def read_public_missions(
                 "name": mission.name,
                 "launch_id": mission.launch_id,
                 "active": mission.active,
-                "sales_open_at": mission.sales_open_at,
                 "refund_cutoff_hours": mission.refund_cutoff_hours,
                 "created_at": mission.created_at,
                 "updated_at": mission.updated_at,

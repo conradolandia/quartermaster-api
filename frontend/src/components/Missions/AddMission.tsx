@@ -16,11 +16,7 @@ import {
 } from "../ui/dialog"
 
 import useCustomToast from "@/hooks/useCustomToast"
-import {
-  formatLocationTimezoneDisplay,
-  handleError,
-  parseLocationTimeToUtc,
-} from "@/utils"
+import { handleError } from "@/utils"
 import { Field } from "../ui/field"
 import { LaunchDropdown } from "./LaunchDropdown"
 
@@ -35,18 +31,16 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
   const [name, setName] = useState("")
   const [launchId, setLaunchId] = useState("")
   const [active, setActive] = useState(true)
-  const [salesOpenAt, setSalesOpenAt] = useState("")
   const [refundCutoffHours, setRefundCutoffHours] = useState(12)
   const { showSuccessToast } = useCustomToast()
   const queryClient = useQueryClient()
   const contentRef = useRef(null)
 
-  const { data: launchData } = useQuery({
+  useQuery({
     queryKey: ["launch-for-add-mission", launchId],
     queryFn: () => LaunchesService.readLaunch({ launchId }),
     enabled: !!launchId && isOpen,
   })
-  const timezone = launchData?.timezone ?? null
 
   // Use mutation for creating mission
   const mutation = useMutation({
@@ -59,7 +53,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       setName("")
       setLaunchId("")
       setActive(true)
-      setSalesOpenAt("")
       setRefundCutoffHours(12)
       queryClient.invalidateQueries({ queryKey: ["missions"] })
       onSuccess()
@@ -77,9 +70,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
       name,
       launch_id: launchId,
       active,
-      sales_open_at: salesOpenAt
-        ? parseLocationTimeToUtc(salesOpenAt, timezone ?? "UTC")
-        : null,
       refund_cutoff_hours: refundCutoffHours,
     })
   }
@@ -112,27 +102,6 @@ export const AddMission = ({ isOpen, onClose, onSuccess }: AddMissionProps) => {
                 onChange={setLaunchId}
                 disabled={mutation.isPending}
                 portalRef={contentRef}
-              />
-            </Field>
-            <Field
-              label={
-                timezone
-                  ? `Sales Open Date & Time (${formatLocationTimezoneDisplay(
-                      timezone,
-                    )})`
-                  : "Sales Open Date & Time"
-              }
-            >
-              <Input
-                id="sales_open_at"
-                type="datetime-local"
-                value={salesOpenAt}
-                onChange={(e) => setSalesOpenAt(e.target.value)}
-                placeholder={
-                  timezone
-                    ? `Enter time in ${formatLocationTimezoneDisplay(timezone)}`
-                    : "Select launch for timezone"
-                }
               />
             </Field>
             <Field label="Refund Cutoff Hours" required>
