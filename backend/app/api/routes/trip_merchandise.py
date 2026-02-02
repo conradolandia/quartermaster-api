@@ -15,6 +15,7 @@ from app.models import (
     TripMerchandiseCreate,
     TripMerchandisePublic,
     TripMerchandiseUpdate,
+    TripMerchandiseVariationAvailability,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,15 +24,41 @@ router = APIRouter(prefix="/trip-merchandise", tags=["trip-merchandise"])
 
 
 def _trip_merchandise_to_public(
-    tm: TripMerchandise, m: Merchandise
+    session: Session,
+    tm: TripMerchandise,
+    m: Merchandise,
 ) -> TripMerchandisePublic:
-    """Build TripMerchandisePublic from TripMerchandise + Merchandise (effective price and quantity)."""
+    """Build TripMerchandisePublic from TripMerchandise + Merchandise (effective price and quantity, per-variation when present)."""
     price = tm.price_override if tm.price_override is not None else m.price
-    qty = (
-        tm.quantity_available_override
-        if tm.quantity_available_override is not None
-        else m.quantity_available
+    variations = crud.list_merchandise_variations_by_merchandise(
+        session=session, merchandise_id=m.id
     )
+    variations_availability: list[TripMerchandiseVariationAvailability] | None = None
+    if variations:
+        variations_availability = []
+        total_available = 0
+        for var in variations:
+            available = var.quantity_total - var.quantity_sold
+            variations_availability.append(
+                TripMerchandiseVariationAvailability(
+                    variant_value=var.variant_value,
+                    quantity_available=available,
+                )
+            )
+            total_available += available
+        if tm.quantity_available_override is not None:
+            total_available = min(total_available, tm.quantity_available_override)
+        qty = total_available
+    else:
+        qty = (
+            tm.quantity_available_override
+            if tm.quantity_available_override is not None
+            else m.quantity_available
+        )
+    variant_options = (
+        ",".join(v.variant_value for v in variations) if variations else None
+    )
+
     return TripMerchandisePublic(
         id=tm.id,
         trip_id=tm.trip_id,
@@ -40,8 +67,9 @@ def _trip_merchandise_to_public(
         description=m.description,
         price=price,
         quantity_available=qty,
-        variant_name=m.variant_name,
-        variant_options=m.variant_options,
+        variant_name=None,
+        variant_options=variant_options,
+        variations_availability=variations_availability,
         created_at=tm.created_at,
         updated_at=tm.updated_at,
     )
@@ -76,7 +104,7 @@ def create_trip_merchandise(
             detail="Merchandise not found after create",
         )
     logger.info("Created trip merchandise: %s", trip_merchandise.id)
-    return _trip_merchandise_to_public(trip_merchandise, m)
+    return _trip_merchandise_to_public(session, trip_merchandise, m)
 
 
 @router.get(
@@ -106,7 +134,7 @@ def list_trip_merchandise(
         if not m:
             m = crud.get_merchandise(session=session, merchandise_id=tm.merchandise_id)
         if m:
-            out.append(_trip_merchandise_to_public(tm, m))
+            out.append(_trip_merchandise_to_public(session, tm, m))
     return out
 
 
@@ -138,7 +166,7 @@ def get_trip_merchandise(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Merchandise not found",
         )
-    return _trip_merchandise_to_public(trip_merchandise, m)
+    return _trip_merchandise_to_public(session, trip_merchandise, m)
 
 
 @router.put(
@@ -238,5 +266,5 @@ def list_public_trip_merchandise(
         if not m:
             m = crud.get_merchandise(session=session, merchandise_id=tm.merchandise_id)
         if m:
-            out.append(_trip_merchandise_to_public(tm, m))
+            out.append(_trip_merchandise_to_public(session, tm, m))
     return out

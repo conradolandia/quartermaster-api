@@ -145,6 +145,7 @@ export type BookingItemCreate = {
   trip_id: string
   boat_id: string
   trip_merchandise_id?: string | null
+  merchandise_variation_id?: string | null
   item_type: string
   quantity: number
   price_per_unit: number
@@ -159,6 +160,7 @@ export type BookingItemPublic = {
   trip_id: string
   boat_id: string
   trip_merchandise_id?: string | null
+  merchandise_variation_id?: string | null
   item_type: string
   quantity: number
   price_per_unit: number
@@ -420,8 +422,6 @@ export type MerchandiseCreate = {
   description?: string | null
   price: number
   quantity_available: number
-  variant_name?: string | null
-  variant_options?: string | null
 }
 
 export type MerchandisePublic = {
@@ -429,11 +429,11 @@ export type MerchandisePublic = {
   description?: string | null
   price: number
   quantity_available: number
-  variant_name?: string | null
-  variant_options?: string | null
   id: string
   created_at: string
   updated_at: string
+  variant_name?: string | null
+  variant_options?: string | null
 }
 
 export type MerchandisesPublic = {
@@ -446,8 +446,32 @@ export type MerchandiseUpdate = {
   description?: string | null
   price?: number | null
   quantity_available?: number | null
-  variant_name?: string | null
-  variant_options?: string | null
+}
+
+export type MerchandiseVariationCreate = {
+  merchandise_id: string
+  variant_value: string
+  quantity_total: number
+  quantity_sold?: number
+  quantity_fulfilled?: number
+}
+
+export type MerchandiseVariationPublic = {
+  id: string
+  merchandise_id: string
+  variant_value: string
+  quantity_total: number
+  quantity_sold: number
+  quantity_fulfilled: number
+  created_at: string
+  updated_at: string
+}
+
+export type MerchandiseVariationUpdate = {
+  variant_value?: string | null
+  quantity_total?: number | null
+  quantity_sold?: number | null
+  quantity_fulfilled?: number | null
 }
 
 export type Message = {
@@ -674,6 +698,7 @@ export type TripMerchandisePublic = {
   quantity_available: number
   variant_name?: string | null
   variant_options?: string | null
+  variations_availability?: Array<TripMerchandiseVariationAvailability> | null
   created_at: string
   updated_at: string
 }
@@ -681,6 +706,11 @@ export type TripMerchandisePublic = {
 export type TripMerchandiseUpdate = {
   quantity_available_override?: number | null
   price_override?: number | null
+}
+
+export type TripMerchandiseVariationAvailability = {
+  variant_value: string
+  quantity_available: number
 }
 
 export type TripPublic = {
@@ -1232,6 +1262,45 @@ export type MerchandiseDeleteMerchandiseData = {
 }
 
 export type MerchandiseDeleteMerchandiseResponse = void
+
+export type MerchandiseListMerchandiseVariationsData = {
+  merchandiseId: string
+}
+
+export type MerchandiseListMerchandiseVariationsResponse =
+  Array<MerchandiseVariationPublic>
+
+export type MerchandiseCreateMerchandiseVariationData = {
+  merchandiseId: string
+  requestBody: MerchandiseVariationCreate
+}
+
+export type MerchandiseCreateMerchandiseVariationResponse =
+  MerchandiseVariationPublic
+
+export type MerchandiseGetMerchandiseVariationData = {
+  merchandiseId: string
+  variationId: string
+}
+
+export type MerchandiseGetMerchandiseVariationResponse =
+  MerchandiseVariationPublic
+
+export type MerchandiseUpdateMerchandiseVariationData = {
+  merchandiseId: string
+  requestBody: MerchandiseVariationUpdate
+  variationId: string
+}
+
+export type MerchandiseUpdateMerchandiseVariationResponse =
+  MerchandiseVariationPublic
+
+export type MerchandiseDeleteMerchandiseVariationData = {
+  merchandiseId: string
+  variationId: string
+}
+
+export type MerchandiseDeleteMerchandiseVariationResponse = void
 
 export type MissionsReadMissionsData = {
   limit?: number

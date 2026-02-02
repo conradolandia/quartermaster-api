@@ -57,8 +57,6 @@ export const AddMerchandise = ({
       description: "",
       price: 0,
       quantity_available: 0,
-      variant_name: "",
-      variant_options: "",
     },
   })
 
@@ -81,8 +79,6 @@ export const AddMerchandise = ({
     mutation.mutate({
       ...data,
       price: Math.round(data.price * 100),
-      variant_name: data.variant_name?.trim() || undefined,
-      variant_options: data.variant_options?.trim() || undefined,
     })
   }
 
@@ -192,38 +188,6 @@ export const AddMerchandise = ({
                       <NumberInput.Input />
                     </NumberInput.Root>
                   )}
-                />
-              </Field>
-              <Field
-                label="Variant name (optional)"
-                invalid={!!errors.variant_name}
-                errorText={errors.variant_name?.message}
-              >
-                <Input
-                  id="variant_name"
-                  {...register("variant_name", {
-                    maxLength: {
-                      value: 64,
-                      message: "Variant name cannot exceed 64 characters",
-                    },
-                  })}
-                  placeholder="e.g. Size"
-                />
-              </Field>
-              <Field
-                label="Variant options (optional, comma-separated)"
-                invalid={!!errors.variant_options}
-                errorText={errors.variant_options?.message}
-              >
-                <Input
-                  id="variant_options"
-                  {...register("variant_options", {
-                    maxLength: {
-                      value: 500,
-                      message: "Variant options cannot exceed 500 characters",
-                    },
-                  })}
-                  placeholder="e.g. S, M, L"
                 />
               </Field>
             </VStack>

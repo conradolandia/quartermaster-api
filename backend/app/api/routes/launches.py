@@ -393,10 +393,14 @@ def send_launch_update(
     emails_sent = 0
     emails_failed = 0
     recipients = []
+    seen_emails: set[str] = set()
 
     for booking in bookings:
+        if booking.user_email in seen_emails:
+            continue
+        seen_emails.add(booking.user_email)
         try:
-            # Generate and send the email
+            # Generate and send the email (once per unique address)
             email_data = generate_launch_update_email(
                 email_to=booking.user_email,
                 user_name=booking.user_name,

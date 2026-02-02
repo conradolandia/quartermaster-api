@@ -254,8 +254,12 @@ function MerchandiseTable() {
                   truncate
                   maxW="xs"
                 >
-                  {item.variant_name && item.variant_options
-                    ? `${item.variant_name}: ${item.variant_options}`
+                  {item.variant_options
+                    ? item.variant_options
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                        .join(", ")
                     : "—"}
                 </Table.Cell>
                 <Table.Cell minW="220px" textAlign="center">

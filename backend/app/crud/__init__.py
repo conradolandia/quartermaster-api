@@ -74,6 +74,14 @@ from .merchandise import (
     get_merchandise_list,
     update_merchandise,
 )
+from .merchandise_variation import (
+    create_merchandise_variation,
+    delete_merchandise_variation,
+    get_merchandise_variation,
+    get_merchandise_variation_by_merchandise_and_value,
+    list_merchandise_variations_by_merchandise,
+    update_merchandise_variation,
+)
 from .missions import (
     create_mission,
     delete_mission,
@@ -159,6 +167,13 @@ __all__ = [
     "get_merchandise_count",
     "get_merchandise_list",
     "update_merchandise",
+    # Merchandise variation
+    "create_merchandise_variation",
+    "delete_merchandise_variation",
+    "get_merchandise_variation",
+    "get_merchandise_variation_by_merchandise_and_value",
+    "list_merchandise_variations_by_merchandise",
+    "update_merchandise_variation",
     # Jurisdictions
     "create_jurisdiction",
     "delete_jurisdiction",

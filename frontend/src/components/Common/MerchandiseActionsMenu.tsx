@@ -1,8 +1,7 @@
-import { IconButton } from "@chakra-ui/react"
-import { BsThreeDotsVertical } from "react-icons/bs"
-import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
+import React from "react"
 
-import type { MerchandisePublic } from "@/client"
+import type { MerchandisePublic } from "../../client"
+import { ActionsMenu } from "../ui/actions-menu"
 import DeleteMerchandise from "../Merchandise/DeleteMerchandise"
 import EditMerchandise from "../Merchandise/EditMerchandise"
 
@@ -14,16 +13,9 @@ export const MerchandiseActionsMenu = ({
   merchandise,
 }: MerchandiseActionsMenuProps) => {
   return (
-    <MenuRoot>
-      <MenuTrigger asChild>
-        <IconButton variant="ghost" color="ui.main">
-          <BsThreeDotsVertical />
-        </IconButton>
-      </MenuTrigger>
-      <MenuContent>
-        <EditMerchandise merchandise={merchandise} />
-        <DeleteMerchandise id={merchandise.id} />
-      </MenuContent>
-    </MenuRoot>
+    <ActionsMenu ariaLabel="Merchandise actions">
+      <EditMerchandise merchandise={merchandise} />
+      <DeleteMerchandise id={merchandise.id} />
+    </ActionsMenu>
   )
 }

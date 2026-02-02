@@ -24,6 +24,7 @@ from app.models import (
     BookingUpdate,
     DiscountCode,
     Merchandise,
+    MerchandiseVariation,
     Mission,
     Trip,
     TripBoat,
@@ -258,25 +259,41 @@ def _create_booking_impl(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Merchandise not found",
                 )
-            if m.variant_options:
-                allowed = [o.strip() for o in m.variant_options.split(",") if o.strip()]
+            variations = crud.list_merchandise_variations_by_merchandise(
+                session=session, merchandise_id=m.id
+            )
+            allowed = [v.variant_value for v in variations] if variations else []
+            if allowed:
                 if not item.variant_option or item.variant_option not in allowed:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=(
-                            f"Merchandise '{m.name}' requires a valid {m.variant_name or 'variant'}: "
+                            f"Merchandise '{m.name}' requires a valid variant: "
                             f"one of {allowed}"
                         ),
                     )
-            effective_qty = (
-                tm.quantity_available_override
-                if tm.quantity_available_override is not None
-                else m.quantity_available
+            # Resolve variation for per-variant inventory
+            variant_value = (item.variant_option or "").strip()
+            variation = crud.get_merchandise_variation_by_merchandise_and_value(
+                session=session,
+                merchandise_id=tm.merchandise_id,
+                variant_value=variant_value,
             )
+            if not variation:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Merchandise '{m.name}' has no variation for "
+                        f"variant '{variant_value or '(none)'}'"
+                    ),
+                )
+            available = variation.quantity_total - variation.quantity_sold
+            if tm.quantity_available_override is not None:
+                available = min(available, tm.quantity_available_override)
             effective_price = (
                 tm.price_override if tm.price_override is not None else m.price
             )
-            if effective_qty < item.quantity:
+            if available < item.quantity:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Insufficient merchandise inventory",
@@ -382,14 +399,26 @@ def _create_booking_impl(
         discount_code_id=booking_in.discount_code_id,
     )
 
-    # Create booking items
+    # Create booking items (resolve variation for merchandise to set merchandise_variation_id)
     booking_items = []
     for item in booking_in.items:
+        variation_id = None
+        if item.trip_merchandise_id:
+            tm = session.get(TripMerchandise, item.trip_merchandise_id)
+            if tm:
+                variation = crud.get_merchandise_variation_by_merchandise_and_value(
+                    session=session,
+                    merchandise_id=tm.merchandise_id,
+                    variant_value=(item.variant_option or "").strip(),
+                )
+                if variation:
+                    variation_id = variation.id
         booking_item = BookingItem(
             booking=booking,
             trip_id=item.trip_id,
             boat_id=item.boat_id,
             trip_merchandise_id=item.trip_merchandise_id,
+            merchandise_variation_id=variation_id,
             item_type=item.item_type,
             quantity=item.quantity,
             price_per_unit=item.price_per_unit,
@@ -405,22 +434,20 @@ def _create_booking_impl(
     for item in booking_items:
         session.add(item)
 
-    # Commit to get IDs and atomically decrement inventory
+    # Commit to get IDs
     session.commit()
     session.refresh(booking)
 
-    # Decrement catalog inventory for merchandise items
+    # Update variation quantity_sold for merchandise items (no longer update Merchandise.quantity_available)
     try:
         for item in booking_items:
-            if item.trip_merchandise_id:
-                tm = session.get(TripMerchandise, item.trip_merchandise_id)
-                if tm:
-                    m = session.get(Merchandise, tm.merchandise_id)
-                    if m:
-                        m.quantity_available = max(
-                            0, m.quantity_available - item.quantity
-                        )
-                        session.add(m)
+            if item.merchandise_variation_id:
+                variation = session.get(
+                    MerchandiseVariation, item.merchandise_variation_id
+                )
+                if variation:
+                    variation.quantity_sold += item.quantity
+                    session.add(variation)
         session.commit()
     except Exception:
         session.rollback()
@@ -505,6 +532,7 @@ def duplicate_booking(
                 trip_id=item.trip_id,
                 boat_id=item.boat_id,
                 trip_merchandise_id=item.trip_merchandise_id,
+                merchandise_variation_id=item.merchandise_variation_id,
                 item_type=item.item_type,
                 quantity=item.quantity,
                 price_per_unit=item.price_per_unit,
@@ -932,22 +960,26 @@ def update_booking(
                 new_qty = u.quantity
                 if new_qty == old_qty:
                     continue
-                if item.trip_merchandise_id:
-                    tm = session.get(TripMerchandise, item.trip_merchandise_id)
-                    if tm:
-                        m = session.get(Merchandise, tm.merchandise_id)
-                        if m:
-                            delta = new_qty - old_qty
-                            if delta > 0:
-                                if m.quantity_available < delta:
-                                    raise HTTPException(
-                                        status_code=status.HTTP_400_BAD_REQUEST,
-                                        detail=f"Insufficient merchandise inventory for item {item.item_type}",
-                                    )
-                                m.quantity_available -= delta
-                            else:
-                                m.quantity_available += abs(delta)
-                            session.add(m)
+                if item.merchandise_variation_id:
+                    variation = session.get(
+                        MerchandiseVariation, item.merchandise_variation_id
+                    )
+                    if variation:
+                        delta = new_qty - old_qty
+                        if delta > 0:
+                            available = (
+                                variation.quantity_total - variation.quantity_sold
+                            )
+                            if available < delta:
+                                raise HTTPException(
+                                    status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Insufficient merchandise inventory for item {item.item_type}",
+                                )
+                            variation.quantity_sold += delta
+                        else:
+                            variation.quantity_sold -= abs(delta)
+                            variation.quantity_sold = max(0, variation.quantity_sold)
+                        session.add(variation)
                 item.quantity = new_qty
                 session.add(item)
             # Recompute booking subtotal
@@ -1247,7 +1279,7 @@ def check_in_booking(
         booking.status = BookingStatus.checked_in
         session.add(booking)
 
-        # Update all booking items to fulfilled status
+        # Update all booking items to fulfilled status and variation quantity_fulfilled
         items = session.exec(
             select(BookingItem).where(BookingItem.booking_id == booking.id)
         ).all()
@@ -1255,6 +1287,13 @@ def check_in_booking(
         for item in items:
             item.status = BookingItemStatus.fulfilled
             session.add(item)
+            if item.merchandise_variation_id:
+                variation = session.get(
+                    MerchandiseVariation, item.merchandise_variation_id
+                )
+                if variation:
+                    variation.quantity_fulfilled += item.quantity
+                    session.add(variation)
 
         # Commit all changes
         session.commit()
@@ -1328,6 +1367,14 @@ def revert_check_in(
         for item in items:
             item.status = BookingItemStatus.active
             session.add(item)
+            if item.merchandise_variation_id:
+                variation = session.get(
+                    MerchandiseVariation, item.merchandise_variation_id
+                )
+                if variation:
+                    variation.quantity_fulfilled -= item.quantity
+                    variation.quantity_fulfilled = max(0, variation.quantity_fulfilled)
+                    session.add(variation)
 
         session.commit()
         session.refresh(booking)
@@ -1572,8 +1619,23 @@ def process_refund(
         if booking.refunded_amount_cents >= booking.total_amount:
             booking.status = BookingStatus.refunded
             for item in items:
+                was_fulfilled = item.status == BookingItemStatus.fulfilled
                 item.status = BookingItemStatus.refunded
                 session.add(item)
+                # Return inventory to variation: decrement quantity_sold and, if was fulfilled, quantity_fulfilled
+                if item.merchandise_variation_id:
+                    variation = session.get(
+                        MerchandiseVariation, item.merchandise_variation_id
+                    )
+                    if variation:
+                        variation.quantity_sold -= item.quantity
+                        variation.quantity_sold = max(0, variation.quantity_sold)
+                        if was_fulfilled:
+                            variation.quantity_fulfilled -= item.quantity
+                            variation.quantity_fulfilled = max(
+                                0, variation.quantity_fulfilled
+                            )
+                        session.add(variation)
 
         # Commit all changes
         session.commit()

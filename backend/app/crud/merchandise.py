@@ -7,7 +7,12 @@ import uuid
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import Merchandise, MerchandiseCreate, MerchandiseUpdate
+from app.models import (
+    Merchandise,
+    MerchandiseCreate,
+    MerchandiseUpdate,
+    MerchandiseVariationCreate,
+)
 
 
 def get_merchandise(
@@ -35,11 +40,21 @@ def get_merchandise_count(*, session: Session) -> int:
 def create_merchandise(
     *, session: Session, merchandise_in: MerchandiseCreate
 ) -> Merchandise:
-    """Create a new merchandise."""
+    """Create a new merchandise and one variation row (no variant). Add more via variations API."""
     db_obj = Merchandise.model_validate(merchandise_in)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
+    var_in = MerchandiseVariationCreate(
+        merchandise_id=db_obj.id,
+        variant_value="",
+        quantity_total=db_obj.quantity_available or 0,
+        quantity_sold=0,
+        quantity_fulfilled=0,
+    )
+    from app.crud.merchandise_variation import create_merchandise_variation
+
+    create_merchandise_variation(session=session, variation_in=var_in)
     return db_obj
 
 
@@ -59,7 +74,7 @@ def delete_merchandise(
     *, session: Session, merchandise_id: uuid.UUID
 ) -> Merchandise | None:
     """Delete a merchandise. Returns None if not found."""
-    from app.models import TripMerchandise
+    from app.models import MerchandiseVariation, TripMerchandise
 
     merchandise = session.get(Merchandise, merchandise_id)
     if not merchandise:
@@ -72,6 +87,13 @@ def delete_merchandise(
         raise ValueError(
             "Cannot delete merchandise: it is still offered on one or more trips"
         )
+    # Delete variations first (no FK from bookingitem blocks if trips are unlinked)
+    for var in session.exec(
+        select(MerchandiseVariation).where(
+            MerchandiseVariation.merchandise_id == merchandise_id
+        )
+    ).all():
+        session.delete(var)
     session.delete(merchandise)
     session.commit()
     return merchandise

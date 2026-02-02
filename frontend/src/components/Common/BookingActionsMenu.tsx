@@ -1,14 +1,9 @@
 import { useState } from "react"
 import { FiCode, FiCopy, FiEdit, FiPrinter, FiTrash2 } from "react-icons/fi"
 
-import { BookingsService, type BookingPublic } from "@/client"
-import {
-  MenuContent,
-  MenuItem,
-  MenuRoot,
-  MenuTrigger,
-} from "@/components/ui/menu"
-import { IconButton } from "@chakra-ui/react"
+import { BookingsService, type BookingPublic } from "../../client"
+import { MenuItem } from "../ui/menu"
+import { ActionsMenu } from "../ui/actions-menu"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -76,18 +71,7 @@ const BookingActionsMenu = ({
 
   return (
     <>
-      <MenuRoot>
-        <MenuTrigger asChild>
-          <IconButton
-            aria-label="Action Menu"
-            variant="ghost"
-            size="sm"
-            disabled={disabled}
-          >
-            ⋯
-          </IconButton>
-        </MenuTrigger>
-        <MenuContent>
+      <ActionsMenu ariaLabel="Booking actions" disabled={disabled}>
           {onPrint && (
             <MenuItem value="print" onClick={onPrint}>
               <FiPrinter />
@@ -122,8 +106,7 @@ const BookingActionsMenu = ({
             <FiTrash2 />
             Cancel Booking
           </MenuItem>
-        </MenuContent>
-      </MenuRoot>
+      </ActionsMenu>
       <EditBooking
         booking={editingBooking ?? booking}
         isOpen={editModalOpen}

@@ -1,7 +1,4 @@
-import { IconButton } from "@chakra-ui/react"
-import { BsThreeDotsVertical } from "react-icons/bs"
-import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
-
+import { ActionsMenu } from "../ui/actions-menu"
 import DeleteMission from "../Missions/DeleteMission"
 import EditMission from "../Missions/EditMission"
 
@@ -22,17 +19,10 @@ interface MissionActionsMenuProps {
 
 export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
   return (
-    <MenuRoot>
-      <MenuTrigger asChild>
-        <IconButton variant="ghost" color="ui.main">
-          <BsThreeDotsVertical />
-        </IconButton>
-      </MenuTrigger>
-      <MenuContent>
-        <EditMission mission={mission} />
-        <DeleteMission id={mission.id} name={mission.name} />
-      </MenuContent>
-    </MenuRoot>
+    <ActionsMenu ariaLabel="Mission actions">
+      <EditMission mission={mission} />
+      <DeleteMission id={mission.id} name={mission.name} />
+    </ActionsMenu>
   )
 }
 

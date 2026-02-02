@@ -1,8 +1,5 @@
-import { IconButton } from "@chakra-ui/react"
-import { BsThreeDotsVertical } from "react-icons/bs"
-import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
-
-import type { LocationPublic } from "@/client"
+import type { LocationPublic } from "../../client"
+import { ActionsMenu } from "../ui/actions-menu"
 import DeleteLocation from "../Locations/DeleteLocation"
 import EditLocation from "../Locations/EditLocation"
 
@@ -12,16 +9,9 @@ interface LocationActionsMenuProps {
 
 export const LocationActionsMenu = ({ location }: LocationActionsMenuProps) => {
   return (
-    <MenuRoot>
-      <MenuTrigger asChild>
-        <IconButton variant="ghost" color="ui.main">
-          <BsThreeDotsVertical />
-        </IconButton>
-      </MenuTrigger>
-      <MenuContent>
-        <EditLocation location={location} />
-        <DeleteLocation id={location.id} />
-      </MenuContent>
-    </MenuRoot>
+    <ActionsMenu ariaLabel="Location actions">
+      <EditLocation location={location} />
+      <DeleteLocation id={location.id} />
+    </ActionsMenu>
   )
 }

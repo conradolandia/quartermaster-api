@@ -1,10 +1,9 @@
-import { IconButton } from "@chakra-ui/react"
-import { BsThreeDotsVertical } from "react-icons/bs"
+import React from "react"
 
-import type { ProviderPublic } from "@/client"
+import type { ProviderPublic } from "../../client"
+import { ActionsMenu } from "../ui/actions-menu"
 import DeleteProvider from "../Providers/DeleteProvider"
 import EditProvider from "../Providers/EditProvider"
-import { MenuContent, MenuRoot, MenuTrigger } from "../ui/menu"
 
 interface ProviderActionsMenuProps {
   provider: ProviderPublic
@@ -12,21 +11,10 @@ interface ProviderActionsMenuProps {
 
 export const ProviderActionsMenu = ({ provider }: ProviderActionsMenuProps) => {
   return (
-    <MenuRoot>
-      <MenuTrigger asChild>
-        <IconButton
-          aria-label="Provider actions"
-          variant="ghost"
-          color="ui.main"
-        >
-          <BsThreeDotsVertical />
-        </IconButton>
-      </MenuTrigger>
-      <MenuContent>
-        <EditProvider provider={provider} />
-        <DeleteProvider provider={provider} />
-      </MenuContent>
-    </MenuRoot>
+    <ActionsMenu ariaLabel="Provider actions">
+      <EditProvider provider={provider} />
+      <DeleteProvider provider={provider} />
+    </ActionsMenu>
   )
 }
 

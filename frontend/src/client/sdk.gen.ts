@@ -137,6 +137,16 @@ import type {
   MerchandiseUpdateMerchandiseResponse,
   MerchandiseDeleteMerchandiseData,
   MerchandiseDeleteMerchandiseResponse,
+  MerchandiseListMerchandiseVariationsData,
+  MerchandiseListMerchandiseVariationsResponse,
+  MerchandiseCreateMerchandiseVariationData,
+  MerchandiseCreateMerchandiseVariationResponse,
+  MerchandiseGetMerchandiseVariationData,
+  MerchandiseGetMerchandiseVariationResponse,
+  MerchandiseUpdateMerchandiseVariationData,
+  MerchandiseUpdateMerchandiseVariationResponse,
+  MerchandiseDeleteMerchandiseVariationData,
+  MerchandiseDeleteMerchandiseVariationResponse,
   MissionsReadMissionsData,
   MissionsReadMissionsResponse,
   MissionsCreateMissionData,
@@ -1845,7 +1855,7 @@ export class LoginService {
 export class MerchandiseService {
   /**
    * Read Merchandise List
-   * Retrieve merchandise (catalog) with pagination.
+   * Retrieve merchandise (catalog) with pagination. quantity_available is computed from variations when present.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
@@ -1955,6 +1965,133 @@ export class MerchandiseService {
       url: "/api/v1/merchandise/{merchandise_id}",
       path: {
         merchandise_id: data.merchandiseId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Merchandise Variations
+   * List variations for a merchandise (quantity_total, quantity_sold, quantity_fulfilled per variant).
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @returns MerchandiseVariationPublic Successful Response
+   * @throws ApiError
+   */
+  public static listMerchandiseVariations(
+    data: MerchandiseListMerchandiseVariationsData,
+  ): CancelablePromise<MerchandiseListMerchandiseVariationsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/merchandise/{merchandise_id}/variations",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Merchandise Variation
+   * Create a new variation for a merchandise. merchandise_id in body must match path.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @param data.requestBody
+   * @returns MerchandiseVariationPublic Successful Response
+   * @throws ApiError
+   */
+  public static createMerchandiseVariation(
+    data: MerchandiseCreateMerchandiseVariationData,
+  ): CancelablePromise<MerchandiseCreateMerchandiseVariationResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/merchandise/{merchandise_id}/variations",
+      path: {
+        merchandise_id: data.merchandiseId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Get Merchandise Variation
+   * Get a merchandise variation by ID. Must belong to the given merchandise.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @param data.variationId
+   * @returns MerchandiseVariationPublic Successful Response
+   * @throws ApiError
+   */
+  public static getMerchandiseVariation(
+    data: MerchandiseGetMerchandiseVariationData,
+  ): CancelablePromise<MerchandiseGetMerchandiseVariationResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/merchandise/{merchandise_id}/variations/{variation_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+        variation_id: data.variationId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Merchandise Variation
+   * Update a merchandise variation (e.g. variant_value, quantity_total).
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @param data.variationId
+   * @param data.requestBody
+   * @returns MerchandiseVariationPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateMerchandiseVariation(
+    data: MerchandiseUpdateMerchandiseVariationData,
+  ): CancelablePromise<MerchandiseUpdateMerchandiseVariationResponse> {
+    return __request(OpenAPI, {
+      method: "PUT",
+      url: "/api/v1/merchandise/{merchandise_id}/variations/{variation_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+        variation_id: data.variationId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Delete Merchandise Variation
+   * Delete a merchandise variation. Fails if booking items reference it.
+   * @param data The data for the request.
+   * @param data.merchandiseId
+   * @param data.variationId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteMerchandiseVariation(
+    data: MerchandiseDeleteMerchandiseVariationData,
+  ): CancelablePromise<MerchandiseDeleteMerchandiseVariationResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/merchandise/{merchandise_id}/variations/{variation_id}",
+      path: {
+        merchandise_id: data.merchandiseId,
+        variation_id: data.variationId,
       },
       errors: {
         422: "Validation Error",

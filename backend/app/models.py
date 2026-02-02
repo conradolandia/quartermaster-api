@@ -6,7 +6,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from pydantic import EmailStr, field_serializer, field_validator
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.constants import VALID_US_STATES
@@ -822,9 +822,6 @@ class MerchandiseBase(SQLModel):
     description: str | None = Field(default=None, max_length=1000)
     price: int = Field(ge=0)  # cents
     quantity_available: int = Field(ge=0)
-    # Single variant dimension: e.g. variant_name="Size", variant_options=["S","M","L"]
-    variant_name: str | None = Field(default=None, max_length=64)
-    variant_options: str | None = Field(default=None, max_length=500)  # comma-separated
 
 
 class MerchandiseCreate(MerchandiseBase):
@@ -836,8 +833,6 @@ class MerchandiseUpdate(SQLModel):
     description: str | None = Field(default=None, max_length=1000)
     price: int | None = Field(default=None, ge=0)  # cents
     quantity_available: int | None = Field(default=None, ge=0)
-    variant_name: str | None = Field(default=None, max_length=64)
-    variant_options: str | None = Field(default=None, max_length=500)  # comma-separated
 
 
 class Merchandise(MerchandiseBase, table=True):
@@ -858,12 +853,18 @@ class Merchandise(MerchandiseBase, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
+    variations: list["MerchandiseVariation"] = Relationship(
+        back_populates="merchandise"
+    )
 
 
 class MerchandisePublic(MerchandiseBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    # Computed from variations at read time (not stored)
+    variant_name: str | None = None
+    variant_options: str | None = None  # comma-separated
 
     @field_serializer("created_at", "updated_at")
     def serialize_datetime_utc(self, dt: datetime):
@@ -875,6 +876,75 @@ class MerchandisePublic(MerchandiseBase):
 class MerchandisesPublic(SQLModel):
     data: list[MerchandisePublic]
     count: int
+
+
+# MerchandiseVariation (per-variant inventory: total, sold, fulfilled)
+class MerchandiseVariationBase(SQLModel):
+    merchandise_id: uuid.UUID = Field(foreign_key="merchandise.id")
+    variant_value: str = Field(max_length=128)  # e.g. "M", "S-Red"
+    quantity_total: int = Field(ge=0)
+    quantity_sold: int = Field(default=0, ge=0)
+    quantity_fulfilled: int = Field(default=0, ge=0)
+
+
+class MerchandiseVariationCreate(SQLModel):
+    merchandise_id: uuid.UUID = Field(foreign_key="merchandise.id")
+    variant_value: str = Field(max_length=128)
+    quantity_total: int = Field(ge=0)
+    quantity_sold: int = Field(default=0, ge=0)
+    quantity_fulfilled: int = Field(default=0, ge=0)
+
+
+class MerchandiseVariationUpdate(SQLModel):
+    variant_value: str | None = Field(default=None, max_length=128)
+    quantity_total: int | None = Field(default=None, ge=0)
+    quantity_sold: int | None = Field(default=None, ge=0)
+    quantity_fulfilled: int | None = Field(default=None, ge=0)
+
+
+class MerchandiseVariation(MerchandiseVariationBase, table=True):
+    __table_args__ = (
+        UniqueConstraint(
+            "merchandise_id",
+            "variant_value",
+            name="uq_merchandisevariation_merchandise_variant",
+        ),
+    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
+    )
+    merchandise: "Merchandise" = Relationship(back_populates="variations")
+
+
+class MerchandiseVariationPublic(SQLModel):
+    id: uuid.UUID
+    merchandise_id: uuid.UUID
+    variant_value: str
+    quantity_total: int
+    quantity_sold: int
+    quantity_fulfilled: int
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime_utc(self, dt: datetime):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
 
 # TripMerchandise (link trip <-> merchandise with optional overrides)
@@ -916,6 +986,12 @@ class TripMerchandise(TripMerchandiseBase, table=True):
     merchandise: "Merchandise" = Relationship()
 
 
+# Per-variation availability for trip merchandise (for booking form)
+class TripMerchandiseVariationAvailability(SQLModel):
+    variant_value: str
+    quantity_available: int
+
+
 # Response shape for API: effective name, description, price (cents), quantity_available (from join + overrides)
 class TripMerchandisePublic(SQLModel):
     id: uuid.UUID
@@ -927,6 +1003,8 @@ class TripMerchandisePublic(SQLModel):
     quantity_available: int
     variant_name: str | None = None
     variant_options: str | None = None  # comma-separated; frontend splits to list
+    # Per-variation quantity available (when merchandise has variations)
+    variations_availability: list[TripMerchandiseVariationAvailability] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -959,6 +1037,10 @@ class BookingItemBase(SQLModel):
     trip_merchandise_id: uuid.UUID | None = Field(
         default=None, foreign_key="tripmerchandise.id"
     )
+    # Optional link to merchandise variation (for per-variant inventory and fulfillment)
+    merchandise_variation_id: uuid.UUID | None = Field(
+        default=None, foreign_key="merchandisevariation.id"
+    )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
     price_per_unit: int = Field(ge=0)  # cents
@@ -974,6 +1056,9 @@ class BookingItemCreate(SQLModel):
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
     trip_merchandise_id: uuid.UUID | None = Field(
         default=None, foreign_key="tripmerchandise.id"
+    )
+    merchandise_variation_id: uuid.UUID | None = Field(
+        default=None, foreign_key="merchandisevariation.id"
     )
     item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
     quantity: int = Field(ge=1)
