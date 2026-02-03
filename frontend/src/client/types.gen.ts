@@ -174,7 +174,7 @@ export type BookingItemPublic = {
 }
 
 /**
- * Payload to update a single booking item's quantity (draft/pending_payment only).
+ * Payload to update a single booking item's quantity (draft/pending_payment only). Quantity 0 removes the item.
  */
 export type BookingItemQuantityUpdate = {
   id: string

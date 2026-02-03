@@ -1111,10 +1111,10 @@ class BookingItemUpdate(SQLModel):
 
 
 class BookingItemQuantityUpdate(SQLModel):
-    """Payload to update a single booking item's quantity (draft/pending_payment only)."""
+    """Payload to update a single booking item's quantity (draft/pending_payment only). Quantity 0 removes the item."""
 
     id: uuid.UUID = Field(foreign_key="bookingitem.id")
-    quantity: int = Field(ge=1)
+    quantity: int = Field(ge=0)
 
 
 class BookingItem(BookingItemBase, table=True):

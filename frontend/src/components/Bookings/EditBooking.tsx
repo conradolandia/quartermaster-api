@@ -26,6 +26,7 @@ import {
   Button,
   ButtonGroup,
   DialogActionTrigger,
+  Heading,
   HStack,
   Input,
   Table,
@@ -207,6 +208,15 @@ const EditBooking = ({
       String(paymentStatus) === ""
     ) {
       payload.payment_status = undefined
+    }
+    // Ensure each update has id (from booking) + quantity (from form); unregistered id can be missing in submit data
+    if (booking.items?.length && Array.isArray(payload.item_quantity_updates)) {
+      payload.item_quantity_updates = booking.items.map((item, index) => {
+        const raw = payload.item_quantity_updates?.[index]?.quantity
+        const q = typeof raw === "number" && !Number.isNaN(raw) ? raw : Number(raw)
+        const quantity = typeof q === "number" && !Number.isNaN(q) ? Math.max(0, q) : item.quantity
+        return { id: item.id, quantity }
+      })
     }
     mutation.mutate(payload)
   }
@@ -412,31 +422,31 @@ const EditBooking = ({
                                       control={control}
                                       rules={{
                                         min: {
-                                          value: 1,
-                                          message: "Min 1",
+                                          value: 0,
+                                          message: "0 = remove",
                                         },
                                       }}
                                       render={({ field }) => (
                                         <Input
                                           {...field}
                                           type="number"
-                                          min={1}
+                                          min={0}
                                           w="16"
                                           disabled={isPast}
                                           value={
                                             field.value === undefined ||
                                             field.value === null
-                                              ? 1
+                                              ? item.quantity
                                               : field.value
                                           }
                                           onChange={(e) =>
                                             field.onChange(
                                               Math.max(
-                                                1,
+                                                0,
                                                 Number.parseInt(
                                                   e.target.value,
                                                   10,
-                                                ) || 1,
+                                                ) ?? 0,
                                               ),
                                             )
                                           }
@@ -466,8 +476,8 @@ const EditBooking = ({
                                         item.status === "active"
                                           ? "green"
                                           : item.status === "refunded"
-                                            ? "red"
-                                            : "gray"
+                                          ? "red"
+                                          : "gray"
                                       }
                                     >
                                       {item.status}
@@ -525,31 +535,31 @@ const EditBooking = ({
                                       control={control}
                                       rules={{
                                         min: {
-                                          value: 1,
-                                          message: "Min 1",
+                                          value: 0,
+                                          message: "0 = remove",
                                         },
                                       }}
                                       render={({ field }) => (
                                         <Input
                                           {...field}
                                           type="number"
-                                          min={1}
+                                          min={0}
                                           w="16"
                                           disabled={isPast}
                                           value={
                                             field.value === undefined ||
                                             field.value === null
-                                              ? 1
+                                              ? item.quantity
                                               : field.value
                                           }
                                           onChange={(e) =>
                                             field.onChange(
                                               Math.max(
-                                                1,
+                                                0,
                                                 Number.parseInt(
                                                   e.target.value,
                                                   10,
-                                                ) || 1,
+                                                ) ?? 0,
                                               ),
                                             )
                                           }
@@ -600,47 +610,6 @@ const EditBooking = ({
                 </>
               )}
 
-              {/* Show refund information if any items have refund details */}
-                {booking.items?.some(
-                  (item) => item.refund_reason || item.refund_notes,
-                ) && (
-                  <Box
-                    mt={3}
-                    p={3}
-                    bg="status.error"
-                    borderRadius="md"
-                    opacity={0.1}
-                  >
-                    <Text
-                      fontSize="sm"
-                      fontWeight="semibold"
-                      color="status.error"
-                      mb={2}
-                    >
-                      Refund Information:
-                    </Text>
-                    {booking.items
-                      .filter((item) => item.refund_reason || item.refund_notes)
-                      .map((item) => (
-                        <Box key={item.id} mb={2}>
-                          <Text fontSize="sm" color="status.error">
-                            <strong>
-                              {getItemTypeLabel(item.item_type)}
-                              {item.variant_option
-                                ? ` – ${item.variant_option}`
-                                : ""}
-                              :
-                            </strong>
-                            {item.refund_reason &&
-                              ` Reason: ${item.refund_reason}`}
-                            {item.refund_notes &&
-                              ` Notes: ${item.refund_notes}`}
-                          </Text>
-                        </Box>
-                      ))}
-                  </Box>
-                )}
-
               <Field
                 invalid={!!errors.booking_status}
                 errorText={errors.booking_status?.message}
@@ -687,7 +656,36 @@ const EditBooking = ({
                   )}
                 />
               </Field>
-
+              {/* Show refund information (booking-level reason/notes only) */}
+              {(booking.refund_reason?.trim() || booking.refund_notes?.trim()) && (
+                <Box
+                  p={3}
+                  bg="bg.panel"
+                  borderRadius="md"
+                  borderLeft="4px solid"
+                  borderColor="status.warning"
+                  w="full"
+                >
+                  <Heading
+                    size="lg"
+                    mb={2}
+                  >
+                    Refund Details
+                  </Heading>
+                  <VStack align="stretch" gap={1}>
+                    {booking.refund_reason?.trim() && (
+                      <Text fontSize="sm" color="text.secondary">
+                        <strong>Reason:</strong> {booking.refund_reason.trim()}
+                      </Text>
+                    )}
+                    {booking.refund_notes?.trim() && (
+                      <Text fontSize="sm" color="text.secondary">
+                        <strong>Notes:</strong> {booking.refund_notes.trim()}
+                      </Text>
+                    )}
+                  </VStack>
+                </Box>
+              )}
               <Field
                 invalid={!!errors.special_requests}
                 errorText={errors.special_requests?.message}

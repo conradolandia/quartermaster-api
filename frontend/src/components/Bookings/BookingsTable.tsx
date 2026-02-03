@@ -706,7 +706,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="32"
+                w="24"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -731,8 +731,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="40"
-                minW="28"
+                w="48"
+                minW="232px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("booking_status")}
@@ -796,7 +796,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <Flex align="center" gap={2}>
                     <Text
                       fontFamily="mono"
-                      fontWeight="bold"
+                      fontWeight="semibold"
+                      fontSize="sm"
                       color="accent.default"
                       title={booking.confirmation_code}
                     >
@@ -849,12 +850,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       ? tripTypeToLabel(booking.trip_type)
                       : "N/A")}
                 </Table.Cell>
-                <Table.Cell w="40" minW="28">
+                <Table.Cell w="48" minW="232px">
                   <VStack align="start" gap={0}>
                     <Text fontSize="xs" color="text.muted">
                       Booking:{" "}
                       <Badge
-                        size="sm"
+                        size="xs"
                         colorPalette={getBookingStatusColor(
                           booking.booking_status || "",
                         )}
@@ -863,16 +864,33 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       </Badge>
                     </Text>
                     {booking.payment_status && (
-                      <Text fontSize="xs" color="text.muted">
+                      <Text fontSize="xs" color="text.muted" whiteSpace="nowrap">
                         Payment:{" "}
-                        <Badge
-                          size="sm"
-                          colorPalette={getPaymentStatusColor(
-                            booking.payment_status,
-                          )}
-                        >
-                          {formatPaymentStatusLabel(booking.payment_status)}
-                        </Badge>
+                        {isPartiallyRefunded(booking) ? (
+                          <>
+                            <Badge
+                              size="xs"
+                              colorPalette={getPaymentStatusColor("paid")}
+                            >
+                              {formatPaymentStatusLabel("paid")}
+                            </Badge>{" "}
+                            <Badge
+                              size="xs"
+                              colorPalette="red"
+                            >
+                              {formatPaymentStatusLabel("partially_refunded")}
+                            </Badge>
+                          </>
+                        ) : (
+                          <Badge
+                            size="xs"
+                            colorPalette={getPaymentStatusColor(
+                              booking.payment_status,
+                            )}
+                          >
+                            {formatPaymentStatusLabel(booking.payment_status)}
+                          </Badge>
+                        )}
                       </Text>
                     )}
                     {isPartiallyRefunded(booking) && (

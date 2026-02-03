@@ -41,9 +41,8 @@ import {
 } from "@/components/ui/dialog"
 import { DialogActionTrigger } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents } from "@/utils"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import {
-  formatDate,
   getBookingStatusColor,
   getPaymentStatusColor,
   getRefundedCents,
@@ -92,6 +91,11 @@ export default function BookingDetails({
         confirmationCode,
       }),
   })
+
+  const userTz =
+    typeof Intl !== "undefined" && Intl.DateTimeFormat
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC"
 
   const displayItems = useMemo(() => {
     if (!booking?.items?.length) return []
@@ -569,36 +573,49 @@ export default function BookingDetails({
                     {booking.payment_status && (
                       <>
                         <Text fontWeight="bold">Payment:</Text>
-                        <Badge
-                          colorPalette={getPaymentStatusColor(
-                            booking.payment_status,
-                          )}
-                        >
-                          {(booking.payment_status || "")
-                            .replace("_", " ")
-                            .toUpperCase()}
-                        </Badge>
-                      </>
-                    )}
-                    {(booking.payment_status === "refunded" ||
-                      booking.payment_status === "partially_refunded" ||
-                      getRefundedCents(booking) > 0) && (
-                      <Badge colorPalette="red" textTransform="uppercase">
                         {booking.payment_status === "refunded" ||
-                        getRefundedCents(booking) >= (booking.total_amount ?? 0)
-                          ? "Fully refunded"
-                          : "Partially refunded"}
-                      </Badge>
+                        getRefundedCents(booking) >= (booking.total_amount ?? 0) ? (
+                          <Badge colorPalette="red" textTransform="uppercase">
+                            Fully refunded
+                          </Badge>
+                        ) : booking.payment_status === "partially_refunded" ||
+                          getRefundedCents(booking) > 0 ? (
+                          <>
+                            <Badge
+                              colorPalette={getPaymentStatusColor("paid")}
+                              textTransform="uppercase"
+                            >
+                              Paid
+                            </Badge>
+                            <Badge
+                              colorPalette="red"
+                              textTransform="uppercase"
+                            >
+                              Partially refunded
+                            </Badge>
+                          </>
+                        ) : (
+                          <Badge
+                            colorPalette={getPaymentStatusColor(
+                              booking.payment_status,
+                            )}
+                          >
+                            {(booking.payment_status || "")
+                              .replace("_", " ")
+                              .toUpperCase()}
+                          </Badge>
+                        )}
+                      </>
                     )}
                   </Flex>
                   <Flex gap={4} mb={2} alignItems="baseline">
                     <Text fontWeight="bold">Created:</Text>
-                    <Text>{formatDate(booking.created_at)}</Text>
+                    <Text>{formatDateTimeInLocationTz(booking.created_at, userTz)}</Text>
                   </Flex>
                   {booking.updated_at && (
                     <Flex gap={4} mb={2} alignItems="baseline">
                       <Text fontWeight="bold">Last Updated:</Text>
-                      <Text>{formatDate(booking.updated_at)}</Text>
+                      <Text>{formatDateTimeInLocationTz(booking.updated_at, userTz)}</Text>
                     </Flex>
                   )}
                   {(() => {

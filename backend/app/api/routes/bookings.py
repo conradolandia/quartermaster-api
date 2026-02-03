@@ -25,6 +25,7 @@ from app.models import (
     BookingStatus,
     BookingUpdate,
     DiscountCode,
+    Launch,
     Merchandise,
     MerchandiseVariation,
     Mission,
@@ -962,18 +963,14 @@ def update_booking(
                 detail=f"Cannot update these fields via PATCH: {', '.join(invalid_fields)}",
             )
 
-        # Process item quantity updates (allowed for draft only; checked_in rejected above)
-        # Use booking_in (Pydantic model) so we get objects; pop from update_data so it is not applied as a booking field
+        # Process item quantity updates (checked_in already rejected above)
+        # Use booking_in (Pydantic model) so we get objects
+        # and pop from update_data so it is not applied as a booking field
         item_quantity_updates: list[BookingItemQuantityUpdate] | None = getattr(
             booking_in, "item_quantity_updates", None
         )
         update_data.pop("item_quantity_updates", None)
         if item_quantity_updates:
-            if booking.booking_status != BookingStatus.draft:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Item quantities can only be updated for draft bookings",
-                )
             items = session.exec(
                 select(BookingItem).where(BookingItem.booking_id == booking.id)
             ).all()
@@ -1015,7 +1012,7 @@ def update_booking(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
                     )
-            # Apply quantity updates and merchandise inventory
+            # Apply quantity updates and merchandise inventory; quantity 0 removes the item
             for u in item_quantity_updates:
                 item = session.get(BookingItem, u.id)
                 if not item:
@@ -1044,28 +1041,47 @@ def update_booking(
                             variation.quantity_sold -= abs(delta)
                             variation.quantity_sold = max(0, variation.quantity_sold)
                         session.add(variation)
-                item.quantity = new_qty
-                session.add(item)
-            # Recompute booking subtotal
+                if new_qty == 0:
+                    session.delete(item)
+                else:
+                    item.quantity = new_qty
+                    session.add(item)
+            # Recompute booking subtotal (0-qty items contribute 0; they were deleted)
             new_subtotal = sum(
                 (qty_by_id.get(item.id, item.quantity) * item.price_per_unit)
                 for item in items
             )
             booking.subtotal = new_subtotal
             session.add(booking)
-            # Recompute tax and total from mission tax rate so pricing stays consistent
-            trip = session.get(Trip, items[0].trip_id)
+            # Recompute tax and total from mission's jurisdiction (mission -> launch -> location -> jurisdiction)
+            trip = None
+            for item in items:
+                if qty_by_id.get(item.id, item.quantity) > 0:
+                    trip = session.get(Trip, item.trip_id)
+                    break
             if trip:
                 mission = session.get(Mission, trip.mission_id)
-                if mission is not None:
+                launch = session.get(Launch, mission.launch_id) if mission else None
+                tax_rate: float | None = None
+                if launch is not None:
+                    jurisdictions = crud.get_jurisdictions_by_location(
+                        session=session, location_id=launch.location_id, limit=1
+                    )
+                    if jurisdictions:
+                        tax_rate = jurisdictions[0].sales_tax_rate
+                if tax_rate is not None:
                     new_tax, new_total = compute_booking_totals(
                         new_subtotal,
                         booking.discount_amount,
-                        mission.sales_tax_rate,
+                        tax_rate,
                         booking.tip_amount,
                     )
                     update_data["tax_amount"] = new_tax
                     update_data["total_amount"] = new_total
+            else:
+                # All items removed; zero out tax and total
+                update_data["tax_amount"] = 0
+                update_data["total_amount"] = 0
 
         # Validate booking_status and payment_status transitions
         booking_status_changed = False
@@ -1726,8 +1742,7 @@ def process_refund(
                             )
                         session.add(variation)
         else:
-            # Partial refund: booking becomes cancelled, payment partially_refunded
-            booking.booking_status = BookingStatus.cancelled
+            # Partial refund: keep booking_status (confirmed/checked_in/completed); only payment is partially_refunded
             booking.payment_status = PaymentStatus.partially_refunded
 
         # Commit all changes
