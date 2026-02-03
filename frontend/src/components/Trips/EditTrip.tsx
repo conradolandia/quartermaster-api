@@ -686,22 +686,6 @@ const EditTrip = ({
                     </Field>
 
                     <Field
-                      label={`Departure Time (${formatLocationTimezoneDisplay(
-                        tz,
-                      )})`}
-                      required
-                    >
-                      <Input
-                        id="departure_time"
-                        type="datetime-local"
-                        value={departureTime}
-                        onChange={(e) => setDepartureTime(e.target.value)}
-                        placeholder={`Enter time in ${tz}`}
-                        disabled={mutation.isPending || isPast}
-                      />
-                    </Field>
-
-                    <Field
                       label={`Sales Open (${formatLocationTimezoneDisplay(
                         tz,
                       )})`}
@@ -712,6 +696,22 @@ const EditTrip = ({
                         type="datetime-local"
                         value={salesOpenAt}
                         onChange={(e) => setSalesOpenAt(e.target.value)}
+                        placeholder={`Enter time in ${tz}`}
+                        disabled={mutation.isPending || isPast}
+                      />
+                    </Field>
+
+                    <Field
+                      label={`Departure Time (${formatLocationTimezoneDisplay(
+                        tz,
+                      )})`}
+                      required
+                    >
+                      <Input
+                        id="departure_time"
+                        type="datetime-local"
+                        value={departureTime}
+                        onChange={(e) => setDepartureTime(e.target.value)}
                         placeholder={`Enter time in ${tz}`}
                         disabled={mutation.isPending || isPast}
                       />
