@@ -103,8 +103,8 @@ def get_paid_ticket_count_per_boat_for_trip(
 ) -> dict[uuid.UUID, int]:
     """
     Sum ticket quantities per boat_id for paid bookings on this trip.
-    Counts only ticket items (trip_merchandise_id IS NULL) with status active,
-    for bookings with status confirmed, checked_in, or completed.
+    Counts ticket items (trip_merchandise_id IS NULL) with status active or
+    fulfilled (confirmed, checked_in, and completed all consume capacity).
     Returns dict boat_id -> total passenger count.
     """
     from sqlalchemy import func
@@ -114,12 +114,16 @@ def get_paid_ticket_count_per_boat_for_trip(
         BookingStatus.checked_in,
         BookingStatus.completed,
     )
+    item_statuses_counted = (
+        BookingItemStatus.active,
+        BookingItemStatus.fulfilled,
+    )
     rows = session.exec(
         select(BookingItem.boat_id, func.sum(BookingItem.quantity).label("total"))
         .join(Booking, Booking.id == BookingItem.booking_id)
         .where(BookingItem.trip_id == trip_id)
         .where(BookingItem.trip_merchandise_id.is_(None))
-        .where(BookingItem.status == BookingItemStatus.active)
+        .where(BookingItem.status.in_(item_statuses_counted))
         .where(Booking.booking_status.in_(paid_statuses))
         .group_by(BookingItem.boat_id)
     ).all()
@@ -131,8 +135,8 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
 ) -> dict[tuple[uuid.UUID, str], int]:
     """
     Sum ticket quantities per (boat_id, item_type) for paid bookings on this trip.
-    Counts only ticket items (trip_merchandise_id IS NULL) with status active,
-    for bookings with status confirmed, checked_in, or completed.
+    Counts ticket items (trip_merchandise_id IS NULL) with status active or
+    fulfilled (confirmed, checked_in, and completed all consume capacity).
     Returns dict (boat_id, item_type) -> count.
     """
     from sqlalchemy import func
@@ -141,6 +145,10 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
         BookingStatus.confirmed,
         BookingStatus.checked_in,
         BookingStatus.completed,
+    )
+    item_statuses_counted = (
+        BookingItemStatus.active,
+        BookingItemStatus.fulfilled,
     )
     rows = session.exec(
         select(
@@ -151,7 +159,7 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
         .join(Booking, Booking.id == BookingItem.booking_id)
         .where(BookingItem.trip_id == trip_id)
         .where(BookingItem.trip_merchandise_id.is_(None))
-        .where(BookingItem.status == BookingItemStatus.active)
+        .where(BookingItem.status.in_(item_statuses_counted))
         .where(Booking.booking_status.in_(paid_statuses))
         .group_by(BookingItem.boat_id, BookingItem.item_type)
     ).all()

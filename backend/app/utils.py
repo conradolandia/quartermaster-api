@@ -273,7 +273,7 @@ def generate_booking_refunded_email(
             "total_amount": refund_amount,
             "confirmation_link": f"{base_url}/bookings?code={confirmation_code}",
             "is_refund": True,  # Flag for template conditional
-            "refund_message": f"Your refund of ${refund_amount:.2f} for booking #{confirmation_code} has been processed.",
+            "refund_message": f"Your refund of ${refund_amount:.2f} for booking #{confirmation_code} has been processed. You should see it reflected on your original form of payment within 5-10 buisness days.",
             "email": email_to,
         },
     )

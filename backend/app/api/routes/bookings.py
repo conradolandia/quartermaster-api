@@ -990,6 +990,13 @@ def update_booking(
                 if item.trip_merchandise_id is None:
                     qty = qty_by_id.get(item.id, item.quantity)
                     ticket_totals[(item.trip_id, item.boat_id, item.item_type)] += qty
+            # This booking's current ticket count per (boat_id, item_type); paid includes it, so subtract before adding proposed qty
+            current_this_booking: dict[tuple[uuid.UUID, str], int] = defaultdict(int)
+            for item in items:
+                if item.trip_merchandise_id is None:
+                    current_this_booking[
+                        (item.boat_id, item.item_type)
+                    ] += item.quantity
             for (trip_id, boat_id, item_type), qty in ticket_totals.items():
                 capacities = crud.get_effective_capacity_per_ticket_type(
                     session=session, trip_id=trip_id, boat_id=boat_id
@@ -1005,7 +1012,10 @@ def update_booking(
                 paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
                     session=session, trip_id=trip_id
                 ).get((boat_id, item_type), 0)
-                if paid + qty > cap:
+                paid_excluding_this = paid - current_this_booking.get(
+                    (boat_id, item_type), 0
+                )
+                if paid_excluding_this + qty > cap:
                     boat = session.get(Boat, boat_id)
                     boat_name = boat.name if boat else str(boat_id)
                     raise HTTPException(

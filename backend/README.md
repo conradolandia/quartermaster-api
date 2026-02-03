@@ -173,7 +173,7 @@ The email templates are in `./backend/app/email-templates/`. The `src` directory
 ./scripts/build-email-templates.sh
 ```
 
-This compiles `src/*.mjml` into `build/*.html` using the MJML CLI (via npx). Node.js must be installed.
+This compiles `src/*.mjml` into `build/*.html` using the MJML CLI (via npx), then runs `patch_booking_confirmation.py` to restore Jinja conditionals in `booking_confirmation.html` (the MJML compiler does not preserve block-level `{% if %}`). Node.js and Python must be installed.
 
 To edit templates: change the `.mjml` files in `src/`, then run the script above. You can also use the [MJML VS Code extension](https://marketplace.visualstudio.com/items?itemName=attilabuti.vscode-mjml) and "MJML: Export to HTML" for a single file; save the output into `build/` or run the script to refresh all.
 

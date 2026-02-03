@@ -4,6 +4,7 @@ import {
   Grid,
   Heading,
   Link,
+  Separator,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -231,10 +232,11 @@ export default function BookingExperienceDetails({
   return (
     <Box {...boxProps}>
       {showHeading && (
-        <Heading size="md" mb={4}>
+        <Heading size="lg" mb={4}>
           {heading}
         </Heading>
       )}
+      <Separator mb={4} />
       <Grid
         templateColumns={
           narrowLayout

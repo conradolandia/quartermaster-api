@@ -2,12 +2,12 @@ import {
   Badge,
   Box,
   Button,
-  ButtonGroup,
   Card,
   Grid,
   HStack,
   Heading,
   Input,
+  Separator,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -16,16 +16,6 @@ import { useState } from "react"
 import { FiCheck, FiCornerUpLeft, FiEdit, FiSearch, FiX } from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
-import {
-  DialogActionTrigger,
-  DialogBody,
-  DialogCloseTrigger,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogRoot,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import EditBooking from "@/components/Bookings/EditBooking"
 import {
@@ -51,7 +41,6 @@ const CheckInInterface = ({
     null,
   )
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [checkInConfirmOpen, setCheckInConfirmOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
@@ -83,7 +72,6 @@ const CheckInInterface = ({
       setCurrentBooking(booking)
       onBookingCheckedIn?.(booking)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
-      setCheckInConfirmOpen(false)
     },
     onError: (error: any) => {
       showErrorToast(
@@ -122,12 +110,8 @@ const CheckInInterface = ({
     lookupBookingMutation.mutate(confirmationCode.trim())
   }
 
-  const handleCheckInClick = () => {
-    if (!currentBooking) return
-    setCheckInConfirmOpen(true)
-  }
-
-  const handleCheckInConfirm = () => {
+  const handleCheckIn = () => {
+    if (!currentBooking?.confirmation_code) return
     checkInMutation.mutate({ code: confirmationCode })
   }
 
@@ -226,9 +210,14 @@ const CheckInInterface = ({
         <>
           <Card.Root>
             <Card.Header>
-              <HStack justify="space-between" flexWrap="wrap" gap={2}>
-                <Heading size="md">Booking Details</Heading>
-                <HStack gap={2}>
+              <HStack
+                justify="space-between"
+                align="center"
+                flexWrap="wrap"
+                gap={3}
+              >
+                <HStack gap={2} align="center">
+                  <Heading size="2xl">Booking Details</Heading>
                   <Badge
                     colorPalette={getStatusColor(
                       currentBooking.booking_status || "unknown",
@@ -242,8 +231,59 @@ const CheckInInterface = ({
                     </Text>
                   )}
                 </HStack>
+                <HStack gap={2} flexWrap="wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    disabled={checkInMutation.isPending}
+                  >
+                    <FiX />
+                    Reset
+                  </Button>
+                  {currentBooking.booking_status !== "checked_in" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditOpen(true)}
+                      disabled={checkInMutation.isPending}
+                    >
+                      <FiEdit />
+                      Edit Booking
+                    </Button>
+                  )}
+                  {currentBooking.booking_status === "confirmed" && (
+                    <Button
+                      colorPalette="green"
+                      size="sm"
+                      onClick={handleCheckIn}
+                      loading={checkInMutation.isPending}
+                    >
+                      <FiCheck />
+                      Check In
+                    </Button>
+                  )}
+                  {currentBooking.booking_status === "checked_in" && (
+                    <Button
+                      variant="outline"
+                      colorPalette="orange"
+                      size="sm"
+                      onClick={() =>
+                        revertCheckInMutation.mutate({
+                          code: confirmationCode,
+                        })
+                      }
+                      loading={revertCheckInMutation.isPending}
+                      title="Revert check-in so the booking is confirmed again"
+                    >
+                      <FiCornerUpLeft />
+                      Revert Check-in
+                    </Button>
+                  )}
+                </HStack>
               </HStack>
             </Card.Header>
+            <Separator mt={6} />
             <Card.Body>
               <Grid
                 templateColumns={{ base: "1fr", md: "1fr 1fr" }}
@@ -252,9 +292,9 @@ const CheckInInterface = ({
               >
                 <VStack gap={4} align="stretch">
                   <Box>
-                    <Text fontWeight="medium" mb={2}>
+                    <Heading size="lg" mb={2}>
                       Customer Information
-                    </Text>
+                    </Heading>
                     <Text>
                       <strong>Name:</strong> {currentBooking.user_name}
                     </Text>
@@ -268,9 +308,9 @@ const CheckInInterface = ({
                   </Box>
 
                   <Box>
-                    <Text fontWeight="medium" mb={2}>
+                    <Heading size="lg" mb={2}>
                       Booking Information
-                    </Text>
+                    </Heading>
                     <Text>
                       <strong>Confirmation Code:</strong>{" "}
                       {currentBooking.confirmation_code}
@@ -286,20 +326,10 @@ const CheckInInterface = ({
                   </Box>
                 </VStack>
 
-                {currentBooking.items && currentBooking.items.length > 0 && (
-                  <Box gridColumn={{ base: "1", md: "1 / -1" }}>
-                    <BookingExperienceDetails
-                      booking={currentBooking}
-                      usePublicApis={false}
-                      heading="Mission, launch & trip"
-                    />
-                  </Box>
-                )}
-
                 <Box>
-                  <Text fontWeight="medium" mb={2}>
+                  <Heading size="lg" mb={2}>
                     Booking Items
-                  </Text>
+                  </Heading>
                   {currentBooking.items && currentBooking.items.length > 0 ? (
                     <VStack gap={2} align="stretch">
                       {currentBooking.items.map((item, index) => (
@@ -317,54 +347,17 @@ const CheckInInterface = ({
                     <Text color="text.muted">No items</Text>
                   )}
                 </Box>
-              </Grid>
 
-              <HStack gap={4} justify="flex-end" flexWrap="wrap">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={checkInMutation.isPending}
-                >
-                  <FiX />
-                  Reset
-                </Button>
-                {currentBooking.booking_status !== "checked_in" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditOpen(true)}
-                    disabled={checkInMutation.isPending}
-                  >
-                    <FiEdit />
-                    Edit Booking
-                  </Button>
+                {currentBooking.items && currentBooking.items.length > 0 && (
+                  <Box gridColumn={{ base: "1", md: "1 / -1" }}>
+                    <BookingExperienceDetails
+                      booking={currentBooking}
+                      usePublicApis={false}
+                      heading="Mission, launch & trip"
+                    />
+                  </Box>
                 )}
-                {currentBooking.booking_status === "confirmed" && (
-                  <Button
-                    colorPalette="green"
-                    onClick={handleCheckInClick}
-                    loading={checkInMutation.isPending}
-                  >
-                    <FiCheck />
-                    Check In
-                  </Button>
-                )}
-                {currentBooking.booking_status === "checked_in" && (
-                  <Button
-                    variant="outline"
-                    colorPalette="orange"
-                    onClick={() =>
-                      revertCheckInMutation.mutate({
-                        code: confirmationCode,
-                      })
-                    }
-                    loading={revertCheckInMutation.isPending}
-                    title="Revert check-in so the booking is confirmed again"
-                  >
-                    <FiCornerUpLeft />
-                    Revert Check-in
-                  </Button>
-                )}
-              </HStack>
+              </Grid>
             </Card.Body>
           </Card.Root>
 
@@ -377,48 +370,6 @@ const CheckInInterface = ({
               void refetchCurrentBooking()
             }}
           />
-
-          <DialogRoot
-            open={checkInConfirmOpen}
-            onOpenChange={({ open }) => setCheckInConfirmOpen(open)}
-            size={{ base: "xs", md: "sm" }}
-            placement="center"
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirm check-in</DialogTitle>
-              </DialogHeader>
-              <DialogCloseTrigger />
-              <DialogBody>
-                <Text>
-                  Check in booking{" "}
-                  <Text as="span" fontFamily="mono" fontWeight="bold">
-                    {currentBooking.confirmation_code}
-                  </Text>{" "}
-                  for{" "}
-                  <Text as="span" fontWeight="bold">
-                    {currentBooking.user_name}
-                  </Text>
-                  ?
-                </Text>
-              </DialogBody>
-              <DialogFooter>
-                <ButtonGroup>
-                  <DialogActionTrigger asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogActionTrigger>
-                  <Button
-                    colorPalette="green"
-                    onClick={handleCheckInConfirm}
-                    loading={checkInMutation.isPending}
-                    disabled={checkInMutation.isPending}
-                  >
-                    {checkInMutation.isPending ? "Checking in..." : "Check In"}
-                  </Button>
-                </ButtonGroup>
-              </DialogFooter>
-            </DialogContent>
-          </DialogRoot>
         </>
       )}
     </VStack>
