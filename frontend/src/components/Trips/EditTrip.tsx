@@ -263,6 +263,18 @@ const EditTrip = ({
     enabled: isOpen && isAddingMerchandise,
   })
 
+  // When Add Merchandise form opens and catalog has data, select first item so button is enabled (native select shows first option but state stays "" otherwise)
+  useEffect(() => {
+    if (
+      isAddingMerchandise &&
+      catalogMerchandise?.data?.length &&
+      !merchandiseForm.merchandise_id
+    ) {
+      const firstId = catalogMerchandise.data[0].id
+      setMerchandiseForm((prev) => ({ ...prev, merchandise_id: firstId }))
+    }
+  }, [isAddingMerchandise, catalogMerchandise?.data, merchandiseForm.merchandise_id])
+
   // Boat defaults (BoatPricing) for the boat whose pricing panel is open
   const { data: boatDefaultsList = [] } = useQuery({
     queryKey: ["boat-pricing", selectedTripBoatForPricing?.boatId],
@@ -1641,6 +1653,30 @@ const EditTrip = ({
                       </VStack>
                       {isAddingMerchandise ? (
                         <Box mt={2} p={3} borderWidth="1px" borderRadius="md">
+                          {/* #region agent log */}
+                          {(() => {
+                            const firstId = catalogMerchandise?.data?.[0]?.id ?? ""
+                            const btnDisabled = !merchandiseForm.merchandise_id || createMerchandiseMutation.isPending
+                            fetch("http://127.0.0.1:7242/ingest/f9f96358-bd11-481d-ad1f-f13200cca06f", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                location: "EditTrip.tsx:AddMerchandiseForm",
+                                message: "Add Merchandise form visible",
+                                data: {
+                                  merchandise_id: merchandiseForm.merchandise_id,
+                                  firstCatalogId: firstId,
+                                  buttonDisabled: btnDisabled,
+                                  catalogLength: catalogMerchandise?.data?.length ?? 0,
+                                },
+                                timestamp: Date.now(),
+                                sessionId: "debug-session",
+                                hypothesisId: "H1",
+                              }),
+                            }).catch(() => {})
+                            return null
+                          })()}
+                          {/* #endregion */}
                           <VStack gap={3}>
                             <HStack width="100%" align="stretch" gap={4}>
                               <Box

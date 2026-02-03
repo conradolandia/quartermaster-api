@@ -188,6 +188,18 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     setDepartureTime(formatInLocationTimezone(departureDate, timezone))
   }, [isOpen, type, launchData?.launch_timestamp, timezone, departureTime])
 
+  // When Add Merchandise form opens and catalog has data, select first item so button is enabled (native select shows first option but state stays "" otherwise)
+  useEffect(() => {
+    if (
+      isAddingMerchandise &&
+      catalogMerchandise?.data?.length &&
+      !merchandiseForm.merchandise_id
+    ) {
+      const firstId = catalogMerchandise.data[0].id
+      setMerchandiseForm((prev) => ({ ...prev, merchandise_id: firstId }))
+    }
+  }, [isAddingMerchandise, catalogMerchandise?.data, merchandiseForm.merchandise_id])
+
   // Reset form on close
   useEffect(() => {
     if (!isOpen) {
@@ -863,6 +875,30 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   {/* Add Merchandise Form (select from catalog + optional overrides) */}
                   {isAddingMerchandise && (
                     <Box p={4} borderWidth="1px" borderRadius="md" mb={4}>
+                      {/* #region agent log */}
+                      {(() => {
+                        const firstId = catalogMerchandise?.data?.[0]?.id ?? ""
+                        const btnDisabled = !merchandiseForm.merchandise_id
+                        fetch("http://127.0.0.1:7242/ingest/f9f96358-bd11-481d-ad1f-f13200cca06f", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            location: "AddTrip.tsx:AddMerchandiseForm",
+                            message: "Add Merchandise form visible",
+                            data: {
+                              merchandise_id: merchandiseForm.merchandise_id,
+                              firstCatalogId: firstId,
+                              buttonDisabled: btnDisabled,
+                              catalogLength: catalogMerchandise?.data?.length ?? 0,
+                            },
+                            timestamp: Date.now(),
+                            sessionId: "debug-session",
+                            hypothesisId: "H1",
+                          }),
+                        }).catch(() => {})
+                        return null
+                      })()}
+                      {/* #endregion */}
                       <VStack gap={3}>
                         <HStack width="100%">
                           <Box flex={1}>
