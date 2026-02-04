@@ -1,11 +1,15 @@
 import {
   Box,
+  Separator,
+  Image,
   Button,
   HStack,
   Heading,
   Link,
   Text,
   VStack,
+  Flex,
+  Container,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
@@ -16,6 +20,9 @@ import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDet
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
+
+import Logo from "/assets/images/sf-logo-hat.png"
+import QMLogo from "/assets/images/qm-logo.svg"
 
 interface BookingConfirmationProps {
   confirmationCode?: string
@@ -100,17 +107,24 @@ const BookingConfirmation = ({
     <Box maxW="xl" mx="auto" py={8}>
       <VStack gap={8} align="stretch">
         {/* Header */}
-        <Box textAlign="center">
-          <Heading size="lg" mb={2} color="green.300">
+        <Flex alignItems="center" flexDirection="column" gap={4}>
+          <Image src={Logo} alt="Star Fleet Tours" maxW="200px" />
+          <Heading size="2xl" color="green.200">
             Booking Confirmed!
           </Heading>
-          <Text color="gray.200" mb={1}>
-            Your Star Fleet experience has been successfully booked.
+          <Text color="gray.200" fontSize="lg">
+            Your Star Fleet trip has been successfully booked!
           </Text>
-          <Text fontSize="sm" color="gray.400">
-            A confirmation email has been sent to {booking.user_email}.
+          <Text fontSize="sm" color="gray.400" textAlign="center">
+            A confirmation email has been sent to {booking.user_email}. <br />
+            Please check your inbox for the details.
+            </Text>
+            <Text fontSize="sm" color="gray.400" textAlign="center">
+            If you don't see the email, please check your spam folder. <br />
+            If you still don't see the email, please contact us at <br />
+            <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">fleetcommand@star-fleet.tours</Link>.
           </Text>
-        </Box>
+        </Flex>
 
         {/* QR Code Ticket - above other sections */}
         <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
@@ -138,6 +152,8 @@ const BookingConfirmation = ({
         <VStack gap={6} align="stretch">
           {/* Booking Details */}
           <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+            <Image src={Logo} alt="Star Fleet Tours" maxW="320px" p={2} mx="auto" mb={4}/>
+            <Separator mb={4} />
             <Heading size="sm" mb={4}>
               Booking Information
             </Heading>
@@ -158,8 +174,7 @@ const BookingConfirmation = ({
                 <Text fontWeight="medium">Email:</Text>
                 <Text>
                   {booking.user_email?.replace(/(.{2}).*(@.*)/, "$1***$2")}
-                </Text>
-              </HStack>
+                </Text></HStack>
 
               <HStack justify="space-between">
                 <Text fontWeight="medium">Phone:</Text>
@@ -271,13 +286,21 @@ const BookingConfirmation = ({
 
         {/* Footer */}
         <Box textAlign="center" pt={4}>
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color="gray.400">
             Need help? Contact us at{" "}
-            <Link color="blue.500" href="mailto:support@star-fleet.tours">
-              support@star-fleet.tours
+            <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">
+              fleetcommand@star-fleet.tours
             </Link>
           </Text>
         </Box>
+        <Container maxW="container.lg" display="flex" justifyContent="center">
+            <VStack gap={4}>
+              <Text fontSize="sm" color="whiteAlpha.700">
+                Powered by
+              </Text>
+              <Image src={QMLogo} alt="Logo" maxW="200px" />
+            </VStack>
+          </Container>
       </VStack>
     </Box>
   )

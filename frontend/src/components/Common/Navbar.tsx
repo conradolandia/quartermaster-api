@@ -21,7 +21,7 @@ function Navbar() {
       p={4}
     >
       <Link to={DEFAULT_HOME_PATH}>
-        <Image src={Logo} alt="Logo" maxW="320px" p={2} />
+        <Image src={Logo} alt="Star✦Fleet Tours" maxW="320px" p={2} />
       </Link>
       <Flex gap={2} alignItems="center">
         <UserMenu />
