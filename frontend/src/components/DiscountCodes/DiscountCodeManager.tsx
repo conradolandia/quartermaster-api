@@ -34,7 +34,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     code: "",
     description: "",
     discount_type: "percentage",
-    discount_value: 0,
     max_uses: null,
     is_active: true,
     valid_from: null,
@@ -122,7 +121,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       code: "",
       description: "",
       discount_type: "percentage",
-      discount_value: 0,
       max_uses: null,
       is_active: true,
       valid_from: null,
@@ -168,19 +166,14 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   }
 
   const handleSubmit = () => {
-    // Allow discount_value to be 0 (especially for access codes)
-    if (
-      !formData.code ||
-      formData.discount_value === undefined ||
-      formData.discount_value === null
-    )
-      return
+    if (!formData.code) return
 
-    // API: percentage 0-100 (e.g. 10 for 10%), fixed_amount in cents
+    // Empty value means 0 (no discount); backend accepts 0 for both percentage and fixed_amount
+    const rawValue = formData.discount_value ?? 0
     const discountValue =
       formData.discount_type === "fixed_amount"
-        ? Math.round(formData.discount_value! * 100)
-        : formData.discount_value!
+        ? Math.round(rawValue * 100)
+        : rawValue
     const data = {
       ...formData,
       code: formData.code!,
@@ -285,17 +278,24 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.discount_value ?? ""}
+                  value={
+                    formData.discount_value !== undefined &&
+                    formData.discount_value !== null
+                      ? formData.discount_value
+                      : ""
+                  }
                   onChange={(e) => {
                     const value = e.target.value
                     setFormData({
                       ...formData,
                       discount_value:
-                        value === "" ? 0 : Number.parseFloat(value) || 0,
+                        value === ""
+                          ? undefined
+                          : Number.parseFloat(value) ?? undefined,
                     })
                   }}
                   placeholder={
-                    formData.is_access_code ? "0 (no discount)" : "10"
+                    formData.is_access_code ? "0 (no discount)" : "10 or leave empty for 0"
                   }
                 />
               </Box>
@@ -404,8 +404,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                 onClick={handleSubmit}
                 disabled={
                   !formData.code ||
-                  formData.discount_value === undefined ||
-                  formData.discount_value === null ||
                   createMutation.isPending ||
                   updateMutation.isPending
                 }
