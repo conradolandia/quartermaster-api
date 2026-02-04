@@ -1,5 +1,13 @@
 import { useState } from "react"
-import { FiCode, FiCopy, FiEdit, FiPrinter, FiTrash2 } from "react-icons/fi"
+import {
+  FiCode,
+  FiCopy,
+  FiEdit,
+  FiPrinter,
+  FiCalendar,
+  FiTrash2,
+  FiXCircle,
+} from "react-icons/fi"
 
 import { BookingsService, type BookingPublic } from "../../client"
 import { MenuItem } from "../ui/menu"
@@ -10,6 +18,8 @@ import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
+import PermanentDeleteBooking from "../Bookings/PermanentDeleteBooking"
+import RescheduleBooking from "../Bookings/RescheduleBooking"
 
 interface BookingActionsMenuProps {
   booking: BookingPublic
@@ -23,6 +33,8 @@ interface BookingActionsMenuProps {
   onOpenRawData?: () => void
   /** When true, Edit is hidden (e.g. checked-in bookings cannot be edited). */
   editDisabled?: boolean
+  /** When provided, called after a permanent delete (e.g. navigate away from detail page). */
+  onPermanentDeleteSuccess?: () => void
 }
 
 const BookingActionsMenu = ({
@@ -33,9 +45,13 @@ const BookingActionsMenu = ({
   onEditModalOpenChange,
   onOpenRawData,
   editDisabled = false,
+  onPermanentDeleteSuccess,
 }: BookingActionsMenuProps) => {
   const [internalEditOpen, setInternalEditOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] =
+    useState(false)
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false)
   const [editingBooking, setEditingBooking] = useState<BookingPublic | null>(
     null,
   )
@@ -115,6 +131,24 @@ const BookingActionsMenu = ({
             </Button>
           </MenuItem>
         )}
+        {!editDisabled && (
+          <MenuItem
+            value="reschedule"
+            onClick={() => setRescheduleModalOpen(true)}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiCalendar fontSize="16px" />
+              Reschedule
+            </Button>
+          </MenuItem>
+        )}
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
@@ -149,6 +183,22 @@ const BookingActionsMenu = ({
             Cancel Booking
           </Button>
         </MenuItem>
+        <MenuItem
+          value="delete"
+          onClick={() => setPermanentDeleteModalOpen(true)}
+          asChild
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            color="status.error"
+            justifyContent="start"
+            w="full"
+          >
+            <FiXCircle fontSize="16px" />
+            Delete
+          </Button>
+        </MenuItem>
       </ActionsMenu>
       <EditBooking
         booking={editingBooking ?? booking}
@@ -167,6 +217,29 @@ const BookingActionsMenu = ({
         onClose={() => setDeleteModalOpen(false)}
         onSuccess={() => {
           // This will trigger a refetch via the mutation's onSettled
+        }}
+      />
+      <PermanentDeleteBooking
+        booking={booking}
+        isOpen={permanentDeleteModalOpen}
+        onClose={() => setPermanentDeleteModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["bookings"] })
+          queryClient.invalidateQueries({
+            queryKey: ["booking", booking.confirmation_code],
+          })
+          onPermanentDeleteSuccess?.()
+        }}
+      />
+      <RescheduleBooking
+        booking={booking}
+        isOpen={rescheduleModalOpen}
+        onClose={() => setRescheduleModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["bookings"] })
+          queryClient.invalidateQueries({
+            queryKey: ["booking", booking.confirmation_code],
+          })
         }}
       />
     </>

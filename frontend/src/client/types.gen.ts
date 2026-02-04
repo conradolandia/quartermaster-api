@@ -609,6 +609,14 @@ export type RefundRequest = {
   refund_amount_cents?: number | null
 }
 
+/**
+ * Request body for rescheduling a booking's ticket items to another trip.
+ */
+export type RescheduleBookingRequest = {
+  target_trip_id: string
+  boat_id?: string | null
+}
+
 export type Token = {
   access_token: string
   token_type?: string
@@ -966,12 +974,25 @@ export type BookingsGetBookingByIdData = {
 
 export type BookingsGetBookingByIdResponse = BookingPublic
 
+export type BookingsDeleteBookingData = {
+  bookingId: string
+}
+
+export type BookingsDeleteBookingResponse = void
+
 export type BookingsUpdateBookingData = {
   bookingId: string
   requestBody: BookingUpdate
 }
 
 export type BookingsUpdateBookingResponse = BookingPublic
+
+export type BookingsRescheduleData = {
+  bookingId: string
+  requestBody: RescheduleBookingRequest
+}
+
+export type BookingsRescheduleResponse = BookingPublic
 
 export type BookingsCheckInBookingData = {
   boatId?: string | null

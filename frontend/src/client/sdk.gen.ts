@@ -38,8 +38,12 @@ import type {
   BookingsDuplicateBookingResponse,
   BookingsGetBookingByIdData,
   BookingsGetBookingByIdResponse,
+  BookingsDeleteBookingData,
+  BookingsDeleteBookingResponse,
   BookingsUpdateBookingData,
   BookingsUpdateBookingResponse,
+  BookingsRescheduleData,
+  BookingsRescheduleResponse,
   BookingsCheckInBookingData,
   BookingsCheckInBookingResponse,
   BookingsRevertCheckInData,
@@ -711,6 +715,32 @@ export class BookingsService {
   }
 
   /**
+   * Delete Booking
+   * Permanently delete a booking and its items (admin only).
+   *
+   * Returns merchandise inventory (quantity_sold / quantity_fulfilled) to
+   * the relevant variations. This action cannot be undone.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @returns void Successful Response
+   * @throws ApiError
+   */
+  public static deleteBooking(
+    data: BookingsDeleteBookingData,
+  ): CancelablePromise<BookingsDeleteBookingResponse> {
+    return __request(OpenAPI, {
+      method: "DELETE",
+      url: "/api/v1/bookings/id/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Update Booking
    * Update booking status or details (admin only).
    * @param data The data for the request.
@@ -725,6 +755,35 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "PATCH",
       url: "/api/v1/bookings/id/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Reschedule Booking
+   * Move all ticket items for this booking to another trip (same mission).
+   *
+   * Merchandise items are left on their current trips. Target trip must be
+   * active, not departed, and have capacity for the moved quantities.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static reschedule(
+    data: BookingsRescheduleData,
+  ): CancelablePromise<BookingsRescheduleResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/id/{booking_id}/reschedule",
       path: {
         booking_id: data.bookingId,
       },

@@ -70,6 +70,13 @@ class RefundRequest(BaseModel):
     refund_amount_cents: int | None = None
 
 
+class RescheduleBookingRequest(BaseModel):
+    """Request body for rescheduling a booking's ticket items to another trip."""
+
+    target_trip_id: uuid.UUID
+    boat_id: uuid.UUID | None = None  # Required if target trip has more than one boat
+
+
 # Paginated response model
 class BookingsPaginatedResponse(BaseModel):
     data: list[BookingPublic]
@@ -876,6 +883,51 @@ def get_booking_by_id(
         )
 
 
+@router.delete(
+    "/id/{booking_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+    operation_id="bookings_delete_booking",
+)
+def delete_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    booking_id: uuid.UUID,
+) -> None:
+    """
+    Permanently delete a booking and its items (admin only).
+
+    Returns merchandise inventory (quantity_sold / quantity_fulfilled) to
+    the relevant variations. This action cannot be undone.
+    """
+    booking = session.get(Booking, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with ID {booking_id} not found",
+        )
+    items = list(
+        session.exec(
+            select(BookingItem).where(BookingItem.booking_id == booking.id)
+        ).all()
+    )
+    for item in items:
+        if item.merchandise_variation_id:
+            variation = session.get(MerchandiseVariation, item.merchandise_variation_id)
+            if variation:
+                variation.quantity_sold -= item.quantity
+                variation.quantity_sold = max(0, variation.quantity_sold)
+                if item.status == BookingItemStatus.fulfilled:
+                    variation.quantity_fulfilled -= item.quantity
+                    variation.quantity_fulfilled = max(0, variation.quantity_fulfilled)
+                session.add(variation)
+    session.delete(booking)
+    session.commit()
+    logger.info(
+        f"Deleted booking {booking_id} (confirmation: {booking.confirmation_code})"
+    )
+
+
 def ensure_booking_update_allowed(
     *,
     booking: Booking,
@@ -1317,6 +1369,150 @@ def update_booking(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later.",
         )
+
+
+@router.post(
+    "/id/{booking_id}/reschedule",
+    response_model=BookingPublic,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+    operation_id="bookings_reschedule",
+)
+def reschedule_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    booking_id: uuid.UUID,
+    body: RescheduleBookingRequest,
+) -> BookingPublic:
+    """
+    Move all ticket items for this booking to another trip (same mission).
+
+    Merchandise items are left on their current trips. Target trip must be
+    active, not departed, and have capacity for the moved quantities.
+    """
+    booking = session.get(Booking, booking_id)
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with ID {booking_id} not found",
+        )
+    if booking.booking_status == BookingStatus.checked_in:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reschedule a checked-in booking",
+        )
+    ensure_booking_update_allowed(
+        booking=booking,
+        session=session,
+        allow_past_edit=True,
+    )
+
+    items = get_booking_items_in_display_order(session, booking.id)
+    ticket_items = [i for i in items if i.trip_merchandise_id is None]
+    if not ticket_items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking has no ticket items to reschedule",
+        )
+
+    target_trip = session.get(Trip, body.target_trip_id)
+    if not target_trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip {body.target_trip_id} not found",
+        )
+    if not target_trip.active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target trip is not active",
+        )
+    if is_trip_past(target_trip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target trip has already departed",
+        )
+
+    first_trip = session.get(Trip, ticket_items[0].trip_id)
+    if not first_trip:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Booking item trip not found",
+        )
+    if target_trip.mission_id != first_trip.mission_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target trip must belong to the same mission as the booking",
+        )
+
+    trip_boats = crud.get_trip_boats_by_trip(
+        session=session, trip_id=body.target_trip_id
+    )
+    if not trip_boats:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target trip has no boats",
+        )
+    if len(trip_boats) == 1:
+        target_boat_id = trip_boats[0].boat_id
+    else:
+        if body.boat_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Target trip has multiple boats; boat_id is required",
+            )
+        boat_ids = {tb.boat_id for tb in trip_boats}
+        if body.boat_id not in boat_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="boat_id is not associated with the target trip",
+            )
+        target_boat_id = body.boat_id
+
+    capacities = crud.get_effective_capacity_per_ticket_type(
+        session=session,
+        trip_id=body.target_trip_id,
+        boat_id=target_boat_id,
+    )
+    paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=body.target_trip_id
+    )
+    this_booking_by_type: dict[str, int] = defaultdict(int)
+    for item in ticket_items:
+        this_booking_by_type[item.item_type] += item.quantity
+
+    for item_type, qty in this_booking_by_type.items():
+        cap = capacities.get(item_type)
+        if cap is None:
+            boat = session.get(Boat, target_boat_id)
+            boat_name = boat.name if boat else str(target_boat_id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No capacity for ticket type '{item_type}' on boat '{boat_name}'",
+            )
+        existing = paid.get((target_boat_id, item_type), 0)
+        if existing + qty > cap:
+            boat = session.get(Boat, target_boat_id)
+            boat_name = boat.name if boat else str(target_boat_id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+            )
+
+    for item in ticket_items:
+        item.trip_id = body.target_trip_id
+        item.boat_id = target_boat_id
+        session.add(item)
+
+    session.commit()
+    session.refresh(booking)
+    updated_items = get_booking_items_in_display_order(session, booking.id)
+    booking_public = BookingPublic.model_validate(booking)
+    booking_public.items = [
+        BookingItemPublic.model_validate(item) for item in updated_items
+    ]
+    logger.info(
+        f"Rescheduled booking {booking_id} ticket items to trip {body.target_trip_id}"
+    )
+    return booking_public
 
 
 @router.post(

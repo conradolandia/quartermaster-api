@@ -20,6 +20,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import {
   FiArrowLeft,
+  FiCalendar,
   FiCheck,
   FiCornerUpLeft,
   FiDollarSign,
@@ -29,6 +30,7 @@ import {
 
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import RescheduleBooking from "@/components/Bookings/RescheduleBooking"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import {
   DialogBody,
@@ -73,6 +75,7 @@ export default function BookingDetails({
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false)
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
   const [refundAmountCents, setRefundAmountCents] = useState<number | null>(
@@ -324,16 +327,28 @@ export default function BookingDetails({
             </Flex>
           </Button>
           {booking.booking_status !== "checked_in" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setEditModalOpen(true)}
-            >
-              <Flex align="center" gap={2}>
-                <FiEdit />
-                Edit Booking
-              </Flex>
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setRescheduleDialogOpen(true)}
+              >
+                <Flex align="center" gap={2}>
+                  <FiCalendar />
+                  Reschedule
+                </Flex>
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditModalOpen(true)}
+              >
+                <Flex align="center" gap={2}>
+                  <FiEdit />
+                  Edit Booking
+                </Flex>
+              </Button>
+            </>
           )}
           {booking.booking_status === "confirmed" && (
             <Button
@@ -370,6 +385,7 @@ export default function BookingDetails({
             onEditModalOpenChange={setEditModalOpen}
             onOpenRawData={() => setJsonDialogOpen(true)}
             editDisabled={booking.booking_status === "checked_in"}
+            onPermanentDeleteSuccess={() => navigate({ to: "/bookings" })}
           />
         </Flex>
       </Flex>
@@ -533,6 +549,15 @@ export default function BookingDetails({
           </DialogFooter>
         </DialogContent>
       </DialogRoot>
+
+      <RescheduleBooking
+        booking={booking}
+        isOpen={rescheduleDialogOpen}
+        onClose={() => setRescheduleDialogOpen(false)}
+        onSuccess={(updated) => {
+          queryClient.setQueryData(["booking", confirmationCode], updated)
+        }}
+      />
 
       <VStack align="stretch" gap={6}>
         <Flex gap={6} direction={{ base: "column", lg: "row" }}>
