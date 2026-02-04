@@ -537,7 +537,7 @@ const Step4Review = ({
               )}
 
               <HStack justify="space-between">
-                <Text>Tax ({bookingData.tax_rate}%):</Text>
+                <Text>Tax ({Number(bookingData.tax_rate.toFixed(2))}%):</Text>
                 <Text>${formatCents(bookingData.tax_amount)}</Text>
               </HStack>
 
