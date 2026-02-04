@@ -4,6 +4,8 @@ Revision ID: add_missing_enum_values
 Revises:
 Create Date: 2025-06-26 18:30:00.000000
 
+Only runs when the bookingstatus enum already exists (e.g. existing DBs).
+Fresh DBs never create this enum; later migrations use bookingstatusnew then drop bookingstatus.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -17,7 +19,10 @@ depends_on = None
 
 
 def upgrade():
-    # Add missing enum values to BookingStatus
+    conn = op.get_bind()
+    r = conn.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'bookingstatus'")).fetchone()
+    if not r:
+        return
     op.execute("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'draft'")
     op.execute("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'pending_payment'")
     op.execute("ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'confirmed'")
