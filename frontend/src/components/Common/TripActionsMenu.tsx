@@ -1,7 +1,7 @@
 import { TripsService, type TripPublic } from "../../client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy } from "react-icons/fi"
+import { FiCopy, FiLink } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -39,9 +39,46 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
     setEditingTrip(null)
   }
 
+  const copyId = () => {
+    void navigator.clipboard.writeText(trip.id).then(() => {
+      showSuccessToast("Trip ID copied to clipboard")
+    })
+  }
+
+  const copyBookingLink = () => {
+    const url = `${window.location.origin}/book?trip=${trip.id}`
+    void navigator.clipboard.writeText(url).then(() => {
+      showSuccessToast("Booking link copied to clipboard")
+    })
+  }
+
   return (
     <>
       <ActionsMenu ariaLabel="Trip actions">
+        <MenuItem value="copy-id" onClick={copyId} asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+          >
+            <FiCopy fontSize="16px" />
+            Copy ID
+          </Button>
+        </MenuItem>
+        <MenuItem value="copy-booking-link" onClick={copyBookingLink} asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+          >
+            <FiLink fontSize="16px" />
+            Copy booking link
+          </Button>
+        </MenuItem>
         <EditTrip trip={trip} />
         <EditTrip
           trip={trip}

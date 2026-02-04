@@ -197,6 +197,59 @@ const PublicBookingForm = ({
     }
   }, [search.discount])
 
+  // Apply launch/trip/boat from URL so the form opens with a specific selection
+  useEffect(() => {
+    const launch = search.launch ?? ""
+    const trip = search.trip ?? ""
+    const boat = search.boat ?? ""
+    if (!launch && !trip && !boat) return
+    setBookingData((prev) => ({
+      ...prev,
+      ...(launch && { selectedLaunchId: launch }),
+      ...(trip && { selectedTripId: trip }),
+      ...(boat && { selectedBoatId: boat }),
+    }))
+  }, [search.launch, search.trip, search.boat])
+
+  // Sync selected launch/trip/boat to URL so the link stays shareable
+  useEffect(() => {
+    const urlLaunch = search.launch ?? ""
+    const urlTrip = search.trip ?? ""
+    const urlBoat = search.boat ?? ""
+    const dataLaunch = bookingData.selectedLaunchId ?? ""
+    const dataTrip = bookingData.selectedTripId ?? ""
+    const dataBoat = bookingData.selectedBoatId ?? ""
+    if (
+      dataLaunch === urlLaunch &&
+      dataTrip === urlTrip &&
+      dataBoat === urlBoat
+    )
+      return
+    navigate({
+      search: (prev: {
+        discount?: string
+        access?: string
+        code?: string
+        launch?: string
+        trip?: string
+        boat?: string
+      }) => ({
+        ...prev,
+        launch: dataLaunch || undefined,
+        trip: dataTrip || undefined,
+        boat: dataBoat || undefined,
+      }),
+    })
+  }, [
+    bookingData.selectedLaunchId,
+    bookingData.selectedTripId,
+    bookingData.selectedBoatId,
+    search.launch,
+    search.trip,
+    search.boat,
+    navigate,
+  ])
+
   // When user applies a new discount code in Step2, sync it to the URL so the link stays shareable
   useEffect(() => {
     const urlDiscount = search.discount ?? ""
@@ -224,6 +277,15 @@ const PublicBookingForm = ({
       }))
     }
   }, [initialDiscountCodeId])
+
+  // When access=CODE is used and gate gave us the code ID, treat that code as the discount too so Step2 validates and applies it
+  useEffect(() => {
+    if (accessCode && initialDiscountCodeId) {
+      setBookingData((prev) =>
+        prev.discount_code ? prev : { ...prev, discount_code: accessCode }
+      )
+    }
+  }, [accessCode, initialDiscountCodeId])
 
   // When URL has a confirmation code, show step 4 so resume flow runs there (unless user went Back from step 4)
   useEffect(() => {

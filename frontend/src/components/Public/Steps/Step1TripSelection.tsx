@@ -25,6 +25,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
+import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatDateTimeNoSeconds,
   formatInLocationTimezoneWithAbbr,
@@ -46,6 +47,8 @@ const Step1TripSelection = ({
   onNext,
   accessCode,
 }: Step1TripSelectionProps) => {
+  const { showErrorToast } = useCustomToast()
+
   // Fetch public launches (for Launch dropdown)
   const { data: launchesResponse, isLoading: isLoadingLaunches } = useQuery({
     queryKey: ["public-launches"],
@@ -155,13 +158,16 @@ const Step1TripSelection = ({
     updateBookingData,
   ])
 
-  // Keep boatRemainingCapacity in sync when selected boat or trip boats change
+  // Keep boatRemainingCapacity in sync when selected boat or trip boats change; clear and notify when boat has no capacity
   React.useEffect(() => {
     if (!bookingData.selectedBoatId || !tripBoats?.length) return
     const selected = tripBoats.find(
       (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
     )
     if (selected && selected.remaining_capacity <= 0) {
+      showErrorToast(
+        "This boat has no remaining capacity. Please choose another boat.",
+      )
       updateBookingData({
         selectedBoatId: "",
         boatRemainingCapacity: null,
@@ -177,6 +183,7 @@ const Step1TripSelection = ({
     bookingData.boatRemainingCapacity,
     tripBoats,
     updateBookingData,
+    showErrorToast,
   ])
 
   const handleLaunchChange = (details: { value: string[] }) => {
@@ -266,20 +273,88 @@ const Step1TripSelection = ({
     [sortedLaunches, launchIdsWithVisibleTrips],
   )
 
-  // If the selected launch has passed or has no visible trips, clear launch/trip/boat
+  // If the selected launch has passed or has no visible trips, clear launch/trip/boat and notify
   React.useEffect(() => {
     if (
+      isLoadingLaunches ||
+      isLoadingMissions ||
+      isLoadingTrips ||
       !bookingData.selectedLaunchId ||
       visibleLaunches.some((l) => l.id === bookingData.selectedLaunchId)
     )
       return
+    showErrorToast(
+      "The selected launch is no longer available. Please choose another.",
+    )
     updateBookingData({
       selectedLaunchId: "",
       selectedTripId: "",
       selectedBoatId: "",
       boatRemainingCapacity: null,
     })
-  }, [bookingData.selectedLaunchId, visibleLaunches, updateBookingData])
+  }, [
+    bookingData.selectedLaunchId,
+    visibleLaunches,
+    updateBookingData,
+    showErrorToast,
+    isLoadingLaunches,
+    isLoadingMissions,
+    isLoadingTrips,
+  ])
+
+  // If the selected trip is not available for the selected launch (or inactive), clear trip/boat and notify
+  React.useEffect(() => {
+    if (
+      isLoadingTrips ||
+      isLoadingMissions ||
+      !bookingData.selectedTripId ||
+      activeTrips.some((t: TripPublic) => t.id === bookingData.selectedTripId)
+    )
+      return
+    showErrorToast(
+      "The selected trip is not available for this launch. Please choose another.",
+    )
+    updateBookingData({
+      selectedTripId: "",
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
+    })
+  }, [
+    bookingData.selectedTripId,
+    activeTrips,
+    updateBookingData,
+    showErrorToast,
+    isLoadingTrips,
+    isLoadingMissions,
+  ])
+
+  // If the selected boat is not on this trip, clear boat and notify (capacity is handled in the sync effect above)
+  React.useEffect(() => {
+    if (
+      !bookingData.selectedTripId ||
+      !bookingData.selectedBoatId ||
+      isLoadingBoats
+    )
+      return
+    const selected = tripBoats.find(
+      (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
+    )
+    if (selected) return
+    showErrorToast(
+      "The selected boat is not available for this trip. Please choose another.",
+    )
+    updateBookingData({
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
+    })
+  }, [
+    bookingData.selectedTripId,
+    bookingData.selectedBoatId,
+    tripBoats,
+    isLoadingBoats,
+    updateBookingData,
+    showErrorToast,
+  ])
 
   const formatTripTime = (dateString: string, timezone?: string | null) => {
     const d = parseApiDate(dateString)

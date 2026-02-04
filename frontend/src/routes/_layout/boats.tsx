@@ -17,8 +17,7 @@ import { z } from "zod"
 
 import { BoatPricingService, type BoatPublic, BoatsService } from "@/client"
 import AddBoat from "@/components/Boats/AddBoat"
-import DeleteBoat from "@/components/Boats/DeleteBoat"
-import EditBoat from "@/components/Boats/EditBoat"
+import { BoatActionsMenu } from "@/components/Common/BoatActionsMenu"
 import PendingBoats from "@/components/Pending/PendingBoats"
 import {
   DEFAULT_PAGE_SIZE,
@@ -318,10 +317,9 @@ function BoatsTable() {
                 >
                   {boat.provider_name || "—"}
                 </Table.Cell>
-                <Table.Cell textAlign="center" minW="140px">
-                  <Flex gap={2} flexWrap="wrap" justify="center">
-                    <EditBoat boat={boat} />
-                    <DeleteBoat id={boat.id} name={boat.name} />
+                <Table.Cell minW="140px">
+                  <Flex justify="center">
+                    <BoatActionsMenu boat={boat} />
                   </Flex>
                 </Table.Cell>
               </Table.Row>

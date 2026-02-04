@@ -9,6 +9,9 @@ const bookSearchSchema = z.object({
   discount: z.string().optional(),
   access: z.string().optional(),
   code: z.string().optional(),
+  launch: z.string().optional(),
+  trip: z.string().optional(),
+  boat: z.string().optional(),
 })
 
 export const Route = createFileRoute("/book")({

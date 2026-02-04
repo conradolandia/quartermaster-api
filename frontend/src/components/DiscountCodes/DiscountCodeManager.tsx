@@ -48,8 +48,19 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
-  const buildBookingUrl = (code: string, isAccessCode: boolean) =>
-    `${window.location.origin}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
+  const buildBookingUrl = (code: string, isAccessCode: boolean) => {
+    let origin = window.location.origin
+    try {
+      const url = new URL(origin)
+      if (url.hostname.startsWith("admin.")) {
+        url.hostname = url.hostname.slice(7)
+        origin = url.origin
+      }
+    } catch {
+      // keep current origin if URL parsing fails
+    }
+    return `${origin}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
+  }
 
   const copyBookingUrl = (code: string, isAccessCode: boolean) => {
     void navigator.clipboard
