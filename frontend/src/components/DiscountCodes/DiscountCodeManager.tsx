@@ -52,8 +52,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     let origin = window.location.origin
     try {
       const url = new URL(origin)
-      if (url.hostname.startsWith("admin.")) {
-        url.hostname = url.hostname.slice(7)
+      const adminPrefix = "admin."
+      if (url.hostname.startsWith(adminPrefix)) {
+        url.hostname = url.hostname.slice(adminPrefix.length)
         origin = url.origin
       }
     } catch {
