@@ -127,11 +127,18 @@ export const AddJurisdiction = ({
                     <Input
                       id="sales_tax_rate"
                       type="number"
-                      value={field.value ? (field.value * 100).toString() : ""}
+                      value={
+                        field.value != null
+                          ? String(Number((field.value * 100).toFixed(2)))
+                          : ""
+                      }
                       onChange={(e) => {
                         const percentValue =
                           Number.parseFloat(e.target.value) || 0
-                        field.onChange(percentValue / 100) // Convert percentage to decimal for storage
+                        // Round to 4 decimals to avoid float noise (e.g. 7 -> 0.07)
+                        field.onChange(
+                          Math.round(percentValue * 100) / 10000
+                        )
                       }}
                       min={0}
                       max={100}
