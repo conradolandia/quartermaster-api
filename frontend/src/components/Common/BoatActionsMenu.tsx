@@ -1,4 +1,3 @@
-import React from "react"
 import { FiCopy } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
