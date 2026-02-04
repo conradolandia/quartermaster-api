@@ -141,7 +141,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       discount_value:
         discountCode.discount_type === "fixed_amount"
           ? discountCode.discount_value / 100
-          : discountCode.discount_value,
+          : discountCode.discount_value <= 1
+            ? discountCode.discount_value * 100
+            : discountCode.discount_value,
       max_uses: discountCode.max_uses,
       is_active: discountCode.is_active,
       valid_from: discountCode.valid_from,
@@ -168,12 +170,12 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const handleSubmit = () => {
     if (!formData.code) return
 
-    // Empty value means 0 (no discount); backend accepts 0 for both percentage and fixed_amount
+    // Empty value means 0 (no discount). Backend: percentage 0-1 (e.g. 0.1 = 10%), fixed_amount in cents
     const rawValue = formData.discount_value ?? 0
     const discountValue =
       formData.discount_type === "fixed_amount"
         ? Math.round(rawValue * 100)
-        : rawValue
+        : rawValue / 100
     const data = {
       ...formData,
       code: formData.code!,
