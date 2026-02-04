@@ -494,15 +494,6 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       showSuccessToast("Please add at least one boat to the trip")
       return
     }
-    const hasPricing = selectedBoats.some(
-      (b) => b.pricing && b.pricing.length > 0,
-    )
-    if (!hasPricing) {
-      showSuccessToast(
-        "Add at least one pricing override for a boat (Boats tab: click Pricing on a boat).",
-      )
-      return
-    }
 
     const tz = timezone ?? "UTC"
     mutation.mutate({
