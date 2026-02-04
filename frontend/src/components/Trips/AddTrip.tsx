@@ -1449,7 +1449,6 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                 !missionId ||
                 !departureTime ||
                 selectedBoats.length === 0 ||
-                !selectedBoats.some((b) => b.pricing?.length) ||
                 mutation.isPending
               }
             >
