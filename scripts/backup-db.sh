@@ -12,7 +12,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-BACKUPS_DIR="/root/code/backups"
+BACKUPS_DIR="/root/code/backups/db"
 mkdir -p "$BACKUPS_DIR"
 
 OUTPUT="${BACKUPS_DIR}/backup_$(date +%Y%m%d_%H%M%S).sql"
