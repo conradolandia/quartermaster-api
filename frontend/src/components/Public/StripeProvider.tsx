@@ -5,15 +5,11 @@ import type * as React from "react"
 // Get Stripe publishable key from environment variables
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
-// Debug: Log the key (only in development)
-if (import.meta.env.DEV) {
-  console.log("Stripe key found:", !!stripePublishableKey)
-  if (stripePublishableKey) {
-    console.log(
-      "Stripe key starts with:",
-      `${stripePublishableKey.substring(0, 10)}...`,
-    )
-  }
+// Log Stripe key mode so you can verify live vs test in browser console (publishable keys are safe to expose)
+if (stripePublishableKey) {
+  const mode =
+    stripePublishableKey.startsWith("pk_live_") ? "live" : "test"
+  console.log(`[Stripe] Using ${mode} publishable key`)
 }
 
 // Only initialize Stripe if we have a valid publishable key

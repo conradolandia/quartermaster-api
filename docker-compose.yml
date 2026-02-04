@@ -146,6 +146,7 @@ services:
       args:
         - VITE_API_URL=https://api.${DOMAIN?Variable not set}
         - VITE_PUBLIC_BOOKING_BASE_URL=https://${DOMAIN?Variable not set}
+        - VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
         - NODE_ENV=production
     labels:
       - traefik.enable=true
