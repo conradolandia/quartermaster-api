@@ -114,6 +114,7 @@ export default function BookingExperienceDetails({
             {heading}
           </Heading>
         )}
+        <Separator mb={4} />
         <Grid
           templateColumns={
             narrowLayout

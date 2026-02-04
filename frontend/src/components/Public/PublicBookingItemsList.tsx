@@ -9,6 +9,8 @@ interface PublicBookingItemsListProps {
   heading?: string
   /** Optional muted heading style */
   headingColor?: string
+  /** Styling: border, bg, etc. Passed to outer Box. */
+  boxProps?: Record<string, unknown>
 }
 
 const formatItemType = (item: BookingItemPublic): string => {
@@ -30,6 +32,7 @@ export default function PublicBookingItemsList({
   items,
   heading = "Tickets & merchandise included",
   headingColor,
+  boxProps = {},
 }: PublicBookingItemsListProps) {
   if (!items?.length) return null
 
@@ -62,16 +65,17 @@ export default function PublicBookingItemsList({
   )
 
   return (
-    <Box>
-      <Heading size="sm" mb={3} color={headingColor}>
+    <Box {...boxProps}>
+      <Heading size="xl" mb={3} color={headingColor}>
         {heading}
       </Heading>
+      <Separator mb={4} />
       <VStack gap={3} align="stretch">
         {tickets.length > 0 && (
           <>
-            <Text fontSize="sm" fontWeight="medium" color="text.muted">
+            <Heading size="lg" fontWeight="medium" mb={2}>
               Tickets
-            </Text>
+            </Heading>
             <VStack gap={2} align="stretch">
               {tickets.map((item, index) => (
                 <ItemRow key={item.id ?? `ticket-${index}`} item={item} />
@@ -79,12 +83,12 @@ export default function PublicBookingItemsList({
             </VStack>
           </>
         )}
-        {tickets.length > 0 && merchandise.length > 0 && <Separator />}
+        {tickets.length > 0 && merchandise.length > 0}
         {merchandise.length > 0 && (
           <>
-            <Text fontSize="sm" fontWeight="medium" color="text.muted">
+            <Heading size="lg" fontWeight="medium" mb={2}>
               Merchandise
-            </Text>
+            </Heading>
             <VStack gap={2} align="stretch">
               {merchandise.map((item, index) => (
                 <ItemRow key={item.id ?? `merch-${index}`} item={item} />

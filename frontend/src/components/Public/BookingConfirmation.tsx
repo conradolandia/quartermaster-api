@@ -23,6 +23,7 @@ import { formatCents } from "@/utils"
 
 import Logo from "/assets/images/sf-logo-hat.png"
 import QMLogo from "/assets/images/qm-logo.svg"
+import SFLogo from "/assets/images/sf-logo.svg"
 
 interface BookingConfirmationProps {
   confirmationCode?: string
@@ -108,7 +109,7 @@ const BookingConfirmation = ({
       <VStack gap={8} align="stretch">
         {/* Header */}
         <Flex alignItems="center" flexDirection="column" gap={4}>
-          <Image src={Logo} alt="Star Fleet Tours" maxW="200px" />
+          <Image src={Logo} alt="Star Fleet Tours" maxW="400px" mb={6} />
           <Heading size="2xl" color="green.200">
             Booking Confirmed!
           </Heading>
@@ -118,8 +119,8 @@ const BookingConfirmation = ({
           <Text fontSize="sm" color="gray.400" textAlign="center">
             A confirmation email has been sent to {booking.user_email}. <br />
             Please check your inbox for the details.
-            </Text>
-            <Text fontSize="sm" color="gray.400" textAlign="center">
+          </Text>
+          <Text fontSize="sm" color="gray.400" textAlign="center">
             If you don't see the email, please check your spam folder. <br />
             If you still don't see the email, please contact us at <br />
             <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">fleetcommand@star-fleet.tours</Link>.
@@ -151,12 +152,12 @@ const BookingConfirmation = ({
 
         <VStack gap={6} align="stretch">
           {/* Booking Details */}
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-            <Image src={Logo} alt="Star Fleet Tours" maxW="320px" p={2} mx="auto" mb={4}/>
-            <Separator mb={4} />
+          <Box bg="dark.bg.secondary" borderRadius="lg" boxShadow="lg" p={{ base: 4, md: 8 }}>
+            <Image src={SFLogo} alt="Star Fleet Tours" maxW="320px" p={2} mx="auto" mb={4} />
             <Heading size="sm" mb={4}>
               Booking Information
             </Heading>
+            <Separator mb={4} />
             <VStack gap={3} align="stretch">
               <HStack justify="space-between">
                 <Text fontWeight="medium">Confirmation Code:</Text>
@@ -187,63 +188,67 @@ const BookingConfirmation = ({
                 <Text fontWeight="medium">Booking Date:</Text>
                 <Text>{new Date(booking.created_at).toLocaleDateString()}</Text>
               </HStack>
-            </VStack>
-          </Box>
 
-          {booking.items && booking.items.length > 0 && (
-            <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-              <BookingExperienceDetails
-                booking={booking}
-                usePublicApis
-                heading="Launch and trip details"
-              />
-            </Box>
-          )}
+              {booking.items && booking.items.length > 0 && (
+                <BookingExperienceDetails
+                  booking={booking}
+                  usePublicApis
+                  heading="Launch and trip details"
+                  boxProps={{ mt: 6 }}
+                />
+              )}
 
-          {booking.items && booking.items.length > 0 && (
-            <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-              <PublicBookingItemsList items={booking.items} />
-            </Box>
-          )}
+              {booking.items && booking.items.length > 0 && (
+                <PublicBookingItemsList items={booking.items} boxProps={{ mt: 6 }} />
+              )}
 
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
-            <Heading size="sm" mb={4}>
-              Order summary
-            </Heading>
-            <VStack gap={3} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Subtotal:</Text>
-                <Text>${formatCents(booking.subtotal)}</Text>
-              </HStack>
-              {booking.discount_amount > 0 && (
+              <Heading size="xl" mb={4} mt={6}>
+                Order summary
+              </Heading>
+              <Separator mb={4} />
+              <VStack gap={3} align="stretch">
                 <HStack justify="space-between">
-                  <Text fontWeight="medium">Discount:</Text>
-                  <Text color="green.600">
-                    -${formatCents(booking.discount_amount)}
+                  <Text fontWeight="medium">Subtotal:</Text>
+                  <Text>${formatCents(booking.subtotal)}</Text>
+                </HStack>
+                {/* Discount code or automatic discounts, if present */}
+                {booking.discount_code && (
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Discount Code:</Text>
+                    <Text fontStyle="italic">{booking.discount_code.code}</Text>
+                  </HStack>
+                )}
+                {booking.discount_amount > 0 && (
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Discount:</Text>
+                    <Text color="green.300">
+                      -${formatCents(booking.discount_amount)}
+                    </Text>
+                  </HStack>
+                )}
+                {/* Tax amount */}
+                <HStack justify="space-between">
+                  <Text fontWeight="medium">Tax:</Text>
+                  <Text>${formatCents(booking.tax_amount)}</Text>
+                </HStack>
+                {booking.tip_amount > 0 && (
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">Tip:</Text>
+                    <Text>${formatCents(booking.tip_amount)}</Text>
+                  </HStack>
+                )}
+                <HStack
+                  justify="space-between"
+                  borderTop="1px solid"
+                  borderColor="gray.200"
+                  pt={2}
+                >
+                  <Text fontWeight="bold">Total:</Text>
+                  <Text fontWeight="bold">
+                    ${formatCents(booking.total_amount)}
                   </Text>
                 </HStack>
-              )}
-              <HStack justify="space-between">
-                <Text fontWeight="medium">Tax:</Text>
-                <Text>${formatCents(booking.tax_amount)}</Text>
-              </HStack>
-              {booking.tip_amount > 0 && (
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">Tip:</Text>
-                  <Text>${formatCents(booking.tip_amount)}</Text>
-                </HStack>
-              )}
-              <HStack
-                justify="space-between"
-                borderTop="1px solid"
-                borderColor="gray.200"
-                pt={2}
-              >
-                <Text fontWeight="bold">Total:</Text>
-                <Text fontWeight="bold">
-                  ${formatCents(booking.total_amount)}
-                </Text>
-              </HStack>
+              </VStack>
             </VStack>
           </Box>
 
@@ -294,13 +299,13 @@ const BookingConfirmation = ({
           </Text>
         </Box>
         <Container maxW="container.lg" display="flex" justifyContent="center">
-            <VStack gap={4}>
-              <Text fontSize="sm" color="whiteAlpha.700">
-                Powered by
-              </Text>
-              <Image src={QMLogo} alt="Logo" maxW="200px" />
-            </VStack>
-          </Container>
+          <VStack gap={4}>
+            <Text fontSize="sm" color="whiteAlpha.700">
+              Powered by
+            </Text>
+            <Image src={QMLogo} alt="Logo" maxW="200px" />
+          </VStack>
+        </Container>
       </VStack>
     </Box>
   )
