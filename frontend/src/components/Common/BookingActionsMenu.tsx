@@ -1,10 +1,13 @@
 import { useState } from "react"
 import {
+  FiCheck,
   FiCode,
   FiCopy,
+  FiDollarSign,
   FiEdit,
   FiPrinter,
   FiCalendar,
+  FiCornerUpLeft,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi"
@@ -19,7 +22,16 @@ import { handleError } from "@/utils"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
 import PermanentDeleteBooking from "../Bookings/PermanentDeleteBooking"
+import RefundBooking from "../Bookings/RefundBooking"
 import RescheduleBooking from "../Bookings/RescheduleBooking"
+import { getRefundedCents } from "../Bookings/types"
+
+/** Action keys that can be hidden when shown as standalone buttons (e.g. on the detail page). */
+export type BookingActionHideInMenu =
+  | "refund"
+  | "check-in"
+  | "revert-check-in"
+  | "reschedule"
 
 interface BookingActionsMenuProps {
   booking: BookingPublic
@@ -35,6 +47,8 @@ interface BookingActionsMenuProps {
   editDisabled?: boolean
   /** When provided, called after a permanent delete (e.g. navigate away from detail page). */
   onPermanentDeleteSuccess?: () => void
+  /** Actions to hide in the menu because they are shown as standalone buttons (e.g. on the detail page). */
+  hideInMenu?: BookingActionHideInMenu[]
 }
 
 const BookingActionsMenu = ({
@@ -46,11 +60,14 @@ const BookingActionsMenu = ({
   onOpenRawData,
   editDisabled = false,
   onPermanentDeleteSuccess,
+  hideInMenu = [],
 }: BookingActionsMenuProps) => {
+  const hide = (key: BookingActionHideInMenu) => hideInMenu.includes(key)
   const [internalEditOpen, setInternalEditOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] =
     useState(false)
+  const [refundModalOpen, setRefundModalOpen] = useState(false)
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false)
   const [editingBooking, setEditingBooking] = useState<BookingPublic | null>(
     null,
@@ -75,6 +92,46 @@ const BookingActionsMenu = ({
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
   })
+
+  const checkInMutation = useMutation({
+    mutationFn: () =>
+      BookingsService.checkInBooking({
+        confirmationCode: booking.confirmation_code,
+      }),
+    onSuccess: () => {
+      showSuccessToast("Booking checked in successfully")
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      queryClient.invalidateQueries({
+        queryKey: ["booking", booking.confirmation_code],
+      })
+    },
+    onError: handleError,
+  })
+
+  const revertCheckInMutation = useMutation({
+    mutationFn: () =>
+      BookingsService.revertCheckIn({
+        confirmationCode: booking.confirmation_code,
+      }),
+    onSuccess: () => {
+      showSuccessToast("Check-in reverted; booking is confirmed again")
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      queryClient.invalidateQueries({
+        queryKey: ["booking", booking.confirmation_code],
+      })
+    },
+    onError: handleError,
+  })
+
+  const canRefund =
+    booking.booking_status &&
+    ["confirmed", "checked_in", "completed"].includes(
+      booking.booking_status,
+    ) &&
+    booking.payment_status !== "refunded" &&
+    getRefundedCents(booking) < (booking.total_amount ?? 0)
+  const canCheckIn = booking.booking_status === "confirmed"
+  const canRevertCheckIn = booking.booking_status === "checked_in"
 
   const handleOpenEdit = () => {
     setEditingBooking(null)
@@ -131,24 +188,6 @@ const BookingActionsMenu = ({
             </Button>
           </MenuItem>
         )}
-        {!editDisabled && (
-          <MenuItem
-            value="reschedule"
-            onClick={() => setRescheduleModalOpen(true)}
-            asChild
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
-            >
-              <FiCalendar fontSize="16px" />
-              Reschedule
-            </Button>
-          </MenuItem>
-        )}
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
@@ -167,6 +206,82 @@ const BookingActionsMenu = ({
             Duplicate
           </Button>
         </MenuItem>
+        {canCheckIn && !hide("check-in") && (
+          <MenuItem
+            value="check-in"
+            onClick={() => checkInMutation.mutate()}
+            disabled={checkInMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={checkInMutation.isPending}
+            >
+              <FiCheck fontSize="16px" />
+              Check In
+            </Button>
+          </MenuItem>
+        )}
+        {canRevertCheckIn && !hide("revert-check-in") && (
+          <MenuItem
+            value="revert-check-in"
+            onClick={() => revertCheckInMutation.mutate()}
+            disabled={revertCheckInMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={revertCheckInMutation.isPending}
+            >
+              <FiCornerUpLeft fontSize="16px" />
+              Revert Check-in
+            </Button>
+          </MenuItem>
+        )}
+        {!editDisabled && !hide("reschedule") && (
+          <MenuItem
+            value="reschedule"
+            onClick={() => setRescheduleModalOpen(true)}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiCalendar fontSize="16px" />
+              Reschedule
+            </Button>
+          </MenuItem>
+        )}
+        {canRefund && !hide("refund") && (
+          <MenuItem
+            value="refund"
+            onClick={() => setRefundModalOpen(true)}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiDollarSign fontSize="16px" />
+              Refund
+            </Button>
+          </MenuItem>
+        )}
         <MenuItem
           value="cancel"
           onClick={() => setDeleteModalOpen(true)}
@@ -235,6 +350,17 @@ const BookingActionsMenu = ({
         booking={booking}
         isOpen={rescheduleModalOpen}
         onClose={() => setRescheduleModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["bookings"] })
+          queryClient.invalidateQueries({
+            queryKey: ["booking", booking.confirmation_code],
+          })
+        }}
+      />
+      <RefundBooking
+        booking={booking}
+        isOpen={refundModalOpen}
+        onClose={() => setRefundModalOpen(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["bookings"] })
           queryClient.invalidateQueries({
