@@ -17,5 +17,5 @@ node_modules/
 .env.production.local
 docker-compose.override.yml
 .env-traefik
-backup*
+backup*.sql
 backups/
