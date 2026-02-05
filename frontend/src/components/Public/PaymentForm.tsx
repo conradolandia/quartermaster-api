@@ -66,8 +66,21 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       })
 
       if (error) {
-        setErrorMessage(error.message ?? "Payment failed")
-        onPaymentError(new Error(error.message ?? "Payment failed"))
+        // Handle case where payment already succeeded (e.g., webhook processed it first)
+        // The error object may contain payment_intent with current status
+        const paymentIntent = error.payment_intent as
+          | { status?: string }
+          | undefined
+        if (
+          error.code === "payment_intent_unexpected_state" &&
+          paymentIntent?.status === "succeeded"
+        ) {
+          // Payment actually succeeded, treat as success
+          onPaymentSuccess(paymentIntentId)
+        } else {
+          setErrorMessage(error.message ?? "Payment failed")
+          onPaymentError(new Error(error.message ?? "Payment failed"))
+        }
       } else {
         onPaymentSuccess(paymentIntentId)
       }
