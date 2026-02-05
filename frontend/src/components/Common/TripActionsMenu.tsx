@@ -1,7 +1,7 @@
-import { TripsService, type TripPublic } from "../../client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { MissionsService, TripsService, type TripPublic } from "../../client"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy, FiLink } from "react-icons/fi"
+import { FiCopy, FiLink, FiMail } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -10,6 +10,7 @@ import { ActionsMenu } from "../ui/actions-menu"
 import { MenuItem } from "../ui/menu"
 import DeleteTrip from "../Trips/DeleteTrip"
 import EditTrip from "../Trips/EditTrip"
+import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 
 interface TripActionsMenuProps {
   trip: TripPublic
@@ -19,7 +20,14 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [sendUpdateOpen, setSendUpdateOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripPublic | null>(null)
+
+  const { data: mission } = useQuery({
+    queryKey: ["mission", trip.mission_id],
+    queryFn: () => MissionsService.readMission({ missionId: trip.mission_id }),
+    enabled: sendUpdateOpen,
+  })
 
   const duplicateMutation = useMutation({
     mutationFn: () => TripsService.duplicateTrip({ tripId: trip.id }),
@@ -85,6 +93,18 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
           initialTab="boats"
           triggerLabel="Manage Boats for Trip"
         />
+        <MenuItem value="send-update" onClick={() => setSendUpdateOpen(true)} asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+          >
+            <FiMail fontSize="16px" />
+            Send Update
+          </Button>
+        </MenuItem>
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
@@ -110,6 +130,18 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
         isOpen={editModalOpen}
         onOpenChange={(open) => !open && handleCloseEdit()}
       />
+      {mission && (
+        <SendLaunchUpdate
+          launchId={mission.launch_id}
+          initialScope="trip"
+          initialMissionId={trip.mission_id}
+          initialTripId={trip.id}
+          showTrigger={false}
+          isOpen={sendUpdateOpen}
+          onOpenChange={setSendUpdateOpen}
+          dialogTitle="Send Trip Update"
+        />
+      )}
     </>
   )
 }

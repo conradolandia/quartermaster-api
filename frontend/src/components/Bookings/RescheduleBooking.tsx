@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatDateTimeInLocationTz } from "@/utils"
+import { useTripsByMission } from "@/hooks/useTripsByMission"
+import { formatTripLabel } from "@/utils"
 
 interface RescheduleBookingProps {
   booking: BookingPublic
@@ -62,16 +63,10 @@ export default function RescheduleBooking({
 
   const effectiveMissionId = booking.mission_id ?? firstTrip?.mission_id ?? null
 
-  const { data: tripsData, isLoading: tripsLoading } = useQuery({
-    queryKey: ["trips", "mission", effectiveMissionId],
-    queryFn: () =>
-      TripsService.readTripsByMission({
-        missionId: effectiveMissionId ?? "",
-      }),
-    enabled: isOpen && !!effectiveMissionId,
-  })
-
-  const trips = tripsData?.data ?? []
+  const { trips, isLoading: tripsLoading } = useTripsByMission(
+    effectiveMissionId,
+    isOpen && !!effectiveMissionId,
+  )
 
   const { data: tripBoats = [], isLoading: boatsLoading } = useQuery({
     queryKey: ["trip-boats", targetTripId],
@@ -135,7 +130,7 @@ export default function RescheduleBooking({
 
   const tripOptions = trips.map((t: TripPublic) => ({
     value: t.id,
-    label: tripLabel(t),
+    label: formatTripLabel(t),
   }))
 
   const boatOptions = tripBoats.map((tb) => ({
@@ -270,15 +265,4 @@ export default function RescheduleBooking({
       </DialogContent>
     </DialogRoot>
   )
-}
-
-function tripLabel(trip: TripPublic): string {
-  const name = trip.name?.trim()
-  const dep = trip.departure_time
-  const tz = trip.timezone ?? "UTC"
-  const dateStr = dep ? formatDateTimeInLocationTz(dep, tz) : ""
-  if (name && dateStr) return `${name} – ${dateStr}`
-  if (dateStr) return dateStr
-  if (name) return name
-  return trip.id
 }

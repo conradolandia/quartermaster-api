@@ -1,7 +1,7 @@
 import { type MissionPublic, MissionsService } from "../../client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy } from "react-icons/fi"
+import { FiCopy, FiMail } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -10,6 +10,7 @@ import { ActionsMenu } from "../ui/actions-menu"
 import { MenuItem } from "../ui/menu"
 import DeleteMission from "../Missions/DeleteMission"
 import EditMission from "../Missions/EditMission"
+import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 
 interface Mission {
   id: string
@@ -29,6 +30,7 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [sendUpdateOpen, setSendUpdateOpen] = useState(false)
   const [editingMission, setEditingMission] = useState<MissionPublic | null>(
     null,
   )
@@ -74,6 +76,18 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
             Duplicate
           </Button>
         </MenuItem>
+        <MenuItem value="send-update" onClick={() => setSendUpdateOpen(true)} asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+          >
+            <FiMail fontSize="16px" />
+            Send Update
+          </Button>
+        </MenuItem>
         <DeleteMission id={mission.id} name={mission.name} />
       </ActionsMenu>
       <EditMission
@@ -88,6 +102,15 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
         }
         isOpen={editModalOpen}
         onOpenChange={(open) => !open && handleCloseEdit()}
+      />
+      <SendLaunchUpdate
+        launchId={mission.launch_id}
+        initialScope="mission"
+        initialMissionId={mission.id}
+        showTrigger={false}
+        isOpen={sendUpdateOpen}
+        onOpenChange={setSendUpdateOpen}
+        dialogTitle="Send Mission Update"
       />
     </>
   )

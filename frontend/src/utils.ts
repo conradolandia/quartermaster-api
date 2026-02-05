@@ -200,6 +200,26 @@ export const US_TIMEZONES = [
 ] as const
 
 /**
+ * Format a trip for display in dropdowns/lists: name and departure time in trip timezone.
+ * Accepts trip-like objects with id, name, departure_time, timezone.
+ */
+export function formatTripLabel(trip: {
+  id: string
+  name?: string | null
+  departure_time: string
+  timezone?: string | null
+}): string {
+  const name = trip.name?.trim()
+  const dep = trip.departure_time
+  const tz = trip.timezone ?? "UTC"
+  const dateStr = dep ? formatDateTimeInLocationTz(dep, tz) : ""
+  if (name && dateStr) return `${name} – ${dateStr}`
+  if (dateStr) return dateStr
+  if (name) return name
+  return trip.id
+}
+
+/**
  * Format an amount in cents as dollars with two decimal places (e.g. 1234 -> "12.34").
  * API amounts and prices are in integer cents.
  */

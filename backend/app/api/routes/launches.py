@@ -389,13 +389,20 @@ def send_launch_update(
     session: Session = Depends(deps.get_db),
     launch_id: uuid.UUID,
     update_data: LaunchUpdateMessage,
+    mission_id: uuid.UUID | None = None,
+    trip_id: uuid.UUID | None = None,
 ) -> Any:
     """
-    Send a launch update email to all customers with confirmed bookings
-    for this launch who have opted in to receive launch updates.
+    Send a launch update email to customers with confirmed bookings for this
+    launch who have opted in to receive launch updates.
 
-    If priority is True, sends to all customers regardless of their
-    launch_updates_pref setting.
+    Optional scope: mission_id restricts to bookings with items on that
+    mission; trip_id restricts to bookings with items on that trip. If both
+    are set, only bookings matching the trip (which must belong to the
+    mission) receive the email.
+
+    If priority is True, sends to all matching customers regardless of
+    launch_updates_pref.
     """
     # Get the launch
     launch = crud.get_launch(session=session, launch_id=launch_id)
@@ -405,9 +412,8 @@ def send_launch_update(
             detail=f"Launch with ID {launch_id} not found",
         )
 
-    # Find all bookings for this launch
+    # Find all bookings for this launch (optionally scoped by mission or trip)
     # Path: Launch -> Mission -> Trip -> BookingItem -> Booking
-    # If priority is False, only include bookings where launch_updates_pref is True
     statement = (
         select(Booking)
         .join(BookingItem, BookingItem.booking_id == Booking.id)
@@ -421,6 +427,10 @@ def send_launch_update(
         )
         .distinct()
     )
+    if mission_id is not None:
+        statement = statement.where(Mission.id == mission_id)
+    if trip_id is not None:
+        statement = statement.where(BookingItem.trip_id == trip_id)
 
     # Only filter by launch_updates_pref if priority is False
     if not update_data.priority:
