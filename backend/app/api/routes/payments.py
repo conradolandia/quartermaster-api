@@ -2,8 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.config import settings
