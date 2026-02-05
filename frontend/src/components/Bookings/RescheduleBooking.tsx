@@ -2,6 +2,7 @@ import {
   Button,
   ButtonGroup,
   createListCollection,
+  Portal,
   Select,
   Text,
   VStack,
@@ -191,19 +192,21 @@ export default function RescheduleBooking({
                           <Select.Indicator />
                         </Select.IndicatorGroup>
                       </Select.Control>
-                      <Select.Positioner>
-                        <Select.Content>
-                          {tripOptions.map((opt) => (
-                            <Select.Item
-                              key={opt.value}
-                              item={{ value: opt.value, label: opt.label }}
-                            >
-                              {opt.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Positioner>
+                      <Portal>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {tripOptions.map((opt) => (
+                              <Select.Item
+                                key={opt.value}
+                                item={{ value: opt.value, label: opt.label }}
+                              >
+                                {opt.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Portal>
                     </Select.Root>
                   </Field>
                   {needsBoat && (
@@ -226,19 +229,21 @@ export default function RescheduleBooking({
                             <Select.Indicator />
                           </Select.IndicatorGroup>
                         </Select.Control>
-                        <Select.Positioner>
-                          <Select.Content>
-                            {boatOptions.map((opt) => (
-                              <Select.Item
-                                key={opt.value}
-                                item={{ value: opt.value, label: opt.label }}
-                              >
-                                {opt.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Positioner>
+                        <Portal>
+                          <Select.Positioner>
+                            <Select.Content>
+                              {boatOptions.map((opt) => (
+                                <Select.Item
+                                  key={opt.value}
+                                  item={{ value: opt.value, label: opt.label }}
+                                >
+                                  {opt.label}
+                                  <Select.ItemIndicator />
+                                </Select.Item>
+                              ))}
+                            </Select.Content>
+                          </Select.Positioner>
+                        </Portal>
                       </Select.Root>
                     </Field>
                   )}
