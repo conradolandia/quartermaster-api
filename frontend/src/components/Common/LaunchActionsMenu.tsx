@@ -44,12 +44,6 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
     setEditingLaunch(null)
   }
 
-  const copyId = () => {
-    void navigator.clipboard.writeText(launch.id).then(() => {
-      showSuccessToast("Launch ID copied to clipboard")
-    })
-  }
-
   const copyBookingLink = () => {
     const url = `${window.location.origin}/book?launch=${launch.id}`
     void navigator.clipboard.writeText(url).then(() => {
@@ -60,31 +54,6 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
   return (
     <>
       <ActionsMenu ariaLabel="Launch actions">
-        <MenuItem value="copy-id" onClick={copyId} asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            color="dark.accent.primary"
-            justifyContent="start"
-            w="full"
-          >
-            <FiCopy fontSize="16px" />
-            Copy ID
-          </Button>
-        </MenuItem>
-        <MenuItem value="copy-booking-link" onClick={copyBookingLink} asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            color="dark.accent.primary"
-            justifyContent="start"
-            w="full"
-          >
-            <FiLink fontSize="16px" />
-            Copy booking link
-          </Button>
-        </MenuItem>
-        <SendLaunchUpdate launch={launch} />
         <EditLaunch launch={launch} />
         <MenuItem
           value="duplicate"
@@ -102,6 +71,19 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
           >
             <FiCopy fontSize="16px" />
             Duplicate
+          </Button>
+        </MenuItem>
+        <SendLaunchUpdate launch={launch} />
+        <MenuItem value="copy-booking-link" onClick={copyBookingLink} asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+          >
+            <FiLink fontSize="16px" />
+            Copy Booking Link
           </Button>
         </MenuItem>
         <DeleteLaunch id={launch.id} />

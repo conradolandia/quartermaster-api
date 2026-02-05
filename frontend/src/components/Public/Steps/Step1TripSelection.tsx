@@ -154,7 +154,7 @@ const Step1TripSelection = ({
     enabled: !!tripBoats && tripBoats.length > 0,
   })
 
-  // Auto-select the first boat when boats are available and set remaining capacity
+  // Auto-select the first boat with capacity when boats are available
   React.useEffect(() => {
     if (
       bookingData.selectedTripId &&
@@ -162,11 +162,15 @@ const Step1TripSelection = ({
       tripBoats.length > 0 &&
       !bookingData.selectedBoatId
     ) {
-      const first = tripBoats[0]
-      updateBookingData({
-        selectedBoatId: first.boat_id,
-        boatRemainingCapacity: first.remaining_capacity,
-      })
+      // Only auto-select boats that have remaining capacity
+      const firstWithCapacity = tripBoats.find((tb) => tb.remaining_capacity > 0)
+      if (firstWithCapacity) {
+        updateBookingData({
+          selectedBoatId: firstWithCapacity.boat_id,
+          boatRemainingCapacity: firstWithCapacity.remaining_capacity,
+        })
+      }
+      // If no boats have capacity, don't auto-select anything (trip is sold out)
     }
   }, [
     bookingData.selectedTripId,
@@ -271,11 +275,25 @@ const Step1TripSelection = ({
     missionIdsForLaunch,
   ])
 
-  // Allow proceeding if launch and trip are selected and either boat is explicitly selected OR there's only one boat available
+  // Check if the selected trip is sold out (has boats but none with capacity)
+  const isTripSoldOut = React.useMemo(() => {
+    if (!bookingData.selectedTripId || !tripBoats || tripBoats.length === 0) {
+      return false
+    }
+    return tripBoats.every((tb) => tb.remaining_capacity <= 0)
+  }, [bookingData.selectedTripId, tripBoats])
+
+  // Boats with available capacity for the selected trip
+  const availableBoats = React.useMemo(() => {
+    return tripBoats?.filter((tb) => tb.remaining_capacity > 0) ?? []
+  }, [tripBoats])
+
+  // Allow proceeding if launch and trip are selected, trip is not sold out, and either boat is explicitly selected OR there's only one boat with capacity
   const canProceed =
     bookingData.selectedLaunchId &&
     bookingData.selectedTripId &&
-    (bookingData.selectedBoatId || (tripBoats && tripBoats.length === 1))
+    !isTripSoldOut &&
+    (bookingData.selectedBoatId || availableBoats.length === 1)
 
   // Launches in the future, sorted by launch_timestamp (soonest first)
   const sortedLaunches = React.useMemo(() => {
@@ -579,10 +597,27 @@ const Step1TripSelection = ({
               )}
             </Box>
 
-            {/* Boat Selection - Only show if trip is selected and there are multiple boats */}
+            {/* Sold Out Message - Show when trip is selected but all boats are at capacity */}
+            {bookingData.selectedTripId && !isLoadingBoats && isTripSoldOut && (
+              <Card.Root bg="red.50" borderColor="red.200" borderWidth="1px">
+                <Card.Body>
+                  <VStack gap={2}>
+                    <Heading size="md" color="red.700">
+                      This Trip Is Sold Out
+                    </Heading>
+                    <Text color="red.600" textAlign="center">
+                      All boats for this trip are at full capacity. Please
+                      select a different trip.
+                    </Text>
+                  </VStack>
+                </Card.Body>
+              </Card.Root>
+            )}
+
+            {/* Boat Selection - Only show if trip is selected, not sold out, and there are multiple boats with capacity */}
             {bookingData.selectedTripId &&
-              tripBoats &&
-              tripBoats.length > 1 && (
+              !isTripSoldOut &&
+              availableBoats.length > 1 && (
                 <Card.Root bg="bg.panel">
                   <Card.Body>
                     <Heading size="2xl" mb={3} fontWeight="200">
@@ -613,29 +648,27 @@ const Step1TripSelection = ({
                         </Select.Control>
                         <Select.Positioner>
                           <Select.Content minWidth="300px">
-                            {tripBoats
-                              .filter((tb) => tb.remaining_capacity > 0)
-                              .map(
-                                (tripBoat: TripBoatPublicWithAvailability) => {
-                                  const name =
-                                    tripBoat.boat?.name ||
-                                    boatNames?.[tripBoat.boat_id] ||
-                                    "Loading..."
-                                  const label = `${name} (${tripBoat.remaining_capacity} spots left)`
-                                  return (
-                                    <Select.Item
-                                      key={tripBoat.boat_id}
-                                      item={{
-                                        value: tripBoat.boat_id,
-                                        label,
-                                      }}
-                                    >
-                                      {label}
-                                      <Select.ItemIndicator />
-                                    </Select.Item>
-                                  )
-                                },
-                              )}
+                            {availableBoats.map(
+                              (tripBoat: TripBoatPublicWithAvailability) => {
+                                const name =
+                                  tripBoat.boat?.name ||
+                                  boatNames?.[tripBoat.boat_id] ||
+                                  "Loading..."
+                                const label = `${name} (${tripBoat.remaining_capacity} spots left)`
+                                return (
+                                  <Select.Item
+                                    key={tripBoat.boat_id}
+                                    item={{
+                                      value: tripBoat.boat_id,
+                                      label,
+                                    }}
+                                  >
+                                    {label}
+                                    <Select.ItemIndicator />
+                                  </Select.Item>
+                                )
+                              },
+                            )}
                           </Select.Content>
                         </Select.Positioner>
                       </Select.Root>
@@ -644,85 +677,89 @@ const Step1TripSelection = ({
                 </Card.Root>
               )}
 
-            {/* Trip Details, Boat & departure, and Ticket types in the same row */}
+            {/* Trip Details - show even when sold out so users can see schedule */}
             {bookingData.selectedTripId && (
+              <Card.Root bg="bg.panel">
+                <Card.Body>
+                  <Heading size="2xl" mb={3} fontWeight="200">
+                    Trip Details
+                  </Heading>
+                  <Separator mb={3} />
+                  {(() => {
+                    const selectedTrip =
+                      (directLinkTrip &&
+                      bookingData.selectedTripId === directLinkTrip.id
+                        ? directLinkTrip
+                        : null) ??
+                      allTrips?.data?.find(
+                        (t: TripPublic) => t.id === bookingData.selectedTripId,
+                      )
+                    const selectedLaunch = selectedTrip
+                      ? launches.find(
+                          (l) => l.id === bookingData.selectedLaunchId,
+                        )
+                      : null
+                    if (!selectedTrip) return null
+                    return (
+                      <VStack align="stretch" gap={2}>
+                        <HStack justify="space-between">
+                          <Text fontWeight="medium">Type:</Text>
+                          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontWeight="medium">Check-in:</Text>
+                          <Text>
+                            {formatTripTime(
+                              selectedTrip.check_in_time,
+                              selectedTrip.timezone,
+                            )}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontWeight="medium">Boarding:</Text>
+                          <Text>
+                            {formatTripTime(
+                              selectedTrip.boarding_time,
+                              selectedTrip.timezone,
+                            )}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontWeight="medium">Departure:</Text>
+                          <Text>
+                            {formatTripTime(
+                              selectedTrip.departure_time,
+                              selectedTrip.timezone,
+                            )}
+                          </Text>
+                        </HStack>
+                        {selectedTrip.type === "launch_viewing" &&
+                          selectedLaunch?.launch_timestamp &&
+                          selectedLaunch?.timezone && (
+                            <HStack justify="space-between">
+                              <Text fontWeight="medium">Launch time:</Text>
+                              <Text>
+                                {formatTripTime(
+                                  selectedLaunch.launch_timestamp,
+                                  selectedLaunch.timezone,
+                                )}
+                              </Text>
+                            </HStack>
+                          )}
+                      </VStack>
+                    )
+                  })()}
+                </Card.Body>
+              </Card.Root>
+            )}
+
+            {/* Boat & departure and Ticket types - only show when trip is not sold out */}
+            {bookingData.selectedTripId && !isTripSoldOut && (
               <Grid
-                templateColumns={{ base: "1fr", md: "1fr 1fr 1fr" }}
+                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
                 gap={4}
                 alignSelf="stretch"
               >
-                <Card.Root bg="bg.panel">
-                  <Card.Body>
-                    <Heading size="2xl" mb={3} fontWeight="200">
-                      Trip Details
-                    </Heading>
-                    <Separator mb={3} />
-                    {(() => {
-                      const selectedTrip =
-                        (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id
-                          ? directLinkTrip
-                          : null) ??
-                        allTrips?.data?.find(
-                          (t: TripPublic) => t.id === bookingData.selectedTripId,
-                        )
-                      const selectedLaunch = selectedTrip
-                        ? launches.find(
-                            (l) => l.id === bookingData.selectedLaunchId,
-                          )
-                        : null
-                      if (!selectedTrip) return null
-                      return (
-                        <VStack align="stretch" gap={2}>
-                          <HStack justify="space-between">
-                            <Text fontWeight="medium">Type:</Text>
-                            <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
-                          </HStack>
-                          <HStack justify="space-between">
-                            <Text fontWeight="medium">Check-in:</Text>
-                            <Text>
-                              {formatTripTime(
-                                selectedTrip.check_in_time,
-                                selectedTrip.timezone,
-                              )}
-                            </Text>
-                          </HStack>
-                          <HStack justify="space-between">
-                            <Text fontWeight="medium">Boarding:</Text>
-                            <Text>
-                              {formatTripTime(
-                                selectedTrip.boarding_time,
-                                selectedTrip.timezone,
-                              )}
-                            </Text>
-                          </HStack>
-                          <HStack justify="space-between">
-                            <Text fontWeight="medium">Departure:</Text>
-                            <Text>
-                              {formatTripTime(
-                                selectedTrip.departure_time,
-                                selectedTrip.timezone,
-                              )}
-                            </Text>
-                          </HStack>
-                          {selectedTrip.type === "launch_viewing" &&
-                            selectedLaunch?.launch_timestamp &&
-                            selectedLaunch?.timezone && (
-                              <HStack justify="space-between">
-                                <Text fontWeight="medium">Launch time:</Text>
-                                <Text>
-                                  {formatTripTime(
-                                    selectedLaunch.launch_timestamp,
-                                    selectedLaunch.timezone,
-                                  )}
-                                </Text>
-                              </HStack>
-                            )}
-                        </VStack>
-                      )
-                    })()}
-                  </Card.Body>
-                </Card.Root>
-
                 {/* Boat & departure: Provider, Boat, Departure location */}
                 <Card.Root bg="bg.panel">
                   <Card.Body>
@@ -867,14 +904,13 @@ const Step1TripSelection = ({
         <Button
           colorPalette="blue"
           onClick={() => {
-            // Ensure boat is selected before proceeding
+            // Ensure boat is selected before proceeding (only from boats with capacity)
             if (
               bookingData.selectedTripId &&
               !bookingData.selectedBoatId &&
-              tripBoats &&
-              tripBoats.length > 0
+              availableBoats.length > 0
             ) {
-              const first = tripBoats[0]
+              const first = availableBoats[0]
               updateBookingData({
                 selectedBoatId: first.boat_id,
                 boatRemainingCapacity: first.remaining_capacity,

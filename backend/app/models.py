@@ -1259,6 +1259,10 @@ class Booking(BookingBase, table=True):
             onupdate=lambda: datetime.now(timezone.utc),
         ),
     )
+    confirmation_email_sent_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     qr_code_base64: str | None = Field(default=None)
     items: list["BookingItem"] = Relationship(
         back_populates="booking",

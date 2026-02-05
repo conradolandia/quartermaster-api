@@ -376,6 +376,49 @@ def _create_booking_impl(
                 ),
             )
 
+    # Validate total boat capacity: sum of all ticket types must not exceed boat's max_capacity
+    ticket_quantity_by_trip_boat: dict[tuple[uuid.UUID, uuid.UUID], int] = defaultdict(
+        int
+    )
+    for item in booking_in.items:
+        if item.trip_merchandise_id is None:
+            ticket_quantity_by_trip_boat[(item.trip_id, item.boat_id)] += item.quantity
+
+    # Get total paid counts per boat (across all ticket types)
+    paid_total_by_trip: dict[uuid.UUID, dict[uuid.UUID, int]] = {
+        tid: crud.get_paid_ticket_count_per_boat_for_trip(session=session, trip_id=tid)
+        for tid in trip_ids
+    }
+
+    for (trip_id, boat_id), new_total in ticket_quantity_by_trip_boat.items():
+        trip_boat = session.exec(
+            select(TripBoat).where(
+                TripBoat.trip_id == trip_id,
+                TripBoat.boat_id == boat_id,
+            )
+        ).first()
+        if not trip_boat:
+            continue  # Already validated above
+        boat = session.get(Boat, boat_id)
+        effective_max = (
+            trip_boat.max_capacity
+            if trip_boat.max_capacity is not None
+            else (boat.capacity if boat else 0)
+        )
+        paid_total = paid_total_by_trip.get(trip_id, {}).get(boat_id, 0)
+        total_after = paid_total + new_total
+        if total_after > effective_max:
+            boat_name = boat.name if boat else str(boat_id)
+            remaining = max(0, effective_max - paid_total)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Boat '{boat_name}' has {effective_max} total seat(s) "
+                    f"with {paid_total} already booked; requested {new_total} ticket(s) "
+                    f"would exceed capacity (only {remaining} remaining)"
+                ),
+            )
+
     # Don't create PaymentIntent yet - booking starts as draft
 
     # Use the confirmation code provided by the frontend

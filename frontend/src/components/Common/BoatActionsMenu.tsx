@@ -23,6 +23,7 @@ export const BoatActionsMenu = ({ boat }: BoatActionsMenuProps) => {
 
   return (
     <ActionsMenu ariaLabel="Boat actions">
+      <EditBoat boat={boat} />
       <MenuItem value="copy-id" onClick={copyId} asChild>
         <Button
           variant="ghost"
@@ -35,7 +36,6 @@ export const BoatActionsMenu = ({ boat }: BoatActionsMenuProps) => {
           Copy ID
         </Button>
       </MenuItem>
-      <EditBoat boat={boat} />
       <DeleteBoat id={boat.id} name={boat.name} />
     </ActionsMenu>
   )

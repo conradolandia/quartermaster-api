@@ -286,8 +286,24 @@ const Step2ItemSelection = ({
   const ticketCapacityReachedForType = (type: string) =>
     currentQtyForTicketType(type) >= remainingForType(type)
 
+  // Total tickets selected (excluding merchandise) for boat capacity check
+  const totalTicketsSelected = bookingData.selectedItems
+    .filter((item) => !item.trip_merchandise_id)
+    .reduce((sum, item) => sum + item.quantity, 0)
+
+  // Remaining boat capacity (total seats left on the boat)
+  const boatRemainingCapacity = bookingData.boatRemainingCapacity ?? 0
+
+  // Check if adding one more ticket would exceed boat capacity
+  const boatCapacityReached = totalTicketsSelected >= boatRemainingCapacity
+
+  // For a specific ticket type: check both per-type limit AND total boat capacity
+  const canAddTicketType = (type: string) =>
+    !ticketCapacityReachedForType(type) && !boatCapacityReached
+
   const addTicket = (ticketType: string, price: number) => {
-    if (ticketCapacityReachedForType(ticketType)) return
+    // Check both per-type capacity and total boat capacity
+    if (!canAddTicketType(ticketType)) return
     const existingItem = bookingData.selectedItems.find(
       (item) => item.item_type === ticketType && !item.trip_merchandise_id,
     )
@@ -297,11 +313,15 @@ const Step2ItemSelection = ({
     if (existingItem) {
       const newQty = currentQtyForTicketType(ticketType) + 1
       if (newQty > remaining) return
+      // Also check total boat capacity
+      if (totalTicketsSelected + 1 > boatRemainingCapacity) return
       const updatedItems = bookingData.selectedItems.map((item) =>
         item === existingItem ? { ...item, quantity: item.quantity + 1 } : item,
       )
       updateBookingData({ selectedItems: updatedItems })
     } else {
+      // Check total boat capacity before adding new item
+      if (totalTicketsSelected + 1 > boatRemainingCapacity) return
       const newItem = {
         trip_id: bookingData.selectedTripId,
         item_type: ticketType,
@@ -380,11 +400,18 @@ const Step2ItemSelection = ({
               x.item_type === item.item_type,
           )
           .reduce((sum, x) => sum + x.quantity, 0)
+        // Cap by per-type remaining capacity
         cappedQuantity = Math.min(
           newQuantity,
           Math.max(0, pricing.remaining - otherSameType),
         )
       }
+      // Also cap by total boat remaining capacity
+      const otherTickets = bookingData.selectedItems
+        .filter((x, i) => i !== index && !x.trip_merchandise_id)
+        .reduce((sum, x) => sum + x.quantity, 0)
+      const maxByBoat = Math.max(0, boatRemainingCapacity - otherTickets)
+      cappedQuantity = Math.min(cappedQuantity, maxByBoat)
     }
     const updatedItems = bookingData.selectedItems.map((item, i) =>
       i === index ? { ...item, quantity: cappedQuantity } : item,
@@ -440,6 +467,12 @@ const Step2ItemSelection = ({
                 <Heading size="2xl" mb={4}>
                   Tickets
                 </Heading>
+                {/* Show total boat capacity info */}
+                <Text fontSize="sm" color="text.muted" mb={3}>
+                  {boatRemainingCapacity - totalTicketsSelected > 0
+                    ? `${boatRemainingCapacity - totalTicketsSelected} seat(s) remaining on boat`
+                    : "Boat is at full capacity"}
+                </Text>
                 <VStack gap={3} align="stretch">
                   {tripPricing.map((pricing: EffectivePricingItem) => (
                     <HStack key={pricing.ticket_type} justify="space-between">
@@ -460,9 +493,7 @@ const Step2ItemSelection = ({
                       </Box>
                       <Button
                         size="sm"
-                        disabled={ticketCapacityReachedForType(
-                          pricing.ticket_type,
-                        )}
+                        disabled={!canAddTicketType(pricing.ticket_type)}
                         onClick={() =>
                           addTicket(pricing.ticket_type, pricing.price)
                         }
@@ -659,10 +690,27 @@ const Step2ItemSelection = ({
                                             (sum, x) => sum + x.quantity,
                                             0,
                                           )
-                                      return Math.max(
+                                      const maxByType = Math.max(
                                         0,
                                         pricing.remaining - otherSameType,
                                       )
+                                      // Also cap by total boat capacity
+                                      const otherTickets =
+                                        bookingData.selectedItems
+                                          .filter(
+                                            (x, i) =>
+                                              i !== index &&
+                                              !x.trip_merchandise_id,
+                                          )
+                                          .reduce(
+                                            (sum, x) => sum + x.quantity,
+                                            0,
+                                          )
+                                      const maxByBoat = Math.max(
+                                        0,
+                                        boatRemainingCapacity - otherTickets,
+                                      )
+                                      return Math.min(maxByType, maxByBoat)
                                     }
                                     return 999
                                   })()

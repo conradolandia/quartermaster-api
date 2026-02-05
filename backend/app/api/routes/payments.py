@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlmodel import Session
 
 from app.api import deps
@@ -27,13 +29,26 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
-    """Send booking confirmation email to the customer."""
+    """Send booking confirmation email to the customer.
+
+    Uses confirmation_email_sent_at field to prevent duplicate emails.
+    """
     logger.info(
         "send_booking_confirmation_email called: booking_id=%s confirmation_code=%s user_email=%s",
         booking.id,
         booking.confirmation_code,
         booking.user_email,
     )
+
+    # Check if confirmation email was already sent (prevents duplicates from race conditions)
+    if booking.confirmation_email_sent_at is not None:
+        logger.info(
+            "Booking confirmation email already sent at %s for %s, skipping duplicate",
+            booking.confirmation_email_sent_at,
+            booking.confirmation_code,
+        )
+        return
+
     if not settings.emails_enabled:
         logger.warning(
             "Booking confirmation email skipped: emails disabled (set SMTP_HOST and EMAILS_FROM_EMAIL to enable)"
@@ -96,6 +111,12 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
+
+        # Mark confirmation email as sent to prevent duplicates
+        booking.confirmation_email_sent_at = datetime.now(timezone.utc)
+        session.add(booking)
+        session.commit()
+
         logger.info(
             "Booking confirmation email sent to %s for %s",
             booking.user_email,
@@ -148,12 +169,14 @@ def verify_payment(
     """
     payment_intent = retrieve_payment_intent(payment_intent_id)
 
-    # Find the booking associated with this payment intent
-    booking = (
-        session.query(Booking)
-        .filter(Booking.payment_intent_id == payment_intent_id)
-        .first()
+    # Find the booking with FOR UPDATE lock to prevent race conditions
+    # with the webhook handler
+    stmt = (
+        select(Booking)
+        .where(Booking.payment_intent_id == payment_intent_id)
+        .with_for_update()
     )
+    booking = session.exec(stmt).first()
 
     if not booking:
         raise HTTPException(
@@ -265,11 +288,13 @@ async def stripe_webhook(
             "payment_intent.succeeded: pi_id=%s",
             payment_intent.id,
         )
-        booking = (
-            session.query(Booking)
-            .filter(Booking.payment_intent_id == payment_intent.id)
-            .first()
+        # Use FOR UPDATE lock to prevent race conditions with verify_payment
+        stmt = (
+            select(Booking)
+            .where(Booking.payment_intent_id == payment_intent.id)
+            .with_for_update()
         )
+        booking = session.exec(stmt).first()
 
         if booking:
             # Check if booking is already confirmed to prevent duplicate processing
@@ -299,11 +324,13 @@ async def stripe_webhook(
 
     elif event.type == "payment_intent.payment_failed":
         payment_intent = event.data.object
-        booking = (
-            session.query(Booking)
-            .filter(Booking.payment_intent_id == payment_intent.id)
-            .first()
+        # Use FOR UPDATE lock for consistency
+        stmt = (
+            select(Booking)
+            .where(Booking.payment_intent_id == payment_intent.id)
+            .with_for_update()
         )
+        booking = session.exec(stmt).first()
 
         if booking:
             # Check if booking is already cancelled to prevent duplicate processing
