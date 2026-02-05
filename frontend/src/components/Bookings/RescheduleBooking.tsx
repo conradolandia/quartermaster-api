@@ -2,7 +2,6 @@ import {
   Button,
   ButtonGroup,
   createListCollection,
-  Portal,
   Select,
   Text,
   VStack,
@@ -146,15 +145,16 @@ export default function RescheduleBooking({
     <DialogRoot
       open={isOpen}
       onOpenChange={({ open }) => !open && onClose()}
-      size={{ base: "sm", md: "md" }}
+      size={{ base: "sm", md: "lg" }}
       placement="center"
+      scrollBehavior="inside"
     >
-      <DialogContent>
+      <DialogContent overflow="visible">
         <DialogHeader>
           <DialogTitle>Reschedule booking</DialogTitle>
         </DialogHeader>
         <DialogCloseTrigger />
-        <DialogBody>
+        <DialogBody overflow="visible" pb={8}>
           <Text mb={4} fontSize="sm" color="text.muted">
             Move this booking&apos;s ticket items to another trip in the same
             mission. Merchandise items stay on their current trips.
@@ -192,21 +192,19 @@ export default function RescheduleBooking({
                           <Select.Indicator />
                         </Select.IndicatorGroup>
                       </Select.Control>
-                      <Portal>
-                        <Select.Positioner>
-                          <Select.Content>
-                            {tripOptions.map((opt) => (
-                              <Select.Item
-                                key={opt.value}
-                                item={{ value: opt.value, label: opt.label }}
-                              >
-                                {opt.label}
-                                <Select.ItemIndicator />
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Positioner>
-                      </Portal>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {tripOptions.map((opt) => (
+                            <Select.Item
+                              key={opt.value}
+                              item={{ value: opt.value, label: opt.label }}
+                            >
+                              {opt.label}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
                     </Select.Root>
                   </Field>
                   {needsBoat && (
@@ -229,21 +227,19 @@ export default function RescheduleBooking({
                             <Select.Indicator />
                           </Select.IndicatorGroup>
                         </Select.Control>
-                        <Portal>
-                          <Select.Positioner>
-                            <Select.Content>
-                              {boatOptions.map((opt) => (
-                                <Select.Item
-                                  key={opt.value}
-                                  item={{ value: opt.value, label: opt.label }}
-                                >
-                                  {opt.label}
-                                  <Select.ItemIndicator />
-                                </Select.Item>
-                              ))}
-                            </Select.Content>
-                          </Select.Positioner>
-                        </Portal>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {boatOptions.map((opt) => (
+                            <Select.Item
+                              key={opt.value}
+                              item={{ value: opt.value, label: opt.label }}
+                            >
+                              {opt.label}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
                       </Select.Root>
                     </Field>
                   )}

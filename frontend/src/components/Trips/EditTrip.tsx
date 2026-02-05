@@ -381,12 +381,13 @@ const EditTrip = ({
         tripBoatId: body.tripBoatId,
         requestBody: { max_capacity: body.max_capacity },
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       showSuccessToast("Capacity updated.")
       setEditingCapacityTripBoatId(null)
       setCapacityInputValue("")
-      refetchTripBoats()
+      await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
       queryClient.invalidateQueries({ queryKey: ["trips"] })
     },
     onError: (err: ApiError) => handleError(err),
@@ -502,8 +503,9 @@ const EditTrip = ({
       setSelectedBoatId("")
       setMaxCapacity(undefined)
       setIsAddingBoat(false)
-      refetchTripBoats()
+      await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
     } catch (error) {
       console.error("Error adding boat to trip:", error)
       handleError(error as ApiError)
@@ -520,8 +522,9 @@ const EditTrip = ({
       showSuccessToast("The boat has been removed from this trip")
 
       // Refresh data
-      refetchTripBoats()
+      await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
     } catch (error) {
       console.error("Error removing boat from trip:", error)
       handleError(error as ApiError)
@@ -541,10 +544,13 @@ const EditTrip = ({
         },
       })
       showSuccessToast(`Moved ${res.moved} passenger(s) to the selected boat.`)
+      // Await refetch to ensure fresh data before closing dialog
+      await refetchTripBoats()
       setReassignFrom(null)
       setReassignToBoatId("")
-      refetchTripBoats()
+      // Invalidate queries for other components using trip boats data
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
       queryClient.invalidateQueries({ queryKey: ["trips"] })
     } catch (error) {
       console.error("Error reassigning passengers:", error)
