@@ -49,7 +49,11 @@ def init_db(session: Session) -> None:
     except Exception as e:
         print(f"Error adding qr_code_base64 column: {e}")
 
-    # This function also creates initial data if it doesn't exist
+    # Only seed initial data when the DB is empty (no users)
+    if session.exec(select(User).limit(1)).first():
+        print("Database already has users; skipping initial data")
+        return
+
     # Create user if it doesn't exist
     user = session.exec(
         select(User).where(User.email == settings.FIRST_SUPERUSER)
