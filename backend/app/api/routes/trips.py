@@ -159,6 +159,7 @@ def create_trip(
         name=trip_in.name,
         type=trip_in.type,
         active=trip_in.active,
+        unlisted=trip_in.unlisted,
         booking_mode=trip_in.booking_mode,
         sales_open_at=trip_in.sales_open_at,
         check_in_time=check_in_time,
@@ -235,6 +236,7 @@ def duplicate_trip(
         name=copy_name,
         type=trip.type,
         active=trip.active,
+        unlisted=trip.unlisted,
         booking_mode=trip.booking_mode,
         sales_open_at=trip.sales_open_at,
         check_in_time=trip.check_in_time,
@@ -570,6 +572,7 @@ def delete_trip(
         name=trip.name,
         type=trip.type,
         active=trip.active,
+        unlisted=trip.unlisted,
         booking_mode=trip.booking_mode,
         sales_open_at=trip.sales_open_at,
         check_in_time=trip.check_in_time,
@@ -636,6 +639,7 @@ def read_trips_by_mission(
             "name": trip.name,
             "type": trip.type,
             "active": trip.active,
+            "unlisted": trip.unlisted,
             "booking_mode": trip.booking_mode,
             "sales_open_at": trip.sales_open_at,
             "check_in_time": trip.check_in_time,
@@ -748,16 +752,22 @@ def read_public_trips(
         trip_id = trip.get("id", "unknown")
         trip_name = trip.get("type", "unknown")
         trip_active = trip.get("active", False)
+        trip_unlisted = trip.get("unlisted", False)
         departure_time = trip.get("departure_time")
         booking_mode = trip.get("booking_mode", "private")
 
         logger.info(
-            f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}, booking_mode: {booking_mode}"
+            f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}, unlisted: {trip_unlisted}, booking_mode: {booking_mode}"
         )
 
         # trips from get_trips_no_relationships are dicts
         if not trip_active:
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
+            continue
+        if trip_unlisted:
+            logger.info(
+                f"Trip {trip_id} ({trip_name}) filtered out: unlisted (only visible via direct link)"
+            )
             continue
 
         # Filter out past trips (ensure timezone-aware for comparison)

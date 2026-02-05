@@ -695,6 +695,7 @@ export type TripCreate = {
   name?: string | null
   type: string
   active?: boolean
+  unlisted?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   departure_time: string
@@ -745,6 +746,7 @@ export type TripPublic = {
   name?: string | null
   type: string
   active?: boolean
+  unlisted?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   check_in_time: string
@@ -776,6 +778,7 @@ export type TripUpdate = {
   name?: string | null
   type?: string | null
   active?: boolean | null
+  unlisted?: boolean | null
   booking_mode?: string | null
   sales_open_at?: string | null
   departure_time?: string | null
@@ -794,6 +797,7 @@ export type TripWithStats = {
   name?: string | null
   type: string
   active?: boolean
+  unlisted?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   check_in_time: string
@@ -1233,7 +1237,9 @@ export type LaunchesImportLaunchFromYamlResponse = LaunchPublic
 
 export type LaunchesSendLaunchUpdateData = {
   launchId: string
+  missionId?: string | null
   requestBody: LaunchUpdateMessage
+  tripId?: string | null
 }
 
 export type LaunchesSendLaunchUpdateResponse = LaunchUpdateResponse

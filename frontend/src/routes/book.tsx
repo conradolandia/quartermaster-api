@@ -38,6 +38,7 @@ function PublicBookingPage() {
   return (
     <AccessGate
       accessCode={initialAccessCode}
+      directTripId={search.trip}
       onAccessGranted={handleAccessGranted}
     >
       {(accessCodeValue, discountCodeIdFromGate) => (

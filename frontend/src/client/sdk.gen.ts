@@ -1693,14 +1693,21 @@ export class LaunchesService {
 
   /**
    * Send Launch Update
-   * Send a launch update email to all customers with confirmed bookings
-   * for this launch who have opted in to receive launch updates.
+   * Send a launch update email to customers with confirmed bookings for this
+   * launch who have opted in to receive launch updates.
    *
-   * If priority is True, sends to all customers regardless of their
-   * launch_updates_pref setting.
+   * Optional scope: mission_id restricts to bookings with items on that
+   * mission; trip_id restricts to bookings with items on that trip. If both
+   * are set, only bookings matching the trip (which must belong to the
+   * mission) receive the email.
+   *
+   * If priority is True, sends to all matching customers regardless of
+   * launch_updates_pref.
    * @param data The data for the request.
    * @param data.launchId
    * @param data.requestBody
+   * @param data.missionId
+   * @param data.tripId
    * @returns LaunchUpdateResponse Successful Response
    * @throws ApiError
    */
@@ -1712,6 +1719,10 @@ export class LaunchesService {
       url: "/api/v1/launches/{launch_id}/send-update",
       path: {
         launch_id: data.launchId,
+      },
+      query: {
+        mission_id: data.missionId,
+        trip_id: data.tripId,
       },
       body: data.requestBody,
       mediaType: "application/json",

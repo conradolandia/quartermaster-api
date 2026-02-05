@@ -85,6 +85,7 @@ const EditTrip = ({
   const [name, setName] = useState(trip.name ?? "")
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
+  const [unlisted, setUnlisted] = useState(trip.unlisted ?? false)
   const [bookingMode, setBookingMode] = useState(
     trip.booking_mode ?? "private",
   )
@@ -430,6 +431,7 @@ const EditTrip = ({
       setName(trip.name ?? "")
       setType(trip.type)
       setActive(trip.active ?? true)
+      setUnlisted(trip.unlisted ?? false)
       setBookingMode(trip.booking_mode ?? "private")
       setDepartureTime(
         formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
@@ -457,6 +459,7 @@ const EditTrip = ({
     trip.name,
     trip.type,
     trip.active,
+    trip.unlisted,
     trip.booking_mode,
     trip.check_in_time,
     trip.boarding_time,
@@ -564,6 +567,7 @@ const EditTrip = ({
       name: name || null,
       type: type,
       active: active,
+      unlisted: unlisted,
       booking_mode: bookingMode,
       sales_open_at: salesOpenAt
         ? parseLocationTimeToUtc(salesOpenAt, tz)
@@ -777,6 +781,30 @@ const EditTrip = ({
                             checked={active}
                             disabled={mutation.isPending || isPast}
                             inputProps={{ id: "active" }}
+                          />
+                        </Box>
+                      </Flex>
+                    </Field>
+                    <Field
+                      helperText="Only visible via direct link; excluded from public listing."
+                    >
+                      <Flex
+                        alignItems="center"
+                        justifyContent="space-between"
+                        width="100%"
+                      >
+                        <Text>Unlisted</Text>
+                        <Box
+                          onClick={() => {
+                            if (!isPast) setUnlisted(!unlisted)
+                          }}
+                          cursor={isPast ? "not-allowed" : "pointer"}
+                          opacity={isPast ? 0.5 : 1}
+                        >
+                          <Switch
+                            checked={unlisted}
+                            disabled={mutation.isPending || isPast}
+                            inputProps={{ id: "unlisted" }}
                           />
                         </Box>
                       </Flex>

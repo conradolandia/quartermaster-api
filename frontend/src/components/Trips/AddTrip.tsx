@@ -89,6 +89,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [name, setName] = useState("")
   const [type, setType] = useState("launch_viewing")
   const [active, setActive] = useState(true)
+  const [unlisted, setUnlisted] = useState(false)
   const [bookingMode, setBookingMode] = useState("private")
   const [departureTime, setDepartureTime] = useState("")
   const [salesOpenAt, setSalesOpenAt] = useState("")
@@ -501,6 +502,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       name: name || null,
       type: type,
       active: active,
+      unlisted: unlisted,
       booking_mode: bookingMode,
       sales_open_at: salesOpenAt
         ? parseLocationTimeToUtc(salesOpenAt, tz)
@@ -527,7 +529,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
             <Tabs.List>
               <Tabs.Trigger value="basic-info">Basic Info</Tabs.Trigger>
               <Tabs.Trigger value="boats">Boats</Tabs.Trigger>
-              <Tabs.Trigger value="pricing">Pricing & Merchandise</Tabs.Trigger>
+              <Tabs.Trigger value="pricing">Merchandise</Tabs.Trigger>
             </Tabs.List>
 
             <Tabs.Content value="basic-info">
@@ -678,6 +680,22 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       checked={active}
                       onCheckedChange={(details) => setActive(details.checked)}
                       inputProps={{ id: "active" }}
+                    />
+                  </Flex>
+                </Field>
+                <Field
+                  helperText="Only visible via direct link; excluded from public listing."
+                >
+                  <Flex
+                    alignItems="center"
+                    justifyContent="space-between"
+                    width="100%"
+                  >
+                    <Text>Unlisted</Text>
+                    <Switch
+                      checked={unlisted}
+                      onCheckedChange={(details) => setUnlisted(details.checked)}
+                      inputProps={{ id: "unlisted" }}
                     />
                   </Flex>
                 </Field>
@@ -1263,44 +1281,118 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
               </Box>
             </Tabs.Content>
 
-            {/* Pricing & Merchandise Tab */}
+            {/* Merchandise tab - same layout and options as Edit Trip */}
             <Tabs.Content value="pricing">
-              <VStack align="stretch" gap={6}>
+              <VStack gap={3} align="stretch">
                 <Box>
-                  <Text fontWeight="bold" fontSize="lg" mb={2}>
-                    Ticket Pricing
-                  </Text>
-                  <Text fontSize="sm" color="gray.500" mb={4}>
-                    Configure ticket types and prices per boat in the Boats tab:
-                    add a boat, then click the pricing icon to add overrides.
-                  </Text>
-                </Box>
-                {/* Trip Merchandise Section */}
-                <Box>
-                  <HStack justify="space-between" mb={4}>
-                    <Text fontWeight="bold" fontSize="lg">
-                      Merchandise
-                    </Text>
-                    {!isAddingMerchandise && (
-                      <Button
-                        size="sm"
-                        onClick={() => setIsAddingMerchandise(true)}
-                      >
-                        <FiPlus style={{ marginRight: "4px" }} />
-                        Add Merchandise
-                      </Button>
-                    )}
-                  </HStack>
-
-                  {/* Add Merchandise Form (select from catalog + optional overrides) */}
-                  {isAddingMerchandise && (
-                    <Box p={4} borderWidth="1px" borderRadius="md" mb={4}>
+                  <VStack align="stretch" gap={2}>
+                    {selectedMerchandise.map((item) => {
+                      const catalogItem = catalogMerchandise?.data?.find(
+                        (m) => m.id === item.merchandise_id,
+                      )
+                      const price =
+                        item.price_override ?? catalogItem?.price ?? 0
+                      const hasVariations =
+                        (catalogItem?.variations?.length ?? 0) > 0
+                      return (
+                        <HStack
+                          key={item.merchandise_id}
+                          justify="space-between"
+                          p={3}
+                          borderWidth="1px"
+                          borderRadius="md"
+                        >
+                          <VStack align="start" flex={1}>
+                            <Text fontWeight="medium">{item.name}</Text>
+                            <HStack
+                              fontSize="sm"
+                              color="gray.500"
+                              gap={2}
+                              flexWrap="wrap"
+                            >
+                              <Text>${formatCents(price)} each</Text>
+                              {hasVariations ? (
+                                <Text>
+                                  {catalogItem!.variations!
+                                    .map(
+                                      (v) =>
+                                        `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                    )
+                                    .join(", ")}
+                                </Text>
+                              ) : catalogItem?.variant_options ? (
+                                <Text>
+                                  Options: {catalogItem.variant_options} (qty{" "}
+                                  {item.quantity_available_override ??
+                                    catalogItem.quantity_available}
+                                  )
+                                </Text>
+                              ) : (
+                                <Text>
+                                  Qty:{" "}
+                                  {item.quantity_available_override ??
+                                    catalogItem?.quantity_available ??
+                                  0}
+                                </Text>
+                              )}
+                            </HStack>
+                          </VStack>
+                          <IconButton
+                            aria-label="Remove merchandise"
+                            size="sm"
+                            variant="ghost"
+                            colorPalette="red"
+                            onClick={() =>
+                              handleRemoveMerchandise(item.merchandise_id)
+                            }
+                          >
+                            <FiTrash2 />
+                          </IconButton>
+                        </HStack>
+                      )
+                    })}
+                    {selectedMerchandise.length === 0 &&
+                      !isAddingMerchandise && (
+                        <Text color="gray.500" textAlign="center" py={3}>
+                          No merchandise configured for this trip
+                        </Text>
+                      )}
+                  </VStack>
+                  {isAddingMerchandise ? (
+                    <Box mt={2} p={3} borderWidth="1px" borderRadius="md">
                       <VStack gap={3}>
-                        <HStack width="100%">
-                          <Box flex={1}>
+                        <HStack width="100%" align="stretch" gap={4}>
+                          <Box
+                            flex={1}
+                            display="flex"
+                            flexDirection="column"
+                            minW={0}
+                          >
                             <Text fontSize="sm" mb={1}>
                               Catalog item
                             </Text>
+                            {(() => {
+                              const selected = catalogMerchandise?.data?.find(
+                                (m) =>
+                                  m.id === merchandiseForm.merchandise_id,
+                              )
+                              if (
+                                !selected ||
+                                (selected.variations?.length ?? 0) > 0
+                              )
+                                return null
+                              return (
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  mt={1}
+                                >
+                                  No variants. Add variants in Merchandise
+                                  catalog to show per-option availability.
+                                </Text>
+                              )
+                            })()}
+                            <Box flex={1} minHeight={2} />
                             <NativeSelect
                               value={merchandiseForm.merchandise_id}
                               onChange={(e) =>
@@ -1311,22 +1403,42 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               }
                               placeholder="Select merchandise"
                             >
-                              {catalogMerchandise?.data.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.name} — ${formatCents(m.price)} (qty{" "}
-                                  {m.quantity_available})
-                                </option>
-                              ))}
+                              {catalogMerchandise?.data?.map((m) => {
+                                const hasVariations =
+                                  (m.variations?.length ?? 0) > 0
+                                const qtyLabel = hasVariations
+                                  ? m.variations!
+                                      .map(
+                                        (v) =>
+                                          `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                      )
+                                      .join(", ")
+                                  : m.variant_options
+                                    ? `${m.variant_options} (qty ${m.quantity_available})`
+                                    : `qty ${m.quantity_available}`
+                                return (
+                                  <option key={m.id} value={m.id}>
+                                    {m.name} — ${formatCents(m.price)} (
+                                    {qtyLabel})
+                                  </option>
+                                )
+                              })}
                             </NativeSelect>
                           </Box>
-                          <Box flex={1}>
+                          <Box
+                            flex={1}
+                            display="flex"
+                            flexDirection="column"
+                            minW={0}
+                          >
                             <Text fontSize="sm" mb={1}>
                               Price override ($, optional)
                             </Text>
+                            <Box flex={1} minHeight={2} />
                             <Input
                               type="number"
                               step="0.01"
-                              min="0"
+                              min={0}
                               value={merchandiseForm.price_override}
                               onChange={(e) =>
                                 setMerchandiseForm({
@@ -1337,13 +1449,27 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               placeholder="Use catalog price"
                             />
                           </Box>
-                          <Box flex={1}>
+                          <Box
+                            flex={1}
+                            display="flex"
+                            flexDirection="column"
+                            minW={0}
+                          >
                             <Text fontSize="sm" mb={1}>
                               Quantity override (optional)
                             </Text>
+                            {catalogMerchandise?.data?.find(
+                              (m) => m.id === merchandiseForm.merchandise_id,
+                            )?.variations?.length ? (
+                              <Text fontSize="xs" color="gray.500" mt={1}>
+                                Cap on total for this trip. Per-variant
+                                availability comes from catalog.
+                              </Text>
+                            ) : null}
+                            <Box flex={1} minHeight={2} />
                             <Input
                               type="number"
-                              min="0"
+                              min={0}
                               value={
                                 merchandiseForm.quantity_available_override
                               }
@@ -1353,7 +1479,14 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   quantity_available_override: e.target.value,
                                 })
                               }
-                              placeholder="Use catalog qty"
+                              placeholder={
+                                catalogMerchandise?.data?.find(
+                                  (m) =>
+                                    m.id === merchandiseForm.merchandise_id,
+                                )?.variations?.length
+                                  ? "Max total for trip"
+                                  : "Use catalog qty"
+                              }
                             />
                           </Box>
                         </HStack>
@@ -1366,7 +1499,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                           </Button>
                           <Button
                             size="sm"
-                            colorScheme="blue"
+                            colorPalette="blue"
                             onClick={handleAddMerchandise}
                             disabled={!merchandiseForm.merchandise_id}
                           >
@@ -1375,56 +1508,17 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         </HStack>
                       </VStack>
                     </Box>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      mt={2}
+                      onClick={() => setIsAddingMerchandise(true)}
+                    >
+                      <FiPlus style={{ marginRight: "4px" }} />
+                      Add Merchandise
+                    </Button>
                   )}
-
-                  {/* Merchandise List */}
-                  <VStack align="stretch" gap={2}>
-                    {selectedMerchandise.map((item) => (
-                      <HStack
-                        key={item.merchandise_id}
-                        justify="space-between"
-                        p={3}
-                        borderWidth="1px"
-                        borderRadius="md"
-                      >
-                        <VStack align="start" flex={1}>
-                          <Text fontWeight="medium">{item.name}</Text>
-                          <HStack fontSize="sm" color="gray.500">
-                            {item.price_override != null && (
-                              <Text>
-                                Price override: $
-                                {formatCents(item.price_override)}
-                              </Text>
-                            )}
-                            {item.quantity_available_override != null && (
-                              <Text>
-                                Qty override: {item.quantity_available_override}
-                              </Text>
-                            )}
-                            {item.price_override == null &&
-                              item.quantity_available_override == null && (
-                                <Text>Catalog defaults</Text>
-                              )}
-                          </HStack>
-                        </VStack>
-                        <IconButton
-                          aria-label="Remove merchandise"
-                          children={<FiTrash2 />}
-                          size="sm"
-                          variant="ghost"
-                          colorScheme="red"
-                          onClick={() =>
-                            handleRemoveMerchandise(item.merchandise_id)
-                          }
-                        />
-                      </HStack>
-                    ))}
-                    {selectedMerchandise.length === 0 && (
-                      <Text color="gray.500" textAlign="center" py={4}>
-                        No merchandise configured for this trip
-                      </Text>
-                    )}
-                  </VStack>
                 </Box>
               </VStack>
             </Tabs.Content>

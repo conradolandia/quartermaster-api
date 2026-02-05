@@ -37,7 +37,7 @@ def get_trips_no_relationships(
     result = session.exec(
         text(
             """
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.booking_mode,
                    t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
@@ -59,14 +59,15 @@ def get_trips_no_relationships(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "booking_mode": row[5] or "private",
-                "sales_open_at": row[6],
-                "check_in_time": row[7],
-                "boarding_time": row[8],
-                "departure_time": row[9],
-                "created_at": row[10],
-                "updated_at": row[11],
-                "timezone": row[12] or "UTC",
+                "unlisted": row[5] if len(row) > 5 else False,
+                "booking_mode": row[6] or "private",
+                "sales_open_at": row[7],
+                "check_in_time": row[8],
+                "boarding_time": row[9],
+                "departure_time": row[10],
+                "created_at": row[11],
+                "updated_at": row[12],
+                "timezone": row[13] or "UTC",
             }
         )
 
@@ -83,7 +84,7 @@ def get_trips_with_stats(
     result = session.exec(
         text(
             """
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.booking_mode,
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.booking_mode,
                    t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
@@ -125,14 +126,15 @@ def get_trips_with_stats(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "booking_mode": row[5] or "private",
-                "sales_open_at": row[6],
-                "check_in_time": row[7],
-                "boarding_time": row[8],
-                "departure_time": row[9],
-                "created_at": row[10],
-                "updated_at": row[11],
-                "timezone": row[12] or "UTC",
+                "unlisted": row[5] if len(row) > 5 else False,
+                "booking_mode": row[6] or "private",
+                "sales_open_at": row[7],
+                "check_in_time": row[8],
+                "boarding_time": row[9],
+                "departure_time": row[10],
+                "created_at": row[11],
+                "updated_at": row[12],
+                "timezone": row[13] or "UTC",
                 "total_bookings": total_bookings,
                 "total_sales": int(total_sales) if total_sales is not None else 0,
             }

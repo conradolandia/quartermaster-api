@@ -74,19 +74,35 @@ const Step1TripSelection = ({
       }),
   })
 
-  // When resuming a booking we have selectedTripId but may not have selectedLaunchId; derive it from the trip's mission
+  // Direct-link / unlisted trip: fetch single trip by ID when selected (e.g. from URL); only use if available by date/launch (API 404s otherwise)
+  const {
+    data: directLinkTrip,
+    isLoading: isLoadingDirectTrip,
+    isError: isDirectLinkTripError,
+  } = useQuery({
+    queryKey: ["public-trip", bookingData.selectedTripId, accessCode],
+    queryFn: () =>
+      TripsService.readPublicTrip({
+        tripId: bookingData.selectedTripId,
+        accessCode: accessCode || undefined,
+      }),
+    enabled:
+      !!bookingData.selectedTripId &&
+      !!allTrips &&
+      !allTrips.data?.some(
+        (t: TripPublic) => t.id === bookingData.selectedTripId,
+      ),
+  })
+
+  // When resuming a booking or direct link we have selectedTripId but may not have selectedLaunchId; derive it from the trip's mission
   React.useEffect(() => {
-    if (
-      !bookingData.selectedTripId ||
-      bookingData.selectedLaunchId ||
-      !allTrips?.data ||
-      missions.length === 0
-    )
+    if (!bookingData.selectedTripId || bookingData.selectedLaunchId || missions.length === 0)
       return
-    const trip = allTrips.data.find(
+    const tripFromList = allTrips?.data?.find(
       (t: TripPublic) => t.id === bookingData.selectedTripId,
     )
-    const mission = trip && missions.find((m) => m.id === trip.mission_id)
+    const trip = tripFromList ?? (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id ? directLinkTrip : null)
+    const mission = trip && missions.find((m: { id: string }) => m.id === trip.mission_id)
     if (mission) {
       updateBookingData({ selectedLaunchId: mission.launch_id })
     }
@@ -94,6 +110,7 @@ const Step1TripSelection = ({
     bookingData.selectedTripId,
     bookingData.selectedLaunchId,
     allTrips?.data,
+    directLinkTrip,
     missions,
     updateBookingData,
   ])
@@ -228,17 +245,31 @@ const Step1TripSelection = ({
     )
   }, [bookingData.selectedLaunchId, missions])
 
-  // Filter trips: only active trips, and only for the selected launch's missions
+  // Filter trips: only active trips, and only for the selected launch's missions; include direct-link (unlisted) trip when selected
   const activeTrips = React.useMemo(() => {
-    if (!allTrips?.data) return []
-    const base = allTrips.data.filter(
+    const fromList = allTrips?.data ?? []
+    const base = fromList.filter(
       (trip: TripPublic) =>
         trip.active === true &&
         (!bookingData.selectedLaunchId ||
           missionIdsForLaunch.has(trip.mission_id)),
     )
+    if (
+      directLinkTrip &&
+      directLinkTrip.active === true &&
+      (!bookingData.selectedLaunchId ||
+        missionIdsForLaunch.has(directLinkTrip.mission_id)) &&
+      !base.some((t: TripPublic) => t.id === directLinkTrip.id)
+    ) {
+      return [...base, directLinkTrip]
+    }
     return base
-  }, [allTrips?.data, bookingData.selectedLaunchId, missionIdsForLaunch])
+  }, [
+    allTrips?.data,
+    directLinkTrip,
+    bookingData.selectedLaunchId,
+    missionIdsForLaunch,
+  ])
 
   // Allow proceeding if launch and trip are selected and either boat is explicitly selected OR there's only one boat available
   const canProceed =
@@ -258,22 +289,26 @@ const Step1TripSelection = ({
       )
   }, [launches])
 
-  // Only show launches that have at least one trip visible to the user (in allTrips)
+  // Only show launches that have at least one trip visible to the user (in allTrips or direct-link trip)
   const launchIdsWithVisibleTrips = React.useMemo(() => {
     const ids = new Set<string>()
     for (const trip of allTrips?.data ?? []) {
       const mission = missions.find((m: { id: string }) => m.id === trip.mission_id)
       if (mission?.launch_id) ids.add(mission.launch_id)
     }
+    if (directLinkTrip) {
+      const mission = missions.find((m: { id: string }) => m.id === directLinkTrip.mission_id)
+      if (mission?.launch_id) ids.add(mission.launch_id)
+    }
     return ids
-  }, [allTrips?.data, missions])
+  }, [allTrips?.data, directLinkTrip, missions])
 
   const visibleLaunches = React.useMemo(
     () => sortedLaunches.filter((l) => launchIdsWithVisibleTrips.has(l.id)),
     [sortedLaunches, launchIdsWithVisibleTrips],
   )
 
-  // If the selected launch has passed or has no visible trips, clear launch/trip/boat and notify
+  // If the selected launch has passed or has no visible trips, clear launch/trip/boat and notify (defer to avoid flushSync during render)
   React.useEffect(() => {
     if (
       isLoadingLaunches ||
@@ -283,14 +318,16 @@ const Step1TripSelection = ({
       visibleLaunches.some((l) => l.id === bookingData.selectedLaunchId)
     )
       return
-    showErrorToast(
-      "The selected launch is no longer available. Please choose another.",
-    )
-    updateBookingData({
-      selectedLaunchId: "",
-      selectedTripId: "",
-      selectedBoatId: "",
-      boatRemainingCapacity: null,
+    queueMicrotask(() => {
+      showErrorToast(
+        "The selected launch is no longer available. Please choose another.",
+      )
+      updateBookingData({
+        selectedLaunchId: "",
+        selectedTripId: "",
+        selectedBoatId: "",
+        boatRemainingCapacity: null,
+      })
     })
   }, [
     bookingData.selectedLaunchId,
@@ -302,22 +339,26 @@ const Step1TripSelection = ({
     isLoadingTrips,
   ])
 
-  // If the selected trip is not available for the selected launch (or inactive), clear trip/boat and notify
+  // If the selected trip is not available for the selected launch (or inactive), or direct-link trip unavailable by date/launch, clear and notify (defer to avoid flushSync during render)
   React.useEffect(() => {
     if (
       isLoadingTrips ||
       isLoadingMissions ||
+      isLoadingDirectTrip ||
       !bookingData.selectedTripId ||
       activeTrips.some((t: TripPublic) => t.id === bookingData.selectedTripId)
     )
       return
-    showErrorToast(
-      "The selected trip is not available for this launch. Please choose another.",
-    )
-    updateBookingData({
-      selectedTripId: "",
-      selectedBoatId: "",
-      boatRemainingCapacity: null,
+    const message = isDirectLinkTripError
+      ? "This trip is no longer available. It may have already departed or the launch for this mission may have already occurred."
+      : "The selected trip is not available for this launch. Please choose another."
+    queueMicrotask(() => {
+      showErrorToast(message)
+      updateBookingData({
+        selectedTripId: "",
+        selectedBoatId: "",
+        boatRemainingCapacity: null,
+      })
     })
   }, [
     bookingData.selectedTripId,
@@ -326,9 +367,11 @@ const Step1TripSelection = ({
     showErrorToast,
     isLoadingTrips,
     isLoadingMissions,
+    isLoadingDirectTrip,
+    isDirectLinkTripError,
   ])
 
-  // If the selected boat is not on this trip, clear boat and notify (capacity is handled in the sync effect above)
+  // If the selected boat is not on this trip, clear boat and notify (capacity is handled in the sync effect above); defer to avoid flushSync during render
   React.useEffect(() => {
     if (
       !bookingData.selectedTripId ||
@@ -340,12 +383,14 @@ const Step1TripSelection = ({
       (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
     )
     if (selected) return
-    showErrorToast(
-      "The selected boat is not available for this trip. Please choose another.",
-    )
-    updateBookingData({
-      selectedBoatId: "",
-      boatRemainingCapacity: null,
+    queueMicrotask(() => {
+      showErrorToast(
+        "The selected boat is not available for this trip. Please choose another.",
+      )
+      updateBookingData({
+        selectedBoatId: "",
+        boatRemainingCapacity: null,
+      })
     })
   }, [
     bookingData.selectedTripId,
@@ -613,9 +658,13 @@ const Step1TripSelection = ({
                     </Heading>
                     <Separator mb={3} />
                     {(() => {
-                      const selectedTrip = allTrips?.data?.find(
-                        (t: TripPublic) => t.id === bookingData.selectedTripId,
-                      )
+                      const selectedTrip =
+                        (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id
+                          ? directLinkTrip
+                          : null) ??
+                        allTrips?.data?.find(
+                          (t: TripPublic) => t.id === bookingData.selectedTripId,
+                        )
                       const selectedLaunch = selectedTrip
                         ? launches.find(
                             (l) => l.id === bookingData.selectedLaunchId,

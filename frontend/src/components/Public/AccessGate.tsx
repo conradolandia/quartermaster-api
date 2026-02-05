@@ -16,6 +16,8 @@ import { DiscountCodesService, TripsService } from "@/client"
 
 interface AccessGateProps {
   accessCode?: string
+  /** When set (e.g. from URL ?trip=), fetch this trip by ID; if valid (e.g. unlisted), grant access even when listed trips is empty */
+  directTripId?: string
   onAccessGranted: (
     accessCode: string | null,
     discountCodeId: string | null,
@@ -37,6 +39,7 @@ interface AccessGateProps {
  */
 const AccessGate = ({
   accessCode: initialAccessCode,
+  directTripId,
   onAccessGranted,
   children,
 }: AccessGateProps) => {
@@ -75,6 +78,21 @@ const AccessGate = ({
       }),
   })
 
+  // Direct-link trip (e.g. unlisted): fetch single trip by ID when URL has ?trip=; grant access only if valid (active, not departed, launch not past)
+  const {
+    data: directTripData,
+    isLoading: isLoadingDirectTrip,
+    isError: isDirectTripError,
+  } = useQuery({
+    queryKey: ["public-trip", directTripId, submittedCode],
+    queryFn: () =>
+      TripsService.readPublicTrip({
+        tripId: directTripId!,
+        accessCode: submittedCode || undefined,
+      }),
+    enabled: !!directTripId,
+  })
+
   // Validate access code if provided
   const { data: accessCodeValidation, isLoading: isValidatingCode } = useQuery({
     queryKey: ["validate-access-code", submittedCode],
@@ -85,8 +103,10 @@ const AccessGate = ({
     enabled: !!submittedCode,
   })
 
-  // Derived after queries (safe when loading/error: optional chaining)
-  const hasTrips = (tripsData?.data?.length ?? 0) > 0
+  // Only treat direct-link trip as valid when fetch succeeded; do not use it if unavailable by date/launch (API returns 404)
+  const hasTrips =
+    (tripsData?.data?.length ?? 0) > 0 ||
+    (!!directTripId && !!directTripData && !isDirectTripError)
   const allTripsRequireAccessCode =
     tripsData?.all_trips_require_access_code === true
   const accessCodeValid = accessCodeValidation?.valid === true
@@ -122,8 +142,12 @@ const AccessGate = ({
     }
   }
 
-  // Loading state
-  if (isLoadingTrips || (submittedCode && isValidatingCode)) {
+  // Loading state (include direct-trip fetch when URL has ?trip= and no listed trips yet)
+  if (
+    isLoadingTrips ||
+    (!!directTripId && !tripsData?.data?.length && isLoadingDirectTrip) ||
+    (submittedCode && isValidatingCode)
+  ) {
     return (
       <Container maxW="container.md" py={16}>
         <VStack gap={4}>
@@ -134,7 +158,7 @@ const AccessGate = ({
     )
   }
 
-  // Error state
+  // Error state: generic trips list failure
   if (tripsError) {
     return (
       <Container maxW="container.md" py={16}>
@@ -145,6 +169,26 @@ const AccessGate = ({
               <Text>
                 We encountered an error while loading available trips. Please
                 try again later.
+              </Text>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    )
+  }
+
+  // Direct-link trip unavailable: trip not found, already departed, or launch already occurred (API returns 404)
+  if (directTripId && isDirectTripError && !isLoadingDirectTrip) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={4} textAlign="center">
+              <Heading size="lg">This Trip Is Not Available</Heading>
+              <Text>
+                This trip is no longer available for booking. It may have
+                already departed, or the launch for this mission may have already
+                occurred. Please choose another trip from the main booking page.
               </Text>
             </VStack>
           </Card.Body>
