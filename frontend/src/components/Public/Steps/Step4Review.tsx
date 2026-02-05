@@ -378,6 +378,19 @@ const Step4Review = ({
         "There was an error creating your booking. Please try again or contact FleetCommand@Star-Fleet.Tours if the problem persists."
       : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
 
+    const canRetryVerification =
+      completeBookingMutation.isError &&
+      bookingWithPayment?.booking?.confirmation_code &&
+      bookingWithPayment?.paymentData?.payment_intent_id
+
+    const handleRetryVerification = () => {
+      if (!canRetryVerification) return
+      completeBookingMutation.mutate({
+        paymentIntentId: bookingWithPayment.paymentData.payment_intent_id,
+        confirmationCode: bookingWithPayment.booking.confirmation_code,
+      })
+    }
+
     return (
       <VStack gap={6} align="stretch">
         <Box
@@ -396,9 +409,21 @@ const Step4Review = ({
             {errorMessage}
           </Text>
         </Box>
-        <Button onClick={onBack} variant="outline">
-          Back to Review
-        </Button>
+        <HStack gap={2}>
+          {canRetryVerification && (
+            <Button
+              onClick={handleRetryVerification}
+              colorScheme="blue"
+              loading={completeBookingMutation.isPending}
+              loadingText="Verifying..."
+            >
+              Retry Verification
+            </Button>
+          )}
+          <Button onClick={onBack} variant="outline">
+            Back to Review
+          </Button>
+        </HStack>
       </VStack>
     )
   }

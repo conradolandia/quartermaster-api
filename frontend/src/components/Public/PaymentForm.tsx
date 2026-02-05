@@ -67,16 +67,29 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
 
       if (error) {
         // Handle case where payment already succeeded (e.g., webhook processed it first)
-        // The error object may contain payment_intent with current status
-        const paymentIntent = error.payment_intent as
-          | { status?: string }
-          | undefined
-        if (
-          error.code === "payment_intent_unexpected_state" &&
-          paymentIntent?.status === "succeeded"
-        ) {
-          // Payment actually succeeded, treat as success
-          onPaymentSuccess(paymentIntentId)
+        // or is in an unexpected state. Let backend verify the actual status.
+        if (error.code === "payment_intent_unexpected_state") {
+          const paymentIntent = error.payment_intent as
+            | { status?: string }
+            | undefined
+          if (
+            paymentIntent?.status === "succeeded" ||
+            paymentIntent?.status === "processing"
+          ) {
+            // Payment succeeded or is processing, let backend verify
+            onPaymentSuccess(paymentIntentId)
+          } else if (!paymentIntent?.status) {
+            // No status in error, let backend verify to be safe
+            console.warn(
+              "Payment state unclear, verifying with backend:",
+              error.message,
+            )
+            onPaymentSuccess(paymentIntentId)
+          } else {
+            // Payment is in a failed/canceled state
+            setErrorMessage(error.message ?? "Payment failed")
+            onPaymentError(new Error(error.message ?? "Payment failed"))
+          }
         } else {
           setErrorMessage(error.message ?? "Payment failed")
           onPaymentError(new Error(error.message ?? "Payment failed"))
