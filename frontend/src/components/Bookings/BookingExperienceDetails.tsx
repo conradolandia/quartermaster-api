@@ -8,7 +8,8 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useQueries, useQuery } from "@tanstack/react-query"
+import { useMemo } from "react"
 import type { ReactNode } from "react"
 
 import {
@@ -50,7 +51,15 @@ export default function BookingExperienceDetails({
 }: BookingExperienceDetailsProps) {
   const firstItem = booking?.items?.[0]
   const tripId = firstItem?.trip_id
-  const boatId = firstItem?.boat_id
+
+  const uniqueBoatIds = useMemo(() => {
+    if (!booking?.items?.length) return []
+    const ids = new Set<string>()
+    for (const i of booking.items) {
+      if (i.boat_id) ids.add(i.boat_id)
+    }
+    return Array.from(ids)
+  }, [booking?.items])
 
   const { data: trip } = useQuery({
     queryKey: [usePublicApis ? "public-trip" : "trip", tripId],
@@ -83,14 +92,23 @@ export default function BookingExperienceDetails({
     enabled: !!mission?.launch_id,
   })
 
-  const { data: boat } = useQuery({
-    queryKey: [usePublicApis ? "public-boat" : "boat", boatId],
-    queryFn: () =>
-      usePublicApis
-        ? BoatsService.readPublicBoat({ boatId: boatId! })
-        : BoatsService.readBoat({ boatId: boatId! }),
-    enabled: !!boatId,
+  const boatQueries = useQueries({
+    queries: uniqueBoatIds.map((bid) => ({
+      queryKey: [usePublicApis ? "public-boat" : "boat", bid],
+      queryFn: () =>
+        usePublicApis
+          ? BoatsService.readPublicBoat({ boatId: bid })
+          : BoatsService.readBoat({ boatId: bid }),
+      enabled: !!bid,
+    })),
   })
+
+  const boatNames = useMemo(() => {
+    const names = boatQueries
+      .map((q) => (q.data as { name?: string } | undefined)?.name)
+      .filter(Boolean) as string[]
+    return [...new Set(names)]
+  }, [boatQueries])
 
   const exp = usePublicApis ? booking?.experience_display : null
 
@@ -302,28 +320,39 @@ export default function BookingExperienceDetails({
           )}
         </VStack>
         <VStack align="stretch" gap={3}>
-          {boat?.provider?.name && (
-            <Row label="Provider" value={boat.provider.name} />
-          )}
-          {boat && <Row label="Boat" value={boat.name} />}
-          {boat?.provider?.address && (
+          {boatQueries[0]?.data?.provider?.name && (
             <Row
-              label="Departure location"
-              value={
-                boat.provider.map_link ? (
-                  <Link
-                    href={boat.provider.map_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {boat.provider.address}
-                  </Link>
-                ) : (
-                  boat.provider.address
-                )
-              }
+              label="Provider"
+              value={(boatQueries[0].data as { provider?: { name?: string } }).provider?.name}
             />
           )}
+          {boatNames.length > 0 && (
+            <Row label="Boat" value={boatNames.join(", ")} />
+          )}
+          {boatQueries[0]?.data?.provider?.address && (() => {
+            const b = boatQueries[0].data as {
+              provider?: { address?: string; map_link?: string }
+            }
+            const prov = b?.provider
+            return (
+              <Row
+                label="Departure location"
+                value={
+                  prov?.map_link ? (
+                    <Link
+                      href={prov.map_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {prov.address}
+                    </Link>
+                  ) : (
+                    prov?.address
+                  )
+                }
+              />
+            )
+          })()}
         </VStack>
       </Grid>
     </Box>

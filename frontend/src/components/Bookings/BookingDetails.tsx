@@ -23,7 +23,7 @@ import {
   FiMail,
 } from "react-icons/fi"
 
-import { BookingsService } from "@/client"
+import { BoatsService, BookingsService, TripsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import RefundBooking from "@/components/Bookings/RefundBooking"
 import RescheduleBooking from "@/components/Bookings/RescheduleBooking"
@@ -77,6 +77,30 @@ export default function BookingDetails({
     typeof Intl !== "undefined" && Intl.DateTimeFormat
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC"
+
+  const { data: tripsData } = useQuery({
+    queryKey: ["trips"],
+    queryFn: () => TripsService.readTrips({ limit: 500 }),
+    enabled: !!booking?.items?.length,
+  })
+
+  const { data: boatsData } = useQuery({
+    queryKey: ["boats"],
+    queryFn: () => BoatsService.readBoats({ limit: 500 }),
+    enabled: !!booking?.items?.length,
+  })
+
+  const getTripName = (tripId: string) => {
+    const trip = tripsData?.data?.find((t: { id: string }) => t.id === tripId)
+    return trip
+      ? `${trip.type?.replace(/_/g, " ") ?? ""} – ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`
+      : tripId
+  }
+
+  const getBoatName = (boatId: string) => {
+    const boat = boatsData?.data?.find((b: { id: string }) => b.id === boatId)
+    return boat ? boat.name : boatId
+  }
 
   const displayItems = useMemo(() => {
     if (!booking?.items?.length) return []
@@ -602,6 +626,8 @@ export default function BookingDetails({
                 <Table.Root size={{ base: "sm", md: "md" }}>
                   <Table.Header>
                     <Table.Row>
+                      <Table.ColumnHeader>Trip</Table.ColumnHeader>
+                      <Table.ColumnHeader>Boat</Table.ColumnHeader>
                       <Table.ColumnHeader>Item Type</Table.ColumnHeader>
                       <Table.ColumnHeader>Status</Table.ColumnHeader>
                       <Table.ColumnHeader>Quantity</Table.ColumnHeader>
@@ -612,6 +638,24 @@ export default function BookingDetails({
                   <Table.Body>
                     {displayItems.map((item, index) => (
                       <Table.Row key={index}>
+                        <Table.Cell>
+                          {item.trip_id ? (
+                            <Text fontSize="sm">{getTripName(item.trip_id)}</Text>
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">
+                              —
+                            </Text>
+                          )}
+                        </Table.Cell>
+                        <Table.Cell>
+                          {item.boat_id ? (
+                            <Text fontSize="sm">{getBoatName(item.boat_id)}</Text>
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">
+                              —
+                            </Text>
+                          )}
+                        </Table.Cell>
                         <Table.Cell>
                           <Text fontWeight="medium">
                             {item.item_type
