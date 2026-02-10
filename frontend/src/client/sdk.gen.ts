@@ -42,6 +42,8 @@ import type {
   BookingsDeleteBookingResponse,
   BookingsUpdateBookingData,
   BookingsUpdateBookingResponse,
+  BookingsUpdateBookingItemData,
+  BookingsUpdateBookingItemResponse,
   BookingsRescheduleData,
   BookingsRescheduleResponse,
   BookingsCheckInBookingData,
@@ -224,6 +226,8 @@ import type {
   TripBoatsReadPublicTripBoatsByTripResponse,
   TripBoatsReadPublicEffectivePricingData,
   TripBoatsReadPublicEffectivePricingResponse,
+  TripBoatsReadEffectivePricingData,
+  TripBoatsReadEffectivePricingResponse,
   TripMerchandiseCreateTripMerchandiseData,
   TripMerchandiseCreateTripMerchandiseResponse,
   TripMerchandiseListTripMerchandiseData,
@@ -759,6 +763,39 @@ export class BookingsService {
       url: "/api/v1/bookings/id/{booking_id}",
       path: {
         booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Update Booking Item
+   * Update a single booking item (admin only). Change ticket type (e.g. upper to lower deck) or boat.
+   *
+   * Only ticket items (non-merchandise) can have item_type, price_per_unit, or boat_id changed.
+   * When item_type or boat_id is changed, price_per_unit is set from effective pricing and capacity is validated.
+   * Boat can only be changed to another boat on the same trip; target boat must have the (current or new) ticket type.
+   * Booking subtotal and totals are recomputed after the update.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.itemId
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static updateBookingItem(
+    data: BookingsUpdateBookingItemData,
+  ): CancelablePromise<BookingsUpdateBookingItemResponse> {
+    return __request(OpenAPI, {
+      method: "PATCH",
+      url: "/api/v1/bookings/id/{booking_id}/items/{item_id}",
+      path: {
+        booking_id: data.bookingId,
+        item_id: data.itemId,
       },
       body: data.requestBody,
       mediaType: "application/json",
@@ -3122,6 +3159,32 @@ export class TripBoatsService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/trip-boats/public/pricing",
+      query: {
+        trip_id: data.tripId,
+        boat_id: data.boatId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Effective Pricing
+   * Get effective ticket types and prices for (trip_id, boat_id). Admin only.
+   * Use for editing booking item ticket type when trip may be private.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.boatId
+   * @returns EffectivePricingItem Successful Response
+   * @throws ApiError
+   */
+  public static readEffectivePricing(
+    data: TripBoatsReadEffectivePricingData,
+  ): CancelablePromise<TripBoatsReadEffectivePricingResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trip-boats/pricing",
       query: {
         trip_id: data.tripId,
         boat_id: data.boatId,

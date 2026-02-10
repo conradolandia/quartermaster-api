@@ -183,6 +183,15 @@ export type BookingItemQuantityUpdate = {
 
 export type BookingItemStatus = "active" | "refunded" | "fulfilled"
 
+export type BookingItemUpdate = {
+  status?: BookingItemStatus | null
+  refund_reason?: string | null
+  refund_notes?: string | null
+  item_type?: string | null
+  price_per_unit?: number | null
+  boat_id?: string | null
+}
+
 export type BookingPublic = {
   confirmation_code: string
   user_name: string
@@ -1004,6 +1013,14 @@ export type BookingsUpdateBookingData = {
 
 export type BookingsUpdateBookingResponse = BookingPublic
 
+export type BookingsUpdateBookingItemData = {
+  bookingId: string
+  itemId: string
+  requestBody: BookingItemUpdate
+}
+
+export type BookingsUpdateBookingItemResponse = BookingPublic
+
 export type BookingsRescheduleData = {
   bookingId: string
   requestBody: RescheduleBookingRequest
@@ -1633,6 +1650,13 @@ export type TripBoatsReadPublicEffectivePricingData = {
 
 export type TripBoatsReadPublicEffectivePricingResponse =
   Array<EffectivePricingItem>
+
+export type TripBoatsReadEffectivePricingData = {
+  boatId: string
+  tripId: string
+}
+
+export type TripBoatsReadEffectivePricingResponse = Array<EffectivePricingItem>
 
 export type TripMerchandiseCreateTripMerchandiseData = {
   requestBody: TripMerchandiseCreate

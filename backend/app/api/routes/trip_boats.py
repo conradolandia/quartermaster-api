@@ -376,3 +376,36 @@ def read_public_effective_pricing(
         boat_id=boat_id,
         paid_by_type=paid_by_type,
     )
+
+
+@router.get(
+    "/pricing",
+    response_model=list[EffectivePricingItem],
+    dependencies=[Depends(deps.get_current_active_superuser)],
+    operation_id="trip_boats_read_effective_pricing",
+)
+def read_effective_pricing(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID,
+    boat_id: uuid.UUID,
+) -> list[EffectivePricingItem]:
+    """
+    Get effective ticket types and prices for (trip_id, boat_id). Admin only.
+    Use for editing booking item ticket type when trip may be private.
+    """
+    trip = crud.get_trip(session=session, trip_id=trip_id)
+    if not trip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} not found",
+        )
+    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
+    return crud.get_effective_pricing(
+        session=session,
+        trip_id=trip_id,
+        boat_id=boat_id,
+        paid_by_type=paid_by_type,
+    )

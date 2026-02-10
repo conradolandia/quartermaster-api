@@ -1115,6 +1115,9 @@ class BookingItemUpdate(SQLModel):
     status: BookingItemStatus | None = None
     refund_reason: str | None = None
     refund_notes: str | None = None
+    item_type: str | None = Field(default=None, max_length=32)
+    price_per_unit: int | None = Field(default=None, ge=0)
+    boat_id: uuid.UUID | None = Field(default=None, foreign_key="boat.id")
 
 
 class BookingItemQuantityUpdate(SQLModel):

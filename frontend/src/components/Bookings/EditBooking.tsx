@@ -5,6 +5,7 @@ import {
   type BookingUpdate,
   BookingsService,
   TripsService,
+  TripBoatsService,
 } from "@/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -34,8 +35,8 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef } from "react"
 import {
   Controller,
   type SubmitHandler,
@@ -79,6 +80,114 @@ const EditBooking = ({
   const { data: boatsData } = useQuery({
     queryKey: ["boats"],
     queryFn: () => BoatsService.readBoats({ limit: 100 }),
+  })
+
+  const uniqueTripIds = useMemo(() => {
+    if (!booking?.items) return []
+    const ids = new Set<string>()
+    for (const i of booking.items) {
+      if (!i.trip_merchandise_id && i.trip_id) ids.add(i.trip_id)
+    }
+    return Array.from(ids)
+  }, [booking?.items])
+
+  const ticketItemKeys = useMemo(() => {
+    if (!booking?.items) return []
+    const keys = new Map<string, { tripId: string; boatId: string }>()
+    for (const i of booking.items) {
+      if (!i.trip_merchandise_id && i.trip_id && i.boat_id)
+        keys.set(`${i.trip_id}/${i.boat_id}`, { tripId: i.trip_id, boatId: i.boat_id })
+    }
+    return Array.from(keys.values())
+  }, [booking?.items])
+
+  const tripBoatsQueries = useQueries({
+    queries: uniqueTripIds.map((tripId) => ({
+      queryKey: ["trip-boats", tripId],
+      queryFn: () =>
+        TripBoatsService.readTripBoatsByTrip({ tripId, limit: 100 }),
+      enabled: isOpen && !!tripId,
+    })),
+  })
+
+  const boatsByTripId = useMemo(() => {
+    const map: Record<string, { boat_id: string; name: string }[]> = {}
+    uniqueTripIds.forEach((tripId, i) => {
+      const q = tripBoatsQueries[i]
+      if (q.data && Array.isArray(q.data))
+        map[tripId] = (q.data as { boat_id: string; boat: { name: string } }[]).map(
+          (tb) => ({ boat_id: tb.boat_id, name: tb.boat?.name ?? tb.boat_id }),
+        )
+    })
+    return map
+  }, [uniqueTripIds, tripBoatsQueries])
+
+  const pricingQueries = useQueries({
+    queries: ticketItemKeys.map(({ tripId, boatId }) => ({
+      queryKey: ["effective-pricing", tripId, boatId],
+      queryFn: () =>
+        TripBoatsService.readEffectivePricing({ tripId, boatId }),
+      enabled: isOpen && !!tripId && !!boatId,
+    })),
+  })
+
+  const pricingByKey = useMemo(() => {
+    const map: Record<string, { ticket_type: string; price: number }[]> = {}
+    ticketItemKeys.forEach((k, i) => {
+      const q = pricingQueries[i]
+      const key = `${k.tripId}/${k.boatId}`
+      if (q.data && Array.isArray(q.data))
+        map[key] = q.data as { ticket_type: string; price: number }[]
+    })
+    return map
+  }, [ticketItemKeys, pricingQueries])
+
+  const updateItemTypeMutation = useMutation({
+    mutationFn: ({
+      itemId,
+      itemType,
+    }: {
+      itemId: string
+      itemType: string
+    }) =>
+      BookingsService.updateBookingItem({
+        bookingId: booking.id,
+        itemId,
+        requestBody: { item_type: itemType },
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        ["booking", booking.confirmation_code],
+        updated,
+      )
+      showSuccessToast("Ticket type updated")
+      onSuccess()
+    },
+    onError: handleError,
+  })
+
+  const updateItemBoatMutation = useMutation({
+    mutationFn: ({
+      itemId,
+      boatId,
+    }: {
+      itemId: string
+      boatId: string
+    }) =>
+      BookingsService.updateBookingItem({
+        bookingId: booking.id,
+        itemId,
+        requestBody: { boat_id: boatId },
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        ["booking", booking.confirmation_code],
+        updated,
+      )
+      showSuccessToast("Boat updated")
+      onSuccess()
+    },
+    onError: handleError,
   })
 
   const {
@@ -405,15 +514,93 @@ const EditBooking = ({
                                     <Text>{getTripName(item.trip_id)}</Text>
                                   </Table.Cell>
                                   <Table.Cell>
-                                    <Text>{getBoatName(item.boat_id)}</Text>
+                                    {(() => {
+                                      const boats = boatsByTripId[item.trip_id]
+                                      const canChangeBoat =
+                                        !isPast &&
+                                        booking.booking_status !== "checked_in"
+                                      if (!boats?.length) {
+                                        return (
+                                          <Text>{getBoatName(item.boat_id)}</Text>
+                                        )
+                                      }
+                                      const updatingBoat =
+                                        updateItemBoatMutation.isPending &&
+                                        updateItemBoatMutation.variables?.itemId ===
+                                          item.id
+                                      return (
+                                        <NativeSelect
+                                          size="sm"
+                                          value={item.boat_id ?? ""}
+                                          disabled={!canChangeBoat || updatingBoat}
+                                          onChange={(e) => {
+                                            const v = e.target.value
+                                            if (v && v !== item.boat_id)
+                                              updateItemBoatMutation.mutate({
+                                                itemId: item.id,
+                                                boatId: v,
+                                              })
+                                          }}
+                                        >
+                                          {boats.map((b) => (
+                                            <option
+                                              key={b.boat_id}
+                                              value={b.boat_id}
+                                            >
+                                              {b.name}
+                                            </option>
+                                          ))}
+                                        </NativeSelect>
+                                      )
+                                    })()}
                                   </Table.Cell>
                                   <Table.Cell>
-                                    <Text>
-                                      {getItemTypeLabel(item.item_type)}
-                                      {item.variant_option
-                                        ? ` – ${item.variant_option}`
-                                        : ""}
-                                    </Text>
+                                    {(() => {
+                                      const key = `${item.trip_id}/${item.boat_id}`
+                                      const options = pricingByKey[key]
+                                      const canChangeType =
+                                        !isPast &&
+                                        booking.booking_status !== "checked_in"
+                                      if (!options?.length) {
+                                        return (
+                                          <Text>
+                                            {getItemTypeLabel(item.item_type)}
+                                            {item.variant_option
+                                              ? ` – ${item.variant_option}`
+                                              : ""}
+                                          </Text>
+                                        )
+                                      }
+                                      const updating =
+                                        updateItemTypeMutation.isPending &&
+                                        updateItemTypeMutation.variables?.itemId ===
+                                          item.id
+                                      return (
+                                        <NativeSelect
+                                          size="sm"
+                                          value={item.item_type ?? ""}
+                                          disabled={!canChangeType || updating}
+                                          onChange={(e) => {
+                                            const v = e.target.value
+                                            if (v && v !== item.item_type)
+                                              updateItemTypeMutation.mutate({
+                                                itemId: item.id,
+                                                itemType: v,
+                                              })
+                                          }}
+                                        >
+                                          {options.map((p) => (
+                                            <option
+                                              key={p.ticket_type}
+                                              value={p.ticket_type}
+                                            >
+                                              {getItemTypeLabel(p.ticket_type)} (
+                                              ${formatCents(p.price)})
+                                            </option>
+                                          ))}
+                                        </NativeSelect>
+                                      )
+                                    })()}
                                   </Table.Cell>
                                   <Table.Cell>
                                     <Controller
