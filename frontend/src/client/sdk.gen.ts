@@ -1081,7 +1081,7 @@ export class BookingsService {
 
   /**
    * Confirm Free Booking
-   * Confirm a free (total_amount == 0) draft booking without payment.
+   * Confirm a free or sub-minimum (total_amount < 50 cents) draft booking without payment.
    * Sets booking to confirmed, sends confirmation email, returns success.
    * @param data The data for the request.
    * @param data.confirmationCode
@@ -3426,7 +3426,8 @@ export class TripsService {
   /**
    * Reassign Trip Boat
    * Move all passengers from one boat to another on this trip.
-   * Both boats must be on the trip; target boat must have enough capacity.
+   * Both boats must be on the trip. Per-type capacity on the target boat is enforced;
+   * type_mapping must map each source ticket type to a target boat ticket type.
    * @param data The data for the request.
    * @param data.tripId
    * @param data.requestBody

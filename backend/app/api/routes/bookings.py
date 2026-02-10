@@ -363,7 +363,11 @@ def _create_booking_impl(
                 ),
             )
         paid_by_type = paid_by_trip.get(trip_id, {})
-        paid = paid_by_type.get((boat_id, item_type), 0)
+        paid = sum(
+            v
+            for (bid, k), v in paid_by_type.items()
+            if bid == boat_id and (k or "").lower() == (item_type or "").lower()
+        )
         total_after = paid + new_quantity
         if total_after > capacity:
             boat = session.get(Boat, boat_id)

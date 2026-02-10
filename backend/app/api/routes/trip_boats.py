@@ -121,6 +121,9 @@ def read_trip_boats_by_trip(
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
+        used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
+            session=session, trip_id=trip_id, boat_id=tb.boat_id
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -132,6 +135,7 @@ def read_trip_boats_by_trip(
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
                 pricing=pricing,
+                used_per_ticket_type=used_per_ticket_type,
             )
         )
     return result
@@ -316,6 +320,9 @@ def read_public_trip_boats_by_trip(
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
+        used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
+            session=session, trip_id=trip_id, boat_id=tb.boat_id
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -327,6 +334,7 @@ def read_public_trip_boats_by_trip(
                 max_capacity=effective_max,
                 remaining_capacity=remaining,
                 pricing=pricing,
+                used_per_ticket_type=used_per_ticket_type,
             )
         )
     return result

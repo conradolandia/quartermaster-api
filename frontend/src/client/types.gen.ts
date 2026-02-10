@@ -598,6 +598,12 @@ export type PublicTripsResponse = {
 export type ReassignBoatBody = {
   from_boat_id: string
   to_boat_id: string
+  /**
+   * Map source boat ticket type to target boat ticket type for each type being moved.
+   */
+  type_mapping?: {
+    [key: string]: string
+  }
 }
 
 export type ReassignBoatResponse = {
@@ -675,6 +681,12 @@ export type TripBoatPublicWithAvailability = {
   boat: BoatPublic
   remaining_capacity: number
   pricing?: Array<EffectivePricingItem>
+  /**
+   * Total ticket count per item_type on this boat (all booking statuses).
+   */
+  used_per_ticket_type?: {
+    [key: string]: number
+  }
 }
 
 export type TripBoatUpdate = {

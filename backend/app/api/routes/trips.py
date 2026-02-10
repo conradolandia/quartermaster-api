@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
@@ -300,6 +300,10 @@ def duplicate_trip(
 class ReassignBoatBody(BaseModel):
     from_boat_id: uuid.UUID
     to_boat_id: uuid.UUID
+    type_mapping: dict[str, str] = Field(
+        default_factory=dict,
+        description="Map source boat ticket type to target boat ticket type for each type being moved.",
+    )
 
 
 class ReassignBoatResponse(BaseModel):
@@ -319,7 +323,8 @@ def reassign_trip_boat(
 ) -> Any:
     """
     Move all passengers from one boat to another on this trip.
-    Both boats must be on the trip; target boat must have enough capacity.
+    Both boats must be on the trip. Per-type capacity on the target boat is enforced;
+    type_mapping must map each source ticket type to a target boat ticket type.
     """
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
@@ -329,6 +334,7 @@ def reassign_trip_boat(
         )
     from_boat_id = body.from_boat_id
     to_boat_id = body.to_boat_id
+    type_mapping = body.type_mapping or {}
     if from_boat_id == to_boat_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -341,50 +347,76 @@ def reassign_trip_boat(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Both boats must be assigned to this trip",
         )
-    # Load boat for effective capacity when TripBoat.max_capacity is null
-    for tb in trip_boats:
-        if tb.boat_id == to_boat_id:
-            tb_to = tb
-            break
-    else:
-        tb_to = None
-    boat_to = crud.get_boat(session=session, boat_id=to_boat_id)
-    if not boat_to:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Target boat not found",
-        )
-    effective_max_to = (
-        tb_to.max_capacity
-        if tb_to and tb_to.max_capacity is not None
-        else boat_to.capacity
-    )
-    current_on_to = crud.get_ticket_item_count_for_trip_boat(
-        session=session, trip_id=trip_id, boat_id=to_boat_id
-    )
-    total_to_move = crud.get_ticket_item_count_for_trip_boat(
+    source_counts = crud.get_ticket_item_count_per_type_for_trip_boat(
         session=session, trip_id=trip_id, boat_id=from_boat_id
     )
-    if total_to_move == 0:
+    if not source_counts:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No passengers to move from the source boat",
         )
-    if current_on_to + total_to_move > effective_max_to:
+    source_types_with_passengers = [t for t, qty in source_counts.items() if qty > 0]
+    missing = [t for t in source_types_with_passengers if t not in type_mapping]
+    if missing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Target boat has capacity for {effective_max_to - current_on_to} more "
-                f"passenger(s), but {total_to_move} would be moved. Free up capacity or "
-                "choose another boat."
+                f"Type mapping required for source ticket type(s): {', '.join(sorted(missing))}. "
+                "Map each source type to a target boat ticket type."
             ),
         )
-    moved = crud.reassign_trip_boat_passengers(
-        session=session,
-        trip_id=trip_id,
-        from_boat_id=from_boat_id,
-        to_boat_id=to_boat_id,
+    target_capacity = crud.get_effective_capacity_per_ticket_type(
+        session=session, trip_id=trip_id, boat_id=to_boat_id
     )
+    target_current = crud.get_ticket_item_count_per_type_for_trip_boat(
+        session=session, trip_id=trip_id, boat_id=to_boat_id
+    )
+    invalid_target = [
+        type_mapping[t]
+        for t in source_types_with_passengers
+        if type_mapping[t] not in target_capacity
+    ]
+    if invalid_target:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Target boat has no capacity for ticket type(s): "
+                f"{', '.join(sorted(set(invalid_target)))}. "
+                "Map source types only to ticket types defined on the target boat."
+            ),
+        )
+    moved_by_target: dict[str, int] = {}
+    for src_type, qty in source_counts.items():
+        if qty <= 0:
+            continue
+        tgt_type = type_mapping.get(src_type)
+        if tgt_type:
+            moved_by_target[tgt_type] = moved_by_target.get(tgt_type, 0) + qty
+    for tgt_type, moved_qty in moved_by_target.items():
+        cap = target_capacity.get(tgt_type, 0)
+        current = target_current.get(tgt_type, 0)
+        if current + moved_qty > cap:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Target boat has capacity for {tgt_type} of {cap} "
+                    f"(currently {current}). Mapping would add {moved_qty}. "
+                    "Adjust type mapping or choose another boat."
+                ),
+            )
+    try:
+        moved = crud.reassign_trip_boat_passengers(
+            session=session,
+            trip_id=trip_id,
+            from_boat_id=from_boat_id,
+            to_boat_id=to_boat_id,
+            type_mapping=type_mapping,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
     return ReassignBoatResponse(moved=moved)
 
 

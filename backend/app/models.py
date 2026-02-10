@@ -750,6 +750,10 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
     max_capacity: int  # Effective capacity (TripBoat.max_capacity or Boat.capacity)
     remaining_capacity: int  # max_capacity minus paid ticket count for this trip/boat
     pricing: list["EffectivePricingItem"] = Field(default_factory=list)
+    used_per_ticket_type: dict[str, int] = Field(
+        default_factory=dict,
+        description="Total ticket count per item_type on this boat (all booking statuses).",
+    )
 
 
 # BoatPricing models (boat-level default ticket types, prices, and capacity per type)

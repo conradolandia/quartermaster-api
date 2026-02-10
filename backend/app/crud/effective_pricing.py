@@ -96,6 +96,7 @@ def get_effective_pricing(
     )
     all_types = set(by_type_boat_price) | set(by_type_trip_price)
     result: list[EffectivePricingItem] = []
+    paid_map = paid_by_type or {}
     for ticket_type in sorted(all_types):
         price = by_type_trip_price.get(ticket_type) or by_type_boat_price.get(
             ticket_type
@@ -103,7 +104,12 @@ def get_effective_pricing(
         if price is None:
             continue
         capacity = capacities.get(ticket_type, 0)
-        paid = (paid_by_type or {}).get((boat_id, ticket_type), 0)
+        # Match paid count case-insensitively so "regular" and "Regular" agree
+        paid = sum(
+            v
+            for (bid, k), v in paid_map.items()
+            if bid == boat_id and (k or "").lower() == (ticket_type or "").lower()
+        )
         remaining = max(0, capacity - paid)
         result.append(
             EffectivePricingItem(

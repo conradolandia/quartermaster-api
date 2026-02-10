@@ -12,7 +12,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   FiDollarSign,
   FiEdit,
@@ -129,6 +129,9 @@ const EditTrip = ({
     used: number
   } | null>(null)
   const [reassignToBoatId, setReassignToBoatId] = useState("")
+  const [reassignTypeMapping, setReassignTypeMapping] = useState<
+    Record<string, string>
+  >({})
   const [isReassignSubmitting, setIsReassignSubmitting] = useState(false)
   const [isAddingMerchandise, setIsAddingMerchandise] = useState(false)
   const [merchandiseForm, setMerchandiseForm] = useState({
@@ -424,6 +427,53 @@ const EditTrip = ({
     setEditingOverridePrice("")
   }, [selectedTripBoatForPricing?.id])
 
+  // Default type mapping when target boat is selected for reassign
+  useEffect(() => {
+    if (!reassignFrom || !reassignToBoatId) {
+      return
+    }
+    const fromBoat = tripBoats.find((tb) => tb.boat_id === reassignFrom.boat_id)
+    const toBoat = tripBoats.find((tb) => tb.boat_id === reassignToBoatId)
+    const used: Record<string, number> =
+      fromBoat && "used_per_ticket_type" in fromBoat
+        ? (fromBoat as { used_per_ticket_type?: Record<string, number> })
+            .used_per_ticket_type ?? {}
+        : {}
+    const targetTypes: string[] =
+      toBoat && "pricing" in toBoat && Array.isArray((toBoat as { pricing?: { ticket_type: string }[] }).pricing)
+        ? ((toBoat as { pricing: { ticket_type: string }[] }).pricing ?? []).map(
+            (p) => p.ticket_type,
+          )
+        : []
+    const sourceTypesWithQty = Object.entries(used).filter(([, qty]) => qty > 0)
+    if (sourceTypesWithQty.length === 0 || targetTypes.length === 0) {
+      setReassignTypeMapping({})
+      return
+    }
+    const next: Record<string, string> = {}
+    for (const [srcType] of sourceTypesWithQty) {
+      next[srcType] = targetTypes.includes(srcType)
+        ? srcType
+        : targetTypes[0] ?? ""
+    }
+    setReassignTypeMapping(next)
+  }, [reassignFrom, reassignToBoatId, tripBoats])
+
+  const reassignCanSubmit = useMemo(() => {
+    if (!reassignFrom || !reassignToBoatId) return false
+    const fromBoat = tripBoats.find((tb) => tb.boat_id === reassignFrom.boat_id)
+    const used: Record<string, number> =
+      fromBoat && "used_per_ticket_type" in fromBoat
+        ? (fromBoat as { used_per_ticket_type?: Record<string, number> })
+            .used_per_ticket_type ?? {}
+        : {}
+    const sourceTypesWithQty = Object.entries(used).filter(([, qty]) => qty > 0)
+    if (sourceTypesWithQty.length === 0) return true
+    return sourceTypesWithQty.every(
+      ([t]) => reassignTypeMapping[t]?.trim() !== "",
+    )
+  }, [reassignFrom, reassignToBoatId, reassignTypeMapping, tripBoats])
+
   // Sync inputs when dialog opens or trip changes (e.g. after duplicate)
   useEffect(() => {
     if (isOpen) {
@@ -541,6 +591,7 @@ const EditTrip = ({
         requestBody: {
           from_boat_id: reassignFrom.boat_id,
           to_boat_id: reassignToBoatId,
+          type_mapping: reassignTypeMapping,
         },
       })
       showSuccessToast(`Moved ${res.moved} passenger(s) to the selected boat.`)
@@ -548,6 +599,7 @@ const EditTrip = ({
       await refetchTripBoats()
       setReassignFrom(null)
       setReassignToBoatId("")
+      setReassignTypeMapping({})
       // Invalidate queries for other components using trip boats data
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
       queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
@@ -1893,6 +1945,7 @@ const EditTrip = ({
           if (!open) {
             setReassignFrom(null)
             setReassignToBoatId("")
+            setReassignTypeMapping({})
           }
         }}
       >
@@ -1904,6 +1957,24 @@ const EditTrip = ({
             {reassignFrom &&
               (() => {
                 const from = reassignFrom
+                const fromBoat = tripBoats.find((tb) => tb.boat_id === from.boat_id)
+                const used: Record<string, number> =
+                  fromBoat && "used_per_ticket_type" in fromBoat
+                    ? (fromBoat as { used_per_ticket_type?: Record<string, number> })
+                        .used_per_ticket_type ?? {}
+                    : {}
+                const sourceTypesWithQty = Object.entries(used).filter(
+                  ([, qty]) => qty > 0,
+                )
+                const toBoat = tripBoats.find(
+                  (tb) => tb.boat_id === reassignToBoatId,
+                )
+                const targetTypes: string[] =
+                  toBoat && "pricing" in toBoat && Array.isArray((toBoat as { pricing?: { ticket_type: string }[] }).pricing)
+                    ? ((toBoat as { pricing: { ticket_type: string }[] }).pricing ?? []).map(
+                        (p) => p.ticket_type,
+                      )
+                    : []
                 return (
                   <VStack align="stretch" gap={4}>
                     <Text>
@@ -1937,6 +2008,51 @@ const EditTrip = ({
                           })}
                       </NativeSelect>
                     </Field>
+                    {reassignToBoatId &&
+                      sourceTypesWithQty.length > 0 &&
+                      targetTypes.length > 0 && (
+                        <Field
+                          label="Map ticket types"
+                          helperText="Map each source boat ticket type to the target boat type it becomes."
+                        >
+                          <VStack align="stretch" gap={2}>
+                            {sourceTypesWithQty.map(([srcType, qty]) => (
+                              <Flex
+                                key={srcType}
+                                gap={2}
+                                align="center"
+                                wrap="wrap"
+                              >
+                                <Text fontSize="sm" flex="0 0 auto">
+                                  {qty} × {srcType}
+                                </Text>
+                                <Text fontSize="sm" flex="0 0 auto">
+                                  →
+                                </Text>
+                                <NativeSelect
+                                  size="sm"
+                                  value={reassignTypeMapping[srcType] ?? ""}
+                                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                                    setReassignTypeMapping((prev) => ({
+                                      ...prev,
+                                      [srcType]: e.target.value,
+                                    }))
+                                  }
+                                  disabled={isReassignSubmitting}
+                                  style={{ minWidth: "10rem" }}
+                                >
+                                  <option value="">Select type</option>
+                                  {targetTypes.map((tt) => (
+                                    <option key={tt} value={tt}>
+                                      {tt}
+                                    </option>
+                                  ))}
+                                </NativeSelect>
+                              </Flex>
+                            ))}
+                          </VStack>
+                        </Field>
+                      )}
                   </VStack>
                 )
               })()}
@@ -1947,6 +2063,7 @@ const EditTrip = ({
               onClick={() => {
                 setReassignFrom(null)
                 setReassignToBoatId("")
+                setReassignTypeMapping({})
               }}
               disabled={isReassignSubmitting}
             >
@@ -1956,7 +2073,7 @@ const EditTrip = ({
               colorScheme="blue"
               onClick={handleReassignConfirm}
               loading={isReassignSubmitting}
-              disabled={!reassignToBoatId}
+              disabled={!reassignCanSubmit}
             >
               Move passengers
             </Button>

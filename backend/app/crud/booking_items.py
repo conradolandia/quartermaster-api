@@ -59,18 +59,26 @@ def reassign_trip_boat_passengers(
     trip_id: uuid.UUID,
     from_boat_id: uuid.UUID,
     to_boat_id: uuid.UUID,
+    type_mapping: dict[str, str],
 ) -> int:
     """
-    Set boat_id to to_boat_id on all ticket items for (trip_id, from_boat_id).
-    Caller must validate capacity and that both boats are on the trip.
-    Returns the number of passenger slots moved (sum of quantities).
+    Set boat_id to to_boat_id and item_type from type_mapping on all ticket items
+    for (trip_id, from_boat_id). Caller must validate per-type capacity on target
+    and that both boats are on the trip. Every source item_type must be a key in
+    type_mapping. Returns the number of passenger slots moved (sum of quantities).
     """
     items = get_ticket_items_by_trip_boat(
         session=session, trip_id=trip_id, boat_id=from_boat_id
     )
     total = 0
     for item in items:
+        target_type = type_mapping.get(item.item_type)
+        if target_type is None:
+            raise ValueError(
+                f"Ticket type '{item.item_type}' has no mapping to target boat type"
+            )
         item.boat_id = to_boat_id
+        item.item_type = target_type
         total += item.quantity
         session.add(item)
     if items:
@@ -96,6 +104,31 @@ def get_ticket_item_count_for_trip_boat(
         )
     ).first()
     return int(row) if row is not None else 0
+
+
+def get_ticket_item_count_per_type_for_trip_boat(
+    *, session: Session, trip_id: uuid.UUID, boat_id: uuid.UUID
+) -> dict[str, int]:
+    """
+    Total ticket quantity per item_type for this (trip_id, boat_id).
+    Counts all ticket items (trip_merchandise_id IS NULL) regardless of booking status.
+    Used for reassign UI and per-type capacity validation.
+    """
+    from sqlalchemy import func
+
+    rows = session.exec(
+        select(
+            BookingItem.item_type,
+            func.sum(BookingItem.quantity).label("total"),
+        )
+        .where(
+            BookingItem.trip_id == trip_id,
+            BookingItem.boat_id == boat_id,
+            BookingItem.trip_merchandise_id.is_(None),
+        )
+        .group_by(BookingItem.item_type)
+    ).all()
+    return {item_type: int(total) for item_type, total in rows}
 
 
 def get_paid_ticket_count_per_boat_for_trip(

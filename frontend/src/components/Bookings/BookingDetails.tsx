@@ -668,7 +668,6 @@ export default function BookingDetails({
             <Heading size="md" mb={3}>
               Mission, launch & trip
             </Heading>
-            <Separator mb={3} />
             <BookingExperienceDetails
               booking={booking}
               usePublicApis={false}

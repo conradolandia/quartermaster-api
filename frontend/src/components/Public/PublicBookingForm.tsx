@@ -411,7 +411,7 @@ const PublicBookingForm = ({
                   Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
                 </Heading>
                 <VStack gap={1} align="right" textAlign="right">
-                  <Heading size="2xl">Book Your Star Fleet Experiance</Heading>
+                  <Heading size="2xl">Book Your Star Fleet Experience</Heading>
                   <Text
                     fontSize="md"
                     color="whiteAlpha.800"
