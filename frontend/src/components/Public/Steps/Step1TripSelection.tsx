@@ -485,6 +485,69 @@ const Step1TripSelection = ({
         }) || [],
   })
 
+  const renderTripDetailsContent = () => {
+    const selectedTrip =
+      (directLinkTrip &&
+      bookingData.selectedTripId === directLinkTrip.id
+        ? directLinkTrip
+        : null) ??
+      allTrips?.data?.find(
+        (t: TripPublic) => t.id === bookingData.selectedTripId,
+      )
+    const selectedLaunch = selectedTrip
+      ? launches.find((l) => l.id === bookingData.selectedLaunchId)
+      : null
+    if (!selectedTrip) return null
+    return (
+      <VStack align="stretch" gap={2}>
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Type:</Text>
+          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Check-in:</Text>
+          <Text>
+            {formatTripTime(
+              selectedTrip.check_in_time,
+              selectedTrip.timezone,
+            )}
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Boarding:</Text>
+          <Text>
+            {formatTripTime(
+              selectedTrip.boarding_time,
+              selectedTrip.timezone,
+            )}
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontWeight="medium">Departure:</Text>
+          <Text>
+            {formatTripTime(
+              selectedTrip.departure_time,
+              selectedTrip.timezone,
+            )}
+          </Text>
+        </HStack>
+        {selectedTrip.type === "launch_viewing" &&
+          selectedLaunch?.launch_timestamp &&
+          selectedLaunch?.timezone && (
+            <HStack justify="space-between">
+              <Text fontWeight="medium">Launch time:</Text>
+              <Text>
+                {formatTripTime(
+                  selectedLaunch.launch_timestamp,
+                  selectedLaunch.timezone,
+                )}
+              </Text>
+            </HStack>
+          )}
+      </VStack>
+    )
+  }
+
   return (
     <VStack gap={6} align="stretch">
       {/* Trip Selection */}
@@ -677,89 +740,37 @@ const Step1TripSelection = ({
                 </Card.Root>
               )}
 
-            {/* Trip Details - show even when sold out so users can see schedule */}
-            {bookingData.selectedTripId && (
+            {/* Trip Details - when sold out, show alone so users can see schedule */}
+            {bookingData.selectedTripId && isTripSoldOut && (
               <Card.Root bg="bg.panel">
                 <Card.Body>
                   <Heading size="2xl" mb={3} fontWeight="200">
                     Trip Details
                   </Heading>
                   <Separator mb={3} />
-                  {(() => {
-                    const selectedTrip =
-                      (directLinkTrip &&
-                      bookingData.selectedTripId === directLinkTrip.id
-                        ? directLinkTrip
-                        : null) ??
-                      allTrips?.data?.find(
-                        (t: TripPublic) => t.id === bookingData.selectedTripId,
-                      )
-                    const selectedLaunch = selectedTrip
-                      ? launches.find(
-                          (l) => l.id === bookingData.selectedLaunchId,
-                        )
-                      : null
-                    if (!selectedTrip) return null
-                    return (
-                      <VStack align="stretch" gap={2}>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Type:</Text>
-                          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Check-in:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.check_in_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Boarding:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.boarding_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                        <HStack justify="space-between">
-                          <Text fontWeight="medium">Departure:</Text>
-                          <Text>
-                            {formatTripTime(
-                              selectedTrip.departure_time,
-                              selectedTrip.timezone,
-                            )}
-                          </Text>
-                        </HStack>
-                        {selectedTrip.type === "launch_viewing" &&
-                          selectedLaunch?.launch_timestamp &&
-                          selectedLaunch?.timezone && (
-                            <HStack justify="space-between">
-                              <Text fontWeight="medium">Launch time:</Text>
-                              <Text>
-                                {formatTripTime(
-                                  selectedLaunch.launch_timestamp,
-                                  selectedLaunch.timezone,
-                                )}
-                              </Text>
-                            </HStack>
-                          )}
-                      </VStack>
-                    )
-                  })()}
+                  {renderTripDetailsContent()}
                 </Card.Body>
               </Card.Root>
             )}
 
-            {/* Boat & departure and Ticket types - only show when trip is not sold out */}
+            {/* Trip Details, Boat & departure, Ticket types - three columns when trip selected and not sold out */}
             {bookingData.selectedTripId && !isTripSoldOut && (
               <Grid
-                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
+                templateColumns={{ base: "1fr", md: "1fr 1fr 1fr" }}
                 gap={4}
                 alignSelf="stretch"
               >
+                {/* Trip Details */}
+                <Card.Root bg="bg.panel">
+                  <Card.Body>
+                    <Heading size="2xl" mb={3} fontWeight="200">
+                      Trip Details
+                    </Heading>
+                    <Separator mb={3} />
+                    {renderTripDetailsContent()}
+                  </Card.Body>
+                </Card.Root>
+
                 {/* Boat & departure: Provider, Boat, Departure location */}
                 <Card.Root bg="bg.panel">
                   <Card.Body>
@@ -795,19 +806,17 @@ const Step1TripSelection = ({
                         )
                       }
                       return (
-                        <VStack align="stretch" gap={2}>
+                        <VStack align="stretch" gap={2} separator={<Separator mb={3} />}>
                           {boat.provider?.name && (
                             <HStack justify="space-between">
                               <Text fontWeight="medium">Provider:</Text>
                               <Text>{boat.provider.name}</Text>
                             </HStack>
                           )}
-                          <Separator mb={3} />
                           <HStack justify="space-between">
                             <Text fontWeight="medium">Boat:</Text>
                             <Text>{boat.name}</Text>
                           </HStack>
-                          <Separator mb={3} />
                           {boat.provider?.address && (
                             <HStack justify="space-between">
                               <Text fontWeight="medium">
