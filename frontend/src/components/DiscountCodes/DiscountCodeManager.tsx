@@ -24,6 +24,7 @@ import {
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
+import { getPublicOrigin } from "@/utils/url"
 
 type DiscountCodeManagerProps = {}
 
@@ -48,18 +49,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const { showSuccessToast } = useCustomToast()
 
   const buildBookingUrl = (code: string, isAccessCode: boolean) => {
-    let origin = window.location.origin
-    try {
-      const url = new URL(origin)
-      const adminPrefix = "admin."
-      if (url.hostname.startsWith(adminPrefix)) {
-        url.hostname = url.hostname.slice(adminPrefix.length)
-        origin = url.origin
-      }
-    } catch {
-      // keep current origin if URL parsing fails
-    }
-    return `${origin}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
+    return `${getPublicOrigin()}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
   }
 
   const copyBookingUrl = (code: string, isAccessCode: boolean) => {

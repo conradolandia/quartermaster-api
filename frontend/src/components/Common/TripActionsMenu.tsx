@@ -6,6 +6,7 @@ import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { getPublicOrigin } from "@/utils/url"
 import { ActionsMenu } from "../ui/actions-menu"
 import { MenuItem } from "../ui/menu"
 import DeleteTrip from "../Trips/DeleteTrip"
@@ -48,7 +49,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   }
 
   const copyBookingLink = () => {
-    const url = `${window.location.origin}/book?trip=${trip.id}`
+    const url = `${getPublicOrigin()}/book?trip=${trip.id}`
     void navigator.clipboard.writeText(url).then(() => {
       showSuccessToast("Booking link copied to clipboard")
     })

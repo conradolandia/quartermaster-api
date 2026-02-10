@@ -9,6 +9,7 @@ import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { getPublicOrigin } from "@/utils/url"
 import { ActionsMenu } from "../ui/actions-menu"
 import { MenuItem } from "../ui/menu"
 import DeleteLaunch from "../Launches/DeleteLaunch"
@@ -45,7 +46,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
   }
 
   const copyBookingLink = () => {
-    const url = `${window.location.origin}/book?launch=${launch.id}`
+    const url = `${getPublicOrigin()}/book?launch=${launch.id}`
     void navigator.clipboard.writeText(url).then(() => {
       showSuccessToast("Booking link copied to clipboard")
     })
