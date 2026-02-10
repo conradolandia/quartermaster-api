@@ -41,6 +41,12 @@ interface AddMerchandiseProps {
   onSuccess: () => void
 }
 
+/** Display "0" when value is missing/NaN so we never show NaN or blank. */
+function formatPriceValue(value: number | undefined | null): string {
+  if (value === undefined || value === null || Number.isNaN(value)) return "0"
+  return String(value)
+}
+
 export const AddMerchandise = ({
   isOpen,
   onClose,
@@ -224,12 +230,13 @@ export const AddMerchandise = ({
                   }}
                   render={({ field: { value, onChange } }) => (
                     <NumberInput.Root
-                      value={
-                        value === undefined || value === null
-                          ? ""
-                          : String(value)
-                      }
-                      onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
+                      value={formatPriceValue(value)}
+                      onValueChange={(e) => {
+                        const n = e.valueAsNumber
+                        onChange(
+                          n === undefined || Number.isNaN(n) ? 0 : n
+                        )
+                      }}
                       min={0}
                       step={0.01}
                       formatOptions={{ minimumFractionDigits: 2 }}
