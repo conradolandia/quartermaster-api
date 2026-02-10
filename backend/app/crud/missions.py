@@ -164,10 +164,10 @@ def get_missions_with_stats(
             )
             total_bookings = session.exec(bookings_statement).first() or 0
 
-            # Sum total sales for this mission's trips
+            # Sum total sales for this mission's trips (excluding tax)
             # Only include confirmed, checked_in, and completed bookings (actual revenue)
             sales_statement = (
-                select(func.sum(Booking.total_amount))
+                select(func.sum(Booking.total_amount - Booking.tax_amount))
                 .select_from(Booking)
                 .join(BookingItem, Booking.id == BookingItem.booking_id)
                 .where(BookingItem.trip_id.in_(trip_ids))

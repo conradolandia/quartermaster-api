@@ -418,7 +418,7 @@ class MissionPublic(MissionBase):
 class MissionWithStats(MissionPublic):
     trip_count: int = 0
     total_bookings: int = 0
-    total_sales: int = 0  # cents (sum of booking.total_amount)
+    total_sales: int = 0  # cents (sum of booking.total_amount - booking.tax_amount)
 
 
 class MissionsPublic(SQLModel):
@@ -674,7 +674,7 @@ class TripPublic(TripBase):
 
 class TripWithStats(TripPublic):
     total_bookings: int = 0
-    total_sales: int = 0  # cents (sum of booking.total_amount)
+    total_sales: int = 0  # cents (sum of booking.total_amount - booking.tax_amount)
 
 
 class TripsPublic(SQLModel):

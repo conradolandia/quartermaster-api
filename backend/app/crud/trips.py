@@ -109,9 +109,9 @@ def get_trips_with_stats(
             .where(Booking.booking_status.in_(["confirmed", "checked_in", "completed"]))
         )
         total_bookings = session.exec(bookings_statement).first() or 0
-        # Sum total sales for this trip (cents)
+        # Sum total sales for this trip (cents), excluding tax
         sales_statement = (
-            select(func.sum(Booking.total_amount))
+            select(func.sum(Booking.total_amount - Booking.tax_amount))
             .select_from(Booking)
             .join(BookingItem, Booking.id == BookingItem.booking_id)
             .where(BookingItem.trip_id == trip_id)
