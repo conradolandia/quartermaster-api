@@ -7,6 +7,7 @@ import {
   TripsService,
   TripBoatsService,
 } from "@/client"
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
@@ -984,7 +985,7 @@ const EditBooking = ({
                 <Field
                   invalid={!!errors.tip_amount}
                   errorText={errors.tip_amount?.message}
-                  label="Tip Amount"
+                  label={<StarFleetTipLabel />}
                 >
                   <Controller
                     name="tip_amount"

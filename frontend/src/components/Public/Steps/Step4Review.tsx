@@ -12,6 +12,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import type { MutableRefObject } from "react"
 
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { formatCents } from "@/utils"
 import {
   type BookingCreate,
@@ -587,7 +588,7 @@ const Step4Review = ({
 
               {bookingData.tip > 0 && (
                 <HStack justify="space-between">
-                  <Text>Tip:</Text>
+                  <StarFleetTipLabel showColon />
                   <Text>${formatCents(bookingData.tip)}</Text>
                 </HStack>
               )}

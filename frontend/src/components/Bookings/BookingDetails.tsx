@@ -25,6 +25,7 @@ import {
 
 import { BoatsService, BookingsService, TripsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import RefundBooking from "@/components/Bookings/RefundBooking"
 import RescheduleBooking from "@/components/Bookings/RescheduleBooking"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
@@ -608,7 +609,7 @@ export default function BookingDetails({
                     <Text>${formatCents(booking.tax_amount)}</Text>
                   </Flex>
                   <Flex justify="space-between">
-                    <Text>Tip:</Text>
+                    <StarFleetTipLabel showColon />
                     <Text>${formatCents(booking.tip_amount)}</Text>
                   </Flex>
                   <Separator />

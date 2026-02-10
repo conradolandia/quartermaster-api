@@ -47,7 +47,7 @@ const CSV_FIELDS = [
   { key: "subtotal", label: "Subtotal" },
   { key: "discount_amount", label: "Discount Amount" },
   { key: "tax_amount", label: "Tax Amount" },
-  { key: "tip_amount", label: "Tip Amount" },
+  { key: "tip_amount", label: "Star Fleet Tip" },
   { key: "created_at", label: "Created At" },
   { key: "trip_type", label: "Trip Type" },
   { key: "boat_name", label: "Boat Name" },

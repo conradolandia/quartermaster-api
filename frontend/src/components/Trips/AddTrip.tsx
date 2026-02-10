@@ -676,11 +676,17 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     width="100%"
                   >
                     <Text>Active</Text>
-                    <Switch
-                      checked={active}
-                      onCheckedChange={(details) => setActive(details.checked)}
-                      inputProps={{ id: "active" }}
-                    />
+                    <Box
+                      onClick={() => setActive(!active)}
+                      cursor={mutation.isPending ? "not-allowed" : "pointer"}
+                      opacity={mutation.isPending ? 0.5 : 1}
+                    >
+                      <Switch
+                        checked={active}
+                        disabled={mutation.isPending}
+                        inputProps={{ id: "active" }}
+                      />
+                    </Box>
                   </Flex>
                 </Field>
                 <Field
@@ -692,11 +698,17 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     width="100%"
                   >
                     <Text>Unlisted</Text>
-                    <Switch
-                      checked={unlisted}
-                      onCheckedChange={(details) => setUnlisted(details.checked)}
-                      inputProps={{ id: "unlisted" }}
-                    />
+                    <Box
+                      onClick={() => setUnlisted(!unlisted)}
+                      cursor={mutation.isPending ? "not-allowed" : "pointer"}
+                      opacity={mutation.isPending ? 0.5 : 1}
+                    >
+                      <Switch
+                        checked={unlisted}
+                        disabled={mutation.isPending}
+                        inputProps={{ id: "unlisted" }}
+                      />
+                    </Box>
                   </Flex>
                 </Field>
               </VStack>

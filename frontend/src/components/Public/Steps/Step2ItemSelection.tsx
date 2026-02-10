@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { FiAlertCircle, FiTrash2 } from "react-icons/fi"
 
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import {
   DiscountCodesService,
   JurisdictionsService,
@@ -822,7 +823,7 @@ const Step2ItemSelection = ({
                   <HStack justify="space-between">
                     {/* Suggested tip amounts */}
                     <HStack gap={2}>
-                      <Text>Tip:</Text>
+                      <StarFleetTipLabel />
                       {[10, 15, 20, 25].map((percentage) => {
                         const currentSubtotal =
                           bookingData.selectedItems.reduce((sum, item) => {
@@ -855,7 +856,7 @@ const Step2ItemSelection = ({
                         variant="outline"
                         onClick={() => setTip(0)}
                       >
-                        No tip
+                        No Star Fleet tip
                       </Button>
                     </HStack>
                     <NumberInput.Root

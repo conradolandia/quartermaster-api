@@ -51,7 +51,12 @@ def get_effective_capacity_per_ticket_type(
     all_types = set(by_type_boat_cap) | set(by_type_trip_cap)
     result: dict[str, int] = {}
     for ticket_type in all_types:
-        cap = by_type_trip_cap.get(ticket_type) or by_type_boat_cap.get(ticket_type)
+        # Use trip override when present (including 0); else boat default
+        cap = (
+            by_type_trip_cap[ticket_type]
+            if ticket_type in by_type_trip_cap
+            else by_type_boat_cap.get(ticket_type)
+        )
         if cap is not None:
             result[ticket_type] = cap
     return result

@@ -17,6 +17,7 @@ import type { Resolver } from "react-hook-form"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { formatCents } from "@/utils"
@@ -357,7 +358,7 @@ const Step3CustomerInfo = ({
 
             {bookingData.tip > 0 && (
               <HStack justify="space-between">
-                <Text fontWeight="bold">Tip:</Text>
+                <StarFleetTipLabel showColon />
                 <Text fontWeight="medium">${formatCents(bookingData.tip)}</Text>
               </HStack>
             )}

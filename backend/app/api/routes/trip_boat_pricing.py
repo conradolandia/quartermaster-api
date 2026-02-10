@@ -196,11 +196,13 @@ def update_trip_boat_pricing(
         if val is not None:
             by_trip[key] = val
     all_types = set(by_boat) | set(by_trip)
-    total = sum(
-        by_trip.get(t) or by_boat.get(t) or 0
-        for t in all_types
-        if (by_trip.get(t) or by_boat.get(t)) is not None
-    )
+
+    def _eff_cap(
+        t: str,
+    ):  # trip override (including 0) takes precedence over boat default
+        return by_trip[t] if t in by_trip else by_boat.get(t)
+
+    total = sum(_eff_cap(t) for t in all_types if _eff_cap(t) is not None)
     if total > effective_max:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

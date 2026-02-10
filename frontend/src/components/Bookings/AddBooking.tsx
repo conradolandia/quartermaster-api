@@ -32,6 +32,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { formatCents } from "@/utils"
 
 // Custom type for form with optional items
@@ -1037,7 +1038,10 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   <Text>${formatCents(watch("tax_amount"))}</Text>
                 </HStack>
                 <HStack justify="space-between" width="100%">
-                  <Text>Tip ($):</Text>
+                  <HStack gap={1}>
+                    <StarFleetTipLabel showColon />
+                    <Text as="span">($)</Text>
+                  </HStack>
                   <Input
                     type="number"
                     step="0.01"

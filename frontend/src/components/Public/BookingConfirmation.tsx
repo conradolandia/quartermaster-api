@@ -17,6 +17,7 @@ import { FiMail, FiPrinter } from "react-icons/fi"
 
 import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
@@ -233,7 +234,7 @@ const BookingConfirmation = ({
                 </HStack>
                 {booking.tip_amount > 0 && (
                   <HStack justify="space-between">
-                    <Text fontWeight="medium">Tip:</Text>
+                    <StarFleetTipLabel showColon />
                     <Text>${formatCents(booking.tip_amount)}</Text>
                   </HStack>
                 )}
