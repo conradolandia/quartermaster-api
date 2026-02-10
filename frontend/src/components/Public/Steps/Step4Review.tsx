@@ -132,8 +132,16 @@ const Step4Review = ({
           )
           bookingToUse = updated
         }
+        const totalCents = bookingToUse.total_amount ?? 0
+        if (bookingStatus === "draft" && totalCents < 50) {
+          await BookingsService.confirmFreeBooking({
+            confirmationCode: code,
+          })
+          navigate({ to: "/bookings", search: { code } })
+          return
+        }
         const paymentData =
-          status === "draft"
+          bookingStatus === "draft"
             ? await BookingsService.initializePayment({
                 confirmationCode: code,
               })
@@ -192,13 +200,23 @@ const Step4Review = ({
       const booking = await BookingsService.createBooking({
         requestBody: bookingCreate,
       })
+      if (bookingData.total < 50) {
+        await BookingsService.confirmFreeBooking({
+          confirmationCode: booking.confirmation_code,
+        })
+        return { booking, free: true as const }
+      }
       const paymentData = await BookingsService.initializePayment({
         confirmationCode: booking.confirmation_code,
       })
       return { booking, paymentData }
     },
-    onSuccess: ({ booking, paymentData }) => {
-      onBookingReady({ booking, paymentData })
+    onSuccess: (data) => {
+      if ("free" in data && data.free) {
+        navigate({ to: "/bookings", search: { code: data.booking.confirmation_code } })
+        return
+      }
+      onBookingReady({ booking: data.booking, paymentData: data.paymentData! })
       // Do not navigate here: parent state (bookingResult) is async; navigating now would
       // re-render with urlCode set and bookingResult null, triggering loadByCode and "Preparing...".
       // Code is added to URL in the effect below when we have bookingResult.
@@ -286,17 +304,15 @@ const Step4Review = ({
       createBookingMutation.isPending
     )
       return
-    if (bookingData.total > 0) {
-      const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)
-      if (!parsed.success) {
-        setCustomerInfoInvalid(true)
-        return
-      }
-      setCustomerInfoInvalid(false)
-      createStartedRef.current = true
-      createBookingStartedRef.current = true
-      createBookingMutation.mutate({ bookingData })
+    const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)
+    if (!parsed.success) {
+      setCustomerInfoInvalid(true)
+      return
     }
+    setCustomerInfoInvalid(false)
+    createStartedRef.current = true
+    createBookingStartedRef.current = true
+    createBookingMutation.mutate({ bookingData })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- urlCode, bookingResult drive flow; re-validate when customerInfo changes (e.g. user returned from Step 3)
   }, [urlCode, bookingResult, bookingData.customerInfo])
 
@@ -332,6 +348,7 @@ const Step4Review = ({
   // Once we have bookingResult (from create or loadByCode), show payment form even if
   // something is still pending (e.g. loadByCode was triggered by URL update before parent re-rendered).
   if (isPending && !bookingResult) {
+    const isFree = bookingData.total < 50
     return (
       <VStack gap={6} align="stretch">
         <Box
@@ -343,10 +360,12 @@ const Step4Review = ({
           textAlign="center"
         >
           <Text color="blue.800" fontWeight="medium">
-            Preparing your booking...
+            {isFree ? "Confirming your free booking..." : "Preparing your booking..."}
           </Text>
           <Text color="blue.700" fontSize="sm" mt={2}>
-            Please wait while we set up your payment.
+            {isFree
+              ? "Please wait."
+              : "Please wait while we set up your payment."}
           </Text>
         </Box>
       </VStack>

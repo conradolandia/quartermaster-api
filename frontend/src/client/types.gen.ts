@@ -541,6 +541,7 @@ export type NewPassword = {
 export type PaymentStatus =
   | "pending_payment"
   | "paid"
+  | "free"
   | "failed"
   | "refunded"
   | "partially_refunded"
@@ -1069,6 +1070,14 @@ export type BookingsResumePaymentData = {
 }
 
 export type BookingsResumePaymentResponse = {
+  [key: string]: unknown
+}
+
+export type BookingsConfirmFreeBookingData = {
+  confirmationCode: string
+}
+
+export type BookingsConfirmFreeBookingResponse = {
   [key: string]: unknown
 }
 

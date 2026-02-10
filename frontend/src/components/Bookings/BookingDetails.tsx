@@ -39,6 +39,7 @@ import {
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import {
+  formatPaymentStatusLabel,
   getBookingStatusColor,
   getPaymentStatusColor,
   getRefundedCents,
@@ -406,7 +407,8 @@ export default function BookingDetails({
                       <>
                         <Text fontWeight="bold">Payment:</Text>
                         {booking.payment_status === "refunded" ||
-                        getRefundedCents(booking) >= (booking.total_amount ?? 0) ? (
+                        ((booking.total_amount ?? 0) > 0 &&
+                          getRefundedCents(booking) >= (booking.total_amount ?? 0)) ? (
                           <Badge colorPalette="red" textTransform="uppercase">
                             Fully refunded
                           </Badge>
@@ -432,9 +434,7 @@ export default function BookingDetails({
                               booking.payment_status,
                             )}
                           >
-                            {(booking.payment_status || "")
-                              .replace("_", " ")
-                              .toUpperCase()}
+                            {formatPaymentStatusLabel(booking.payment_status)}
                           </Badge>
                         )}
                       </>

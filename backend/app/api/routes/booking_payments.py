@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.api import deps
+from app.api.routes.booking_utils import get_booking_with_items
 from app.core.stripe import create_payment_intent, retrieve_payment_intent
 from app.models import Booking, BookingStatus, PaymentStatus
 
@@ -54,6 +55,13 @@ def initialize_payment(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Payment already initialized for this booking",
+            )
+
+        # Free and sub-minimum must use confirm-free-booking; Stripe requires amount >= 50 cents
+        if booking.total_amount < 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Use confirm-free-booking for free or sub-minimum (under 50 cents) orders",
             )
 
         # Booking total_amount is already in cents
@@ -140,4 +148,50 @@ def resume_payment(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to resume payment",
+        )
+
+
+@router.post("/{confirmation_code}/confirm-free-booking")
+def confirm_free_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    confirmation_code: str,
+) -> dict:
+    """
+    Confirm a free or sub-minimum (total_amount < 50 cents) draft booking without payment.
+    Sets booking to confirmed, sends confirmation email, returns success.
+    """
+    from app.api.routes.payments import send_booking_confirmation_email
+
+    try:
+        booking = get_booking_with_items(session, confirmation_code)
+
+        if booking.booking_status != BookingStatus.draft:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot confirm free booking with status '{booking.booking_status}'",
+            )
+
+        if booking.total_amount >= 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Confirm-free-booking is only for zero-total or sub-minimum (under 50 cents) bookings",
+            )
+
+        booking.booking_status = BookingStatus.confirmed
+        booking.payment_status = PaymentStatus.free
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
+
+        send_booking_confirmation_email(session, booking)
+
+        return {"status": "confirmed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error confirming free booking {confirmation_code}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to confirm free booking",
         )

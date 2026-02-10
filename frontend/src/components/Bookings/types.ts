@@ -111,6 +111,8 @@ export function formatPaymentStatusLabel(
       return "PENDING PAYMENT"
     case "paid":
       return "PAID"
+    case "free":
+      return "FREE"
     case "failed":
       return "FAILED"
     case "refunded":
@@ -127,6 +129,7 @@ export const getPaymentStatusColor = (status: string | null | undefined) => {
   if (!status) return "gray"
   switch (status.toLowerCase()) {
     case "paid":
+    case "free":
       return "green"
     case "pending_payment":
       return "yellow"
@@ -145,6 +148,7 @@ export const getStatusColor = (status: string) => {
   const paymentOnly = [
     "pending_payment",
     "paid",
+    "free",
     "failed",
     "refunded",
     "partially_refunded",

@@ -232,6 +232,7 @@ const EditBooking = ({
     { value: "", label: "(none)" },
     { value: "pending_payment", label: "Pending Payment" },
     { value: "paid", label: "Paid" },
+    { value: "free", label: "Free" },
     { value: "failed", label: "Failed" },
     { value: "refunded", label: "Refunded" },
     { value: "partially_refunded", label: "Partially Refunded" },

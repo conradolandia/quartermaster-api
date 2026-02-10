@@ -9,7 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { BookingPublic } from "@/client"
 import Logo from "/assets/images/qm-logo.svg"
@@ -179,12 +179,12 @@ const PublicBookingForm = ({
     discount_code_id: null,
   })
 
-  const updateBookingData = (updates: Partial<BookingStepData>) => {
+  const updateBookingData = useCallback((updates: Partial<BookingStepData>) => {
     setBookingData((prev) => ({
       ...prev,
       ...updates,
     }))
-  }
+  }, [])
 
   // Handle URL parameters and initial discount code from AccessGate
   useEffect(() => {

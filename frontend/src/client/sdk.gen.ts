@@ -64,6 +64,8 @@ import type {
   BookingsInitializePaymentResponse,
   BookingsResumePaymentData,
   BookingsResumePaymentResponse,
+  BookingsConfirmFreeBookingData,
+  BookingsConfirmFreeBookingResponse,
   DiscountCodesCreateDiscountCodeData,
   DiscountCodesCreateDiscountCodeResponse,
   DiscountCodesListDiscountCodesData,
@@ -1068,6 +1070,30 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/bookings/{confirmation_code}/resume-payment",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Confirm Free Booking
+   * Confirm a free (total_amount == 0) draft booking without payment.
+   * Sets booking to confirmed, sends confirmation email, returns success.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static confirmFreeBooking(
+    data: BookingsConfirmFreeBookingData,
+  ): CancelablePromise<BookingsConfirmFreeBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/{confirmation_code}/confirm-free-booking",
       path: {
         confirmation_code: data.confirmationCode,
       },

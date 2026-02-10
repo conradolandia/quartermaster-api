@@ -70,6 +70,7 @@ const BOOKING_STATUSES = [
 const PAYMENT_STATUSES = [
   "pending_payment",
   "paid",
+  "free",
   "failed",
   "refunded",
   "partially_refunded",

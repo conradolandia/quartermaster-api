@@ -1153,6 +1153,7 @@ class BookingItemPublic(BookingItemBase):
 class PaymentStatus(str, enum.Enum):
     pending_payment = "pending_payment"
     paid = "paid"
+    free = "free"
     failed = "failed"
     refunded = "refunded"
     partially_refunded = "partially_refunded"
