@@ -1,5 +1,5 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
 import AccessGate from "@/components/Public/AccessGate"
@@ -22,9 +22,19 @@ export const Route = createFileRoute("/book")({
 function PublicBookingPage() {
   const search = useSearch({ from: "/book" })
   const [discountCodeId, setDiscountCodeId] = useState<string | null>(null)
-
-  // Use access code from URL if provided, otherwise check for discount code
-  const initialAccessCode = search.access || search.discount
+  // Freeze the code used for the gate on first load so that later URL updates (e.g. applying
+  // a discount on Step 2) do not retrigger the gate and remount the form at step 1.
+  const initialAccessCodeRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (initialAccessCodeRef.current === null) {
+      initialAccessCodeRef.current =
+        search.access || search.discount || ""
+    }
+  }, [search.access, search.discount])
+  const initialAccessCode =
+    initialAccessCodeRef.current === null
+      ? (search.access || search.discount)
+      : (initialAccessCodeRef.current || undefined)
 
   const handleAccessGranted = (
     _accessCodeValue: string | null,
