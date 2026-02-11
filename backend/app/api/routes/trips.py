@@ -824,7 +824,7 @@ def read_public_trips(
             )
             continue
 
-        # Get launch to check if launch is in the past
+        # Get launch (required for mission/boat context; bookability uses trip.departure_time)
         launch = crud.get_launch(session=session, launch_id=mission.launch_id)
         if not launch:
             logger.info(
@@ -832,13 +832,9 @@ def read_public_trips(
             )
             continue
 
-        # Filter out trips for past launches (ensure timezone-aware for comparison)
-        launch_time = ensure_aware(launch.launch_timestamp)
-        if launch_time < now:
-            logger.info(
-                f"Trip {trip_id} ({trip_name}) filtered out: launch is in the past"
-            )
-            continue
+        # Bookability is determined by trip.departure_time (already filtered above).
+        # Do not filter by launch_timestamp: a trip can have future departure even if
+        # the launch was rescheduled and the stored launch_timestamp is outdated.
 
         # Effective mode: before sales_open_at, one level more restrictive
         # (so early bird codes work before general sale)
