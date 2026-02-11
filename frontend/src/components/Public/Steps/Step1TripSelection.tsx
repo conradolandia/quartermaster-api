@@ -295,18 +295,6 @@ const Step1TripSelection = ({
     !isTripSoldOut &&
     (bookingData.selectedBoatId || availableBoats.length === 1)
 
-  // Launches in the future, sorted by launch_timestamp (soonest first)
-  const sortedLaunches = React.useMemo(() => {
-    const now = Date.now()
-    return [...launches]
-      .filter((a) => new Date(a.launch_timestamp).getTime() >= now)
-      .sort(
-        (a, b) =>
-          new Date(a.launch_timestamp).getTime() -
-          new Date(b.launch_timestamp).getTime(),
-      )
-  }, [launches])
-
   // Only show launches that have at least one trip visible to the user (in allTrips or direct-link trip)
   const launchIdsWithVisibleTrips = React.useMemo(() => {
     const ids = new Set<string>()
@@ -321,10 +309,17 @@ const Step1TripSelection = ({
     return ids
   }, [allTrips?.data, directLinkTrip, missions])
 
-  const visibleLaunches = React.useMemo(
-    () => sortedLaunches.filter((l) => launchIdsWithVisibleTrips.has(l.id)),
-    [sortedLaunches, launchIdsWithVisibleTrips],
-  )
+  // Show launches that have visible trips. Do not filter by launch_timestamp: a launch
+  // may have a past timestamp (rescheduled) but still have missions with trips that have future departure.
+  const visibleLaunches = React.useMemo(() => {
+    return [...launches]
+      .filter((l) => launchIdsWithVisibleTrips.has(l.id))
+      .sort(
+        (a, b) =>
+          new Date(a.launch_timestamp).getTime() -
+          new Date(b.launch_timestamp).getTime(),
+      )
+  }, [launches, launchIdsWithVisibleTrips])
 
   // If the selected launch has passed or has no visible trips, clear launch/trip/boat and notify (defer to avoid flushSync during render)
   React.useEffect(() => {
