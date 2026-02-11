@@ -954,12 +954,9 @@ def read_public_trip(
             detail="Launch not found",
         )
 
-    launch_time = ensure_aware(launch.launch_timestamp)
-    if launch_time < now:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Trip with ID {trip_id} is for a launch that has already occurred",
-        )
+    # Bookability is determined by trip.departure_time (already checked above).
+    # Do not filter by launch_timestamp: a trip can have future departure even if
+    # the launch was rescheduled and the stored launch_timestamp is outdated.
 
     # Effective mode: before sales_open_at, one level more restrictive
     booking_mode = effective_booking_mode(
