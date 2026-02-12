@@ -36,11 +36,7 @@ from app.models import (
     TripMerchandise,
     User,
 )
-from app.services.date_validator import (
-    effective_booking_mode,
-    is_booking_past,
-    is_trip_past,
-)
+from app.services.date_validator import effective_booking_mode
 from app.utils import (
     generate_booking_cancelled_email,
     generate_booking_confirmation_email,
@@ -116,13 +112,6 @@ def _create_booking_impl(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Trip {item.trip_id} is not active",
-            )
-
-        # Validate trip has not already departed
-        if is_trip_past(trip):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot create booking: Trip {item.trip_id} has already departed",
             )
 
         # Ensure all trips belong to the same mission
@@ -976,29 +965,6 @@ def delete_booking(
     )
 
 
-def ensure_booking_update_allowed(
-    *,
-    booking: Booking,
-    session: Session,
-    allow_past_edit: bool = False,
-) -> None:
-    """
-    Raise if the booking cannot be updated (e.g. trip departed and past edits not allowed).
-    When allow_past_edit is True, past bookings may be updated and a log line is written.
-    """
-    if not is_booking_past(booking, session):
-        return
-    if not allow_past_edit:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update booking for a trip that has already departed",
-        )
-    logger.info(
-        "Updating booking %s for a trip that has already departed (override)",
-        booking.id,
-    )
-
-
 @router.patch(
     "/id/{booking_id}",
     response_model=BookingPublic,
@@ -1037,13 +1003,6 @@ def update_booking(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot update a checked-in booking",
             )
-
-        # Admin endpoint: allow editing past bookings (refunds, corrections)
-        ensure_booking_update_allowed(
-            booking=booking,
-            session=session,
-            allow_past_edit=True,
-        )
 
         # 1. Enforce business rules
         # Disallow updates to items (raw) via PATCH; item_quantity_updates handled below
@@ -1470,12 +1429,6 @@ def update_booking_item(
             detail="Cannot change ticket type for a checked-in booking",
         )
 
-    ensure_booking_update_allowed(
-        booking=booking,
-        session=session,
-        allow_past_edit=True,
-    )
-
     new_boat_id = update_data.get("boat_id")
     if new_boat_id is not None and new_boat_id != item.boat_id:
         trip_boats = crud.get_trip_boats_by_trip(
@@ -1605,11 +1558,6 @@ def reschedule_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot reschedule a checked-in booking",
         )
-    ensure_booking_update_allowed(
-        booking=booking,
-        session=session,
-        allow_past_edit=True,
-    )
 
     items = get_booking_items_in_display_order(session, booking.id)
     ticket_items = [i for i in items if i.trip_merchandise_id is None]
@@ -1630,12 +1578,6 @@ def reschedule_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Target trip is not active",
         )
-    if is_trip_past(target_trip):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Target trip has already departed",
-        )
-
     first_trip = session.get(Trip, ticket_items[0].trip_id)
     if not first_trip:
         raise HTTPException(

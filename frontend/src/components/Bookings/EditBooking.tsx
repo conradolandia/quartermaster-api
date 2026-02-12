@@ -21,7 +21,7 @@ import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
-import { formatDateTimeInLocationTz, handleError, parseApiDate } from "@/utils"
+import { formatDateTimeInLocationTz, handleError } from "@/utils"
 import {
   Badge,
   Box,
@@ -67,15 +67,6 @@ const EditBooking = ({
     queryKey: ["trips"],
     queryFn: () => TripsService.readTrips({ limit: 100 }),
   })
-
-  // Find the trip for this booking to check if it's in the past
-  const bookingTrip = tripsData?.data?.find((t: any) =>
-    booking.items?.some((item: any) => item.trip_id === t.id),
-  )
-  const tripDeparted =
-    bookingTrip && parseApiDate(bookingTrip.departure_time) < new Date()
-  // Block editing non-draft bookings for departed trips; drafts (e.g. duplicates) stay editable
-  const isPast = tripDeparted && booking.booking_status !== "draft"
 
   // Get boats for display
   const { data: boatsData } = useQuery({
@@ -389,14 +380,7 @@ const EditBooking = ({
             </DialogTitle>
           </DialogHeader>
           <DialogBody>
-            {isPast && (
-              <Text mb={4} color="orange.500">
-                This booking's trip has already departed and cannot be edited.
-                Contact a system administrator if you need to make changes to
-                past bookings.
-              </Text>
-            )}
-            {!isPast && <Text mb={4}>Update booking information.</Text>}
+            <Text mb={4}>Update booking information.</Text>
             <VStack gap={4}>
               <Field
                 invalid={!!errors.user_name}
@@ -412,7 +396,6 @@ const EditBooking = ({
                     },
                   })}
                   placeholder="Customer name"
-                  disabled={isPast}
                 />
               </Field>
 
@@ -431,7 +414,6 @@ const EditBooking = ({
                     },
                   })}
                   placeholder="customer@example.com"
-                  disabled={isPast}
                 />
               </Field>
 
@@ -449,7 +431,6 @@ const EditBooking = ({
                     },
                   })}
                   placeholder="Phone number"
-                  disabled={isPast}
                 />
               </Field>
 
@@ -468,7 +449,6 @@ const EditBooking = ({
                   })}
                   placeholder="Billing address"
                   rows={3}
-                  disabled={isPast}
                 />
               </Field>
 
@@ -518,7 +498,6 @@ const EditBooking = ({
                                     {(() => {
                                       const boats = boatsByTripId[item.trip_id]
                                       const canChangeBoat =
-                                        !isPast &&
                                         booking.booking_status !== "checked_in"
                                       if (!boats?.length) {
                                         return (
@@ -560,7 +539,6 @@ const EditBooking = ({
                                       const key = `${item.trip_id}/${item.boat_id}`
                                       const options = pricingByKey[key]
                                       const canChangeType =
-                                        !isPast &&
                                         booking.booking_status !== "checked_in"
                                       if (!options?.length) {
                                         return (
@@ -621,7 +599,6 @@ const EditBooking = ({
                                           type="number"
                                           min={0}
                                           w="16"
-                                          disabled={isPast}
                                           value={
                                             field.value === undefined ||
                                             field.value === null
@@ -734,7 +711,6 @@ const EditBooking = ({
                                           type="number"
                                           min={0}
                                           w="16"
-                                          disabled={isPast}
                                           value={
                                             field.value === undefined ||
                                             field.value === null
@@ -811,7 +787,6 @@ const EditBooking = ({
                     <NativeSelect
                       {...field}
                       value={field.value || ""}
-                      disabled={isPast}
                     >
                       {bookingStatusOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -834,7 +809,6 @@ const EditBooking = ({
                     <NativeSelect
                       {...field}
                       value={field.value ?? ""}
-                      disabled={isPast}
                     >
                       {paymentStatusOptions.map((option) => (
                         <option key={option.value || "none"} value={option.value}>
@@ -890,7 +864,6 @@ const EditBooking = ({
                   })}
                   placeholder="Special Requests"
                   rows={3}
-                  disabled={isPast}
                 />
               </Field>
 
@@ -939,7 +912,6 @@ const EditBooking = ({
                           )
                         }
                         placeholder="0.00"
-                        disabled={isPast}
                       />
                     )}
                   />
@@ -974,7 +946,6 @@ const EditBooking = ({
                           )
                         }
                         placeholder="0.00"
-                        disabled={isPast}
                       />
                     )}
                   />
@@ -1011,7 +982,6 @@ const EditBooking = ({
                           )
                         }
                         placeholder="0.00"
-                        disabled={isPast}
                       />
                     )}
                   />
@@ -1048,7 +1018,6 @@ const EditBooking = ({
                       onCheckedChange={(details) =>
                         field.onChange(details.checked)
                       }
-                      disabled={isPast}
                     >
                       Send launch updates
                     </Checkbox>
@@ -1066,7 +1035,7 @@ const EditBooking = ({
                 variant="solid"
                 type="submit"
                 loading={isSubmitting}
-                disabled={isSubmitting || isPast}
+                disabled={isSubmitting}
               >
                 Save
               </Button>

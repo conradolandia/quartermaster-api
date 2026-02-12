@@ -1233,7 +1233,6 @@ export type LaunchesReadLaunchData = {
 export type LaunchesReadLaunchResponse = LaunchPublic
 
 export type LaunchesUpdateLaunchData = {
-  allowPastEdit?: boolean
   launchId: string
   requestBody: LaunchUpdate
 }
@@ -1443,7 +1442,6 @@ export type MissionsReadMissionData = {
 export type MissionsReadMissionResponse = MissionPublic
 
 export type MissionsUpdateMissionData = {
-  allowPastEdit?: boolean
   missionId: string
   requestBody: MissionUpdate
 }
@@ -1717,7 +1715,6 @@ export type TripsReadTripData = {
 export type TripsReadTripResponse = TripPublic
 
 export type TripsUpdateTripData = {
-  allowPastEdit?: boolean
   requestBody: TripUpdate
   tripId: string
 }

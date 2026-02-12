@@ -1600,7 +1600,6 @@ export class LaunchesService {
    * @param data The data for the request.
    * @param data.launchId
    * @param data.requestBody
-   * @param data.allowPastEdit
    * @returns LaunchPublic Successful Response
    * @throws ApiError
    */
@@ -1612,9 +1611,6 @@ export class LaunchesService {
       url: "/api/v1/launches/{launch_id}",
       path: {
         launch_id: data.launchId,
-      },
-      query: {
-        allow_past_edit: data.allowPastEdit,
       },
       body: data.requestBody,
       mediaType: "application/json",
@@ -2395,7 +2391,6 @@ export class MissionsService {
    * @param data The data for the request.
    * @param data.missionId
    * @param data.requestBody
-   * @param data.allowPastEdit
    * @returns MissionPublic Successful Response
    * @throws ApiError
    */
@@ -2407,9 +2402,6 @@ export class MissionsService {
       url: "/api/v1/missions/{mission_id}",
       path: {
         mission_id: data.missionId,
-      },
-      query: {
-        allow_past_edit: data.allowPastEdit,
       },
       body: data.requestBody,
       mediaType: "application/json",
@@ -3415,7 +3407,6 @@ export class TripsService {
    * @param data The data for the request.
    * @param data.tripId
    * @param data.requestBody
-   * @param data.allowPastEdit
    * @returns TripPublic Successful Response
    * @throws ApiError
    */
@@ -3427,9 +3418,6 @@ export class TripsService {
       url: "/api/v1/trips/{trip_id}",
       path: {
         trip_id: data.tripId,
-      },
-      query: {
-        allow_past_edit: data.allowPastEdit,
       },
       body: data.requestBody,
       mediaType: "application/json",

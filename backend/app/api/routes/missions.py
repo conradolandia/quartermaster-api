@@ -15,7 +15,6 @@ from app.models import (
     MissionsWithStatsPublic,
     MissionUpdate,
 )
-from app.services.date_validator import is_mission_past
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
 
@@ -144,7 +143,6 @@ def update_mission(
     session: Session = Depends(deps.get_db),
     mission_id: uuid.UUID,
     mission_in: MissionUpdate,
-    allow_past_edit: bool = False,
 ) -> Any:
     """
     Update a mission.
@@ -167,13 +165,6 @@ def update_mission(
             detail=f"Launch with ID {launch_id} not found",
         )
 
-    # Check if mission's launch is in the past and prevent editing unless override is allowed
-    if is_mission_past(mission, session) and not allow_past_edit:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update mission: This mission's launch has already occurred. Use allow_past_edit=true to override",
-        )
-
     # If launch_id is being updated, verify that the new launch exists
     if mission_in.launch_id is not None:
         new_launch = crud.get_launch(session=session, launch_id=mission_in.launch_id)
@@ -185,16 +176,6 @@ def update_mission(
         launch = new_launch
 
     mission = crud.update_mission(session=session, db_obj=mission, obj_in=mission_in)
-
-    # Log override action if past edit was allowed
-    if allow_past_edit and is_mission_past(mission, session):
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            f"Superuser override: Mission {mission_id} was edited despite launch being in the past"
-        )
-
     return _mission_to_public(session, mission)
 
 

@@ -21,7 +21,6 @@ from app.models import (
     Mission,
     Trip,
 )
-from app.services.date_validator import is_launch_past
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
 from app.utils import generate_launch_update_email, send_email
@@ -80,15 +79,6 @@ def create_launch(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Location with ID {launch_in.location_id} not found",
-        )
-
-    # Validate launch timestamp is not in the past
-    # Create a temporary launch object to check if it's past
-    temp_launch = Launch.model_validate(launch_in)
-    if is_launch_past(temp_launch):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot create launch: Launch timestamp cannot be in the past",
         )
 
     launch = crud.create_launch(session=session, launch_in=launch_in)
@@ -160,7 +150,6 @@ def update_launch(
     session: Session = Depends(deps.get_db),
     launch_id: uuid.UUID,
     launch_in: LaunchUpdate,
-    allow_past_edit: bool = False,
 ) -> Any:
     """
     Update a launch.
@@ -172,24 +161,6 @@ def update_launch(
             detail=f"Launch with ID {launch_id} not found",
         )
 
-    # Check if launch is in the past and prevent editing unless override is allowed
-    if is_launch_past(launch) and not allow_past_edit:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update launch: This launch has already occurred. Use allow_past_edit=true to override",
-        )
-
-    # If launch_timestamp is being updated, validate it's not in the past (unless override)
-    if launch_in.launch_timestamp is not None:
-        temp_launch = Launch.model_validate(
-            {**launch.model_dump(), "launch_timestamp": launch_in.launch_timestamp}
-        )
-        if is_launch_past(temp_launch) and not allow_past_edit:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot update launch: Launch timestamp cannot be in the past. Use allow_past_edit=true to override",
-            )
-
     # If location_id is being updated, verify that the new location exists
     if launch_in.location_id is not None:
         location = crud.get_location(session=session, location_id=launch_in.location_id)
@@ -200,13 +171,6 @@ def update_launch(
             )
 
     launch = crud.update_launch(session=session, db_obj=launch, obj_in=launch_in)
-
-    # Log override action if past edit was allowed
-    if allow_past_edit and is_launch_past(launch):
-        logger.warning(
-            f"Superuser override: Launch {launch_id} was edited despite being in the past"
-        )
-
     return _launch_to_public(session, launch)
 
 

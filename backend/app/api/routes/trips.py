@@ -33,7 +33,6 @@ from app.models import (
 from app.services.date_validator import (
     effective_booking_mode,
     ensure_aware,
-    is_trip_past_editable_window,
     validate_trip_dates,
     validate_trip_time_ordering,
 )
@@ -469,7 +468,6 @@ def update_trip(
     session: Session = Depends(deps.get_db),
     trip_id: uuid.UUID,
     trip_in: TripUpdate,
-    allow_past_edit: bool = False,
 ) -> Any:
     """
     Update a trip.
@@ -479,13 +477,6 @@ def update_trip(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
-        )
-
-    # Block editing after the 24h post-departure window unless override
-    if is_trip_past_editable_window(trip) and not allow_past_edit:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update trip: Trip is no longer editable (more than 24 hours after departure). Use allow_past_edit=true to override",
         )
 
     # Get mission (either existing or new if being updated)
@@ -558,13 +549,6 @@ def update_trip(
             )
 
     trip = crud.update_trip(session=session, db_obj=trip, obj_in=update_data)
-
-    # Log override action when editing after the normal editable window
-    if allow_past_edit and is_trip_past_editable_window(trip):
-        logger.warning(
-            f"Superuser override: Trip {trip_id} was edited after the 24h post-departure window"
-        )
-
     return _trip_to_public(session, trip)
 
 
