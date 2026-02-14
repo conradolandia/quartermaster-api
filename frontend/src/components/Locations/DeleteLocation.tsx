@@ -4,8 +4,9 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { LocationsService } from "@/client"
+import { type ApiError, LocationsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -20,7 +21,7 @@ import {
 const DeleteLocation = ({ id }: { id: string }) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showSuccessToast } = useCustomToast()
   const {
     handleSubmit,
     formState: { isSubmitting },
@@ -36,8 +37,8 @@ const DeleteLocation = ({ id }: { id: string }) => {
       showSuccessToast("The location was deleted successfully")
       setIsOpen(false)
     },
-    onError: () => {
-      showErrorToast("An error occurred while deleting the location")
+    onError: (err: ApiError) => {
+      handleError(err)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] })
@@ -73,6 +74,10 @@ const DeleteLocation = ({ id }: { id: string }) => {
             <Text mb={4}>
               This location will be permanently deleted. Are you sure? You will
               not be able to undo this action.
+            </Text>
+            <Text fontSize="sm" color="red.500" mb={2}>
+              Note: You cannot delete a location if any launches or
+              jurisdictions use it.
             </Text>
           </DialogBody>
 

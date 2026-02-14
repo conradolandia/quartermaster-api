@@ -149,6 +149,41 @@ def update_boat(*, session: Session, db_obj: Boat, obj_in: BoatUpdate) -> Boat:
 
 
 def delete_boat(*, session: Session, db_obj: Boat) -> None:
-    """Delete a boat."""
+    """Delete a boat. Fails if the boat is used on trips or in bookings."""
+    from app.models import BoatPricing, BookingItem, TripBoat
+
+    trip_boats_count = (
+        session.exec(
+            select(func.count(TripBoat.id)).where(TripBoat.boat_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if trip_boats_count > 0:
+        raise ValueError(
+            "Cannot delete this boat: it is used on trips. Remove it from all trips first."
+        )
+
+    pricing_count = (
+        session.exec(
+            select(func.count(BoatPricing.id)).where(BoatPricing.boat_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if pricing_count > 0:
+        raise ValueError(
+            "Cannot delete this boat: it has pricing configured. Remove boat pricing first."
+        )
+
+    booking_items_count = (
+        session.exec(
+            select(func.count(BookingItem.id)).where(BookingItem.boat_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if booking_items_count > 0:
+        raise ValueError(
+            "Cannot delete this boat: it is referenced by booking items. Resolve or cancel those bookings first."
+        )
+
     session.delete(db_obj)
     session.commit()

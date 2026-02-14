@@ -4,8 +4,9 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { MerchandiseService } from "@/client"
+import { type ApiError, MerchandiseService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { handleError } from "@/utils"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -20,7 +21,7 @@ import {
 const DeleteMerchandise = ({ id }: { id: string }) => {
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showSuccessToast } = useCustomToast()
   const {
     handleSubmit,
     formState: { isSubmitting },
@@ -36,10 +37,8 @@ const DeleteMerchandise = ({ id }: { id: string }) => {
       showSuccessToast("The merchandise item was deleted successfully")
       setIsOpen(false)
     },
-    onError: () => {
-      showErrorToast(
-        "An error occurred while deleting. The item may still be used on a trip.",
-      )
+    onError: (err: ApiError) => {
+      handleError(err)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["merchandise"] })
@@ -73,8 +72,11 @@ const DeleteMerchandise = ({ id }: { id: string }) => {
           </DialogHeader>
           <DialogBody>
             <Text mb={4}>
-              This merchandise item will be permanently deleted. It can only be
-              deleted if it is not used on any trip. Are you sure?
+              This merchandise item will be permanently deleted. Are you sure?
+            </Text>
+            <Text fontSize="sm" color="red.500" mb={2}>
+              Note: You cannot delete merchandise that is still offered on trips
+              or has variations referenced by bookings.
             </Text>
           </DialogBody>
 

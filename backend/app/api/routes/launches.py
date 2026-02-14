@@ -194,7 +194,13 @@ def delete_launch(
             detail=f"Launch with ID {launch_id} not found",
         )
 
-    crud.delete_launch(session=session, db_obj=launch)
+    try:
+        crud.delete_launch(session=session, db_obj=launch)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.get(

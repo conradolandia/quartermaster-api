@@ -123,7 +123,7 @@ def delete_provider(*, session: Session, db_obj: Provider) -> None:
 
     if boats_count and boats_count > 0:
         raise ValueError(
-            f"Cannot delete provider {db_obj.id}: {boats_count} boat(s) still reference it"
+            f"Cannot delete this provider: {boats_count} boat(s) are still associated. Remove or reassign the boats first."
         )
 
     session.delete(db_obj)

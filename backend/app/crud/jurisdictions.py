@@ -106,6 +106,18 @@ def update_jurisdiction(
 
 
 def delete_jurisdiction(*, session: Session, db_obj: Jurisdiction) -> None:
-    """Delete a jurisdiction."""
+    """Delete a jurisdiction. Fails if any providers reference it."""
+    from app.models import Provider
+
+    providers_count = (
+        session.exec(
+            select(func.count(Provider.id)).where(Provider.jurisdiction_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if providers_count > 0:
+        raise ValueError(
+            f"Cannot delete this jurisdiction: {providers_count} provider(s) are associated. Reassign or remove them first."
+        )
     session.delete(db_obj)
     session.commit()

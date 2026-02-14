@@ -72,6 +72,10 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
               Mission "{name}" will be permanently deleted. Are you sure? You
               will not be able to undo this action.
             </Text>
+            <Text fontSize="sm" color="red.500" mb={2}>
+              Note: You cannot delete a mission if any trips are associated
+              with it.
+            </Text>
           </DialogBody>
 
           <DialogFooter gap={2}>

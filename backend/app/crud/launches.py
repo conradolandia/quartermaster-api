@@ -97,6 +97,18 @@ def update_launch(*, session: Session, db_obj: Launch, obj_in: LaunchUpdate) -> 
 
 
 def delete_launch(*, session: Session, db_obj: Launch) -> None:
-    """Delete a launch."""
+    """Delete a launch. Fails if any missions reference it."""
+    from app.models import Mission
+
+    missions_count = (
+        session.exec(
+            select(func.count(Mission.id)).where(Mission.launch_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if missions_count > 0:
+        raise ValueError(
+            f"Cannot delete this launch: {missions_count} mission(s) are associated. Remove those missions first."
+        )
     session.delete(db_obj)
     session.commit()

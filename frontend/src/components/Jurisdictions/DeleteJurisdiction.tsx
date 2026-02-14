@@ -78,6 +78,10 @@ const DeleteJurisdiction = ({ jurisdiction }: DeleteJurisdictionProps) => {
           <VStack gap={4} align="flex-start">
             <Text>Are you sure you want to delete {jurisdiction.name}?</Text>
             <Text>This action cannot be undone.</Text>
+            <Text fontSize="sm" color="red.500">
+              Note: You cannot delete a jurisdiction if any providers are
+              associated with it.
+            </Text>
           </VStack>
         </DialogBody>
         <DialogFooter gap={2}>

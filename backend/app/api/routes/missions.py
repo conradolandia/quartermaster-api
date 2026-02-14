@@ -199,7 +199,13 @@ def delete_mission(
             detail=f"Mission with ID {mission_id} not found",
         )
 
-    crud.delete_mission(session=session, db_obj=mission)
+    try:
+        crud.delete_mission(session=session, db_obj=mission)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.get(

@@ -76,6 +76,10 @@ const DeleteBoat = ({ id, name }: DeleteBoatProps) => {
               Boat "{name}" will be permanently deleted. Are you sure?
             </Text>
             <Text>This action cannot be undone.</Text>
+            <Text fontSize="sm" color="red.500">
+              Note: You cannot delete a boat if it is used on trips or in
+              bookings.
+            </Text>
           </VStack>
         </DialogBody>
 

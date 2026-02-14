@@ -225,4 +225,10 @@ def delete_jurisdiction(
             detail=f"Jurisdiction with ID {jurisdiction_id} not found",
         )
 
-    crud.delete_jurisdiction(session=session, db_obj=jurisdiction)
+    try:
+        crud.delete_jurisdiction(session=session, db_obj=jurisdiction)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )

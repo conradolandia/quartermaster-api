@@ -124,4 +124,10 @@ def delete_location(
             detail=f"Location with ID {location_id} not found",
         )
 
-    crud.delete_location(session=session, db_obj=location)
+    try:
+        crud.delete_location(session=session, db_obj=location)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )

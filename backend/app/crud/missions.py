@@ -212,6 +212,16 @@ def update_mission(
 
 
 def delete_mission(*, session: Session, db_obj: Mission) -> None:
-    """Delete a mission."""
+    """Delete a mission. Fails if any trips reference it."""
+    trips_count = (
+        session.exec(
+            select(func.count(Trip.id)).where(Trip.mission_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if trips_count > 0:
+        raise ValueError(
+            f"Cannot delete this mission: {trips_count} trip(s) are associated. Remove those trips first."
+        )
     session.delete(db_obj)
     session.commit()

@@ -85,6 +85,30 @@ def update_location(
 
 
 def delete_location(*, session: Session, db_obj: Location) -> None:
-    """Delete a location."""
+    """Delete a location. Fails if any launches or jurisdictions use it."""
+    from app.models import Jurisdiction, Launch
+
+    launches_count = (
+        session.exec(
+            select(func.count(Launch.id)).where(Launch.location_id == db_obj.id)
+        ).first()
+        or 0
+    )
+    if launches_count > 0:
+        raise ValueError(
+            f"Cannot delete this location: {launches_count} launch(es) use it. Remove or reassign those launches first."
+        )
+    jurisdictions_count = (
+        session.exec(
+            select(func.count(Jurisdiction.id)).where(
+                Jurisdiction.location_id == db_obj.id
+            )
+        ).first()
+        or 0
+    )
+    if jurisdictions_count > 0:
+        raise ValueError(
+            f"Cannot delete this location: {jurisdictions_count} jurisdiction(s) use it. Reassign or remove those jurisdictions first."
+        )
     session.delete(db_obj)
     session.commit()

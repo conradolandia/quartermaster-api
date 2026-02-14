@@ -74,7 +74,7 @@ def delete_merchandise(
     *, session: Session, merchandise_id: uuid.UUID
 ) -> Merchandise | None:
     """Delete a merchandise. Returns None if not found."""
-    from app.models import MerchandiseVariation, TripMerchandise
+    from app.models import BookingItem, MerchandiseVariation, TripMerchandise
 
     merchandise = session.get(Merchandise, merchandise_id)
     if not merchandise:
@@ -87,7 +87,24 @@ def delete_merchandise(
         raise ValueError(
             "Cannot delete merchandise: it is still offered on one or more trips"
         )
-    # Delete variations first (no FK from bookingitem blocks if trips are unlinked)
+    # Check if any variation is referenced by booking items
+    booking_ref = (
+        session.exec(
+            select(func.count(BookingItem.id))
+            .select_from(BookingItem)
+            .join(
+                MerchandiseVariation,
+                BookingItem.merchandise_variation_id == MerchandiseVariation.id,
+            )
+            .where(MerchandiseVariation.merchandise_id == merchandise_id)
+        ).first()
+        or 0
+    )
+    if booking_ref > 0:
+        raise ValueError(
+            "Cannot delete merchandise: one or more variations are referenced by booking items. Resolve those bookings first."
+        )
+    # Delete variations first (no FK from bookingitem blocks after the check above)
     for var in session.exec(
         select(MerchandiseVariation).where(
             MerchandiseVariation.merchandise_id == merchandise_id

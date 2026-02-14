@@ -157,7 +157,13 @@ def delete_boat(
             detail=f"Boat with ID {boat_id} not found",
         )
 
-    crud.delete_boat(session=session, db_obj=boat)
+    try:
+        crud.delete_boat(session=session, db_obj=boat)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.get(
