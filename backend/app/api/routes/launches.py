@@ -413,6 +413,12 @@ def send_launch_update(
     seen_emails: set[str] = set()
 
     for booking in bookings:
+        # Only send to confirmed and checked-in (exclude draft, completed, cancelled)
+        if booking.booking_status not in (
+            BookingStatus.confirmed,
+            BookingStatus.checked_in,
+        ):
+            continue
         if booking.user_email in seen_emails:
             continue
         seen_emails.add(booking.user_email)

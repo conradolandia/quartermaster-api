@@ -607,7 +607,6 @@ const Step4Review = ({
           </Box>
 
           <Box p={4} bg="bg.accent" borderRadius="md">
-            <Text fontWeight="medium">Payment Processing</Text>
             <Text fontSize="xs" width="100%">
               Your payment will be processed securely. You'll receive a
               confirmation email with your QR code tickets once payment is
