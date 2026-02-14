@@ -1039,7 +1039,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                 </HStack>
                 <HStack justify="space-between" width="100%">
                   <HStack gap={1}>
-                    <StarFleetTipLabel showColon />
+                    <StarFleetTipLabel showColon showTooltip={false} />
                     <Text as="span">($)</Text>
                   </HStack>
                   <Input

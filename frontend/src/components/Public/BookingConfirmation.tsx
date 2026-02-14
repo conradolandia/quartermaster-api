@@ -9,6 +9,7 @@ import {
   Text,
   VStack,
   Container,
+  Span,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
@@ -105,16 +106,23 @@ const BookingConfirmation = ({
   }
 
   return (
-    <Box maxW="xl" mx="auto" py={{ base: 4, md: 8 }} px={{ base: 4, md: 0 }}>
+    <Box
+      maxW="xl"
+      mx="auto"
+      py={{ base: 4, md: 8 }}
+      px={{ base: 4, md: 0 }}
+      className="print-ticket-content"
+    >
       <VStack gap={8} align="stretch">
         {/* Header */}
         <Flex alignItems="center" flexDirection="column" gap={4}>
-          <Image
-            src={Logo}
-            alt="Star Fleet Tours"
-            maxW={{ base: "280px", sm: "360px", md: "400px" }}
-            mb={6}
-          />
+          <Heading
+            fontFamily="logo"
+            size={{ base: "3xl", md: "5xl" }}
+            fontWeight="400"
+          >
+            Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
+          </Heading>
           <Heading size="2xl" color="green.200">
             Booking Confirmed!
           </Heading>
@@ -133,7 +141,13 @@ const BookingConfirmation = ({
         </Flex>
 
         {/* QR Code Ticket - above other sections */}
-        <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+        <Box
+          p={6}
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="md"
+          className="print-qr-block"
+        >
           <Heading size="sm" mb={4} textAlign="center">
             Your QR Code Ticket
           </Heading>
@@ -157,7 +171,13 @@ const BookingConfirmation = ({
 
         <VStack gap={6} align="stretch">
           {/* Booking Details */}
-          <Box bg="dark.bg.secondary" borderRadius="lg" boxShadow="lg" p={{ base: 4, md: 8 }}>
+          <Box
+            bg="dark.bg.secondary"
+            borderRadius="lg"
+            boxShadow="lg"
+            p={{ base: 4, md: 8 }}
+            className="print-booking-details"
+          >
             <Image src={SFLogo} alt="Star Fleet Tours" maxW="320px" p={2} mx="auto" mb={4} />
             <Heading size="sm" mb={4}>
               Booking Information
@@ -283,7 +303,13 @@ const BookingConfirmation = ({
             </VStack>
           </Box>
 
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+          <Box
+            p={6}
+            border="1px"
+            borderColor="gray.200"
+            borderRadius="md"
+            className="no-print"
+          >
             <Heading size="sm" mb={4}>
               Actions
             </Heading>
@@ -310,7 +336,13 @@ const BookingConfirmation = ({
             </VStack>
           </Box>
 
-          <Box p={6} border="1px" borderColor="gray.200" borderRadius="md">
+          <Box
+            p={6}
+            border="1px"
+            borderColor="gray.200"
+            borderRadius="md"
+            className="no-print"
+          >
             <Heading size="sm" mb={4}>
               What's Next?
             </Heading>
@@ -328,7 +360,7 @@ const BookingConfirmation = ({
         </VStack>
 
         {/* Footer */}
-        <Box textAlign="center" pt={4}>
+        <Box textAlign="center" pt={4} className="no-print">
           <Text fontSize="sm" color="gray.400">
             Need help? Contact us at{" "}
             <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">
@@ -336,7 +368,12 @@ const BookingConfirmation = ({
             </Link>
           </Text>
         </Box>
-        <Container maxW="container.lg" display="flex" justifyContent="center">
+        <Container
+          maxW="container.lg"
+          display="flex"
+          justifyContent="center"
+          className="no-print"
+        >
           <VStack gap={4}>
             <Text fontSize="sm" color="whiteAlpha.700">
               Powered by

@@ -977,7 +977,7 @@ const EditBooking = ({
                 <Field
                   invalid={!!errors.tip_amount}
                   errorText={errors.tip_amount?.message}
-                  label={<StarFleetTipLabel />}
+                  label={<StarFleetTipLabel showTooltip={false} />}
                 >
                   <Controller
                     name="tip_amount"

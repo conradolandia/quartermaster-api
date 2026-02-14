@@ -99,7 +99,9 @@ def _create_booking_impl(
             detail="Booking must have at least one item",
         )
 
-    # Validate all trips exist and are active, and ensure they all belong to the same mission
+    # Validate all trips exist and are active, and ensure they all belong to the same mission.
+    # Mission-level (not trip-level) allows future multi-trip bookings within a mission
+    # (e.g. pre-launch + launch-day trips). UI currently creates single-trip bookings only.
     mission_id = None
     for item in booking_in.items:
         trip = session.get(Trip, item.trip_id)

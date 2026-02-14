@@ -14,30 +14,34 @@ export const STAR_FLEET_TIP_TOOLTIP =
 
 interface StarFleetTipLabelProps {
   showColon?: boolean
+  /** Show tooltip with info about tips and boat captains. Default true for public booking, false for admin. */
+  showTooltip?: boolean
 }
 
-export function StarFleetTipLabel({ showColon }: StarFleetTipLabelProps) {
+export function StarFleetTipLabel({ showColon, showTooltip = true }: StarFleetTipLabelProps) {
   return (
     <HStack gap={1} align="center" display="inline-flex">
       <Text as="span">Star Fleet Tip{showColon ? ":" : ""}</Text>
-      <TooltipRoot openDelay={300} closeDelay={100}>
-        <TooltipTrigger asChild>
-          <IconButton
-            aria-label="What is Star Fleet Tip?"
-            variant="ghost"
-            size="xs"
-            minW="6"
-            minH="6"
-          >
-            <FiHelpCircle />
-          </IconButton>
-        </TooltipTrigger>
-        <TooltipPositioner>
-          <TooltipContent maxW="320px" px={3} py={2}>
-            {STAR_FLEET_TIP_TOOLTIP}
-          </TooltipContent>
-        </TooltipPositioner>
-      </TooltipRoot>
+      {showTooltip && (
+        <TooltipRoot openDelay={300} closeDelay={100}>
+          <TooltipTrigger asChild>
+            <IconButton
+              aria-label="What is Star Fleet Tip?"
+              variant="ghost"
+              size="xs"
+              minW="6"
+              minH="6"
+            >
+              <FiHelpCircle />
+            </IconButton>
+          </TooltipTrigger>
+          <TooltipPositioner>
+            <TooltipContent maxW="320px" px={3} py={2}>
+              {STAR_FLEET_TIP_TOOLTIP}
+            </TooltipContent>
+          </TooltipPositioner>
+        </TooltipRoot>
+      )}
     </HStack>
   )
 }

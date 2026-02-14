@@ -617,7 +617,7 @@ export default function BookingDetails({
                     <Text>${formatCents(booking.tax_amount)}</Text>
                   </Flex>
                   <Flex justify="space-between">
-                    <StarFleetTipLabel showColon />
+                    <StarFleetTipLabel showColon showTooltip={false} />
                     <Text>${formatCents(booking.tip_amount)}</Text>
                   </Flex>
                   <Separator />

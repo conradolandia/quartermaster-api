@@ -47,6 +47,7 @@ export default function PublicBookingItemsList({
       bg="bg.muted"
       borderWidth="1px"
       borderColor="border.subtle"
+      className="print-ticket-item"
     >
       <HStack justify="space-between" align="start" gap={4}>
         <VStack align="start" gap={1}>
