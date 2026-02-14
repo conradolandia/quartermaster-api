@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Flex,
   HStack,
   Heading,
   Separator,
@@ -483,7 +484,11 @@ const Step4Review = ({
         </Text>
       </Box>
 
-      <HStack align="start" gap={6}>
+      <Flex
+        direction={{ base: "column", lg: "row" }}
+        align="stretch"
+        gap={6}
+      >
         {/* Left Column - Booking Details */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
@@ -637,14 +642,14 @@ const Step4Review = ({
             )}
           </Box>
         </VStack>
-      </HStack>
+      </Flex>
 
       {/* Navigation */}
-      <HStack justify="space-between" pt={4}>
-        <Button variant="outline" onClick={onBack}>
+      <Flex justify="flex-start" pt={4}>
+        <Button variant="outline" onClick={onBack} size={{ base: "lg", sm: "md" }}>
           Back
         </Button>
-      </HStack>
+      </Flex>
     </VStack>
   )
 }

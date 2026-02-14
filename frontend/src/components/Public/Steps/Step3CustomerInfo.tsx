@@ -123,7 +123,11 @@ const Step3CustomerInfo = ({
         Your Information
       </Heading>
 
-      <HStack align="start" gap={6}>
+      <Flex
+        direction={{ base: "column", lg: "row" }}
+        align="stretch"
+        gap={6}
+      >
         {/* Left Column - Customer Information */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
@@ -131,7 +135,7 @@ const Step3CustomerInfo = ({
               Contact Information
             </Heading>
             <VStack gap={4} align="stretch">
-              <HStack gap={4}>
+              <Flex direction={{ base: "column", sm: "row" }} gap={4}>
                 <Box flex={1}>
                   <Field
                     label="First Name"
@@ -160,7 +164,7 @@ const Step3CustomerInfo = ({
                     />
                   </Field>
                 </Box>
-              </HStack>
+              </Flex>
 
               <Field
                 label="Email Address"
@@ -378,17 +382,22 @@ const Step3CustomerInfo = ({
             </HStack>
           </VStack>
         </VStack>
-      </HStack>
+      </Flex>
 
       {/* Navigation */}
-      <HStack justify="space-between" mt={8}>
-        <Button variant="outline" onClick={onBack}>
+      <Flex
+        justify="space-between"
+        mt={8}
+        gap={4}
+        direction={{ base: "column-reverse", sm: "row" }}
+      >
+        <Button variant="outline" onClick={onBack} w={{ base: "100%", sm: "auto" }}>
           Back
         </Button>
-        <Button colorScheme="blue" onClick={handleNext}>
+        <Button colorScheme="blue" onClick={handleNext} w={{ base: "100%", sm: "auto" }}>
           Continue to Review
         </Button>
-      </HStack>
+      </Flex>
     </Box>
   )
 }

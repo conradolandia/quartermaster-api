@@ -160,6 +160,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           type="submit"
           colorScheme="blue"
           size="lg"
+          w={{ base: "100%", sm: "auto" }}
           loading={isProcessing || loading}
           loadingText="Processing Payment..."
           disabled={

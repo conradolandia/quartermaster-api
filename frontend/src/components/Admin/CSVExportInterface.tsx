@@ -275,7 +275,7 @@ const CSVExportInterface = () => {
           missionId: selectedMissionId || undefined,
           tripId: selectedTripId || undefined,
           boatId: selectedBoatId || undefined,
-          bookingStatus: selectedStatus || undefined,
+          bookingStatus: selectedStatus ? [selectedStatus] : undefined,
         }),
       enabled: canExport,
     })

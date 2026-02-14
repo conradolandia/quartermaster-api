@@ -3,12 +3,11 @@ import {
   Separator,
   Image,
   Button,
-  HStack,
+  Flex,
   Heading,
   Link,
   Text,
   VStack,
-  Flex,
   Container,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -106,11 +105,16 @@ const BookingConfirmation = ({
   }
 
   return (
-    <Box maxW="xl" mx="auto" py={8}>
+    <Box maxW="xl" mx="auto" py={{ base: 4, md: 8 }} px={{ base: 4, md: 0 }}>
       <VStack gap={8} align="stretch">
         {/* Header */}
         <Flex alignItems="center" flexDirection="column" gap={4}>
-          <Image src={Logo} alt="Star Fleet Tours" maxW="400px" mb={6} />
+          <Image
+            src={Logo}
+            alt="Star Fleet Tours"
+            maxW={{ base: "280px", sm: "360px", md: "400px" }}
+            mb={6}
+          />
           <Heading size="2xl" color="green.200">
             Booking Confirmed!
           </Heading>
@@ -160,35 +164,61 @@ const BookingConfirmation = ({
             </Heading>
             <Separator mb={4} />
             <VStack gap={3} align="stretch">
-              <HStack justify="space-between">
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify={{ sm: "space-between" }}
+                gap={1}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Text fontWeight="medium">Confirmation Code:</Text>
-                <Text fontFamily="mono" fontWeight="bold">
+                <Text fontFamily="mono" fontWeight="bold" wordBreak="break-all">
                   {booking.confirmation_code}
                 </Text>
-              </HStack>
+              </Flex>
 
-              <HStack justify="space-between">
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify={{ sm: "space-between" }}
+                gap={1}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Text fontWeight="medium">Customer:</Text>
-                <Text>{booking.user_name}</Text>
-              </HStack>
+                <Text wordBreak="break-word">{booking.user_name}</Text>
+              </Flex>
 
-              <HStack justify="space-between">
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify={{ sm: "space-between" }}
+                gap={1}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Text fontWeight="medium">Email:</Text>
-                <Text>
+                <Text wordBreak="break-all">
                   {booking.user_email?.replace(/(.{2}).*(@.*)/, "$1***$2")}
-                </Text></HStack>
+                </Text>
+              </Flex>
 
-              <HStack justify="space-between">
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify={{ sm: "space-between" }}
+                gap={1}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Text fontWeight="medium">Phone:</Text>
                 <Text>
                   {booking.user_phone?.replace(/(.{3}).*(.{3})/, "$1***$2")}
                 </Text>
-              </HStack>
+              </Flex>
 
-              <HStack justify="space-between">
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify={{ sm: "space-between" }}
+                gap={1}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Text fontWeight="medium">Booking Date:</Text>
                 <Text>{new Date(booking.created_at).toLocaleDateString()}</Text>
-              </HStack>
+              </Flex>
 
               {booking.items && booking.items.length > 0 && (
                 <BookingExperienceDetails
@@ -208,38 +238,38 @@ const BookingConfirmation = ({
               </Heading>
               <Separator mb={4} />
               <VStack gap={3} align="stretch">
-                <HStack justify="space-between">
+                <Flex justify="space-between" align="center" gap={2}>
                   <Text fontWeight="medium">Subtotal:</Text>
                   <Text>${formatCents(booking.subtotal)}</Text>
-                </HStack>
-                {/* Discount code or automatic discounts, if present */}
+                </Flex>
                 {booking.discount_code && (
-                  <HStack justify="space-between">
+                  <Flex justify="space-between" align="center" gap={2}>
                     <Text fontWeight="medium">Discount Code:</Text>
                     <Text fontStyle="italic">{booking.discount_code.code}</Text>
-                  </HStack>
+                  </Flex>
                 )}
                 {booking.discount_amount > 0 && (
-                  <HStack justify="space-between">
+                  <Flex justify="space-between" align="center" gap={2}>
                     <Text fontWeight="medium">Discount:</Text>
                     <Text color="green.300">
                       -${formatCents(booking.discount_amount)}
                     </Text>
-                  </HStack>
+                  </Flex>
                 )}
-                {/* Tax amount */}
-                <HStack justify="space-between">
+                <Flex justify="space-between" align="center" gap={2}>
                   <Text fontWeight="medium">Tax:</Text>
                   <Text>${formatCents(booking.tax_amount)}</Text>
-                </HStack>
+                </Flex>
                 {booking.tip_amount > 0 && (
-                  <HStack justify="space-between">
+                  <Flex justify="space-between" align="center" gap={2}>
                     <StarFleetTipLabel showColon />
                     <Text>${formatCents(booking.tip_amount)}</Text>
-                  </HStack>
+                  </Flex>
                 )}
-                <HStack
+                <Flex
                   justify="space-between"
+                  align="center"
+                  gap={2}
                   borderTop="1px solid"
                   borderColor="gray.200"
                   pt={2}
@@ -248,7 +278,7 @@ const BookingConfirmation = ({
                   <Text fontWeight="bold">
                     ${formatCents(booking.total_amount)}
                   </Text>
-                </HStack>
+                </Flex>
               </VStack>
             </VStack>
           </Box>
@@ -258,13 +288,20 @@ const BookingConfirmation = ({
               Actions
             </Heading>
             <VStack gap={3} align="stretch">
-              <Button onClick={handlePrint} variant="outline">
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                size={{ base: "lg", sm: "md" }}
+                w={{ base: "100%", sm: "auto" }}
+              >
                 <FiPrinter /> Print Tickets
               </Button>
 
               <Button
                 onClick={handleEmail}
                 variant="outline"
+                size={{ base: "lg", sm: "md" }}
+                w={{ base: "100%", sm: "auto" }}
                 loading={emailSending}
                 disabled={emailSending}
               >

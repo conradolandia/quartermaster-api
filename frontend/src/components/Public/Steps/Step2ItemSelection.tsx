@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Flex,
   HStack,
   Heading,
   IconButton,
@@ -458,7 +459,11 @@ const Step2ItemSelection = ({
         </Card.Root>
       )}
 
-      <HStack align="start" gap={6}>
+      <Flex
+        direction={{ base: "column", lg: "row" }}
+        align="stretch"
+        gap={6}
+      >
         {/* Left Column - Selection */}
         <VStack gap={4} align="stretch" flex={1}>
           {/* Ticket Selection */}
@@ -493,7 +498,7 @@ const Step2ItemSelection = ({
                         )}
                       </Box>
                       <Button
-                        size="sm"
+                        size={{ base: "md", sm: "sm" }}
                         disabled={!canAddTicketType(pricing.ticket_type)}
                         onClick={() =>
                           addTicket(pricing.ticket_type, pricing.price)
@@ -597,7 +602,7 @@ const Step2ItemSelection = ({
                             </Select.Root>
                           )}
                           <Button
-                            size="sm"
+                            size={{ base: "md", sm: "sm" }}
                             colorPalette="blue"
                             disabled={
                               merchandise.quantity_available === 0 ||
@@ -672,7 +677,7 @@ const Step2ItemSelection = ({
                         </Box>
                         <HStack gap={2}>
                           <NumberInput.Root
-                            size="sm"
+                            size={{ base: "md", sm: "sm" }}
                             min={0}
                             max={
                               merchandise
@@ -723,7 +728,8 @@ const Step2ItemSelection = ({
                                 Number.parseInt(details.value) || 0,
                               )
                             }
-                            w="80px"
+                            w={{ base: "100px", sm: "80px" }}
+                            minW={{ base: "80px", sm: "80px" }}
                           >
                             <NumberInput.Input />
                             <NumberInput.Control>
@@ -732,7 +738,7 @@ const Step2ItemSelection = ({
                             </NumberInput.Control>
                           </NumberInput.Root>
                           <IconButton
-                            size="sm"
+                            size={{ base: "md", sm: "sm" }}
                             aria-label="Remove item"
                             onClick={() => removeItem(index)}
                             variant="ghost"
@@ -766,27 +772,33 @@ const Step2ItemSelection = ({
                 <Separator />
 
                 <VStack align="stretch" gap={2}>
-                  <HStack justify="space-between">
+                  <Flex
+                    direction={{ base: "column", sm: "row" }}
+                    align={{ base: "stretch", sm: "center" }}
+                    justify="space-between"
+                    gap={2}
+                  >
                     <Text>Discount Code:</Text>
-                    <HStack gap={2}>
+                    <HStack gap={2} flex={1} maxW={{ base: "100%", sm: "200px" }}>
                       <Input
-                        size="sm"
+                        size={{ base: "md", sm: "sm" }}
                         placeholder="Enter code"
                         value={discountCode}
                         onChange={(e) => setDiscountCode(e.target.value)}
                         onBlur={() => validateDiscountCode(discountCode)}
-                        w="120px"
+                        flex={1}
+                        minW={0}
                         borderColor={discountCodeError ? "red.500" : undefined}
                       />
                       <Button
-                        size="sm"
+                        size={{ base: "md", sm: "sm" }}
                         onClick={() => validateDiscountCode(discountCode)}
                         disabled={!discountCode.trim()}
                       >
                         Apply
                       </Button>
                     </HStack>
-                  </HStack>
+                  </Flex>
                   {discountCodeError && (
                     <Text fontSize="sm" color="red.500">
                       {discountCodeError}
@@ -820,9 +832,15 @@ const Step2ItemSelection = ({
                 <Separator />
 
                 <VStack align="stretch" gap={2}>
-                  <HStack justify="space-between">
+                  <Flex
+                    direction={{ base: "column", sm: "row" }}
+                    justify="space-between"
+                    align={{ base: "stretch", sm: "center" }}
+                    gap={2}
+                    flexWrap="wrap"
+                  >
                     {/* Suggested tip amounts */}
-                    <HStack gap={2}>
+                    <HStack gap={2} flexWrap="wrap">
                       <StarFleetTipLabel />
                       {[10, 15, 20, 25].map((percentage) => {
                         const currentSubtotal =
@@ -852,7 +870,7 @@ const Step2ItemSelection = ({
                         )
                       })}
                       <Button
-                        size="xs"
+                        size={{ base: "sm", sm: "xs" }}
                         variant="outline"
                         onClick={() => setTip(0)}
                       >
@@ -860,7 +878,7 @@ const Step2ItemSelection = ({
                       </Button>
                     </HStack>
                     <NumberInput.Root
-                      size="sm"
+                      size={{ base: "md", sm: "sm" }}
                       min={0}
                       value={(tip / 100).toFixed(2)}
                       onValueChange={(details) => {
@@ -868,11 +886,12 @@ const Step2ItemSelection = ({
                           Number.parseFloat(details.value || "0") || 0
                         setTip(Math.round(dollars * 100))
                       }}
-                      w="120px"
+                      w={{ base: "100%", sm: "120px" }}
+                      minW={{ base: "80px", sm: "120px" }}
                     >
                       <NumberInput.Input />
                     </NumberInput.Root>
-                  </HStack>
+                  </Flex>
                 </VStack>
 
                 <Separator />
@@ -889,21 +908,33 @@ const Step2ItemSelection = ({
             </Card.Body>
           </Card.Root>
         </VStack>
-      </HStack>
+      </Flex>
 
       {/* Navigation */}
-      <HStack justify="space-between" pt={4}>
-        <Button variant="outline" onClick={onBack}>
+      <Flex
+        justify="space-between"
+        pt={4}
+        gap={4}
+        direction={{ base: "column-reverse", sm: "row" }}
+      >
+        <Button
+          variant="outline"
+          onClick={onBack}
+          size={{ base: "lg", sm: "md" }}
+          w={{ base: "100%", sm: "auto" }}
+        >
           Back
         </Button>
         <Button
           colorPalette="blue"
           onClick={onNext}
           disabled={!canProceed || jurisdictionMissing}
+          size={{ base: "lg", sm: "md" }}
+          w={{ base: "100%", sm: "auto" }}
         >
           Continue to Information
         </Button>
-      </HStack>
+      </Flex>
     </VStack>
   )
 }

@@ -384,7 +384,7 @@ const PublicBookingForm = ({
       minH="100vh"
       backgroundImage="url(/assets/images/hero.jpg)"
       backgroundSize="cover"
-      backgroundAttachment="fixed"
+      backgroundAttachment={{ base: "scroll", md: "fixed" }}
       backgroundPosition="center"
       backgroundRepeat="no-repeat"
     >
@@ -401,21 +401,35 @@ const PublicBookingForm = ({
         <Box position="sticky" top={0} zIndex={10}>
           <Box
             px={{ base: 4, md: 8 }}
-            py={6}
+            py={{ base: 4, md: 6 }}
             bg="dark.bg.primary"
             color="white"
           >
             <Container maxW="container.lg">
-              <Flex justify="space-between" align="center">
-                <Heading fontFamily="logo" size="3xl" fontWeight="400">
+              <Flex
+                direction={{ base: "column", md: "row" }}
+                justify="space-between"
+                align={{ base: "stretch", md: "center" }}
+                gap={{ base: 3, md: 0 }}
+              >
+                <Heading
+                  fontFamily="logo"
+                  size={{ base: "2xl", md: "3xl" }}
+                  fontWeight="400"
+                >
                   Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
                 </Heading>
-                <VStack gap={1} align="right" textAlign="right">
-                  <Heading size="2xl">Book Your Star Fleet Experience</Heading>
+                <VStack
+                  gap={1}
+                  align={{ base: "stretch", md: "flex-end" }}
+                  textAlign={{ base: "left", md: "right" }}
+                >
+                  <Heading size={{ base: "lg", md: "2xl" }}>
+                    Book Your Star Fleet Experience
+                  </Heading>
                   <Text
-                    fontSize="md"
+                    fontSize={{ base: "sm", md: "md" }}
                     color="whiteAlpha.800"
-                    textAlign="right"
                     fontWeight="500"
                   >
                     Step {currentStep} of {STEPS.length}:{" "}

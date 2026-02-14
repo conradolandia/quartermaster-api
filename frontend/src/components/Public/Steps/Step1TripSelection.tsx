@@ -2,8 +2,8 @@ import {
   Box,
   Button,
   Card,
+  Flex,
   Grid,
-  HStack,
   Heading,
   Link,
   Select,
@@ -480,6 +480,28 @@ const Step1TripSelection = ({
         }) || [],
   })
 
+  const DetailRow = ({
+    label,
+    value,
+  }: {
+    label: string
+    value: React.ReactNode
+  }) => (
+    <Flex
+      direction={{ base: "column", sm: "row" }}
+      justify={{ sm: "space-between" }}
+      gap={{ base: 0, sm: 2 }}
+      align={{ base: "stretch", sm: "center" }}
+    >
+      <Text fontWeight="medium" flexShrink={0}>
+        {label}:
+      </Text>
+      <Text textAlign={{ base: "left", sm: "right" }} wordBreak="break-word">
+        {value}
+      </Text>
+    </Flex>
+  )
+
   const renderTripDetailsContent = () => {
     const selectedTrip =
       (directLinkTrip &&
@@ -495,49 +517,38 @@ const Step1TripSelection = ({
     if (!selectedTrip) return null
     return (
       <VStack align="stretch" gap={2}>
-        <HStack justify="space-between">
-          <Text fontWeight="medium">Type:</Text>
-          <Text>{tripTypeToLabel(selectedTrip.type)}</Text>
-        </HStack>
-        <HStack justify="space-between">
-          <Text fontWeight="medium">Check-in:</Text>
-          <Text>
-            {formatTripTime(
-              selectedTrip.check_in_time,
-              selectedTrip.timezone,
-            )}
-          </Text>
-        </HStack>
-        <HStack justify="space-between">
-          <Text fontWeight="medium">Boarding:</Text>
-          <Text>
-            {formatTripTime(
-              selectedTrip.boarding_time,
-              selectedTrip.timezone,
-            )}
-          </Text>
-        </HStack>
-        <HStack justify="space-between">
-          <Text fontWeight="medium">Departure:</Text>
-          <Text>
-            {formatTripTime(
-              selectedTrip.departure_time,
-              selectedTrip.timezone,
-            )}
-          </Text>
-        </HStack>
+        <DetailRow label="Type" value={tripTypeToLabel(selectedTrip.type)} />
+        <DetailRow
+          label="Check-in"
+          value={formatTripTime(
+            selectedTrip.check_in_time,
+            selectedTrip.timezone,
+          )}
+        />
+        <DetailRow
+          label="Boarding"
+          value={formatTripTime(
+            selectedTrip.boarding_time,
+            selectedTrip.timezone,
+          )}
+        />
+        <DetailRow
+          label="Departure"
+          value={formatTripTime(
+            selectedTrip.departure_time,
+            selectedTrip.timezone,
+          )}
+        />
         {selectedTrip.type === "launch_viewing" &&
           selectedLaunch?.launch_timestamp &&
           selectedLaunch?.timezone && (
-            <HStack justify="space-between">
-              <Text fontWeight="medium">Launch time:</Text>
-              <Text>
-                {formatTripTime(
-                  selectedLaunch.launch_timestamp,
-                  selectedLaunch.timezone,
-                )}
-              </Text>
-            </HStack>
+            <DetailRow
+              label="Launch time"
+              value={formatTripTime(
+                selectedLaunch.launch_timestamp,
+                selectedLaunch.timezone,
+              )}
+            />
           )}
       </VStack>
     )
@@ -581,7 +592,7 @@ const Step1TripSelection = ({
                     </Select.IndicatorGroup>
                   </Select.Control>
                   <Select.Positioner>
-                    <Select.Content minWidth="400px">
+                    <Select.Content minWidth={{ base: "var(--reference-width)", md: "400px" }}>
                       {visibleLaunches.map((launch) => {
                         const label = formatLaunchOptionLabel(launch)
                         return (
@@ -633,7 +644,7 @@ const Step1TripSelection = ({
                     </Select.IndicatorGroup>
                   </Select.Control>
                   <Select.Positioner>
-                    <Select.Content minWidth="400px">
+                    <Select.Content minWidth={{ base: "var(--reference-width)", md: "400px" }}>
                       {activeTrips.map((trip: TripPublic) => {
                         const label = formatTripOptionLabel(trip)
                         return (
@@ -705,7 +716,7 @@ const Step1TripSelection = ({
                           </Select.IndicatorGroup>
                         </Select.Control>
                         <Select.Positioner>
-                          <Select.Content minWidth="300px">
+                          <Select.Content minWidth={{ base: "var(--reference-width)", md: "300px" }}>
                             {availableBoats.map(
                               (tripBoat: TripBoatPublicWithAvailability) => {
                                 const name =
@@ -803,22 +814,14 @@ const Step1TripSelection = ({
                       return (
                         <VStack align="stretch" gap={2} separator={<Separator mb={3} />}>
                           {boat.provider?.name && (
-                            <HStack justify="space-between">
-                              <Text fontWeight="medium">Provider:</Text>
-                              <Text>{boat.provider.name}</Text>
-                            </HStack>
+                            <DetailRow label="Provider" value={boat.provider.name} />
                           )}
-                          <HStack justify="space-between">
-                            <Text fontWeight="medium">Boat:</Text>
-                            <Text>{boat.name}</Text>
-                          </HStack>
+                          <DetailRow label="Boat" value={boat.name} />
                           {boat.provider?.address && (
-                            <HStack justify="space-between">
-                              <Text fontWeight="medium">
-                                Departure location:
-                              </Text>
-                              <Text textAlign="right" flex={1} minW={0}>
-                                {boat.provider.map_link ? (
+                            <DetailRow
+                              label="Departure location"
+                              value={
+                                boat.provider.map_link ? (
                                   <Link
                                     href={boat.provider.map_link}
                                     target="_blank"
@@ -829,9 +832,9 @@ const Step1TripSelection = ({
                                   </Link>
                                 ) : (
                                   boat.provider.address
-                                )}
-                              </Text>
-                            </HStack>
+                                )
+                              }
+                            />
                           )}
                         </VStack>
                       )
@@ -904,9 +907,15 @@ const Step1TripSelection = ({
       </Card.Root>
 
       {/* Navigation */}
-      <HStack justify="flex-end" pt={4}>
+      <Flex
+        justify="flex-end"
+        pt={4}
+        w={{ base: "100%", sm: "auto" }}
+      >
         <Button
           colorPalette="blue"
+          size={{ base: "lg", sm: "md" }}
+          w={{ base: "100%", sm: "auto" }}
           onClick={() => {
             // Ensure boat is selected before proceeding (only from boats with capacity)
             if (
@@ -926,7 +935,7 @@ const Step1TripSelection = ({
         >
           Continue to Items
         </Button>
-      </HStack>
+      </Flex>
     </VStack>
   )
 }
