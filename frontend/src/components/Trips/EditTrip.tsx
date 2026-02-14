@@ -147,6 +147,8 @@ const EditTrip = ({
   const [editingOverrideId, setEditingOverrideId] = useState<string | null>(
     null,
   )
+  const [editingOverrideTicketType, setEditingOverrideTicketType] =
+    useState("")
   const [editingOverridePrice, setEditingOverridePrice] = useState("")
   const [editingOverrideCapacity, setEditingOverrideCapacity] = useState("")
   const [editingCapacityTripBoatId, setEditingCapacityTripBoatId] = useState<
@@ -338,23 +340,27 @@ const EditTrip = ({
   const updateTripBoatPricingMutation = useMutation({
     mutationFn: (body: {
       tripBoatPricingId: string
+      ticket_type?: string
       price: number
       capacity?: number | null
     }) =>
       TripBoatPricingService.updateTripBoatPricing({
         tripBoatPricingId: body.tripBoatPricingId,
         requestBody: {
+          ticket_type: body.ticket_type,
           price: body.price,
           capacity: body.capacity ?? undefined,
         },
       }),
     onSuccess: () => {
-      showSuccessToast("Override updated.")
+      showSuccessToast("Override updated. Existing bookings updated.")
       setEditingOverrideId(null)
+      setEditingOverrideTicketType("")
       setEditingOverridePrice("")
       setEditingOverrideCapacity("")
       refetchTripBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
     onError: (err: ApiError) => handleError(err),
   })
@@ -1233,6 +1239,19 @@ const EditTrip = ({
                                             {isEditing ? (
                                               <>
                                                 <Input
+                                                  size="sm"
+                                                  width="24"
+                                                  value={
+                                                    editingOverrideTicketType
+                                                  }
+                                                  onChange={(e) =>
+                                                    setEditingOverrideTicketType(
+                                                      e.target.value,
+                                                    )
+                                                  }
+                                                  placeholder="Ticket type"
+                                                />
+                                                <Input
                                                   type="number"
                                                   step="0.01"
                                                   min="0"
@@ -1266,12 +1285,15 @@ const EditTrip = ({
                                                 <Button
                                                   size="xs"
                                                   onClick={() => {
+                                                    const ticketType =
+                                                      editingOverrideTicketType.trim()
                                                     const cents = Math.round(
                                                       Number.parseFloat(
                                                         editingOverridePrice,
                                                       ) * 100,
                                                     )
                                                     if (
+                                                      ticketType &&
                                                       !Number.isNaN(cents) &&
                                                       cents >= 0
                                                     ) {
@@ -1292,6 +1314,8 @@ const EditTrip = ({
                                                         {
                                                           tripBoatPricingId:
                                                             p.id,
+                                                          ticket_type:
+                                                            ticketType,
                                                           price: cents,
                                                           capacity:
                                                             cap ?? undefined,
@@ -1303,6 +1327,7 @@ const EditTrip = ({
                                                     updateTripBoatPricingMutation.isPending
                                                   }
                                                   disabled={
+                                                    !editingOverrideTicketType.trim() ||
                                                     !editingOverridePrice ||
                                                     Number.isNaN(
                                                       Number.parseFloat(
@@ -1318,6 +1343,9 @@ const EditTrip = ({
                                                   variant="ghost"
                                                   onClick={() => {
                                                     setEditingOverrideId(null)
+                                                    setEditingOverrideTicketType(
+                                                      "",
+                                                    )
                                                     setEditingOverridePrice("")
                                                     setEditingOverrideCapacity(
                                                       "",
@@ -1347,6 +1375,9 @@ const EditTrip = ({
                                                 variant="ghost"
                                                 onClick={() => {
                                                   setEditingOverrideId(p.id)
+                                                  setEditingOverrideTicketType(
+                                                    p.ticket_type,
+                                                  )
                                                   setEditingOverridePrice(
                                                     (p.price / 100).toFixed(2),
                                                   )

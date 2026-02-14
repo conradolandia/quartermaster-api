@@ -42,6 +42,12 @@ interface EditBoatProps {
 const EditBoat = ({ boat }: EditBoatProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAddingPricing, setIsAddingPricing] = useState(false)
+  const [editingPricingId, setEditingPricingId] = useState<string | null>(null)
+  const [editPricingForm, setEditPricingForm] = useState({
+    ticket_type: "",
+    price: "",
+    capacity: "",
+  })
   const [pricingForm, setPricingForm] = useState({
     ticket_type: "",
     price: "",
@@ -122,6 +128,32 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       setIsAddingPricing(false)
       refetchBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
+    },
+    onError: (err: ApiError) => handleError(err),
+  })
+
+  const updatePricingMutation = useMutation({
+    mutationFn: (body: {
+      boatPricingId: string
+      ticket_type?: string
+      price?: number
+      capacity?: number
+    }) =>
+      BoatPricingService.updateBoatPricing({
+        boatPricingId: body.boatPricingId,
+        requestBody: {
+          ticket_type: body.ticket_type,
+          price: body.price,
+          capacity: body.capacity,
+        },
+      }),
+    onSuccess: () => {
+      showSuccessToast("Ticket type updated. Existing bookings updated.")
+      setEditingPricingId(null)
+      setEditPricingForm({ ticket_type: "", price: "", capacity: "" })
+      refetchBoatPricing()
+      queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
     onError: (err: ApiError) => handleError(err),
   })
@@ -355,39 +387,172 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                     size="sm"
                     variant="outline"
                     mb={2}
-                    onClick={() => setIsAddingPricing(true)}
+                    onClick={() => {
+                      setEditingPricingId(null)
+                      setIsAddingPricing(true)
+                    }}
                   >
                     <FiPlus style={{ marginRight: "4px" }} />
                     Add ticket type
                   </Button>
                 )}
                 <VStack align="stretch" gap={2}>
-                  {boatPricingList.map((p) => (
-                    <HStack
-                      key={p.id}
-                      justify="space-between"
-                      p={2}
-                      borderWidth="1px"
-                      borderRadius="md"
-                    >
-                      <HStack>
-                        <Text fontWeight="medium">{p.ticket_type}</Text>
-                        <Text fontSize="sm" color="gray.400">
-                          ${formatCents(p.price)} ({p.capacity} seats)
-                        </Text>
-                      </HStack>
-                      <IconButton
-                        aria-label="Remove ticket type"
-                        size="sm"
-                        variant="ghost"
-                        colorPalette="red"
-                        onClick={() => deletePricingMutation.mutate(p.id)}
-                        disabled={deletePricingMutation.isPending}
+                  {boatPricingList.map((p) =>
+                    editingPricingId === p.id ? (
+                      <VStack
+                        key={p.id}
+                        align="stretch"
+                        gap={2}
+                        p={3}
+                        borderWidth="1px"
+                        borderRadius="md"
                       >
-                        <FiTrash2 />
-                      </IconButton>
-                    </HStack>
-                  ))}
+                        <HStack width="100%" gap={2} flexWrap="wrap">
+                          <Box flex={1} minW="120px">
+                            <Text fontSize="sm" mb={1}>
+                              Ticket type
+                            </Text>
+                            <Input
+                              value={editPricingForm.ticket_type}
+                              onChange={(e) =>
+                                setEditPricingForm((prev) => ({
+                                  ...prev,
+                                  ticket_type: e.target.value,
+                                }))
+                              }
+                              placeholder="e.g. Adult, Child"
+                            />
+                          </Box>
+                          <Box flex={1} minW="80px">
+                            <Text fontSize="sm" mb={1}>
+                              Price ($)
+                            </Text>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editPricingForm.price}
+                              onChange={(e) =>
+                                setEditPricingForm((prev) => ({
+                                  ...prev,
+                                  price: e.target.value,
+                                }))
+                              }
+                            />
+                          </Box>
+                          <Box flex={1} minW="80px">
+                            <Text fontSize="sm" mb={1}>
+                              Capacity
+                            </Text>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={editPricingForm.capacity}
+                              onChange={(e) =>
+                                setEditPricingForm((prev) => ({
+                                  ...prev,
+                                  capacity: e.target.value,
+                                }))
+                              }
+                            />
+                          </Box>
+                        </HStack>
+                        <HStack width="100%" justify="flex-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingPricingId(null)
+                              setEditPricingForm({
+                                ticket_type: "",
+                                price: "",
+                                capacity: "",
+                              })
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const ticketType =
+                                editPricingForm.ticket_type.trim()
+                              const priceDollars = Number.parseFloat(
+                                editPricingForm.price,
+                              )
+                              const cap = Number.parseInt(
+                                editPricingForm.capacity,
+                                10,
+                              )
+                              if (
+                                ticketType &&
+                                !Number.isNaN(priceDollars) &&
+                                !Number.isNaN(cap) &&
+                                cap >= 0
+                              ) {
+                                updatePricingMutation.mutate({
+                                  boatPricingId: p.id,
+                                  ticket_type: ticketType,
+                                  price: Math.round(priceDollars * 100),
+                                  capacity: cap,
+                                })
+                              }
+                            }}
+                            loading={updatePricingMutation.isPending}
+                          >
+                            Save
+                          </Button>
+                        </HStack>
+                      </VStack>
+                    ) : (
+                      <HStack
+                        key={p.id}
+                        justify="space-between"
+                        p={2}
+                        borderWidth="1px"
+                        borderRadius="md"
+                      >
+                        <HStack>
+                          <Text fontWeight="medium">{p.ticket_type}</Text>
+                          <Text fontSize="sm" color="gray.400">
+                            ${formatCents(p.price)} ({p.capacity} seats)
+                          </Text>
+                        </HStack>
+                        <HStack>
+                          <IconButton
+                            aria-label="Edit ticket type"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setIsAddingPricing(false)
+                              setEditingPricingId(p.id)
+                              setEditPricingForm({
+                                ticket_type: p.ticket_type,
+                                price: (p.price / 100).toFixed(2),
+                                capacity: String(p.capacity),
+                              })
+                            }}
+                            disabled={
+                              updatePricingMutation.isPending ||
+                              deletePricingMutation.isPending
+                            }
+                          >
+                            <FiEdit />
+                          </IconButton>
+                          <IconButton
+                            aria-label="Remove ticket type"
+                            size="sm"
+                            variant="ghost"
+                            colorPalette="red"
+                            onClick={() => deletePricingMutation.mutate(p.id)}
+                            disabled={deletePricingMutation.isPending}
+                          >
+                            <FiTrash2 />
+                          </IconButton>
+                        </HStack>
+                      </HStack>
+                    ),
+                  )}
                   {boatPricingList.length === 0 && !isAddingPricing && (
                     <Text fontSize="sm" color="gray.500" py={2}>
                       No ticket types. Add trip boats and pricing on each trip,

@@ -166,7 +166,20 @@ def update_boat_pricing(
                 f"boat capacity ({boat.capacity})"
             ),
         )
+    old_ticket_type = obj.ticket_type
+    new_ticket_type = (
+        boat_pricing_in.ticket_type
+        if boat_pricing_in.ticket_type is not None
+        else old_ticket_type
+    )
     obj = crud.update_boat_pricing(session=session, db_obj=obj, obj_in=boat_pricing_in)
+    if old_ticket_type != new_ticket_type:
+        crud.cascade_boat_ticket_type_rename(
+            session=session,
+            boat_id=obj.boat_id,
+            old_ticket_type=old_ticket_type,
+            new_ticket_type=new_ticket_type,
+        )
     return BoatPricingPublic.model_validate(obj)
 
 

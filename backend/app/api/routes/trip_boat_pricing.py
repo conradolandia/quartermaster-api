@@ -211,9 +211,23 @@ def update_trip_boat_pricing(
                 f"trip/boat max capacity ({effective_max})"
             ),
         )
+    old_ticket_type = obj.ticket_type
+    new_ticket_type = (
+        trip_boat_pricing_in.ticket_type
+        if trip_boat_pricing_in.ticket_type is not None
+        else old_ticket_type
+    )
     obj = crud.update_trip_boat_pricing(
         session=session, db_obj=obj, obj_in=trip_boat_pricing_in
     )
+    if old_ticket_type != new_ticket_type:
+        crud.cascade_trip_boat_ticket_type_rename(
+            session=session,
+            trip_id=trip_boat.trip_id,
+            boat_id=trip_boat.boat_id,
+            old_ticket_type=old_ticket_type,
+            new_ticket_type=new_ticket_type,
+        )
     return TripBoatPricingPublic.model_validate(obj)
 
 

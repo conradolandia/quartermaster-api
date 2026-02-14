@@ -4,9 +4,15 @@ TripBoatPricing CRUD operations.
 
 import uuid
 
+from sqlalchemy import update
 from sqlmodel import Session, select
 
-from app.models import TripBoatPricing, TripBoatPricingCreate, TripBoatPricingUpdate
+from app.models import (
+    BookingItem,
+    TripBoatPricing,
+    TripBoatPricingCreate,
+    TripBoatPricingUpdate,
+)
 
 
 def get_trip_boat_pricing(
@@ -67,3 +73,28 @@ def delete_trip_boat_pricing(
         session.delete(trip_boat_pricing)
         session.commit()
     return trip_boat_pricing
+
+
+def cascade_trip_boat_ticket_type_rename(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    boat_id: uuid.UUID,
+    old_ticket_type: str,
+    new_ticket_type: str,
+) -> None:
+    """
+    Cascade a ticket type rename from TripBoatPricing to BookingItem.
+    Call after updating TripBoatPricing.ticket_type so existing bookings reflect the new name.
+    """
+    session.execute(
+        update(BookingItem)
+        .where(
+            BookingItem.trip_id == trip_id,
+            BookingItem.boat_id == boat_id,
+            BookingItem.item_type == old_ticket_type,
+            BookingItem.trip_merchandise_id.is_(None),
+        )
+        .values(item_type=new_ticket_type)
+    )
+    session.commit()
