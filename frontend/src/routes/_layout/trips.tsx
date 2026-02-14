@@ -535,7 +535,7 @@ function TripsTable() {
                     verticalAlign="top"
                     textAlign="center"
                   >
-                    <Flex justify="center">
+                    <Flex justify="center" align="center" gap={1} flexWrap="wrap">
                       <Badge
                         colorPalette={
                           (trip.effective_booking_mode ?? trip.booking_mode) ===
@@ -554,6 +554,12 @@ function TripsTable() {
                               "early_bird"
                             ? "Early Bird"
                             : "Private"}
+                      </Badge>
+                      <Badge
+                        colorPalette={trip.unlisted ? "orange" : "green"}
+                        size="sm"
+                      >
+                        {trip.unlisted ? "Unlisted" : "Listed"}
                       </Badge>
                     </Flex>
                   </Table.Cell>
