@@ -78,12 +78,25 @@ def read_trips(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    mission_id: uuid.UUID | None = None,
+    trip_type: str | None = None,
 ) -> Any:
     """
     Retrieve trips with booking statistics.
+    Optionally filter by mission_id and trip_type (launch_viewing, pre_launch).
     """
-    trips = crud.get_trips_with_stats(session=session, skip=skip, limit=limit)
-    count = crud.get_trips_count(session=session)
+    trips = crud.get_trips_with_stats(
+        session=session,
+        skip=skip,
+        limit=limit,
+        mission_id=mission_id,
+        type_=trip_type,
+    )
+    count = crud.get_trips_count(
+        session=session,
+        mission_id=mission_id,
+        type_=trip_type,
+    )
     if trips:
         trip_ids = [t["id"] for t in trips]
         trip_boats_by_trip = crud.get_trip_boats_for_trip_ids(

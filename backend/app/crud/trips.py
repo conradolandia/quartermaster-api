@@ -75,15 +75,30 @@ def get_trips_no_relationships(
 
 
 def get_trips_with_stats(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    mission_id: uuid.UUID | None = None,
+    type_: str | None = None,
 ) -> list[dict]:
     """
     Get trips without loading relationships, with total_bookings and total_sales.
     Returns dictionaries with trip data plus total_bookings and total_sales.
     """
+    where_clauses = []
+    params: dict = {"limit": limit, "skip": skip}
+    if mission_id is not None:
+        where_clauses.append("t.mission_id = :mission_id")
+        params["mission_id"] = mission_id
+    if type_ is not None:
+        where_clauses.append("t.type = :type_")
+        params["type_"] = type_
+    where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
     result = session.exec(
         text(
-            """
+            f"""
             SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.booking_mode,
                    t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
@@ -91,10 +106,11 @@ def get_trips_with_stats(
             JOIN mission m ON t.mission_id = m.id
             JOIN launch l ON m.launch_id = l.id
             JOIN location loc ON l.location_id = loc.id
+            WHERE {where_sql}
             ORDER BY t.check_in_time DESC
             LIMIT :limit OFFSET :skip
         """
-        ).params(limit=limit, skip=skip)
+        ).params(**params)
     ).all()
 
     trips_data = []
@@ -143,9 +159,19 @@ def get_trips_with_stats(
     return trips_data
 
 
-def get_trips_count(*, session: Session) -> int:
-    """Get the total count of trips."""
-    count = session.exec(select(func.count(Trip.id))).first()
+def get_trips_count(
+    *,
+    session: Session,
+    mission_id: uuid.UUID | None = None,
+    type_: str | None = None,
+) -> int:
+    """Get the total count of trips, optionally filtered by mission_id and type."""
+    stmt = select(func.count(Trip.id))
+    if mission_id is not None:
+        stmt = stmt.where(Trip.mission_id == mission_id)
+    if type_ is not None:
+        stmt = stmt.where(Trip.type == type_)
+    count = session.exec(stmt).first()
     return count or 0
 
 

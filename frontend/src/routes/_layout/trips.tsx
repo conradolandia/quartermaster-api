@@ -6,10 +6,13 @@ import {
   EmptyState,
   Flex,
   Heading,
+  HStack,
   Icon,
+  Select,
   Table,
   Text,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -20,6 +23,7 @@ import {
   FiFileText,
   FiPlus,
   FiSearch,
+  FiX,
 } from "react-icons/fi"
 import { z } from "zod"
 
@@ -79,19 +83,30 @@ const tripsSearchSchema = z.object({
     ])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
+  missionId: z.string().optional(),
+  tripType: z.string().optional(),
 })
 
 function getTripsQueryOptions({
   page,
   pageSize,
+  missionId,
+  tripType,
 }: {
   page: number
   pageSize: number
+  missionId?: string
+  tripType?: string
 }) {
   return {
     queryFn: () =>
-      TripsService.readTrips({ skip: (page - 1) * pageSize, limit: pageSize }),
-    queryKey: ["trips", { page, pageSize }],
+      TripsService.readTrips({
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
+        missionId: missionId || undefined,
+        tripType: tripType || undefined,
+      }),
+    queryKey: ["trips", { page, pageSize, missionId, tripType }],
   }
 }
 
@@ -100,8 +115,17 @@ export const Route = createFileRoute("/_layout/trips")({
   validateSearch: (search) => tripsSearchSchema.parse(search),
 })
 
+const TRIP_TYPES = [
+  { label: "All Types", value: "" },
+  { label: "Launch Viewing", value: "launch_viewing" },
+  { label: "Pre-Launch", value: "pre_launch" },
+] as const
+
+const filterSelectWidth = "160px"
+
 function TripsTable() {
-  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection, missionId, tripType } =
+    Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
 
   // Handle sorting
@@ -126,7 +150,12 @@ function TripsTable() {
 
   // Query for trips
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getTripsQueryOptions({ page, pageSize: effectivePageSize }),
+    ...getTripsQueryOptions({
+      page,
+      pageSize: effectivePageSize,
+      missionId,
+      tripType,
+    }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -187,6 +216,51 @@ function TripsTable() {
   const handlePageChange = (details: { page: number }) => {
     setPage(details.page)
   }
+
+  const handleMissionFilter = (selectedMissionId?: string) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        missionId: selectedMissionId || undefined,
+        page: 1,
+      }),
+    })
+  }
+
+  const handleTripTypeFilter = (selectedTripType?: string) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        tripType: selectedTripType || undefined,
+        page: 1,
+      }),
+    })
+  }
+
+  const handleClearFilters = () => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        missionId: undefined,
+        tripType: undefined,
+        page: 1,
+      }),
+    })
+  }
+
+  const missionsCollection = createListCollection({
+    items: [
+      { label: "All Missions", value: "" },
+      ...(missionsData?.data ?? []).map((m) => ({
+        label: m.name,
+        value: m.id,
+      })),
+    ],
+  })
+
+  const tripTypeCollection = createListCollection({
+    items: TRIP_TYPES.map((t) => ({ label: t.label, value: t.value })),
+  })
 
   // Sort trips - defaults to check_in_time DESC (future first)
   // Backend already sorts by check_in_time DESC, but we apply client-side sorting
@@ -317,6 +391,86 @@ function TripsTable() {
 
   return (
     <>
+      <Flex
+        gap={3}
+        align="center"
+        flexWrap="wrap"
+        mb={4}
+      >
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Mission:
+          </Text>
+          <Select.Root
+            collection={missionsCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={missionId ? [missionId] : [""]}
+            onValueChange={(e) =>
+              handleMissionFilter(e.value[0] || undefined)
+            }
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All Missions" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="300px">
+                {missionsCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+            Type:
+          </Text>
+          <Select.Root
+            collection={tripTypeCollection}
+            size="xs"
+            width={filterSelectWidth}
+            borderColor="white"
+            value={tripType ? [tripType] : [""]}
+            onValueChange={(e) =>
+              handleTripTypeFilter(e.value[0] || undefined)
+            }
+          >
+            <Select.Control width="100%">
+              <Select.Trigger>
+                <Select.ValueText placeholder="All Types" />
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content minWidth="180px">
+                {tripTypeCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    {item.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </HStack>
+        <Button
+          size="sm"
+          variant="ghost"
+          visibility={missionId || tripType ? "visible" : "hidden"}
+          disabled={!missionId && !tripType}
+          onClick={handleClearFilters}
+        >
+          <Flex align="center" gap={1}>
+            <FiX />
+            Clear filters
+          </Flex>
+        </Button>
+      </Flex>
+
       <Box overflowX="auto">
         <Table.Root
           size={{ base: "sm", md: "md", lg: "lg" }}

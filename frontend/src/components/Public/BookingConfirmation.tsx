@@ -22,7 +22,6 @@ import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
-import Logo from "/assets/images/sf-logo-hat.png"
 import QMLogo from "/assets/images/qm-logo.svg"
 import SFLogo from "/assets/images/sf-logo.svg"
 

@@ -313,6 +313,17 @@ export type DiscountCodeUpdate = {
   access_code_mission_id?: string | null
 }
 
+/**
+ * Client-side DOM state for sidebar unclickable bug monitoring.
+ */
+export type DomStateLog = {
+  message?: string
+  data?: {
+    [key: string]: unknown
+  }
+  timestamp?: number
+}
+
 export type EffectivePricingItem = {
   ticket_type: string
   price: number
@@ -1112,6 +1123,12 @@ export type BookingsConfirmFreeBookingResponse = {
   [key: string]: unknown
 }
 
+export type DebugLogDomStateData = {
+  requestBody: DomStateLog
+}
+
+export type DebugLogDomStateResponse = void
+
 export type DiscountCodesCreateDiscountCodeData = {
   requestBody: DiscountCodeCreate
 }
@@ -1699,7 +1716,9 @@ export type TripMerchandiseListPublicTripMerchandiseResponse =
 
 export type TripsReadTripsData = {
   limit?: number
+  missionId?: string | null
   skip?: number
+  tripType?: string | null
 }
 
 export type TripsReadTripsResponse = TripsWithStatsPublic
