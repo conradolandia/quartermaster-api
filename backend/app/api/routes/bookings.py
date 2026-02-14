@@ -625,6 +625,7 @@ def list_bookings(
     mission_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
     boat_id: uuid.UUID | None = None,
+    trip_type: str | None = None,
     booking_status: list[str] | None = Query(None),
     payment_status: list[str] | None = Query(None),
     search: str | None = None,
@@ -633,7 +634,7 @@ def list_bookings(
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, trip_id, boat_id, booking_status, payment_status.
+    Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
     booking_status and payment_status accept multiple values (include only those statuses).
     Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
     """
@@ -660,15 +661,17 @@ def list_bookings(
         # Build base query
         base_query = select(Booking)
 
-        # Apply mission/trip/boat filter if provided (join via BookingItem, optionally Trip)
-        if mission_id or trip_id or boat_id:
+        # Apply mission/trip/boat/trip_type filter if provided (join via BookingItem, optionally Trip)
+        if mission_id or trip_id or boat_id or trip_type:
             base_query = base_query.join(
                 BookingItem, BookingItem.booking_id == Booking.id
             )
-            if mission_id:
-                base_query = base_query.join(
-                    Trip, Trip.id == BookingItem.trip_id
-                ).where(Trip.mission_id == mission_id)
+            if mission_id or trip_type:
+                base_query = base_query.join(Trip, Trip.id == BookingItem.trip_id)
+                if mission_id:
+                    base_query = base_query.where(Trip.mission_id == mission_id)
+                if trip_type:
+                    base_query = base_query.where(Trip.type == trip_type)
             if trip_id:
                 base_query = base_query.where(BookingItem.trip_id == trip_id)
             if boat_id:
@@ -680,6 +683,8 @@ def list_bookings(
                 logger.info(f"Filtering bookings by trip_id: {trip_id}")
             if boat_id:
                 logger.info(f"Filtering bookings by boat_id: {boat_id}")
+            if trip_type:
+                logger.info(f"Filtering bookings by trip_type: {trip_type}")
 
         # Apply booking_status and payment_status filters if provided (list = include only those)
         if booking_status:
@@ -706,20 +711,22 @@ def list_bookings(
         total_count = 0
         try:
             count_query = select(func.count(Booking.id.distinct()))
-            if mission_id or trip_id or boat_id:
+            if mission_id or trip_id or boat_id or trip_type:
                 count_query = count_query.select_from(Booking).join(
                     BookingItem, BookingItem.booking_id == Booking.id
                 )
-                if mission_id:
-                    count_query = count_query.join(
-                        Trip, Trip.id == BookingItem.trip_id
-                    ).where(Trip.mission_id == mission_id)
+                if mission_id or trip_type:
+                    count_query = count_query.join(Trip, Trip.id == BookingItem.trip_id)
+                    if mission_id:
+                        count_query = count_query.where(Trip.mission_id == mission_id)
+                    if trip_type:
+                        count_query = count_query.where(Trip.type == trip_type)
                 if trip_id:
                     count_query = count_query.where(BookingItem.trip_id == trip_id)
                 if boat_id:
                     count_query = count_query.where(BookingItem.boat_id == boat_id)
             if booking_status or payment_status:
-                if not (mission_id or trip_id or boat_id):
+                if not (mission_id or trip_id or boat_id or trip_type):
                     count_query = count_query.select_from(Booking)
             if booking_status:
                 count_query = count_query.where(

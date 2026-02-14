@@ -997,6 +997,7 @@ export type BookingsListBookingsData = {
   sortBy?: string
   sortDirection?: string
   tripId?: string | null
+  tripType?: string | null
 }
 
 export type BookingsListBookingsResponse = BookingsPaginatedResponse

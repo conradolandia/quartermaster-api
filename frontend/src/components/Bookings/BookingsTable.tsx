@@ -101,6 +101,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [tripId, setTripId] = useState<string | undefined>(
     initialSearch.get("tripId") || undefined,
   )
+  const [tripType, setTripType] = useState<string | undefined>(
+    initialSearch.get("tripType") || undefined,
+  )
   const [boatId, setBoatId] = useState<string | undefined>(
     initialSearch.get("boatId") || undefined,
   )
@@ -185,6 +188,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       setPaymentStatusFilter(
         parseStatusList(params.get("paymentStatuses"), PAYMENT_STATUSES),
       )
+      setTripType(params.get("tripType") || undefined)
     }
 
     window.addEventListener("popstate", handlePopState)
@@ -205,6 +209,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       missionId,
       tripId,
       boatId,
+      tripType,
       bookingStatusFilter,
       paymentStatusFilter,
       debouncedSearchQuery || null,
@@ -218,14 +223,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         missionId: missionId || undefined,
         tripId: tripId || undefined,
         boatId: boatId || undefined,
+        tripType: tripType || undefined,
         bookingStatus:
           bookingStatusFilter.length > 0 &&
-          bookingStatusFilter.length < BOOKING_STATUSES.length
+            bookingStatusFilter.length < BOOKING_STATUSES.length
             ? bookingStatusFilter
             : undefined,
         paymentStatus:
           paymentStatusFilter.length > 0 &&
-          paymentStatusFilter.length < PAYMENT_STATUSES.length
+            paymentStatusFilter.length < PAYMENT_STATUSES.length
             ? paymentStatusFilter
             : undefined,
         search: debouncedSearchQuery || undefined,
@@ -314,6 +320,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     missionId?: string
     tripId?: string
     boatId?: string
+    tripType?: string
     bookingStatuses?: string[]
     paymentStatuses?: string[]
     search?: string
@@ -330,6 +337,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     if (updates.boatId !== undefined) {
       if (updates.boatId) params.set("boatId", updates.boatId)
       else params.delete("boatId")
+    }
+    if (updates.tripType !== undefined) {
+      if (updates.tripType) params.set("tripType", updates.tripType)
+      else params.delete("tripType")
     }
     if (updates.bookingStatuses !== undefined) {
       const all =
@@ -380,6 +391,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const handleBoatFilter = (selectedBoatId?: string) => {
     setBoatId(selectedBoatId)
     updateFiltersInUrl({ boatId: selectedBoatId })
+  }
+
+  const handleTripTypeFilter = (selectedTripType?: string) => {
+    setTripType(selectedTripType)
+    updateFiltersInUrl({ tripType: selectedTripType })
   }
 
   const toggleBookingStatus = (status: string) => {
@@ -491,6 +507,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
+  const tripTypeFilterCollection = createListCollection({
+    items: [
+      { label: "All Types", value: "" },
+      { label: "Launch Viewing", value: "launch_viewing" },
+      { label: "Pre-Launch", value: "pre_launch" },
+    ],
+  })
+
   const bookingStatusLabel =
     bookingStatusFilter.length === BOOKING_STATUSES.length
       ? "All"
@@ -508,214 +532,249 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   return (
     <>
-      <Flex
-        key="bookings-filter-bar"
-        gap={3}
-        align="center"
-        flexWrap="wrap"
-        mb={4}
-      >
-        <InputGroup maxWidth="320px" startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}>
-          <Input
-            ref={searchInputRef}
-            size="xs"
-            placeholder="Search code, name, email, phone"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            borderColor="white"
-          />
-        </InputGroup>
-        <HStack gap={3}>
+      <VStack key="bookings-filter-bar" align="stretch" gap={3} mb={4}>
+        <Flex align="center" gap={3}>
           <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Mission:
+            Search:
           </Text>
-          <Select.Root
-            collection={missionsCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={missionId ? [missionId] : [""]}
-            onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Missions" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="300px">
-                {missionsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Trip:
-          </Text>
-          <Select.Root
-            collection={tripsCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={tripId ? [tripId] : [""]}
-            onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Trips" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="320px">
-                {tripsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Boat:
-          </Text>
-          <Select.Root
-            collection={boatsCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={boatId ? [boatId] : [""]}
-            onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Boats" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="220px">
-                {boatsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Booking:
-          </Text>
-          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-            <MenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="xs"
-                width={filterSelectWidth}
-                borderColor="white"
-                justifyContent="space-between"
-              >
-                {bookingStatusLabel}
-                <Icon as={FiChevronDown} ml={1} />
-              </Button>
-            </MenuTrigger>
-            <MenuContent minWidth="180px">
-              {BOOKING_STATUSES.map((status) => (
-                <MenuCheckboxItem
-                  key={status}
-                  checked={bookingStatusFilter.includes(status)}
-                  onCheckedChange={() => toggleBookingStatus(status)}
-                  value={status}
+          <InputGroup width="480px" maxWidth="100%" startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}>
+            <Input
+              ref={searchInputRef}
+              size="xs"
+              placeholder="Search code, name, email, phone"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              borderColor="white"
+            />
+          </InputGroup>
+        </Flex>
+        <Flex gap={3} align="center" flexWrap="wrap">
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Booking:
+            </Text>
+            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+              <MenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  width={filterSelectWidth}
+                  borderColor="white"
+                  justifyContent="space-between"
                 >
-                  {status.replace(/_/g, " ").toUpperCase()}
-                </MenuCheckboxItem>
-              ))}
-            </MenuContent>
-          </MenuRoot>
-        </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Payment:
-          </Text>
-          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-            <MenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="xs"
-                width={filterSelectWidth}
-                borderColor="white"
-                justifyContent="space-between"
-              >
-                {paymentStatusLabel}
-                <Icon as={FiChevronDown} ml={1} />
-              </Button>
-            </MenuTrigger>
-            <MenuContent minWidth="200px">
-              {PAYMENT_STATUSES.map((status) => (
-                <MenuCheckboxItem
-                  key={status}
-                  checked={paymentStatusFilter.includes(status)}
-                  onCheckedChange={() => togglePaymentStatus(status)}
-                  value={status}
+                  {bookingStatusLabel}
+                  <Icon as={FiChevronDown} ml={1} />
+                </Button>
+              </MenuTrigger>
+              <MenuContent minWidth="180px">
+                {BOOKING_STATUSES.map((status) => (
+                  <MenuCheckboxItem
+                    key={status}
+                    checked={bookingStatusFilter.includes(status)}
+                    onCheckedChange={() => toggleBookingStatus(status)}
+                    value={status}
+                  >
+                    {status.replace(/_/g, " ").toUpperCase()}
+                  </MenuCheckboxItem>
+                ))}
+              </MenuContent>
+            </MenuRoot>
+          </HStack>
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Payment:
+            </Text>
+            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+              <MenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  width={filterSelectWidth}
+                  borderColor="white"
+                  justifyContent="space-between"
                 >
-                  {status.replace(/_/g, " ").toUpperCase()}
-                </MenuCheckboxItem>
-              ))}
-            </MenuContent>
-          </MenuRoot>
-        </HStack>
-        <Button
-          size="sm"
-          variant="ghost"
-          visibility={
-            missionId ||
-            tripId ||
-            boatId ||
-            bookingStatusFilter.length < BOOKING_STATUSES.length ||
-            paymentStatusFilter.length < PAYMENT_STATUSES.length ||
-            debouncedSearchQuery
-              ? "visible"
-              : "hidden"
-          }
-          disabled={
-            !missionId &&
-            !tripId &&
-            !boatId &&
-            bookingStatusFilter.length >= BOOKING_STATUSES.length &&
-            paymentStatusFilter.length >= PAYMENT_STATUSES.length &&
-            !debouncedSearchQuery
-          }
-          onClick={() => {
-            setMissionId(undefined)
-            setTripId(undefined)
-            setBoatId(undefined)
-            setBookingStatusFilter([...BOOKING_STATUSES])
-            setPaymentStatusFilter([...PAYMENT_STATUSES])
-            setSearchQuery("")
-            setDebouncedSearchQuery("")
-            updateFiltersInUrl({
-              missionId: undefined,
-              tripId: undefined,
-              boatId: undefined,
-              bookingStatuses: [...BOOKING_STATUSES],
-              paymentStatuses: [...PAYMENT_STATUSES],
-              search: undefined,
-            })
-          }}
-        >
-          <Flex align="center" gap={1}>
-            <FiX />
-            Clear filters
-          </Flex>
-        </Button>
-      </Flex>
+                  {paymentStatusLabel}
+                  <Icon as={FiChevronDown} ml={1} />
+                </Button>
+              </MenuTrigger>
+              <MenuContent minWidth="200px">
+                {PAYMENT_STATUSES.map((status) => (
+                  <MenuCheckboxItem
+                    key={status}
+                    checked={paymentStatusFilter.includes(status)}
+                    onCheckedChange={() => togglePaymentStatus(status)}
+                    value={status}
+                  >
+                    {status.replace(/_/g, " ").toUpperCase()}
+                  </MenuCheckboxItem>
+                ))}
+              </MenuContent>
+            </MenuRoot>
+          </HStack>
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Mission:
+            </Text>
+            <Select.Root
+              collection={missionsCollection}
+              size="xs"
+              width={filterSelectWidth}
+              borderColor="white"
+              value={missionId ? [missionId] : [""]}
+              onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Missions" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="300px">
+                  {missionsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </HStack>
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Trip:
+            </Text>
+            <Select.Root
+              collection={tripsCollection}
+              size="xs"
+              width={filterSelectWidth}
+              borderColor="white"
+              value={tripId ? [tripId] : [""]}
+              onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Trips" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="320px">
+                  {tripsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </HStack>
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Type:
+            </Text>
+            <Select.Root
+              collection={tripTypeFilterCollection}
+              size="xs"
+              width={filterSelectWidth}
+              borderColor="white"
+              value={tripType ? [tripType] : [""]}
+              onValueChange={(e) =>
+                handleTripTypeFilter(e.value[0] || undefined)
+              }
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Types" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="180px">
+                  {tripTypeFilterCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </HStack>
+          <HStack gap={3}>
+            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+              Boat:
+            </Text>
+            <Select.Root
+              collection={boatsCollection}
+              size="xs"
+              width={filterSelectWidth}
+              borderColor="white"
+              value={boatId ? [boatId] : [""]}
+              onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Boats" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="220px">
+                  {boatsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </HStack>
+          <Button
+            size="sm"
+            variant="ghost"
+            visibility={
+              missionId ||
+                tripId ||
+                boatId ||
+                tripType ||
+                bookingStatusFilter.length < BOOKING_STATUSES.length ||
+                paymentStatusFilter.length < PAYMENT_STATUSES.length ||
+                debouncedSearchQuery
+                ? "visible"
+                : "hidden"
+            }
+            disabled={
+              !missionId &&
+              !tripId &&
+              !boatId &&
+              !tripType &&
+              bookingStatusFilter.length >= BOOKING_STATUSES.length &&
+              paymentStatusFilter.length >= PAYMENT_STATUSES.length &&
+              !debouncedSearchQuery
+            }
+            onClick={() => {
+              setMissionId(undefined)
+              setTripId(undefined)
+              setBoatId(undefined)
+              setTripType(undefined)
+              setBookingStatusFilter([...BOOKING_STATUSES])
+              setPaymentStatusFilter([...PAYMENT_STATUSES])
+              setSearchQuery("")
+              setDebouncedSearchQuery("")
+              updateFiltersInUrl({
+                missionId: undefined,
+                tripId: undefined,
+                boatId: undefined,
+                tripType: undefined,
+                bookingStatuses: [...BOOKING_STATUSES],
+                paymentStatuses: [...PAYMENT_STATUSES],
+                search: undefined,
+              })
+            }}
+          >
+            <Flex align="center" gap={1}>
+              <FiX />
+              Clear filters
+            </Flex>
+          </Button>
+        </Flex>
+      </VStack>
 
       <Box overflowX="auto">
         <Table.Root
@@ -962,10 +1021,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 <Table.Cell w="36" minW="28">
                   {booking.updated_at
                     ? formatDateTimeInLocationTz(booking.updated_at, userTz) ||
-                      parseApiDate(booking.updated_at).toLocaleString(
-                        undefined,
-                        { dateStyle: "short", timeStyle: "short" },
-                      )
+                    parseApiDate(booking.updated_at).toLocaleString(
+                      undefined,
+                      { dateStyle: "short", timeStyle: "short" },
+                    )
                     : "—"}
                 </Table.Cell>
                 <Table.Cell
