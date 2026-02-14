@@ -106,8 +106,8 @@ function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
 const STEPS = [
   {
     id: 1,
-    title: "Select Launch & Trip",
-    description: "Choose your launch, trip and boat",
+    title: "Select Mission & Trip",
+    description: "Choose your mission, trip and boat",
   },
   {
     id: 2,

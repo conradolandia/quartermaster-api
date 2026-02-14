@@ -552,13 +552,13 @@ const Step1TripSelection = ({
             Select Experience
           </Heading>
           <Text color="text.muted" mb={8}>
-            Choose your launch, then your trip and boat.
+            Choose your mission, then your trip and boat.
           </Text>
           <VStack align="stretch" gap={4}>
-            {/* Launch Selection */}
+            {/* Mission Selection */}
             <Box>
               <Text fontWeight="medium" mb={2}>
-                Launch
+                Mission
               </Text>
               {isLoadingLaunches ? (
                 <Spinner size="sm" />
@@ -574,7 +574,7 @@ const Step1TripSelection = ({
                 >
                   <Select.Control width="100%">
                     <Select.Trigger>
-                      <Select.ValueText placeholder="Select a launch" />
+                      <Select.ValueText placeholder="Select a mission" />
                     </Select.Trigger>
                     <Select.IndicatorGroup>
                       <Select.Indicator />
@@ -603,14 +603,14 @@ const Step1TripSelection = ({
               )}
             </Box>
 
-            {/* Trip Selection - only when launch is selected */}
+            {/* Trip Selection - only when mission is selected */}
             <Box>
               <Text fontWeight="medium" mb={2}>
                 Trip
               </Text>
               {!bookingData.selectedLaunchId ? (
                 <Text color="text.muted" fontSize="sm">
-                  Select a launch first to see available trips.
+                  Select a mission to see available launch and pre-launch trips.
                 </Text>
               ) : isLoadingTrips || isLoadingMissions ? (
                 <Spinner size="sm" />
