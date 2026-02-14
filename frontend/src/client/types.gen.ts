@@ -975,10 +975,10 @@ export type BookingsCreateBookingResponse = BookingPublic
 
 export type BookingsListBookingsData = {
   boatId?: string | null
-  bookingStatus?: string | null
+  bookingStatus?: Array<string> | null
   limit?: number
   missionId?: string | null
-  paymentStatus?: string | null
+  paymentStatus?: Array<string> | null
   search?: string | null
   skip?: number
   sortBy?: string

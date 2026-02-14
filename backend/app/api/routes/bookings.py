@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import nulls_first, or_
@@ -623,8 +623,8 @@ def list_bookings(
     mission_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
     boat_id: uuid.UUID | None = None,
-    booking_status: str | None = None,
-    payment_status: str | None = None,
+    booking_status: list[str] | None = Query(None),
+    payment_status: list[str] | None = Query(None),
     search: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
@@ -632,6 +632,7 @@ def list_bookings(
     """
     List/search bookings (admin only).
     Optionally filter by mission_id, trip_id, boat_id, booking_status, payment_status.
+    booking_status and payment_status accept multiple values (include only those statuses).
     Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
     """
     try:
@@ -678,12 +679,12 @@ def list_bookings(
             if boat_id:
                 logger.info(f"Filtering bookings by boat_id: {boat_id}")
 
-        # Apply booking_status and payment_status filters if provided
+        # Apply booking_status and payment_status filters if provided (list = include only those)
         if booking_status:
-            base_query = base_query.where(Booking.booking_status == booking_status)
+            base_query = base_query.where(Booking.booking_status.in_(booking_status))
             logger.info(f"Filtering bookings by booking_status: {booking_status}")
         if payment_status:
-            base_query = base_query.where(Booking.payment_status == payment_status)
+            base_query = base_query.where(Booking.payment_status.in_(payment_status))
             logger.info(f"Filtering bookings by payment_status: {payment_status}")
 
         # Apply text search on confirmation_code, name, email, phone (case-insensitive)
@@ -720,11 +721,11 @@ def list_bookings(
                     count_query = count_query.select_from(Booking)
             if booking_status:
                 count_query = count_query.where(
-                    Booking.booking_status == booking_status
+                    Booking.booking_status.in_(booking_status)
                 )
             if payment_status:
                 count_query = count_query.where(
-                    Booking.payment_status == payment_status
+                    Booking.payment_status.in_(payment_status)
                 )
             if search_term:
                 count_query = count_query.where(search_cond)

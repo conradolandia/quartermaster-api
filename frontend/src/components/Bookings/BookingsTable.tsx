@@ -15,7 +15,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiSearch, FiX } from "react-icons/fi"
+import { FiChevronDown, FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiSearch, FiX } from "react-icons/fi"
 
 import {
   BoatsService,
@@ -26,6 +26,12 @@ import {
 import type { TripPublic } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import PendingBookings from "@/components/Pending/PendingBookings"
+import {
+  MenuCheckboxItem,
+  MenuContent,
+  MenuRoot,
+  MenuTrigger,
+} from "@/components/ui/menu"
 import { InputGroup } from "@/components/ui/input-group"
 import {
   DEFAULT_PAGE_SIZE,
@@ -76,6 +82,16 @@ const PAYMENT_STATUSES = [
   "partially_refunded",
 ] as const
 
+function parseStatusList(
+  param: string | null,
+  all: readonly string[],
+): string[] {
+  if (!param?.trim()) return [...all]
+  const parsed = param.split(",").map((s) => s.trim()).filter(Boolean)
+  const valid = parsed.filter((s) => all.includes(s))
+  return valid.length > 0 ? valid : [...all]
+}
+
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const { showSuccessToast } = useCustomToast()
   const initialSearch = new URLSearchParams(window.location.search)
@@ -88,12 +104,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [boatId, setBoatId] = useState<string | undefined>(
     initialSearch.get("boatId") || undefined,
   )
-  const [bookingStatusFilter, setBookingStatusFilter] = useState<
-    string | undefined
-  >(initialSearch.get("bookingStatus") || undefined)
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<
-    string | undefined
-  >(initialSearch.get("paymentStatus") || undefined)
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<string[]>(
+    () =>
+      parseStatusList(
+        initialSearch.get("bookingStatuses"),
+        BOOKING_STATUSES,
+      ),
+  )
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string[]>(
+    () =>
+      parseStatusList(
+        initialSearch.get("paymentStatuses"),
+        PAYMENT_STATUSES,
+      ),
+  )
   const [searchQuery, setSearchQuery] = useState<string>(
     initialSearch.get("search") || "",
   )
@@ -155,6 +179,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       const search = params.get("search") || ""
       setSearchQuery(search)
       setDebouncedSearchQuery(search)
+      setBookingStatusFilter(
+        parseStatusList(params.get("bookingStatuses"), BOOKING_STATUSES),
+      )
+      setPaymentStatusFilter(
+        parseStatusList(params.get("paymentStatuses"), PAYMENT_STATUSES),
+      )
     }
 
     window.addEventListener("popstate", handlePopState)
@@ -188,8 +218,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         missionId: missionId || undefined,
         tripId: tripId || undefined,
         boatId: boatId || undefined,
-        bookingStatus: bookingStatusFilter || undefined,
-        paymentStatus: paymentStatusFilter || undefined,
+        bookingStatus:
+          bookingStatusFilter.length > 0 &&
+          bookingStatusFilter.length < BOOKING_STATUSES.length
+            ? bookingStatusFilter
+            : undefined,
+        paymentStatus:
+          paymentStatusFilter.length > 0 &&
+          paymentStatusFilter.length < PAYMENT_STATUSES.length
+            ? paymentStatusFilter
+            : undefined,
         search: debouncedSearchQuery || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
@@ -276,8 +314,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     missionId?: string
     tripId?: string
     boatId?: string
-    bookingStatus?: string
-    paymentStatus?: string
+    bookingStatuses?: string[]
+    paymentStatuses?: string[]
     search?: string
   }) => {
     const params = new URLSearchParams(window.location.search)
@@ -293,13 +331,19 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       if (updates.boatId) params.set("boatId", updates.boatId)
       else params.delete("boatId")
     }
-    if (updates.bookingStatus !== undefined) {
-      if (updates.bookingStatus) params.set("bookingStatus", updates.bookingStatus)
-      else params.delete("bookingStatus")
+    if (updates.bookingStatuses !== undefined) {
+      const all =
+        updates.bookingStatuses.length === BOOKING_STATUSES.length &&
+        BOOKING_STATUSES.every((s) => updates.bookingStatuses!.includes(s))
+      if (all) params.delete("bookingStatuses")
+      else params.set("bookingStatuses", updates.bookingStatuses.join(","))
     }
-    if (updates.paymentStatus !== undefined) {
-      if (updates.paymentStatus) params.set("paymentStatus", updates.paymentStatus)
-      else params.delete("paymentStatus")
+    if (updates.paymentStatuses !== undefined) {
+      const all =
+        updates.paymentStatuses.length === PAYMENT_STATUSES.length &&
+        PAYMENT_STATUSES.every((s) => updates.paymentStatuses!.includes(s))
+      if (all) params.delete("paymentStatuses")
+      else params.set("paymentStatuses", updates.paymentStatuses.join(","))
     }
     if (updates.search !== undefined) {
       if (updates.search) params.set("search", updates.search)
@@ -338,14 +382,22 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     updateFiltersInUrl({ boatId: selectedBoatId })
   }
 
-  const handleBookingStatusFilter = (selected?: string) => {
-    setBookingStatusFilter(selected)
-    updateFiltersInUrl({ bookingStatus: selected })
+  const toggleBookingStatus = (status: string) => {
+    const next = bookingStatusFilter.includes(status)
+      ? bookingStatusFilter.filter((s) => s !== status)
+      : [...bookingStatusFilter, status]
+    if (next.length === 0) return
+    setBookingStatusFilter(next)
+    updateFiltersInUrl({ bookingStatuses: next })
   }
 
-  const handlePaymentStatusFilter = (selected?: string) => {
-    setPaymentStatusFilter(selected)
-    updateFiltersInUrl({ paymentStatus: selected })
+  const togglePaymentStatus = (status: string) => {
+    const next = paymentStatusFilter.includes(status)
+      ? paymentStatusFilter.filter((s) => s !== status)
+      : [...paymentStatusFilter, status]
+    if (next.length === 0) return
+    setPaymentStatusFilter(next)
+    updateFiltersInUrl({ paymentStatuses: next })
   }
 
   const handlePageChange = (newPage: number) => {
@@ -439,25 +491,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
-  const bookingStatusCollection = createListCollection({
-    items: [
-      { label: "All booking statuses", value: "" },
-      ...BOOKING_STATUSES.map((s) => ({
-        label: s.replace(/_/g, " ").toUpperCase(),
-        value: s,
-      })),
-    ],
-  })
-
-  const paymentStatusCollection = createListCollection({
-    items: [
-      { label: "All payment statuses", value: "" },
-      ...PAYMENT_STATUSES.map((s) => ({
-        label: s.replace(/_/g, " ").toUpperCase(),
-        value: s,
-      })),
-    ],
-  })
+  const bookingStatusLabel =
+    bookingStatusFilter.length === BOOKING_STATUSES.length
+      ? "All"
+      : `${bookingStatusFilter.length} of ${BOOKING_STATUSES.length}`
+  const paymentStatusLabel =
+    paymentStatusFilter.length === PAYMENT_STATUSES.length
+      ? "All"
+      : `${paymentStatusFilter.length} of ${PAYMENT_STATUSES.length}`
 
   const filterSelectWidth = "160px"
   const userTz =
@@ -572,61 +613,63 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           <Text fontSize="sm" fontWeight="medium" color="text.secondary">
             Booking:
           </Text>
-          <Select.Root
-            collection={bookingStatusCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={bookingStatusFilter ? [bookingStatusFilter] : [""]}
-            onValueChange={(e) =>
-              handleBookingStatusFilter(e.value[0] || undefined)
-            }
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="160px">
-                {bookingStatusCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+            <MenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="xs"
+                width={filterSelectWidth}
+                borderColor="white"
+                justifyContent="space-between"
+              >
+                {bookingStatusLabel}
+                <Icon as={FiChevronDown} ml={1} />
+              </Button>
+            </MenuTrigger>
+            <MenuContent minWidth="180px">
+              {BOOKING_STATUSES.map((status) => (
+                <MenuCheckboxItem
+                  key={status}
+                  checked={bookingStatusFilter.includes(status)}
+                  onCheckedChange={() => toggleBookingStatus(status)}
+                  value={status}
+                >
+                  {status.replace(/_/g, " ").toUpperCase()}
+                </MenuCheckboxItem>
+              ))}
+            </MenuContent>
+          </MenuRoot>
         </HStack>
         <HStack gap={3}>
           <Text fontSize="sm" fontWeight="medium" color="text.secondary">
             Payment:
           </Text>
-          <Select.Root
-            collection={paymentStatusCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={paymentStatusFilter ? [paymentStatusFilter] : [""]}
-            onValueChange={(e) =>
-              handlePaymentStatusFilter(e.value[0] || undefined)
-            }
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="180px">
-                {paymentStatusCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+            <MenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="xs"
+                width={filterSelectWidth}
+                borderColor="white"
+                justifyContent="space-between"
+              >
+                {paymentStatusLabel}
+                <Icon as={FiChevronDown} ml={1} />
+              </Button>
+            </MenuTrigger>
+            <MenuContent minWidth="200px">
+              {PAYMENT_STATUSES.map((status) => (
+                <MenuCheckboxItem
+                  key={status}
+                  checked={paymentStatusFilter.includes(status)}
+                  onCheckedChange={() => togglePaymentStatus(status)}
+                  value={status}
+                >
+                  {status.replace(/_/g, " ").toUpperCase()}
+                </MenuCheckboxItem>
+              ))}
+            </MenuContent>
+          </MenuRoot>
         </HStack>
         <Button
           size="sm"
@@ -635,8 +678,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             missionId ||
             tripId ||
             boatId ||
-            bookingStatusFilter ||
-            paymentStatusFilter ||
+            bookingStatusFilter.length < BOOKING_STATUSES.length ||
+            paymentStatusFilter.length < PAYMENT_STATUSES.length ||
             debouncedSearchQuery
               ? "visible"
               : "hidden"
@@ -645,24 +688,24 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             !missionId &&
             !tripId &&
             !boatId &&
-            !bookingStatusFilter &&
-            !paymentStatusFilter &&
+            bookingStatusFilter.length >= BOOKING_STATUSES.length &&
+            paymentStatusFilter.length >= PAYMENT_STATUSES.length &&
             !debouncedSearchQuery
           }
           onClick={() => {
             setMissionId(undefined)
             setTripId(undefined)
             setBoatId(undefined)
-            setBookingStatusFilter(undefined)
-            setPaymentStatusFilter(undefined)
+            setBookingStatusFilter([...BOOKING_STATUSES])
+            setPaymentStatusFilter([...PAYMENT_STATUSES])
             setSearchQuery("")
             setDebouncedSearchQuery("")
             updateFiltersInUrl({
               missionId: undefined,
               tripId: undefined,
               boatId: undefined,
-              bookingStatus: undefined,
-              paymentStatus: undefined,
+              bookingStatuses: [...BOOKING_STATUSES],
+              paymentStatuses: [...PAYMENT_STATUSES],
               search: undefined,
             })
           }}
