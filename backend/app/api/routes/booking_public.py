@@ -9,7 +9,7 @@ import io
 import logging
 
 import qrcode
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 from sqlmodel import Session, select
 
@@ -206,10 +206,12 @@ def update_draft_booking_by_confirmation_code(
 def get_booking_by_confirmation_code(
     *,
     session: Session = Depends(deps.get_db),
+    request: Request,
     confirmation_code: str,
 ) -> BookingPublic:
     """
     Retrieve a booking by confirmation code (public endpoint).
+    Admin notes are included only when the request is authenticated as a superuser.
     """
     try:
         # Get booking with items and QR code generation
@@ -239,6 +241,11 @@ def get_booking_by_confirmation_code(
                 booking_public.experience_display = BookingExperienceDisplay(
                     **{k: v for k, v in exp_dict.items() if k in model_fields}
                 )
+
+        # Strip admin_notes for non-admin (unauthenticated or non-superuser)
+        current_user = deps.get_optional_current_user(session=session, request=request)
+        if not (current_user and current_user.is_superuser):
+            booking_public.admin_notes = None
 
         return booking_public
 

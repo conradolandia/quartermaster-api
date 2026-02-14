@@ -7,7 +7,6 @@ import {
   Flex,
   Heading,
   Icon,
-  Separator,
   Table,
   Text,
   VStack,
@@ -46,7 +45,11 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
-import { formatCents, formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
+import {
+  formatCents,
+  formatInLocationTimezoneWithAbbr,
+  parseApiDate,
+} from "@/utils"
 
 // Define sortable columns
 type SortableColumn =
@@ -283,57 +286,34 @@ function TripsTable() {
     )
   }
 
-  const renderTripDate = (dateString: string, timezone?: string | null) => {
-    const d = parseApiDate(dateString)
+  const renderDepartureCell = (
+    departureTime: string,
+    timezone?: string | null,
+  ) => {
+    const d = parseApiDate(departureTime)
+    if (Number.isNaN(d.getTime())) return <Text fontSize="sm">—</Text>
     const parts = timezone
       ? formatInLocationTimezoneWithAbbr(d, timezone)
       : null
     if (parts) {
       return (
-        <Box>
-          <Text fontSize="xs">
-            {parts.dateTime}{" "}{parts.timezoneAbbr}
-          </Text>
-        </Box>
+        <Text fontSize="sm">
+          {parts.dateTime} {parts.timezoneAbbr}
+        </Text>
       )
     }
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    return (
+      <Text fontSize="sm">
+        {d.toLocaleString(undefined, {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </Text>
+    )
   }
-
-  const renderScheduleCell = (
-    salesOpenAt: string | null | undefined,
-    departureTime: string,
-    timezone?: string | null,
-  ) => (
-    <VStack align="stretch" gap={2}>
-      <Box>
-        {salesOpenAt ? (
-          renderTripDate(salesOpenAt, timezone)
-        ) : (
-          <Text fontSize="sm" color="gray.400">
-            Not set
-          </Text>
-        )}
-        <Separator />
-        <Text fontSize="xs" color="gray.400">
-          Sales Open
-        </Text>
-      </Box>
-      <Box>
-        {renderTripDate(departureTime, timezone)}
-        <Separator />
-        <Text fontSize="xs" color="gray.400">
-          Departure
-        </Text>
-      </Box>
-    </VStack>
-  )
 
   return (
     <>
@@ -393,7 +373,7 @@ function TripsTable() {
                 display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
-                  Schedule
+                  Departure
                   <SortIcon column="departure_time" />
                 </Flex>
               </Table.ColumnHeader>
@@ -490,11 +470,7 @@ function TripsTable() {
                     display={{ base: "none", lg: "table-cell" }}
                     verticalAlign="top"
                   >
-                    {renderScheduleCell(
-                      (trip as { sales_open_at?: string | null }).sales_open_at,
-                      trip.departure_time,
-                      trip.timezone,
-                    )}
+                    {renderDepartureCell(trip.departure_time, trip.timezone)}
                   </Table.Cell>
                   <Table.Cell
                     minW="3rem"

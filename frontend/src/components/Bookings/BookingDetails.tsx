@@ -566,6 +566,14 @@ export default function BookingDetails({
                 )}
                 <Flex gap={4} alignItems="baseline">
                   <Text fontWeight="bold" minW="120px">
+                    Admin Notes:
+                  </Text>
+                  <Text color="text.muted" fontStyle={booking.admin_notes ? "normal" : "italic"}>
+                    {booking.admin_notes || "(none)"}
+                  </Text>
+                </Flex>
+                <Flex gap={4} alignItems="baseline">
+                  <Text fontWeight="bold" minW="120px">
                     Launch Updates:
                   </Text>
                   <Text>{booking.launch_updates_pref ? "Yes" : "No"}</Text>

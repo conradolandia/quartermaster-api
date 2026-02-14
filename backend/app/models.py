@@ -1198,6 +1198,7 @@ class BookingBase(SQLModel):
     discount_code_id: uuid.UUID | None = Field(
         default=None, foreign_key="discountcode.id"
     )
+    admin_notes: str | None = Field(default=None, max_length=2000)
 
 
 class BookingCreate(SQLModel):
@@ -1232,6 +1233,7 @@ class BookingUpdate(SQLModel):
     launch_updates_pref: bool | None = None
     discount_code_id: uuid.UUID | None = None
     item_quantity_updates: list[BookingItemQuantityUpdate] | None = None
+    admin_notes: str | None = None
 
 
 class BookingDraftUpdate(SQLModel):

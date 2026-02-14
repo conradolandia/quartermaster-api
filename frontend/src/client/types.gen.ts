@@ -212,6 +212,7 @@ export type BookingPublic = {
   booking_status?: BookingStatus
   launch_updates_pref?: boolean
   discount_code_id?: string | null
+  admin_notes?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -258,6 +259,7 @@ export type BookingUpdate = {
   launch_updates_pref?: boolean | null
   discount_code_id?: string | null
   item_quantity_updates?: Array<BookingItemQuantityUpdate> | null
+  admin_notes?: string | null
 }
 
 export type DiscountCodeCreate = {

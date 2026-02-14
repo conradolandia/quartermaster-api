@@ -206,6 +206,7 @@ const EditBooking = ({
       tax_amount: booking.tax_amount,
       total_amount: booking.total_amount,
       launch_updates_pref: booking.launch_updates_pref,
+      admin_notes: booking.admin_notes ?? undefined,
       item_quantity_updates:
         booking.items?.map((i) => ({ id: i.id, quantity: i.quantity })) ?? [],
     },
@@ -232,6 +233,7 @@ const EditBooking = ({
         tax_amount: booking.tax_amount,
         total_amount: booking.total_amount,
         launch_updates_pref: booking.launch_updates_pref,
+        admin_notes: booking.admin_notes ?? undefined,
         item_quantity_updates:
           booking.items?.map((i) => ({ id: i.id, quantity: i.quantity })) ?? [],
       })
@@ -448,6 +450,25 @@ const EditBooking = ({
                     },
                   })}
                   placeholder="Billing address"
+                  rows={3}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.admin_notes}
+                errorText={errors.admin_notes?.message}
+                label="Admin Notes"
+                helperText="Admin only. Not visible to customers."
+              >
+                <Textarea
+                  id="admin_notes"
+                  {...register("admin_notes", {
+                    maxLength: {
+                      value: 2000,
+                      message: "Admin notes cannot exceed 2000 characters",
+                    },
+                  })}
+                  placeholder="Internal notes about this booking"
                   rows={3}
                 />
               </Field>

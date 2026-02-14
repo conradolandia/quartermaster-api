@@ -1049,6 +1049,7 @@ export class BookingsService {
   /**
    * Get Booking By Confirmation Code
    * Retrieve a booking by confirmation code (public endpoint).
+   * Admin notes are included only when the request is authenticated as a superuser.
    * @param data The data for the request.
    * @param data.confirmationCode
    * @returns BookingPublic Successful Response

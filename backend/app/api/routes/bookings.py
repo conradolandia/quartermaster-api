@@ -1255,6 +1255,7 @@ def update_booking(
             "user_email",
             "user_phone",
             "billing_address",
+            "admin_notes",
         }
 
         # Check for any fields that are not allowed
