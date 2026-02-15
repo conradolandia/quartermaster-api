@@ -288,6 +288,7 @@ def generate_launch_update_email(
     confirmation_code: str,
     mission_name: str,
     update_message: str,
+    subject: str | None = None,
 ) -> EmailData:
     """
     Generate launch update email for customers who opted in.
@@ -298,12 +299,13 @@ def generate_launch_update_email(
         confirmation_code: Unique booking confirmation code
         mission_name: Name of the mission/launch
         update_message: The update message to send
+        subject: Optional custom subject line. If omitted, uses default.
 
     Returns:
         EmailData containing the subject and HTML content
     """
     email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
-    subject = f"{email_brand} - Launch Update: {mission_name}"
+    subject = subject or f"{email_brand} - Launch Update: {mission_name}"
 
     # Create the confirmation link
     base_url = settings.FRONTEND_HOST

@@ -6,6 +6,7 @@
 export interface SendLaunchUpdateParams {
   message: string
   priority: boolean
+  subject?: string | null
   missionId?: string | null
   tripId?: string | null
 }
@@ -38,6 +39,7 @@ export async function sendLaunchUpdate(
     body: JSON.stringify({
       message: params.message,
       priority: params.priority,
+      ...(params.subject?.trim() ? { subject: params.subject.trim() } : {}),
     }),
   })
   if (!response.ok) {

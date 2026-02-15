@@ -82,6 +82,7 @@ const SendLaunchUpdate = ({
   const launchName = launch?.name ?? (launchProp ? undefined : "Loading...")
 
   const [message, setMessage] = useState("")
+  const [subject, setSubject] = useState("")
   const [priority, setPriority] = useState(false)
   const [scope, setScope] = useState<ScopeKind>(initialScope ?? "all")
   const [missionId, setMissionId] = useState<string | null>(
@@ -117,6 +118,7 @@ const SendLaunchUpdate = ({
   const sendUpdateMutation = useMutation({
     mutationFn: async (payload: {
       message: string
+      subject: string
       priority: boolean
       scope: ScopeKind
       missionId: string | null
@@ -124,6 +126,7 @@ const SendLaunchUpdate = ({
     }) =>
       sendLaunchUpdate(effectiveLaunchId, {
         message: payload.message,
+        subject: payload.subject.trim() || undefined,
         priority: payload.priority,
         missionId: payload.scope === "mission" ? payload.missionId : undefined,
         tripId: payload.scope === "trip" ? payload.tripId : undefined,
@@ -141,6 +144,7 @@ const SendLaunchUpdate = ({
       }
       setOpen(false)
       setMessage("")
+      setSubject("")
       setPriority(false)
       setScope(initialScope ?? "all")
       setMissionId(initialMissionId ?? null)
@@ -164,6 +168,7 @@ const SendLaunchUpdate = ({
     }
     sendUpdateMutation.mutate({
       message: message.trim(),
+      subject,
       priority,
       scope,
       missionId: scope === "mission" ? missionId : null,
@@ -337,6 +342,14 @@ const SendLaunchUpdate = ({
                 </Field>
               </>
             )}
+
+            <Field label="Email Subject (optional)">
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="e.g. Launch Update: Mission Alpha"
+              />
+            </Field>
 
             <Field label="Update Message">
               <Textarea

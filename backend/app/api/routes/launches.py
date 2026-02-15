@@ -339,6 +339,7 @@ class LaunchUpdateMessage(BaseModel):
 
     message: str
     priority: bool = False
+    subject: str | None = None
 
 
 class LaunchUpdateResponse(BaseModel):
@@ -430,6 +431,7 @@ def send_launch_update(
                 confirmation_code=booking.confirmation_code,
                 mission_name=launch.name,
                 update_message=update_data.message,
+                subject=update_data.subject,
             )
             send_email(
                 email_to=booking.user_email,
