@@ -1181,9 +1181,34 @@ class BookingStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
+def _validate_user_name(v: str | None, max_length: int = 255) -> str | None:
+    """Validate customer name: max chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
+    if v is None:
+        return v
+    if len(v) > max_length:
+        raise ValueError(f"Name must be {max_length} characters or less")
+    if "'" in v or '"' in v:
+        raise ValueError(
+            "Name cannot contain quotes (single or double). Letters (including accented), numbers, spaces, and hyphens are allowed."
+        )
+    if not re.match(r"^[\w\s-]+$", v, re.UNICODE):
+        raise ValueError(
+            "Name can only contain letters (including accented), numbers, spaces, and hyphens"
+        )
+    return v
+
+
 class BookingBase(SQLModel):
     confirmation_code: str = Field(index=True, unique=True, max_length=32)
     user_name: str = Field(max_length=255)
+
+    @field_validator("user_name", mode="before")
+    @classmethod
+    def validate_user_name(cls, v: str) -> str:
+        result = _validate_user_name(v, max_length=255)
+        assert result is not None
+        return result
+
     user_email: str = Field(max_length=255)
     user_phone: str = Field(max_length=40)
     billing_address: str = Field(max_length=1000)
@@ -1210,6 +1235,14 @@ class BookingCreate(SQLModel):
     confirmation_code: str = Field(index=True, unique=True, max_length=32)
     user_name: str = Field(max_length=255)
     user_email: str = Field(max_length=255)
+
+    @field_validator("user_name", mode="before")
+    @classmethod
+    def validate_user_name(cls, v: str) -> str:
+        result = _validate_user_name(v, max_length=255)
+        assert result is not None
+        return result
+
     user_phone: str = Field(max_length=40)
     billing_address: str = Field(max_length=1000)
     subtotal: int = Field(ge=0)  # cents
@@ -1226,6 +1259,12 @@ class BookingCreate(SQLModel):
 class BookingUpdate(SQLModel):
     user_name: str | None = Field(default=None, max_length=255)
     user_email: str | None = Field(default=None, max_length=255)
+
+    @field_validator("user_name", mode="before")
+    @classmethod
+    def validate_user_name(cls, v: str | None) -> str | None:
+        return _validate_user_name(v, max_length=255)
+
     user_phone: str | None = Field(default=None, max_length=40)
     billing_address: str | None = Field(default=None, max_length=1000)
     booking_status: BookingStatus | None = None
@@ -1246,6 +1285,12 @@ class BookingDraftUpdate(SQLModel):
 
     user_name: str | None = Field(default=None, max_length=255)
     user_email: str | None = Field(default=None, max_length=255)
+
+    @field_validator("user_name", mode="before")
+    @classmethod
+    def validate_user_name(cls, v: str | None) -> str | None:
+        return _validate_user_name(v, max_length=255)
+
     user_phone: str | None = Field(default=None, max_length=40)
     billing_address: str | None = Field(default=None, max_length=1000)
     special_requests: str | None = None
