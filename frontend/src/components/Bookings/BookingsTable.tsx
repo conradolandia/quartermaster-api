@@ -179,6 +179,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search)
       setSearchParams(params)
+      setMissionId(params.get("missionId") || undefined)
+      setTripId(params.get("tripId") || undefined)
+      setBoatId(params.get("boatId") || undefined)
+      setTripType(params.get("tripType") || undefined)
       const search = params.get("search") || ""
       setSearchQuery(search)
       setDebouncedSearchQuery(search)
@@ -188,7 +192,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       setPaymentStatusFilter(
         parseStatusList(params.get("paymentStatuses"), PAYMENT_STATUSES),
       )
-      setTripType(params.get("tripType") || undefined)
     }
 
     window.addEventListener("popstate", handlePopState)

@@ -6,11 +6,12 @@ import {
   Flex,
   Heading,
   Icon,
+  Link,
   Table,
   Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link as RouterLink, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
@@ -317,7 +318,19 @@ function Missions() {
             <Table.Body>
               {missions.map((mission) => (
                 <Table.Row key={mission.id}>
-                  <Table.Cell>{mission.name}</Table.Cell>
+                  <Table.Cell>
+                    <Link
+                      asChild
+                      color="dark.accent.primary"
+                      _hover={{ textDecoration: "underline" }}
+                    >
+                      <RouterLink to="/bookings" search={{ missionId: mission.id }}>
+                      <Text fontSize="lg" fontWeight="500" as="span">
+                        {mission.name  || "—"}
+                        </Text>
+                      </RouterLink>
+                    </Link>
+                  </Table.Cell>
                   <Table.Cell display={{ base: "none", md: "table-cell" }}>
                     {launchesMap.get(mission.launch_id)?.name ||
                       mission.launch_id}

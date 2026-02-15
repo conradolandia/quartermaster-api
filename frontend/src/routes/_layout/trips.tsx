@@ -8,6 +8,7 @@ import {
   Heading,
   HStack,
   Icon,
+  Link,
   Select,
   Table,
   Text,
@@ -15,7 +16,7 @@ import {
   createListCollection,
 } from "@chakra-ui/react"
 import { useQueries, useQuery } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link as RouterLink, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import {
   FiArrowDown,
@@ -596,9 +597,17 @@ function TripsTable() {
               return (
                 <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell minW="8rem" px={1} pl={3} verticalAlign="top">
-                    <Text fontSize="xl" fontWeight="200">
-                      {trip.name || "—"}
-                    </Text>
+                    <Link
+                      asChild
+                      color="dark.accent.primary"
+                      _hover={{ textDecoration: "underline" }}
+                    >
+                      <RouterLink to="/bookings" search={{ tripId: trip.id }}>
+                        <Text fontSize="lg" fontWeight="500" as="span">
+                          {trip.name || "—"}
+                        </Text>
+                      </RouterLink>
+                    </Link>
                   </Table.Cell>
                   <Table.Cell
                     minW="6rem"

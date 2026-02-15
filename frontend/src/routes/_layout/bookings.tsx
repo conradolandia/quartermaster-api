@@ -17,9 +17,20 @@ import BookingsTable from "@/components/Bookings/BookingsTable"
 import BookingConfirmation from "@/components/Public/BookingConfirmation"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 
-// Search schema for the route
+// Search schema for the route (filters used by BookingsTable)
 const bookingsSearchSchema = z.object({
   code: z.string().optional(),
+  missionId: z.string().optional(),
+  tripId: z.string().optional(),
+  boatId: z.string().optional(),
+  tripType: z.string().optional(),
+  search: z.string().optional(),
+  page: z.string().optional(),
+  pageSize: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortDirection: z.string().optional(),
+  bookingStatuses: z.string().optional(),
+  paymentStatuses: z.string().optional(),
 })
 
 export const Route = createFileRoute("/_layout/bookings")({
