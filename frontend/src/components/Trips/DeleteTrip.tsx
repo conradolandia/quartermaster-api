@@ -11,8 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
-import { Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
+import { getApiErrorMessage, handleError } from "@/utils"
+import { Alert, Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiTrash2 } from "react-icons/fi"
@@ -24,6 +24,7 @@ interface DeleteTripProps {
 
 const DeleteTrip = ({ id, type }: DeleteTripProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -35,8 +36,10 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
     onSuccess: () => {
       showSuccessToast("Trip deleted successfully.")
       setIsOpen(false)
+      setErrorMessage(null)
     },
     onError: (err: ApiError) => {
+      setErrorMessage(getApiErrorMessage(err))
       handleError(err)
     },
     onSettled: () => {
@@ -45,7 +48,13 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
   })
 
   const handleDelete = () => {
+    setErrorMessage(null)
     mutation.mutate()
+  }
+
+  const handleOpenChange = ({ open }: { open: boolean }) => {
+    setIsOpen(open)
+    if (!open) setErrorMessage(null)
   }
 
   const tripTypeText =
@@ -57,7 +66,7 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
       placement="center"
       role="alertdialog"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" color="status.error">
@@ -76,6 +85,17 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
               {tripTypeText} trip will be permanently deleted. Are you sure?
             </Text>
             <Text>This action cannot be undone.</Text>
+            {errorMessage && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>Unable to delete trip</Alert.Title>
+                  <Alert.Description>
+                    {errorMessage}
+                  </Alert.Description>
+                </Alert.Content>
+              </Alert.Root>
+            )}
           </VStack>
         </DialogBody>
 

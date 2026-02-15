@@ -325,12 +325,22 @@ export const confirmPasswordRules = (
   return rules
 }
 
+/** Extract a user-facing message from an API error response. */
+export const getApiErrorMessage = (err: ApiError): string => {
+  const errDetail = (err.body as any)?.detail
+  if (typeof errDetail === "string") return errDetail
+  if (Array.isArray(errDetail) && errDetail.length > 0) return errDetail[0].msg
+  if (errDetail && typeof errDetail === "object" && "message" in errDetail) {
+    const msg =
+      (errDetail as { message?: string; codes_preview?: string }).message ?? ""
+    const preview = (errDetail as { codes_preview?: string }).codes_preview
+    return preview ? `${msg} ${preview}` : msg
+  }
+  if (errDetail) return String(errDetail)
+  return "Something went wrong."
+}
+
 export const handleError = (err: ApiError) => {
   const { showErrorToast } = useCustomToast()
-  const errDetail = (err.body as any)?.detail
-  let errorMessage = errDetail || "Something went wrong."
-  if (Array.isArray(errDetail) && errDetail.length > 0) {
-    errorMessage = errDetail[0].msg
-  }
-  showErrorToast(errorMessage)
+  showErrorToast(getApiErrorMessage(err))
 }

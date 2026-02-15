@@ -209,6 +209,20 @@ def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate | dict) ->
     return db_obj
 
 
+def get_trip_booking_count_and_codes(
+    *, session: Session, trip_id: uuid.UUID
+) -> tuple[int, list[str]]:
+    """Return (count, list of confirmation codes) for bookings with items on this trip."""
+    rows = session.exec(
+        select(Booking.confirmation_code)
+        .select_from(Booking)
+        .join(BookingItem, Booking.id == BookingItem.booking_id)
+        .where(BookingItem.trip_id == trip_id)
+        .distinct()
+    ).all()
+    return len(rows), list(rows)
+
+
 def delete_trip(*, session: Session, trip_id: uuid.UUID) -> Trip:
     """Delete a trip and all related data."""
     from app.models import (

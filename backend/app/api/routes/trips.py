@@ -587,6 +587,23 @@ def delete_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
+    booking_count, booking_codes = crud.get_trip_booking_count_and_codes(
+        session=session, trip_id=trip_id
+    )
+    if booking_count > 0:
+        max_codes = 10
+        codes_preview = ", ".join(booking_codes[:max_codes])
+        if booking_count > max_codes:
+            codes_preview += f" (and {booking_count - max_codes} more)"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": f"Cannot delete trip: {booking_count} booking(s) are associated.",
+                "booking_count": booking_count,
+                "booking_codes": booking_codes,
+                "codes_preview": codes_preview,
+            },
+        )
     # Build response before delete; after delete the trip is detached
     tz = "UTC"
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
