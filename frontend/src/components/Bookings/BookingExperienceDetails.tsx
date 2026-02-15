@@ -19,6 +19,7 @@ import {
   TripsService,
 } from "@/client"
 import type { BookingPublic } from "@/client"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { formatDateTimeInLocationTz } from "@/utils"
 
 interface BookingExperienceDetailsProps {
@@ -49,6 +50,7 @@ export default function BookingExperienceDetails({
   narrowLayout = usePublicApis,
   boxProps = {},
 }: BookingExperienceDetailsProps) {
+  useDateFormatPreference()
   const firstItem = booking?.items?.[0]
   const tripId = firstItem?.trip_id
 

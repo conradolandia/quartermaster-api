@@ -43,6 +43,7 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatCents,
@@ -94,6 +95,7 @@ function parseStatusList(
 
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const { showSuccessToast } = useCustomToast()
+  useDateFormatPreference()
   const initialSearch = new URLSearchParams(window.location.search)
   const [missionId, setMissionId] = useState<string | undefined>(
     initialSearch.get("missionId") || undefined,

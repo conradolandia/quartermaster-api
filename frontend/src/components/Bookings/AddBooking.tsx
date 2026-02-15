@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatDateTimeInLocationTz, parseApiDate } from "@/utils"
 
@@ -86,6 +87,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const contentRef = useRef(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+  useDateFormatPreference()
 
   // State for trip-based pricing
   const [selectedTripId, setSelectedTripId] = useState<string>("")

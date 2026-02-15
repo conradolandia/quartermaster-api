@@ -38,6 +38,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
@@ -134,6 +135,7 @@ export const Route = createFileRoute("/_layout/launches")({
 })
 
 function LaunchesTable() {
+  useDateFormatPreference()
   const navigate = useNavigate({ from: Route.fullPath })
   const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const locationsMap = useLocationsMap()

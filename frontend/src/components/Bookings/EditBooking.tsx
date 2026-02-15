@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import { formatDateTimeInLocationTz, handleError } from "@/utils"
@@ -61,6 +62,7 @@ const EditBooking = ({
   const contentRef = useRef(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
+  useDateFormatPreference()
 
   // Get trips for display
   const { data: tripsData } = useQuery({

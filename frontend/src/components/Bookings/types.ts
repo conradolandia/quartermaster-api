@@ -159,7 +159,5 @@ export const getStatusColor = (status: string) => {
   return getBookingStatusColor(status)
 }
 
-// Helper function to format dates
-export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString()
-}
+// Helper function to format dates (delegates to utils for international format support)
+export { formatDateTimeInLocationTz as formatDate } from "@/utils"

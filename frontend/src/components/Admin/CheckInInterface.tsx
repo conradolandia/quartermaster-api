@@ -22,8 +22,9 @@ import {
   getRefundedCents,
   isPartiallyRefunded,
 } from "@/components/Bookings/types"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents } from "@/utils"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import { useEffect } from "react"
 
 interface CheckInInterfaceProps {
@@ -36,6 +37,7 @@ const CheckInInterface = ({
   initialCode,
   onBookingCheckedIn,
 }: CheckInInterfaceProps) => {
+  useDateFormatPreference()
   const [confirmationCode, setConfirmationCode] = useState("")
   const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(
     null,
@@ -321,7 +323,7 @@ const CheckInInterface = ({
                     </Text>
                     <Text>
                       <strong>Created:</strong>{" "}
-                      {new Date(currentBooking.created_at).toLocaleDateString()}
+                      {formatDateTimeInLocationTz(currentBooking.created_at, null)}
                     </Text>
                   </Box>
                 </VStack>

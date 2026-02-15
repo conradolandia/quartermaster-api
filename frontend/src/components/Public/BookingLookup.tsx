@@ -16,10 +16,12 @@ import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents } from "@/utils"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 
 const BookingLookup = () => {
+  useDateFormatPreference()
   const [confirmationCode, setConfirmationCode] = useState("")
   const [lastName, setLastName] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -90,15 +92,6 @@ const BookingLookup = () => {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 
   return (
     <VStack gap={6} align="stretch" maxW="2xl" mx="auto">
@@ -282,7 +275,7 @@ const BookingLookup = () => {
                 <VStack gap={2} align="stretch">
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Created:</Text>
-                    <Text>{formatDate(currentBooking.created_at)}</Text>
+                    <Text>{formatDateTimeInLocationTz(currentBooking.created_at, null)}</Text>
                   </HStack>
                   {currentBooking.special_requests && (
                     <Box>

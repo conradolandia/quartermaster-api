@@ -3,11 +3,13 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import ChangePassword from "@/components/UserSettings/ChangePassword"
 import DeleteAccount from "@/components/UserSettings/DeleteAccount"
+import DisplaySettings from "@/components/UserSettings/DisplaySettings"
 import UserInformation from "@/components/UserSettings/UserInformation"
 import useAuth from "@/hooks/useAuth"
 
 const tabsConfig = [
   { value: "my-profile", title: "My profile", component: UserInformation },
+  { value: "display", title: "Display", component: DisplaySettings },
   { value: "password", title: "Password", component: ChangePassword },
   // TODO: Re-enable when light theme is designed
   // { value: "appearance", title: "Appearance", component: Appearance },
@@ -22,7 +24,7 @@ function UserSettings() {
   const { user: currentUser } = useAuth()
   // Hide "Danger zone" tab from superusers
   const finalTabs = currentUser?.is_superuser
-    ? tabsConfig.slice(0, 2)
+    ? tabsConfig.slice(0, 3)
     : tabsConfig
 
   if (!currentUser) {

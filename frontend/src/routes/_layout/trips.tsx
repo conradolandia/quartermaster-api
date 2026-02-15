@@ -50,6 +50,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import {
   formatCents,
   formatInLocationTimezoneWithAbbr,
@@ -125,6 +126,7 @@ const TRIP_TYPES = [
 const filterSelectWidth = "160px"
 
 function TripsTable() {
+  useDateFormatPreference()
   const { page, pageSize, sortBy, sortDirection, missionId, tripType } =
     Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })

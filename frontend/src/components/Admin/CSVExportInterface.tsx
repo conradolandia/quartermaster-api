@@ -1,4 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { formatDateTimeInLocationTz } from "@/utils"
 import {
   Box,
@@ -70,6 +71,7 @@ const AMOUNT_FIELD_KEYS = [
 ]
 
 const CSVExportInterface = () => {
+  useDateFormatPreference()
   const [selectedMissionId, setSelectedMissionId] = useState("")
   const [selectedTripId, setSelectedTripId] = useState("")
   const [selectedBoatId, setSelectedBoatId] = useState("")

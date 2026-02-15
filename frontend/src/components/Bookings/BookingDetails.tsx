@@ -37,6 +37,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import {
@@ -56,6 +57,7 @@ export default function BookingDetails({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
+  useDateFormatPreference()
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)

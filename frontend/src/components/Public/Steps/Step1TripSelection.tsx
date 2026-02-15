@@ -25,6 +25,7 @@ import {
   type TripPublic,
   TripsService,
 } from "@/client"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatDateTimeNoSeconds,
@@ -48,6 +49,7 @@ const Step1TripSelection = ({
   accessCode,
 }: Step1TripSelectionProps) => {
   const { showErrorToast } = useCustomToast()
+  useDateFormatPreference()
 
   // Fetch public launches (for Launch dropdown)
   const { data: launchesResponse, isLoading: isLoadingLaunches } = useQuery({

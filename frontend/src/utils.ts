@@ -5,6 +5,38 @@ import { enUS } from "date-fns/locale/en-US"
 import type { ApiError } from "./client"
 import useCustomToast from "./hooks/useCustomToast"
 
+/** localStorage key for date format preference (international vs locale). */
+export const DATE_FORMAT_INTERNATIONAL_KEY = "date_format_international"
+
+export function getUseInternationalDateFormat(): boolean {
+  if (typeof window === "undefined") return false
+  return localStorage.getItem(DATE_FORMAT_INTERNATIONAL_KEY) === "true"
+}
+
+export function setUseInternationalDateFormat(value: boolean): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem(DATE_FORMAT_INTERNATIONAL_KEY, String(value))
+}
+
+/** Format a Date as YYYY-MM-DD HH:mm:ss (24-hour) in the given timezone or local. */
+export function formatDateTimeInternational(
+  date: Date,
+  timezone?: string | null,
+): string {
+  if (Number.isNaN(date.getTime())) return ""
+  const pattern = "yyyy-MM-dd HH:mm:ss"
+  if (timezone) {
+    return formatInTimeZone(date, timezone, pattern, { locale: enUS })
+  }
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  const h = String(date.getHours()).padStart(2, "0")
+  const min = String(date.getMinutes()).padStart(2, "0")
+  const s = String(date.getSeconds()).padStart(2, "0")
+  return `${y}-${m}-${d} ${h}:${min}:${s}`
+}
+
 /**
  * Parse a datetime string from the API as UTC for correct local display.
  * The API returns UTC; when the backend omits the "Z" suffix (naive datetimes
@@ -30,6 +62,9 @@ export function formatTimeNoSeconds(date: Date): string {
 /** Format a Date as date + time without seconds for display. */
 export function formatDateTimeNoSeconds(date: Date): string {
   if (Number.isNaN(date.getTime())) return ""
+  if (getUseInternationalDateFormat()) {
+    return formatDateTimeInternational(date, null)
+  }
   return `${date.toLocaleDateString()} ${formatTimeNoSeconds(date)}`
 }
 
@@ -83,6 +118,9 @@ export function formatInLocationTimezoneDisplay(
   timezone: string,
 ): string {
   if (Number.isNaN(utcDate.getTime()) || !timezone) return ""
+  if (getUseInternationalDateFormat()) {
+    return `${formatDateTimeInternational(utcDate, timezone)} ${timezone}`
+  }
   const formatted = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
     locale: enUS,
   })
@@ -98,6 +136,12 @@ export function formatInLocationTimezoneDisplayParts(
   timezone: string,
 ): { dateTime: string; timezone: string } | null {
   if (Number.isNaN(utcDate.getTime()) || !timezone) return null
+  if (getUseInternationalDateFormat()) {
+    return {
+      dateTime: formatDateTimeInternational(utcDate, timezone),
+      timezone,
+    }
+  }
   const dateTime = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
     locale: enUS,
   })
@@ -135,6 +179,16 @@ export function formatInLocationTimezoneWithAbbr(
   timezone: string,
 ): { dateTime: string; timezoneAbbr: string } | null {
   if (Number.isNaN(utcDate.getTime()) || !timezone) return null
+  if (getUseInternationalDateFormat()) {
+    const fromIntl = formatInTimeZone(utcDate, timezone, "zzz", {
+      locale: enUS,
+    }).trim()
+    const timezoneAbbr = resolveTimezoneAbbr(timezone, fromIntl) || timezone
+    return {
+      dateTime: formatDateTimeInternational(utcDate, timezone),
+      timezoneAbbr,
+    }
+  }
   const dateTime = formatInTimeZone(utcDate, timezone, "MMM d, yyyy h:mm a", {
     locale: enUS,
   })

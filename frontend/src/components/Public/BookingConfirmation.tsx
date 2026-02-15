@@ -19,8 +19,9 @@ import { BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import PublicBookingItemsList from "@/components/Public/PublicBookingItemsList"
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents } from "@/utils"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 
 import QMLogo from "/assets/images/qm-logo.svg"
 import SFLogo from "/assets/images/sf-logo.svg"
@@ -33,6 +34,7 @@ const BookingConfirmation = ({
   confirmationCode,
 }: BookingConfirmationProps) => {
   const { showSuccessToast, showErrorToast } = useCustomToast()
+  useDateFormatPreference()
   const [emailSending, setEmailSending] = useState(false)
   const {
     data: booking,
@@ -236,7 +238,7 @@ const BookingConfirmation = ({
                 align={{ base: "stretch", sm: "center" }}
               >
                 <Text fontWeight="medium">Booking Date:</Text>
-                <Text>{new Date(booking.created_at).toLocaleDateString()}</Text>
+                <Text>{formatDateTimeInLocationTz(booking.created_at, null)}</Text>
               </Flex>
 
               {booking.items && booking.items.length > 0 && (
