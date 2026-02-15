@@ -100,6 +100,7 @@ export type BookingCreate = {
   special_requests?: string | null
   launch_updates_pref?: boolean
   discount_code_id?: string | null
+  admin_notes?: string | null
   items: Array<BookingItemCreate>
 }
 
@@ -407,6 +408,7 @@ export type LaunchUpdate = {
 export type LaunchUpdateMessage = {
   message: string
   priority?: boolean
+  subject?: string | null
 }
 
 /**

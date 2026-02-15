@@ -1253,6 +1253,7 @@ class BookingCreate(SQLModel):
     special_requests: str | None = Field(default=None, max_length=1000)
     launch_updates_pref: bool = Field(default=False)
     discount_code_id: uuid.UUID | None = Field(default=None)
+    admin_notes: str | None = Field(default=None, max_length=2000)
     items: list[BookingItemCreate]
 
 

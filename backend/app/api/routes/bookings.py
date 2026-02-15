@@ -448,6 +448,7 @@ def _create_booking_impl(
         total_amount=booking_in.total_amount,
         payment_intent_id=None,  # No PaymentIntent yet
         special_requests=booking_in.special_requests,
+        admin_notes=booking_in.admin_notes,
         booking_status=BookingStatus.draft,
         payment_status=None,
         launch_updates_pref=booking_in.launch_updates_pref,
@@ -582,6 +583,7 @@ def duplicate_booking(
         special_requests=booking.special_requests,
         launch_updates_pref=booking.launch_updates_pref,
         discount_code_id=booking.discount_code_id,
+        admin_notes=booking.admin_notes,
         items=[
             BookingItemCreate(
                 trip_id=item.trip_id,

@@ -269,6 +269,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       user_email: "",
       user_phone: "",
       billing_address: "",
+      admin_notes: "",
       subtotal: 0,
       discount_amount: 0,
       tax_amount: 0,
@@ -435,6 +436,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       confirmation_code: generateConfirmationCode(),
       items: bookingItems,
       discount_code_id: appliedDiscountCode?.id || null,
+      admin_notes: data.admin_notes?.trim() || null,
     }
     mutation.mutate({ bookingData, markAsPaid })
   }
@@ -735,6 +737,25 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     },
                   })}
                   placeholder="Billing Address"
+                  rows={3}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.admin_notes}
+                errorText={errors.admin_notes?.message}
+                label="Admin Notes"
+                helperText="Admin only. Not visible to customers."
+              >
+                <Textarea
+                  id="admin_notes"
+                  {...register("admin_notes", {
+                    maxLength: {
+                      value: 2000,
+                      message: "Admin notes cannot exceed 2000 characters",
+                    },
+                  })}
+                  placeholder="Internal notes about this booking"
                   rows={3}
                 />
               </Field>
