@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   ButtonGroup,
   DialogActionTrigger,
@@ -11,7 +12,7 @@ import { FaTrash } from "react-icons/fa"
 
 import { type ApiError, type ProviderPublic, ProvidersService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { getApiErrorMessage, handleError } from "@/utils"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -29,6 +30,7 @@ interface DeleteProviderProps {
 
 const DeleteProvider = ({ provider }: DeleteProviderProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -40,8 +42,10 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
     onSuccess: () => {
       showSuccessToast("Provider deleted successfully.")
       setIsOpen(false)
+      setErrorMessage(null)
     },
     onError: (err: ApiError) => {
+      setErrorMessage(getApiErrorMessage(err))
       handleError(err)
     },
     onSettled: () => {
@@ -50,15 +54,22 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
   })
 
   const handleDelete = () => {
+    setErrorMessage(null)
     mutation.mutate()
+  }
+
+  const handleOpenChange = ({ open }: { open: boolean }) => {
+    setIsOpen(open)
+    if (!open) setErrorMessage(null)
   }
 
   return (
     <DialogRoot
       size={{ base: "xs", md: "md" }}
       placement="center"
+      role="alertdialog"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" color="status.error">
@@ -78,6 +89,15 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
               Note: You cannot delete a provider if any boats are associated
               with it.
             </Text>
+            {errorMessage && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>Unable to delete provider</Alert.Title>
+                  <Alert.Description>{errorMessage}</Alert.Description>
+                </Alert.Content>
+              </Alert.Root>
+            )}
           </VStack>
         </DialogBody>
         <DialogFooter gap={2}>
@@ -93,7 +113,7 @@ const DeleteProvider = ({ provider }: DeleteProviderProps) => {
             </DialogActionTrigger>
             <Button
               variant="solid"
-              colorScheme="red"
+              colorPalette="red"
               onClick={handleDelete}
               loading={mutation.isPending}
             >

@@ -1,12 +1,17 @@
-import { Button, Text } from "@chakra-ui/react"
+import {
+  Alert,
+  Button,
+  ButtonGroup,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useForm } from "react-hook-form"
 import { FiTrash2 } from "react-icons/fi"
 
-import { MissionsService } from "@/client"
+import { type ApiError, MissionsService } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
-import { handleError } from "@/utils"
+import { getApiErrorMessage, handleError } from "@/utils"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -21,20 +26,19 @@ import {
 
 const DeleteMission = ({ id, name }: { id: string; name: string }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
-  const {
-    handleSubmit,
-    formState: { isSubmitting },
-  } = useForm()
 
   const mutation = useMutation({
     mutationFn: () => MissionsService.deleteMission({ missionId: id }),
     onSuccess: () => {
       showSuccessToast("Mission deleted successfully.")
       setIsOpen(false)
+      setErrorMessage(null)
     },
-    onError: (err: any) => {
+    onError: (err: ApiError) => {
+      setErrorMessage(getApiErrorMessage(err))
       handleError(err)
     },
     onSettled: () => {
@@ -42,8 +46,14 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
     },
   })
 
-  const onSubmit = async () => {
+  const handleDelete = () => {
+    setErrorMessage(null)
     mutation.mutate()
+  }
+
+  const handleOpenChange = ({ open }: { open: boolean }) => {
+    setIsOpen(open)
+    if (!open) setErrorMessage(null)
   }
 
   return (
@@ -52,7 +62,7 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
       placement="center"
       role="alertdialog"
       open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
+      onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" color="status.error">
@@ -62,28 +72,38 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
       </DialogTrigger>
 
       <DialogContent>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogCloseTrigger />
-          <DialogHeader>
-            <DialogTitle>Delete Mission</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <Text mb={4}>
+        <DialogHeader>
+          <DialogTitle>Delete Mission</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <VStack gap={4} align="flex-start">
+            <Text>
               Mission "{name}" will be permanently deleted. Are you sure? You
               will not be able to undo this action.
             </Text>
-            <Text fontSize="sm" color="red.500" mb={2}>
+            <Text fontSize="sm" color="red.500">
               Note: You cannot delete a mission if any trips are associated
               with it.
             </Text>
-          </DialogBody>
+            {errorMessage && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>Unable to delete mission</Alert.Title>
+                  <Alert.Description>{errorMessage}</Alert.Description>
+                </Alert.Content>
+              </Alert.Root>
+            )}
+          </VStack>
+        </DialogBody>
 
-          <DialogFooter gap={2}>
+        <DialogFooter gap={2}>
+          <ButtonGroup>
             <DialogActionTrigger asChild>
               <Button
                 variant="subtle"
                 colorPalette="gray"
-                disabled={isSubmitting}
+                disabled={mutation.isPending}
               >
                 Cancel
               </Button>
@@ -91,13 +111,14 @@ const DeleteMission = ({ id, name }: { id: string; name: string }) => {
             <Button
               variant="solid"
               colorPalette="red"
-              type="submit"
-              loading={isSubmitting}
+              onClick={handleDelete}
+              loading={mutation.isPending}
             >
               Delete
             </Button>
-          </DialogFooter>
-        </form>
+          </ButtonGroup>
+        </DialogFooter>
+        <DialogCloseTrigger />
       </DialogContent>
     </DialogRoot>
   )
