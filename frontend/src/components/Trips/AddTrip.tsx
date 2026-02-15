@@ -65,6 +65,7 @@ interface AddTripProps {
 interface SelectedBoat {
   boat_id: string
   max_capacity?: number | null
+  use_only_trip_pricing?: boolean
   name?: string
   capacity?: number
   pricing: Array<{ ticket_type: string; price: number; capacity?: number }>
@@ -263,6 +264,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       {
         boat_id: selectedBoatId,
         max_capacity: maxCapacity ?? null,
+        use_only_trip_pricing: false,
         name: boatDetails?.name,
         capacity: boatDetails?.capacity,
         pricing: [],
@@ -412,6 +414,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
               trip_id: tripId,
               boat_id: boat.boat_id,
               max_capacity: boat.max_capacity,
+              use_only_trip_pricing: boat.use_only_trip_pricing ?? false,
             },
           }),
         )
@@ -936,11 +939,57 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   Close
                                 </Button>
                               </HStack>
-                              <Text fontSize="xs" color="gray.400" mb={2}>
-                                Boat defaults apply unless you add an override
-                                for this trip. Overrides replace the default
-                                price for that ticket type.
-                              </Text>
+                              {(() => {
+                                const useOnlyTripPricing =
+                                  boat.use_only_trip_pricing ?? false
+                                return (
+                                  <>
+                                    <HStack
+                                      justify="space-between"
+                                      align="center"
+                                      mb={2}
+                                      p={2}
+                                      borderWidth="1px"
+                                      borderRadius="md"
+                                      borderColor="gray.300"
+                                      _dark={{ borderColor: "gray.600" }}
+                                    >
+                                      <Box>
+                                        <Text fontSize="sm" fontWeight="medium">
+                                          Use only trip-specific pricing
+                                        </Text>
+                                        <Text fontSize="xs" color="gray.500">
+                                          {useOnlyTripPricing
+                                            ? "Boat defaults ignored. Define all ticket types below."
+                                            : "Boat defaults apply; overrides replace price/capacity."}
+                                        </Text>
+                                      </Box>
+                                      <Switch
+                                        checked={useOnlyTripPricing}
+                                        onCheckedChange={({ checked }) => {
+                                          setSelectedBoats((prev) =>
+                                            prev.map((b) =>
+                                              b.boat_id === boat.boat_id
+                                                ? {
+                                                    ...b,
+                                                    use_only_trip_pricing:
+                                                      checked,
+                                                  }
+                                                : b,
+                                            ),
+                                          )
+                                        }}
+                                      />
+                                    </HStack>
+                                    <Text fontSize="xs" color="gray.400" mb={2}>
+                                      {useOnlyTripPricing
+                                        ? "Define all ticket types for this trip. Boat defaults are ignored."
+                                        : "Boat defaults apply unless you add an override for this trip. Overrides replace the default price for that ticket type."}
+                                    </Text>
+                                  </>
+                                )
+                              })()}
+                              {!(boat.use_only_trip_pricing ?? false) && (
                               <Box mb={3}>
                                 <Text
                                   fontSize="sm"
@@ -983,6 +1032,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   </Text>
                                 )}
                               </Box>
+                              )}
                               <Text
                                 fontSize="sm"
                                 fontWeight="bold"
@@ -990,7 +1040,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 color="gray.700"
                                 _dark={{ color: "gray.300" }}
                               >
-                                Overrides for this trip
+                                {(boat.use_only_trip_pricing ?? false)
+                                  ? "Ticket types for this trip"
+                                  : "Overrides for this trip"}
                               </Text>
                               <VStack align="stretch" gap={2}>
                                 {boatPricing.map((p) => (
@@ -1039,8 +1091,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                       color="gray.500"
                                       py={2}
                                     >
-                                      No overrides. Boat default pricing
-                                      applies.
+                                      {(boat.use_only_trip_pricing ?? false)
+                                        ? "No ticket types defined. Add at least one to offer tickets."
+                                        : "No overrides. Boat default pricing applies."}
                                     </Text>
                                   )}
                                 {isAddingTripBoatPricing ? (
@@ -1196,7 +1249,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                           )
                                         }
                                       >
-                                        Add override
+                                        {(boat.use_only_trip_pricing ?? false)
+                                          ? "Add"
+                                          : "Add override"}
                                       </Button>
                                     </HStack>
                                   </VStack>
@@ -1210,7 +1265,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                     }
                                   >
                                     <FiPlus style={{ marginRight: "4px" }} />
-                                    Add pricing override
+                                    {(boat.use_only_trip_pricing ?? false)
+                                      ? "Add ticket type"
+                                      : "Add pricing override"}
                                   </Button>
                                 )}
                               </VStack>

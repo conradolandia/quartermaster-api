@@ -407,17 +407,18 @@ def reassign_trip_boat(
         if tgt_type:
             moved_by_target[tgt_type] = moved_by_target.get(tgt_type, 0) + qty
     for tgt_type, moved_qty in moved_by_target.items():
-        cap = target_capacity.get(tgt_type, 0)
-        current = target_current.get(tgt_type, 0)
-        if current + moved_qty > cap:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Target boat has capacity for {tgt_type} of {cap} "
-                    f"(currently {current}). Mapping would add {moved_qty}. "
-                    "Adjust type mapping or choose another boat."
-                ),
-            )
+        cap = target_capacity.get(tgt_type)
+        if cap is not None:
+            current = target_current.get(tgt_type, 0)
+            if current + moved_qty > cap:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Target boat has capacity for {tgt_type} of {cap} "
+                        f"(currently {current}). Mapping would add {moved_qty}. "
+                        "Adjust type mapping or choose another boat."
+                    ),
+                )
     try:
         moved = crud.reassign_trip_boat_passengers(
             session=session,

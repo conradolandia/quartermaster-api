@@ -345,7 +345,7 @@ def _create_booking_impl(
             session=session, trip_id=trip_id, boat_id=boat_id
         )
         capacity = capacities.get(item_type)
-        if capacity is None:
+        if capacity is None and item_type not in capacities:
             boat = session.get(Boat, boat_id)
             boat_name = boat.name if boat else str(boat_id)
             raise HTTPException(
@@ -354,23 +354,24 @@ def _create_booking_impl(
                     f"No capacity configured for ticket type '{item_type}' on boat '{boat_name}'"
                 ),
             )
-        paid_by_type = paid_by_trip.get(trip_id, {})
-        paid = sum(
-            v
-            for (bid, k), v in paid_by_type.items()
-            if bid == boat_id and (k or "").lower() == (item_type or "").lower()
-        )
-        total_after = paid + new_quantity
-        if total_after > capacity:
-            boat = session.get(Boat, boat_id)
-            boat_name = boat.name if boat else str(boat_id)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Boat '{boat_name}' has {capacity} seat(s) for '{item_type}' "
-                    f"with {paid} already booked; requested {new_quantity} would exceed capacity"
-                ),
+        if capacity is not None:
+            paid_by_type = paid_by_trip.get(trip_id, {})
+            paid = sum(
+                v
+                for (bid, k), v in paid_by_type.items()
+                if bid == boat_id and (k or "").lower() == (item_type or "").lower()
             )
+            total_after = paid + new_quantity
+            if total_after > capacity:
+                boat = session.get(Boat, boat_id)
+                boat_name = boat.name if boat else str(boat_id)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Boat '{boat_name}' has {capacity} seat(s) for '{item_type}' "
+                        f"with {paid} already booked; requested {new_quantity} would exceed capacity"
+                    ),
+                )
 
     # Validate total boat capacity: sum of all ticket types must not exceed boat's max_capacity
     ticket_quantity_by_trip_boat: dict[tuple[uuid.UUID, uuid.UUID], int] = defaultdict(
@@ -1071,26 +1072,27 @@ def update_booking(
                     session=session, trip_id=trip_id, boat_id=boat_id
                 )
                 cap = capacities.get(item_type)
-                if cap is None:
+                if cap is None and item_type not in capacities:
                     boat = session.get(Boat, boat_id)
                     boat_name = boat.name if boat else str(boat_id)
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"No capacity for ticket type '{item_type}' on boat '{boat_name}'",
                     )
-                paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
-                    session=session, trip_id=trip_id
-                ).get((boat_id, item_type), 0)
-                paid_excluding_this = paid - current_this_booking.get(
-                    (boat_id, item_type), 0
-                )
-                if paid_excluding_this + qty > cap:
-                    boat = session.get(Boat, boat_id)
-                    boat_name = boat.name if boat else str(boat_id)
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+                if cap is not None:
+                    paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+                        session=session, trip_id=trip_id
+                    ).get((boat_id, item_type), 0)
+                    paid_excluding_this = paid - current_this_booking.get(
+                        (boat_id, item_type), 0
                     )
+                    if paid_excluding_this + qty > cap:
+                        boat = session.get(Boat, boat_id)
+                        boat_name = boat.name if boat else str(boat_id)
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+                        )
             # Apply quantity updates and merchandise inventory; quantity 0 removes the item
             for u in item_quantity_updates:
                 item = session.get(BookingItem, u.id)
@@ -1639,20 +1641,46 @@ def reschedule_booking(
 
     for item_type, qty in this_booking_by_type.items():
         cap = capacities.get(item_type)
-        if cap is None:
+        if cap is None and item_type not in capacities:
             boat = session.get(Boat, target_boat_id)
             boat_name = boat.name if boat else str(target_boat_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"No capacity for ticket type '{item_type}' on boat '{boat_name}'",
             )
-        existing = paid.get((target_boat_id, item_type), 0)
-        if existing + qty > cap:
+        if cap is not None:
+            existing = paid.get((target_boat_id, item_type), 0)
+            if existing + qty > cap:
+                boat = session.get(Boat, target_boat_id)
+                boat_name = boat.name if boat else str(target_boat_id)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+                )
+
+    paid_total = sum(v for (bid, _), v in paid.items() if bid == target_boat_id)
+    this_booking_total = sum(this_booking_by_type.values())
+    trip_boat = next(
+        (tb for tb in trip_boats if tb.boat_id == target_boat_id),
+        None,
+    )
+    if trip_boat:
+        boat = session.get(Boat, target_boat_id)
+        effective_max = (
+            trip_boat.max_capacity
+            if trip_boat.max_capacity is not None
+            else (boat.capacity if boat else 0)
+        )
+        if paid_total + this_booking_total > effective_max:
             boat = session.get(Boat, target_boat_id)
             boat_name = boat.name if boat else str(target_boat_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Boat '{boat_name}' capacity for '{item_type}' would be exceeded",
+                detail=(
+                    f"Boat '{boat_name}' has {effective_max} total seat(s) "
+                    f"with {paid_total} already booked; rescheduling {this_booking_total} ticket(s) "
+                    f"would exceed capacity"
+                ),
             )
 
     for item in ticket_items:

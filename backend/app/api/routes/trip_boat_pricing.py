@@ -71,12 +71,13 @@ def create_trip_boat_pricing(
     capacities = crud.get_effective_capacity_per_ticket_type(
         session=session, trip_id=trip_boat.trip_id, boat_id=trip_boat.boat_id
     )
-    if sum(capacities.values()) > effective_max:
+    constrained_sum = sum(v for v in capacities.values() if v is not None)
+    if constrained_sum > effective_max:
         crud.delete_trip_boat_pricing(session=session, trip_boat_pricing_id=obj.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Sum of ticket-type capacities ({sum(capacities.values())}) would exceed "
+                f"Sum of constrained ticket-type capacities ({constrained_sum}) would exceed "
                 f"trip/boat max capacity ({effective_max})"
             ),
         )
