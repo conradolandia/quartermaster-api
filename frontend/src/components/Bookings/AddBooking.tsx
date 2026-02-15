@@ -107,6 +107,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
   const [markAsPaid, setMarkAsPaid] = useState<boolean>(true) // Default to true for admin bookings
+  const [sendConfirmationEmail, setSendConfirmationEmail] = useState<boolean>(true)
 
   // Get trips for dropdown
   const { data: tripsData } = useQuery({
@@ -372,6 +373,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     mutationFn: async (data: {
       bookingData: BookingCreate
       markAsPaid: boolean
+      sendConfirmationEmail: boolean
     }) => {
       // Create the booking
       const booking = await BookingsService.createBooking({
@@ -386,6 +388,13 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
         })
       }
 
+      // Send confirmation email if requested (requires confirmed status)
+      if (data.sendConfirmationEmail && data.markAsPaid && booking.confirmation_code) {
+        await BookingsService.bookingPublicResendBookingConfirmationEmail({
+          confirmationCode: booking.confirmation_code,
+        })
+      }
+
       return booking
     },
     onSuccess: async () => {
@@ -395,7 +404,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       })
       showSuccessToast(
         markAsPaid
-          ? "Booking created and marked as paid successfully."
+          ? sendConfirmationEmail
+            ? "Booking created, marked as paid, and confirmation email sent."
+            : "Booking created and marked as paid successfully."
           : "Booking created as draft successfully.",
       )
       reset()
@@ -404,6 +415,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       setTripMerchandise([])
       setSelectedItems([])
       setMarkAsPaid(true) // Reset to default
+      setSendConfirmationEmail(true)
       onSuccess()
       onClose()
     },
@@ -438,7 +450,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       discount_code_id: appliedDiscountCode?.id || null,
       admin_notes: data.admin_notes?.trim() || null,
     }
-    mutation.mutate({ bookingData, markAsPaid })
+    mutation.mutate({ bookingData, markAsPaid, sendConfirmationEmail })
   }
 
   // Handle trip selection
@@ -592,6 +604,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       setTripPricing([])
       setTripMerchandise([])
       setSelectedItems([])
+      setMarkAsPaid(true)
+      setSendConfirmationEmail(true)
     }
   }, [isOpen, reset])
 
@@ -1133,6 +1147,18 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   }
                 >
                   Mark as paid/confirmed
+                </Checkbox>
+              </Field>
+
+              <Field>
+                <Checkbox
+                  checked={sendConfirmationEmail}
+                  onCheckedChange={({ checked }) =>
+                    setSendConfirmationEmail(checked === true)
+                  }
+                  disabled={!markAsPaid}
+                >
+                  Send confirmation email
                 </Checkbox>
               </Field>
             </VStack>
