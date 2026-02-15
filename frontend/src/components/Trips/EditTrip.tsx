@@ -385,15 +385,30 @@ const EditTrip = ({
   }
 
   const updateTripBoatMutation = useMutation({
-    mutationFn: (body: { tripBoatId: string; max_capacity: number | null }) =>
+    mutationFn: (body: {
+      tripBoatId: string
+      max_capacity?: number | null
+      use_only_trip_pricing?: boolean
+    }) =>
       TripBoatsService.updateTripBoat({
         tripBoatId: body.tripBoatId,
-        requestBody: { max_capacity: body.max_capacity },
+        requestBody: {
+          ...(body.max_capacity !== undefined && {
+            max_capacity: body.max_capacity,
+          }),
+          ...(body.use_only_trip_pricing !== undefined && {
+            use_only_trip_pricing: body.use_only_trip_pricing,
+          }),
+        },
       }),
-    onSuccess: async () => {
-      showSuccessToast("Capacity updated.")
-      setEditingCapacityTripBoatId(null)
-      setCapacityInputValue("")
+    onSuccess: async (_, variables) => {
+      if (variables.max_capacity !== undefined) {
+        showSuccessToast("Capacity updated.")
+        setEditingCapacityTripBoatId(null)
+        setCapacityInputValue("")
+      } else if (variables.use_only_trip_pricing !== undefined) {
+        showSuccessToast("Pricing mode updated.")
+      }
       await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
       queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
@@ -401,6 +416,11 @@ const EditTrip = ({
     },
     onError: (err: ApiError) => handleError(err),
   })
+
+  const selectedTripBoat = selectedTripBoatForPricing
+    ? tripBoats.find((tb) => tb.id === selectedTripBoatForPricing.id)
+    : null
+  const useOnlyTripPricing = selectedTripBoat?.use_only_trip_pricing ?? false
 
   const handleSaveCapacity = (tripBoatId: string) => {
     const trimmed = capacityInputValue.trim()
@@ -550,6 +570,7 @@ const EditTrip = ({
           trip_id: trip.id,
           boat_id: selectedBoatId,
           max_capacity: maxCapacity || null,
+          use_only_trip_pricing: false,
         },
       })
 
@@ -1160,56 +1181,93 @@ const EditTrip = ({
                                       Close
                                     </Button>
                                   </HStack>
-                                  <Text fontSize="xs" color="gray.400" mb={2}>
-                                    Boat defaults apply unless you add an
-                                    override for this trip. Overrides replace
-                                    the default price for that ticket type.
-                                  </Text>
-                                  {/* Boat defaults (read-only) */}
-                                  <Box mb={3}>
-                                    <Text
-                                      fontSize="sm"
-                                      fontWeight="bold"
-                                      mb={2}
-                                      color="gray.500"
-                                    >
-                                      Boat defaults (Edit Boat to change)
-                                    </Text>
-                                    {boatDefaultsList.length > 0 ? (
-                                      <VStack align="stretch" gap={1}>
-                                        {boatDefaultsList.map((bp) => (
-                                          <HStack
-                                            key={bp.id}
-                                            justify="space-between"
-                                            p={2}
-                                            borderWidth="1px"
-                                            borderRadius="md"
-                                            borderColor="gray.400"
-                                            _dark={{
-                                              borderColor: "gray.600",
-                                              bg: "gray.800",
-                                            }}
-                                          >
-                                            <Text fontSize="sm">
-                                              {bp.ticket_type}
-                                            </Text>
-                                            <Text
-                                              fontSize="sm"
-                                              color="gray.500"
-                                            >
-                                              ${formatCents(bp.price)} (default)
-                                            </Text>
-                                          </HStack>
-                                        ))}
-                                      </VStack>
-                                    ) : (
-                                      <Text fontSize="sm" color="gray.500">
-                                        No defaults. Add ticket types in Edit
-                                        Boat.
+                                  <HStack
+                                    justify="space-between"
+                                    align="center"
+                                    mb={2}
+                                    p={2}
+                                    borderWidth="1px"
+                                    borderRadius="md"
+                                    borderColor="gray.300"
+                                    _dark={{ borderColor: "gray.600" }}
+                                  >
+                                    <Box>
+                                      <Text fontSize="sm" fontWeight="medium">
+                                        Use only trip-specific pricing
                                       </Text>
-                                    )}
-                                  </Box>
-                                  {/* Overrides for this trip */}
+                                      <Text fontSize="xs" color="gray.500">
+                                        {useOnlyTripPricing
+                                          ? "Boat defaults ignored. Define all ticket types below."
+                                          : "Boat defaults apply; overrides replace price/capacity."}
+                                      </Text>
+                                    </Box>
+                                    <Switch
+                                      checked={useOnlyTripPricing}
+                                      onCheckedChange={({ checked }) => {
+                                        if (selectedTripBoatForPricing) {
+                                          updateTripBoatMutation.mutate({
+                                            tripBoatId:
+                                              selectedTripBoatForPricing.id,
+                                            use_only_trip_pricing: checked,
+                                          })
+                                        }
+                                      }}
+                                      disabled={
+                                        updateTripBoatMutation.isPending
+                                      }
+                                    />
+                                  </HStack>
+                                  <Text fontSize="xs" color="gray.400" mb={2}>
+                                    {useOnlyTripPricing
+                                      ? "Define all ticket types for this trip. Boat defaults are ignored."
+                                      : "Boat defaults apply unless you add an override for this trip. Overrides replace the default price for that ticket type."}
+                                  </Text>
+                                  {!useOnlyTripPricing && (
+                                    <Box mb={3}>
+                                      <Text
+                                        fontSize="sm"
+                                        fontWeight="bold"
+                                        mb={2}
+                                        color="gray.500"
+                                      >
+                                        Boat defaults (Edit Boat to change)
+                                      </Text>
+                                      {boatDefaultsList.length > 0 ? (
+                                        <VStack align="stretch" gap={1}>
+                                          {boatDefaultsList.map((bp) => (
+                                            <HStack
+                                              key={bp.id}
+                                              justify="space-between"
+                                              p={2}
+                                              borderWidth="1px"
+                                              borderRadius="md"
+                                              borderColor="gray.400"
+                                              _dark={{
+                                                borderColor: "gray.600",
+                                                bg: "gray.800",
+                                              }}
+                                            >
+                                              <Text fontSize="sm">
+                                                {bp.ticket_type}
+                                              </Text>
+                                              <Text
+                                                fontSize="sm"
+                                                color="gray.500"
+                                              >
+                                                ${formatCents(bp.price)}{" "}
+                                                (default)
+                                              </Text>
+                                            </HStack>
+                                          ))}
+                                        </VStack>
+                                      ) : (
+                                        <Text fontSize="sm" color="gray.500">
+                                          No defaults. Add ticket types in Edit
+                                          Boat.
+                                        </Text>
+                                      )}
+                                    </Box>
+                                  )}
                                   <Text
                                     fontSize="sm"
                                     fontWeight="bold"
@@ -1217,7 +1275,9 @@ const EditTrip = ({
                                     color="gray.700"
                                     _dark={{ color: "gray.300" }}
                                   >
-                                    Overrides for this trip
+                                    {useOnlyTripPricing
+                                      ? "Ticket types for this trip"
+                                      : "Overrides for this trip"}
                                   </Text>
                                   <VStack align="stretch" gap={2}>
                                     {tripBoatPricingList.map((p) => {
@@ -1419,8 +1479,9 @@ const EditTrip = ({
                                           color="gray.500"
                                           py={2}
                                         >
-                                          No overrides. Boat default pricing
-                                          applies.
+                                          {useOnlyTripPricing
+                                            ? "No ticket types defined. Add at least one to offer tickets."
+                                            : "No overrides. Boat default pricing applies."}
                                         </Text>
                                       )}
                                   </VStack>
@@ -1601,7 +1662,9 @@ const EditTrip = ({
                                             )
                                           }
                                         >
-                                          Add override
+                                          {useOnlyTripPricing
+                                            ? "Add"
+                                            : "Add override"}
                                         </Button>
                                       </HStack>
                                     </VStack>
@@ -1615,7 +1678,9 @@ const EditTrip = ({
                                       }
                                     >
                                       <FiPlus style={{ marginRight: "4px" }} />
-                                      Add pricing override
+                                      {useOnlyTripPricing
+                                        ? "Add ticket type"
+                                        : "Add pricing override"}
                                     </Button>
                                   )}
                                   {tripBoatPricingList.length > 0 &&

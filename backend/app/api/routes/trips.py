@@ -111,9 +111,10 @@ def read_trips(
                     id=tb.id,
                     trip_id=tb.trip_id,
                     boat_id=tb.boat_id,
+                    max_capacity=tb.max_capacity,
+                    use_only_trip_pricing=tb.use_only_trip_pricing,
                     created_at=tb.created_at,
                     updated_at=tb.updated_at,
-                    max_capacity=tb.max_capacity,
                     boat=BoatPublic.model_validate(tb.boat),
                 )
                 for tb in trip_boats_by_trip.get(t["id"], [])
@@ -265,6 +266,7 @@ def duplicate_trip(
                 trip_id=new_trip.id,
                 boat_id=tb.boat_id,
                 max_capacity=tb.max_capacity,
+                use_only_trip_pricing=tb.use_only_trip_pricing,
             ),
         )
         old_to_new_tb[tb.id] = new_tb

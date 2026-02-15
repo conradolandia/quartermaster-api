@@ -700,6 +700,10 @@ class TripBoatBase(SQLModel):
     trip_id: uuid.UUID = Field(foreign_key="trip.id")
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
     max_capacity: int | None = None  # Optional override of boat's standard capacity
+    use_only_trip_pricing: bool = Field(
+        default=False,
+        description="When True, ignore boat defaults; only TripBoatPricing applies.",
+    )
 
 
 class TripBoatCreate(TripBoatBase):
@@ -710,6 +714,7 @@ class TripBoatUpdate(SQLModel):
     trip_id: uuid.UUID | None = None
     boat_id: uuid.UUID | None = None
     max_capacity: int | None = None
+    use_only_trip_pricing: bool | None = None
 
 
 class TripBoat(TripBoatBase, table=True):

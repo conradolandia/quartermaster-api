@@ -655,6 +655,10 @@ export type TripBoatCreate = {
   trip_id: string
   boat_id: string
   max_capacity?: number | null
+  /**
+   * When True, ignore boat defaults; only TripBoatPricing applies.
+   */
+  use_only_trip_pricing?: boolean
 }
 
 export type TripBoatPricingCreate = {
@@ -684,6 +688,10 @@ export type TripBoatPublic = {
   trip_id: string
   boat_id: string
   max_capacity?: number | null
+  /**
+   * When True, ignore boat defaults; only TripBoatPricing applies.
+   */
+  use_only_trip_pricing?: boolean
   id: string
   created_at: string
   updated_at: string
@@ -697,6 +705,10 @@ export type TripBoatPublicWithAvailability = {
   trip_id: string
   boat_id: string
   max_capacity: number
+  /**
+   * When True, ignore boat defaults; only TripBoatPricing applies.
+   */
+  use_only_trip_pricing?: boolean
   id: string
   created_at: string
   updated_at: string
@@ -715,6 +727,7 @@ export type TripBoatUpdate = {
   trip_id?: string | null
   boat_id?: string | null
   max_capacity?: number | null
+  use_only_trip_pricing?: boolean | null
 }
 
 export type TripCapacityResponse = {
