@@ -437,7 +437,8 @@ def _create_booking_impl(
     # Superusers can update booking_status to confirmed after creation via update endpoint
     booking = Booking(
         confirmation_code=confirmation_code,
-        user_name=booking_in.user_name,
+        first_name=booking_in.first_name,
+        last_name=booking_in.last_name,
         user_email=booking_in.user_email,
         user_phone=booking_in.user_phone,
         billing_address=booking_in.billing_address,
@@ -571,7 +572,8 @@ def duplicate_booking(
     confirmation_code = generate_unique_confirmation_code(session)
     booking_in = BookingCreate(
         confirmation_code=confirmation_code,
-        user_name=booking.user_name,
+        first_name=booking.first_name,
+        last_name=booking.last_name,
         user_email=booking.user_email,
         user_phone=booking.user_phone,
         billing_address=booking.billing_address,
@@ -639,7 +641,7 @@ def list_bookings(
     List/search bookings (admin only).
     Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
     booking_status and payment_status accept multiple values (include only those statuses).
-    Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
+    Optional search filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive substring).
     """
     try:
         # Parameter validation
@@ -703,7 +705,8 @@ def list_bookings(
             pattern = f"%{search_term}%"
             search_cond = or_(
                 Booking.confirmation_code.ilike(pattern),
-                Booking.user_name.ilike(pattern),
+                Booking.first_name.ilike(pattern),
+                Booking.last_name.ilike(pattern),
                 Booking.user_email.ilike(pattern),
                 Booking.user_phone.ilike(pattern),
             )
@@ -1264,7 +1267,8 @@ def update_booking(
             "tax_amount",
             "total_amount",
             "launch_updates_pref",
-            "user_name",
+            "first_name",
+            "last_name",
             "user_email",
             "user_phone",
             "billing_address",
@@ -1311,7 +1315,7 @@ def update_booking(
                         # Send refund confirmation email
                         email_data = generate_booking_refunded_email(
                             email_to=booking.user_email,
-                            user_name=booking.user_name,
+                            user_name=f"{booking.first_name} {booking.last_name}".strip(),
                             confirmation_code=booking.confirmation_code,
                             mission_name=mission_name,
                             refund_amount=booking.total_amount
@@ -1331,7 +1335,7 @@ def update_booking(
                         # Send cancellation email (e.g. failed payment)
                         email_data = generate_booking_cancelled_email(
                             email_to=booking.user_email,
-                            user_name=booking.user_name,
+                            user_name=f"{booking.first_name} {booking.last_name}".strip(),
                             confirmation_code=booking.confirmation_code,
                             mission_name=mission_name,
                         )
@@ -1960,7 +1964,7 @@ def resend_booking_confirmation_email(
         # Generate and send the email
         email_data = generate_booking_confirmation_email(
             email_to=booking.user_email,
-            user_name=booking.user_name,
+            user_name=f"{booking.first_name} {booking.last_name}".strip(),
             confirmation_code=booking.confirmation_code,
             mission_name=mission_name,
             booking_items=booking_items,
@@ -2163,7 +2167,7 @@ def process_refund(
 
             email_data = generate_booking_refunded_email(
                 email_to=booking.user_email,
-                user_name=booking.user_name,
+                user_name=f"{booking.first_name} {booking.last_name}".strip(),
                 confirmation_code=booking.confirmation_code,
                 mission_name=mission_name,
                 refund_amount=amount_to_refund / 100.0,  # cents to dollars for display
@@ -2522,7 +2526,7 @@ def export_bookings_csv(
             row = []
             field_data = {
                 "confirmation_code": booking.confirmation_code,
-                "customer_name": booking.user_name,
+                "customer_name": f"{booking.first_name} {booking.last_name}".strip(),
                 "email": booking.user_email,
                 "phone": booking.user_phone,
                 "billing_address": booking.billing_address,

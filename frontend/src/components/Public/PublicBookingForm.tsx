@@ -58,9 +58,8 @@ export interface BookingStepData {
 
 /** Map API booking (e.g. from getBookingByConfirmationCode) to form step data for pre-fill when resuming. */
 function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
-  const nameParts = (booking.user_name || "").trim().split(/\s+/)
-  const first_name = nameParts[0] ?? ""
-  const last_name = nameParts.slice(1).join(" ") ?? ""
+  const first_name = booking.first_name ?? ""
+  const last_name = booking.last_name ?? ""
   const items = booking.items ?? []
   const firstItem = items[0]
   const subtotal = booking.subtotal ?? 0

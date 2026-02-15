@@ -319,7 +319,7 @@ def resend_booking_confirmation_email(
         # Generate and send the email
         email_data = generate_booking_confirmation_email(
             email_to=booking.user_email,
-            user_name=booking.user_name,
+            user_name=f"{booking.first_name} {booking.last_name}".strip(),
             confirmation_code=booking.confirmation_code,
             mission_name=mission_name,
             booking_items=booking_items,

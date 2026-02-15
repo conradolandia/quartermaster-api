@@ -88,7 +88,8 @@ export type Body_trips_import_trip_from_yaml = {
 
 export type BookingCreate = {
   confirmation_code: string
-  user_name: string
+  first_name: string
+  last_name: string
   user_email: string
   user_phone: string
   billing_address: string
@@ -108,7 +109,8 @@ export type BookingCreate = {
  * Public PATCH for draft/pending_payment bookings by confirmation code.
  */
 export type BookingDraftUpdate = {
-  user_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
   user_email?: string | null
   user_phone?: string | null
   billing_address?: string | null
@@ -195,7 +197,8 @@ export type BookingItemUpdate = {
 
 export type BookingPublic = {
   confirmation_code: string
-  user_name: string
+  first_name: string
+  last_name: string
   user_email: string
   user_phone: string
   billing_address: string
@@ -246,7 +249,8 @@ export type BookingStatus =
   | "cancelled"
 
 export type BookingUpdate = {
-  user_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
   user_email?: string | null
   user_phone?: string | null
   billing_address?: string | null

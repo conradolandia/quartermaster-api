@@ -246,7 +246,11 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Customer:</Text>
-                    <Text>{currentBooking.user_name}</Text>
+                    <Text>
+                      {[currentBooking.first_name, currentBooking.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </Text>
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Email:</Text>

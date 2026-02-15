@@ -44,8 +44,7 @@ const BookingLookup = () => {
       })
 
       // Verify last name matches (case-insensitive)
-      const bookingLastName =
-        booking.user_name.split(" ").pop()?.toLowerCase() || ""
+      const bookingLastName = (booking.last_name ?? "").toLowerCase()
       const inputLastName = lastName.trim().toLowerCase()
 
       if (bookingLastName !== inputLastName) {
@@ -185,7 +184,11 @@ const BookingLookup = () => {
                 <VStack gap={2} align="stretch">
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Name:</Text>
-                    <Text>{currentBooking.user_name}</Text>
+                    <Text>
+                      {[currentBooking.first_name, currentBooking.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </Text>
                   </HStack>
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Email:</Text>

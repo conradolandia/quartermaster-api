@@ -268,7 +268,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     criteriaMode: "all",
     defaultValues: {
       confirmation_code: "",
-      user_name: "",
+      first_name: "",
+      last_name: "",
       user_email: "",
       user_phone: "",
       billing_address: "",
@@ -674,21 +675,40 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
               {/* Customer Information */}
               <Field
-                invalid={!!errors.user_name}
-                errorText={errors.user_name?.message}
-                label="Customer Name"
+                invalid={!!errors.first_name}
+                errorText={errors.first_name?.message}
+                label="First Name"
                 required
               >
                 <Input
-                  id="user_name"
-                  {...register("user_name", {
-                    required: "Customer name is required",
+                  id="first_name"
+                  {...register("first_name", {
+                    required: "First name is required",
                     maxLength: {
-                      value: 255,
-                      message: "Customer name cannot exceed 255 characters",
+                      value: 128,
+                      message: "First name cannot exceed 128 characters",
                     },
                   })}
-                  placeholder="Customer Name"
+                  placeholder="First Name"
+                  type="text"
+                />
+              </Field>
+              <Field
+                invalid={!!errors.last_name}
+                errorText={errors.last_name?.message}
+                label="Last Name"
+                required
+              >
+                <Input
+                  id="last_name"
+                  {...register("last_name", {
+                    required: "Last name is required",
+                    maxLength: {
+                      value: 128,
+                      message: "Last name cannot exceed 128 characters",
+                    },
+                  })}
+                  placeholder="Last Name"
                   type="text"
                 />
               </Field>

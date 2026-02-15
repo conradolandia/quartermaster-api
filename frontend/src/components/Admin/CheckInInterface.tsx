@@ -298,7 +298,10 @@ const CheckInInterface = ({
                       Customer Information
                     </Heading>
                     <Text>
-                      <strong>Name:</strong> {currentBooking.user_name}
+                      <strong>Name:</strong>{" "}
+                      {[currentBooking.first_name, currentBooking.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
                     </Text>
                     <Text>
                       <strong>Email:</strong> {currentBooking.user_email}

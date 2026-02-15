@@ -71,7 +71,7 @@ export default function PermanentDeleteBooking({
           <Text>
             Permanently delete the booking for{" "}
             <Text as="span" fontWeight="bold">
-              {booking.user_name}
+              {[booking.first_name, booking.last_name].filter(Boolean).join(" ")}
             </Text>{" "}
             (Confirmation: {booking.confirmation_code})?
           </Text>

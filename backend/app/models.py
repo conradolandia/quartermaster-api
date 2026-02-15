@@ -1181,8 +1181,8 @@ class BookingStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
-def _validate_user_name(v: str | None, max_length: int = 255) -> str | None:
-    """Validate customer name: max chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
+def _validate_name_part(v: str | None, max_length: int = 128) -> str | None:
+    """Validate name part (first/last): max chars, alphanumeric, accented chars, spaces, hyphens; no quotes."""
     if v is None:
         return v
     if len(v) > max_length:
@@ -1200,12 +1200,20 @@ def _validate_user_name(v: str | None, max_length: int = 255) -> str | None:
 
 class BookingBase(SQLModel):
     confirmation_code: str = Field(index=True, unique=True, max_length=32)
-    user_name: str = Field(max_length=255)
+    first_name: str = Field(max_length=128)
+    last_name: str = Field(max_length=128)
 
-    @field_validator("user_name", mode="before")
+    @field_validator("first_name", mode="before")
     @classmethod
-    def validate_user_name(cls, v: str) -> str:
-        result = _validate_user_name(v, max_length=255)
+    def validate_first_name(cls, v: str) -> str:
+        result = _validate_name_part(v, max_length=128)
+        assert result is not None
+        return result
+
+    @field_validator("last_name", mode="before")
+    @classmethod
+    def validate_last_name(cls, v: str) -> str:
+        result = _validate_name_part(v, max_length=128)
         assert result is not None
         return result
 
@@ -1233,13 +1241,21 @@ class BookingBase(SQLModel):
 
 class BookingCreate(SQLModel):
     confirmation_code: str = Field(index=True, unique=True, max_length=32)
-    user_name: str = Field(max_length=255)
+    first_name: str = Field(max_length=128)
+    last_name: str = Field(max_length=128)
     user_email: str = Field(max_length=255)
 
-    @field_validator("user_name", mode="before")
+    @field_validator("first_name", mode="before")
     @classmethod
-    def validate_user_name(cls, v: str) -> str:
-        result = _validate_user_name(v, max_length=255)
+    def validate_first_name(cls, v: str) -> str:
+        result = _validate_name_part(v, max_length=128)
+        assert result is not None
+        return result
+
+    @field_validator("last_name", mode="before")
+    @classmethod
+    def validate_last_name(cls, v: str) -> str:
+        result = _validate_name_part(v, max_length=128)
         assert result is not None
         return result
 
@@ -1258,13 +1274,19 @@ class BookingCreate(SQLModel):
 
 
 class BookingUpdate(SQLModel):
-    user_name: str | None = Field(default=None, max_length=255)
+    first_name: str | None = Field(default=None, max_length=128)
+    last_name: str | None = Field(default=None, max_length=128)
     user_email: str | None = Field(default=None, max_length=255)
 
-    @field_validator("user_name", mode="before")
+    @field_validator("first_name", mode="before")
     @classmethod
-    def validate_user_name(cls, v: str | None) -> str | None:
-        return _validate_user_name(v, max_length=255)
+    def validate_first_name(cls, v: str | None) -> str | None:
+        return _validate_name_part(v, max_length=128)
+
+    @field_validator("last_name", mode="before")
+    @classmethod
+    def validate_last_name(cls, v: str | None) -> str | None:
+        return _validate_name_part(v, max_length=128)
 
     user_phone: str | None = Field(default=None, max_length=40)
     billing_address: str | None = Field(default=None, max_length=1000)
@@ -1284,13 +1306,19 @@ class BookingUpdate(SQLModel):
 class BookingDraftUpdate(SQLModel):
     """Public PATCH for draft/pending_payment bookings by confirmation code."""
 
-    user_name: str | None = Field(default=None, max_length=255)
+    first_name: str | None = Field(default=None, max_length=128)
+    last_name: str | None = Field(default=None, max_length=128)
     user_email: str | None = Field(default=None, max_length=255)
 
-    @field_validator("user_name", mode="before")
+    @field_validator("first_name", mode="before")
     @classmethod
-    def validate_user_name(cls, v: str | None) -> str | None:
-        return _validate_user_name(v, max_length=255)
+    def validate_first_name(cls, v: str | None) -> str | None:
+        return _validate_name_part(v, max_length=128)
+
+    @field_validator("last_name", mode="before")
+    @classmethod
+    def validate_last_name(cls, v: str | None) -> str | None:
+        return _validate_name_part(v, max_length=128)
 
     user_phone: str | None = Field(default=None, max_length=40)
     billing_address: str | None = Field(default=None, max_length=1000)

@@ -12,7 +12,8 @@ export function totalTicketQuantity(booking: BookingPublic | undefined): number 
 // Define sortable columns
 export type SortableColumn =
   | "confirmation_code"
-  | "user_name"
+  | "first_name"
+  | "last_name"
   | "user_email"
   | "user_phone"
   | "booking_status"
@@ -33,7 +34,8 @@ export const bookingsSearchSchema = z.object({
   sortBy: z
     .enum([
       "confirmation_code",
-      "user_name",
+      "first_name",
+      "last_name",
       "user_email",
       "user_phone",
       "booking_status",

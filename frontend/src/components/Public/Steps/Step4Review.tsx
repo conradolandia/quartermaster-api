@@ -113,9 +113,8 @@ const Step4Review = ({
             {
               confirmationCode: code,
               requestBody: {
-                user_name:
-                  `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`.trim() ||
-                  undefined,
+                first_name: bookingData.customerInfo.first_name || undefined,
+                last_name: bookingData.customerInfo.last_name || undefined,
                 user_email: bookingData.customerInfo.email || undefined,
                 user_phone: bookingData.customerInfo.phone || undefined,
                 billing_address:
@@ -173,7 +172,8 @@ const Step4Review = ({
       const { bookingData } = data
 
       const bookingCreate: BookingCreate = {
-        user_name: `${bookingData.customerInfo.first_name} ${bookingData.customerInfo.last_name}`,
+        first_name: bookingData.customerInfo.first_name,
+        last_name: bookingData.customerInfo.last_name,
         user_email: bookingData.customerInfo.email,
         user_phone: bookingData.customerInfo.phone,
         billing_address: bookingData.customerInfo.billing_address || "",

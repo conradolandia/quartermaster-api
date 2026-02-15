@@ -389,7 +389,11 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                     borderRadius="md"
                   >
                     <VStack align="start" gap={1}>
-                      <Text fontWeight="medium">{booking.user_name}</Text>
+                      <Text fontWeight="medium">
+                      {[booking.first_name, booking.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </Text>
                       <Text fontSize="sm" color="text.muted">
                         {booking.confirmation_code}
                       </Text>

@@ -427,7 +427,7 @@ def send_launch_update(
             # Generate and send the email (once per unique address)
             email_data = generate_launch_update_email(
                 email_to=booking.user_email,
-                user_name=booking.user_name,
+                user_name=f"{booking.first_name} {booking.last_name}".strip(),
                 confirmation_code=booking.confirmation_code,
                 mission_name=launch.name,
                 update_message=update_data.message,

@@ -538,7 +538,11 @@ export default function BookingDetails({
                   <Text fontWeight="bold" minW="120px">
                     Name:
                   </Text>
-                  <Text>{booking.user_name}</Text>
+                  <Text>
+                    {[booking.first_name, booking.last_name]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </Text>
                 </Flex>
                 <Flex gap={4} alignItems="baseline">
                   <Text fontWeight="bold" minW="120px">

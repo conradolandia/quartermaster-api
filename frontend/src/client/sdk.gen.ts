@@ -637,7 +637,7 @@ export class BookingsService {
    * List/search bookings (admin only).
    * Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
    * booking_status and payment_status accept multiple values (include only those statuses).
-   * Optional search filters by confirmation_code, user_name, user_email, user_phone (case-insensitive substring).
+   * Optional search filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive substring).
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit

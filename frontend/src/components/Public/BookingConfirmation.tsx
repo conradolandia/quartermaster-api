@@ -204,7 +204,11 @@ const BookingConfirmation = ({
                 align={{ base: "stretch", sm: "center" }}
               >
                 <Text fontWeight="medium">Customer:</Text>
-                <Text wordBreak="break-word">{booking.user_name}</Text>
+                <Text wordBreak="break-word">
+                  {[booking.first_name, booking.last_name]
+                    .filter(Boolean)
+                    .join(" ")}
+                </Text>
               </Flex>
 
               <Flex

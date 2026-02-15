@@ -69,7 +69,7 @@ const DeleteBooking = ({
           <Text>
             Are you sure you want to cancel the booking for{" "}
             <Text as="span" fontWeight="bold">
-              {booking.user_name}
+              {[booking.first_name, booking.last_name].filter(Boolean).join(" ")}
             </Text>{" "}
             (Confirmation: {booking.confirmation_code})?
           </Text>

@@ -806,11 +806,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 minW="40"
                 fontWeight="bold"
                 cursor="pointer"
-                onClick={() => handleSort("user_name")}
+                onClick={() => handleSort("last_name")}
               >
                 <Flex align="center">
                   Customer info
-                  <SortIcon column="user_name" />
+                  <SortIcon column="last_name" />
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -926,7 +926,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Table.Cell>
                 <Table.Cell w="52" minW="40">
                   <VStack align="stretch" gap={0}>
-                    <Text fontSize="md">{booking.user_name}</Text>
+                    <Text fontSize="md">
+                      {[booking.first_name, booking.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </Text>
                     <HStack gap={1}>
                       <Icon as={FiMail} boxSize={3} color="text.muted" />
                       <Text fontSize="xs" color="text.muted" title={booking.user_email}>
