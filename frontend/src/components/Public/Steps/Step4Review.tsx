@@ -14,8 +14,9 @@ import { useEffect, useRef, useState } from "react"
 import type { MutableRefObject } from "react"
 
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
-import { formatCents } from "@/utils"
+import { formatCents, getApiErrorMessage } from "@/utils"
 import {
+  type ApiError,
   type BookingCreate,
   BookingsService,
   PaymentsService,
@@ -387,27 +388,8 @@ const Step4Review = ({
 
   // Show error message if booking creation or payment verification failed (not loadByCode: that clears URL and retries)
   if (createBookingMutation.isError || completeBookingMutation.isError) {
-    const apiDetail =
-      createBookingMutation.isError &&
-      createBookingMutation.error &&
-      "body" in createBookingMutation.error &&
-      createBookingMutation.error.body &&
-      typeof createBookingMutation.error.body === "object" &&
-      "detail" in createBookingMutation.error.body
-        ? (() => {
-            const d = (
-              createBookingMutation.error.body as { detail?: string | string[] }
-            ).detail
-            return typeof d === "string"
-              ? d
-              : Array.isArray(d)
-                ? d[0]
-                : undefined
-          })()
-        : undefined
     const errorMessage = createBookingMutation.isError
-      ? apiDetail ??
-        "There was an error creating your booking. Please try again or contact FleetCommand@Star-Fleet.Tours if the problem persists."
+      ? getApiErrorMessage(createBookingMutation.error as ApiError)
       : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
 
     const canRetryVerification =
