@@ -1084,7 +1084,9 @@ class BookingItemBase(SQLModel):
     merchandise_variation_id: uuid.UUID | None = Field(
         default=None, foreign_key="merchandisevariation.id"
     )
-    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
+    item_type: str = Field(
+        max_length=255
+    )  # ticket_type (e.g. adult_ticket) or merchandise name
     quantity: int = Field(ge=1)
     price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
@@ -1103,7 +1105,9 @@ class BookingItemCreate(SQLModel):
     merchandise_variation_id: uuid.UUID | None = Field(
         default=None, foreign_key="merchandisevariation.id"
     )
-    item_type: str = Field(max_length=32)  # e.g. adult_ticket, child_ticket
+    item_type: str = Field(
+        max_length=255
+    )  # ticket_type (e.g. adult_ticket) or merchandise name
     quantity: int = Field(ge=1)
     price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
@@ -1116,7 +1120,7 @@ class BookingItemUpdate(SQLModel):
     status: BookingItemStatus | None = None
     refund_reason: str | None = None
     refund_notes: str | None = None
-    item_type: str | None = Field(default=None, max_length=32)
+    item_type: str | None = Field(default=None, max_length=255)
     price_per_unit: int | None = Field(default=None, ge=0)
     boat_id: uuid.UUID | None = Field(default=None, foreign_key="boat.id")
 
