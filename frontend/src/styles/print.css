@@ -1,7 +1,13 @@
 /**
- * Print styles for public booking confirmation (ticket print).
- * Applied when user prints from /bookings?code=...
+ * Print styles for booking confirmation.
+ * - Public: /bookings?code=... (ticket print)
+ * - Admin: /bookings?code=... when authenticated (booking details print)
  */
+
+/* Hidden on screen, shown when printing */
+.print-only {
+  display: none;
+}
 
 @media print {
   /* Reset to print-friendly colors - override dark theme */
@@ -15,9 +21,30 @@
     print-color-adjust: exact;
   }
 
+  /* Allow layout to expand for print - remove viewport constraints */
+  [data-print-layout],
+  [data-print-layout] > *,
+  [data-print-layout] > * > * {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   /* Hide interactive/non-essential sections */
   .no-print {
     display: none !important;
+  }
+
+  /* Hide portalled menus/dropdowns (they render outside no-print parent) */
+  [data-scope="menu"],
+  [role="menu"] {
+    display: none !important;
+  }
+
+  /* Show only when printing (hidden on screen) */
+  .print-only {
+    display: block !important;
   }
 
   /* Ensure links are readable when printed */
@@ -89,6 +116,61 @@
 
   .print-booking-details * {
     color: #111 !important;
+  }
+
+  /* Admin booking details - override dark theme for printable content */
+  .print-admin-booking,
+  .print-admin-booking * {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #333 !important;
+    box-shadow: none !important;
+  }
+
+  .print-admin-booking-content {
+    max-width: 100% !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  /* Admin: stack sections vertically for print, remove overflow clipping */
+  .print-admin-booking-content > *,
+  .print-admin-booking-content [data-slot] {
+    overflow: visible !important;
+  }
+
+  .print-admin-table-container {
+    overflow: visible !important;
+  }
+
+  /* Admin: ensure flex children expand for print */
+  .print-admin-booking-content .flex {
+    flex-wrap: wrap !important;
+  }
+
+  /* Admin QR block - ensure QR code is visible */
+  .print-admin-qr-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #333 !important;
+    padding: 0.5rem !important;
+  }
+
+  .print-admin-qr-block img {
+    display: block !important;
+    max-width: 150px !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Admin tables - ensure borders and text are visible */
+  .print-admin-booking-content table,
+  .print-admin-booking-content th,
+  .print-admin-booking-content td {
+    border: 1px solid #333 !important;
+    color: #111 !important;
+    background: #fff !important;
   }
 
   /* Headings */

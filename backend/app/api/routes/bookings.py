@@ -1600,8 +1600,9 @@ def reschedule_booking(
     """
     Move all ticket items for this booking to another trip (same mission).
 
-    Merchandise items are left on their current trips. Target trip must be
-    active, not departed, and have capacity for the moved quantities.
+    Target trip may be Launch Viewing or Pre-Launch; cross-type rescheduling
+    is allowed. Merchandise items are left on their current trips. Target trip
+    must be active, not departed, and have capacity for the moved quantities.
     """
     booking = session.get(Booking, booking_id)
     if not booking:

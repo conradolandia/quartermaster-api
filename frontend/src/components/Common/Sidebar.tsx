@@ -23,7 +23,7 @@ const Sidebar = () => {
   const [open, setOpen] = useState(false)
 
   return (
-    <>
+    <Box className="no-print" display="contents">
       {/* Mobile */}
       <DrawerRoot
         placement="start"
@@ -107,7 +107,7 @@ const Sidebar = () => {
           <SidebarItems />
         </Box>
       </Box>
-    </>
+    </Box>
   )
 }
 

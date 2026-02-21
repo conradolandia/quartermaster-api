@@ -730,55 +730,45 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Select.Positioner>
             </Select.Root>
           </HStack>
-          <Button
-            size="sm"
-            variant="ghost"
-            visibility={
-              missionId ||
-                tripId ||
-                boatId ||
-                tripType ||
-                bookingStatusFilter.length < BOOKING_STATUSES.length ||
-                paymentStatusFilter.length < PAYMENT_STATUSES.length ||
-                debouncedSearchQuery
-                ? "visible"
-                : "hidden"
-            }
-            disabled={
-              !missionId &&
-              !tripId &&
-              !boatId &&
-              !tripType &&
-              bookingStatusFilter.length >= BOOKING_STATUSES.length &&
-              paymentStatusFilter.length >= PAYMENT_STATUSES.length &&
-              !debouncedSearchQuery
-            }
-            onClick={() => {
-              setMissionId(undefined)
-              setTripId(undefined)
-              setBoatId(undefined)
-              setTripType(undefined)
-              setBookingStatusFilter([...BOOKING_STATUSES])
-              setPaymentStatusFilter([...PAYMENT_STATUSES])
-              setSearchQuery("")
-              setDebouncedSearchQuery("")
-              updateFiltersInUrl({
-                missionId: undefined,
-                tripId: undefined,
-                boatId: undefined,
-                tripType: undefined,
-                bookingStatuses: [...BOOKING_STATUSES],
-                paymentStatuses: [...PAYMENT_STATUSES],
-                search: undefined,
-              })
-            }}
-          >
-            <Flex align="center" gap={1}>
-              <FiX />
-              Clear filters
-            </Flex>
-          </Button>
         </Flex>
+        {(missionId ||
+          tripId ||
+          boatId ||
+          tripType ||
+          bookingStatusFilter.length < BOOKING_STATUSES.length ||
+          paymentStatusFilter.length < PAYMENT_STATUSES.length ||
+          debouncedSearchQuery) && (
+          <Flex>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMissionId(undefined)
+                setTripId(undefined)
+                setBoatId(undefined)
+                setTripType(undefined)
+                setBookingStatusFilter([...BOOKING_STATUSES])
+                setPaymentStatusFilter([...PAYMENT_STATUSES])
+                setSearchQuery("")
+                setDebouncedSearchQuery("")
+                updateFiltersInUrl({
+                  missionId: undefined,
+                  tripId: undefined,
+                  boatId: undefined,
+                  tripType: undefined,
+                  bookingStatuses: [...BOOKING_STATUSES],
+                  paymentStatuses: [...PAYMENT_STATUSES],
+                  search: undefined,
+                })
+              }}
+            >
+              <Flex align="center" gap={1}>
+                <FiX />
+                Clear filters
+              </Flex>
+            </Button>
+          </Flex>
+        )}
       </VStack>
 
       <Box overflowX="auto">
@@ -839,7 +829,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="48"
+                w="40"
+                fontWeight="bold"
+                display={{ base: "none", lg: "table-cell" }}
+              >
+                Boat
+              </Table.ColumnHeader>
+              <Table.ColumnHeader
+                w="40"
                 minW="232px"
                 fontWeight="bold"
                 cursor="pointer"
@@ -961,6 +958,17 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     (booking.trip_type
                       ? tripTypeToLabel(booking.trip_type)
                       : "N/A")}
+                </Table.Cell>
+                <Table.Cell
+                  w="24"
+                  display={{ base: "none", lg: "table-cell" }}
+                >
+                  {booking.items?.[0]?.boat_id
+                    ? boats.find(
+                        (b: { id: string; name: string }) =>
+                          b.id === booking.items?.[0]?.boat_id,
+                      )?.name ?? "—"
+                    : "—"}
                 </Table.Cell>
                 <Table.Cell w="48" minW="232px">
                   <VStack align="start" gap={0}>

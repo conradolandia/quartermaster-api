@@ -943,8 +943,9 @@ const EditTrip = ({
                                           lineHeight="1.2"
                                         >
                                           {p.ticket_type}: $
-                                          {formatCents(p.price)} ({p.remaining}/
-                                          {p.capacity} left)
+                                          {formatCents(p.price)} (
+                                          {p.capacity - p.remaining}/{p.capacity}{" "}
+                                          taken)
                                         </Text>
                                       ))}
                                     </VStack>

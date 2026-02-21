@@ -10,6 +10,7 @@ function Navbar() {
 
   return (
     <Flex
+      className="no-print"
       display={display}
       justify="space-between"
       position="sticky"

@@ -206,7 +206,7 @@ export default function BookingDetails({
   }
 
   return (
-    <Container maxW="full">
+    <Container maxW="full" className="print-admin-booking">
       <Flex align="center" justify="space-between" gap={4} pt={12} mb={12}>
         <Heading size="4xl">
           Booking Details for:{" "}
@@ -219,7 +219,7 @@ export default function BookingDetails({
             {booking.confirmation_code}
           </Text>
         </Heading>
-        <Flex align="center" gap={4}>
+        <Flex align="center" gap={4} className="no-print">
           <Button size="sm" variant="ghost" onClick={handleBack}>
             <Flex align="center" gap={2}>
               <FiArrowLeft />
@@ -394,7 +394,64 @@ export default function BookingDetails({
         }}
       />
 
-      <VStack align="stretch" gap={6}>
+      {/* Print-only header: key info when action buttons are hidden */}
+      <Box
+        className="print-only"
+        p={4}
+        mb={4}
+        borderWidth="1px"
+        borderColor="gray.300"
+        borderRadius="md"
+      >
+        <Flex gap={6} flexWrap="wrap">
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="gray.500">
+              Confirmation Code
+            </Text>
+            <Text fontFamily="mono" fontSize="lg" fontWeight="bold">
+              {booking.confirmation_code}
+            </Text>
+          </Box>
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="gray.500">
+              Customer
+            </Text>
+            <Text>
+              {[booking.first_name, booking.last_name]
+                .filter(Boolean)
+                .join(" ")}
+            </Text>
+          </Box>
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="gray.500">
+              Status
+            </Text>
+            <Text>
+              {(booking.booking_status || "").replace("_", " ")} /{" "}
+              {formatPaymentStatusLabel(booking.payment_status)}
+            </Text>
+          </Box>
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="gray.500">
+              Total
+            </Text>
+            <Text fontWeight="bold">${formatCents(booking.total_amount)}</Text>
+          </Box>
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="gray.500">
+              Printed
+            </Text>
+            <Text fontSize="sm">
+              {formatDateTimeInLocationTz(
+                new Date().toISOString(),
+                userTz,
+              )}
+            </Text>
+          </Box>
+        </Flex>
+      </Box>
+
+      <VStack align="stretch" gap={6} className="print-admin-booking-content">
         <Flex gap={6} direction={{ base: "column", lg: "row" }}>
           <Box flex="2">
             <Heading size="md" mb={4}>
@@ -410,7 +467,7 @@ export default function BookingDetails({
             >
               <Flex direction="row" gap={4} justify="space-between">
                 {booking.qr_code_base64 && (
-                  <Box>
+                  <Box className="print-admin-qr-block">
                     <img
                       src={`data:image/png;base64,${booking.qr_code_base64}`}
                       alt="Booking QR Code"
@@ -637,7 +694,11 @@ export default function BookingDetails({
                   </Flex>
                 </VStack>
               </Box>
-              <Box overflowX="auto" flex="2">
+              <Box
+                overflowX="auto"
+                flex="2"
+                className="print-admin-table-container"
+              >
                 <Table.Root size={{ base: "sm", md: "md" }}>
                   <Table.Header>
                     <Table.Row>

@@ -68,7 +68,11 @@ function Layout() {
 
   // For authenticated superusers or other routes, show the full layout
   return (
-    <Flex direction="column" h="100vh">
+    <Flex
+      direction="column"
+      h="100vh"
+      data-print-layout
+    >
       <Navbar />
       <Flex flex="1" overflow="hidden">
         <Sidebar />

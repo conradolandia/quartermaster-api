@@ -332,23 +332,8 @@ function TripsTable() {
     return <PendingTrips />
   }
 
-  if (tripsToShow.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiSearch />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>You don't have any trips yet</EmptyState.Title>
-            <EmptyState.Description>
-              Add a new trip to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
-  }
+  const hasActiveFilters = !!(missionId || tripType)
+  const isEmpty = tripsToShow.length === 0
 
   const SortIcon = ({ column }: { column: SortableColumn }) => {
     const currentSortBy = sortBy || "check_in_time"
@@ -463,8 +448,8 @@ function TripsTable() {
         <Button
           size="sm"
           variant="ghost"
-          visibility={missionId || tripType ? "visible" : "hidden"}
-          disabled={!missionId && !tripType}
+          visibility={hasActiveFilters ? "visible" : "hidden"}
+          disabled={!hasActiveFilters}
           onClick={handleClearFilters}
         >
           <Flex align="center" gap={1}>
@@ -474,6 +459,40 @@ function TripsTable() {
         </Button>
       </Flex>
 
+      {isEmpty ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiSearch />
+            </EmptyState.Indicator>
+            <VStack textAlign="center" gap={3}>
+              <EmptyState.Title>
+                {hasActiveFilters
+                  ? "No trips match your filters"
+                  : "You don't have any trips yet"}
+              </EmptyState.Title>
+              <EmptyState.Description>
+                {hasActiveFilters
+                  ? "Try adjusting your filters or clear them to see all trips."
+                  : "Add a new trip to get started"}
+              </EmptyState.Description>
+              {hasActiveFilters && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleClearFilters}
+                >
+                  <Flex align="center" gap={1}>
+                    <Icon as={FiX} />
+                    Clear filters
+                  </Flex>
+                </Button>
+              )}
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+        <>
       <Box overflowX="auto">
         <Table.Root
           size={{ base: "sm", md: "md", lg: "lg" }}
@@ -778,6 +797,8 @@ function TripsTable() {
             </PaginationRoot>
           )}
         </Flex>
+      )}
+        </>
       )}
     </>
   )

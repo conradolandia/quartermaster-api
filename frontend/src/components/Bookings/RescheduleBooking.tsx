@@ -28,7 +28,10 @@ import {
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
-import { formatTripLabel } from "@/utils"
+import {
+  formatDateTimeInLocationTz,
+  parseApiDate,
+} from "@/utils"
 
 interface RescheduleBookingProps {
   booking: BookingPublic
@@ -128,10 +131,31 @@ export default function RescheduleBooking({
   const canSubmit =
     !!targetTripId && (!needsBoat || !!targetBoatId) && !rescheduleMutation.isPending
 
-  const tripOptions = trips.map((t: TripPublic) => ({
-    value: t.id,
-    label: formatTripLabel(t),
-  }))
+  const tripTypeToLabel = (type: string): string => {
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  const formatTripOptionLabel = (trip: TripPublic): string => {
+    const readableType = tripTypeToLabel(trip.type)
+    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+    if (trip.name?.trim()) {
+      return `${trip.name.trim()} – ${readableType} (${time})`
+    }
+    return `${readableType} (${time})`
+  }
+
+  const now = new Date()
+  const tripOptions = trips
+    .filter((t: TripPublic) => {
+      if (!t.departure_time) return true
+      return parseApiDate(t.departure_time) >= now
+    })
+    .map((t: TripPublic) => ({
+      value: t.id,
+      label: formatTripOptionLabel(t),
+    }))
 
   const boatOptions = tripBoats.map((tb) => ({
     value: tb.boat_id,
@@ -157,7 +181,8 @@ export default function RescheduleBooking({
         <DialogBody overflow="visible" pb={8}>
           <Text mb={4} fontSize="sm" color="text.muted">
             Move this booking&apos;s ticket items to another trip in the same
-            mission. Merchandise items stay on their current trips.
+            mission (Launch Viewing or Pre-Launch). Merchandise items stay on
+            their current trips.
           </Text>
           {!hasTicketItems && (
             <Text color="status.error" mb={4}>
