@@ -1,4 +1,9 @@
-import { MissionsService, TripsService, type TripPublic } from "../../client"
+import {
+  DiscountCodesService,
+  MissionsService,
+  TripsService,
+  type TripPublic,
+} from "../../client"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiCopy, FiLink, FiMail } from "react-icons/fi"
@@ -24,10 +29,23 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripPublic | null>(null)
 
+  const isEarlyBird =
+    (trip.effective_booking_mode ?? trip.booking_mode) === "early_bird"
+
   const { data: mission } = useQuery({
     queryKey: ["mission", trip.mission_id],
     queryFn: () => MissionsService.readMission({ missionId: trip.mission_id }),
     enabled: sendUpdateOpen,
+  })
+
+  const { data: discountCodes } = useQuery({
+    queryKey: ["discount-codes", isEarlyBird],
+    queryFn: () =>
+      DiscountCodesService.listDiscountCodes({
+        limit: 100,
+        isActive: true,
+      }),
+    enabled: isEarlyBird,
   })
 
   const duplicateMutation = useMutation({
@@ -49,9 +67,27 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   }
 
   const copyBookingLink = () => {
-    const url = `${getPublicOrigin()}/book?trip=${trip.id}`
+    let url = `${getPublicOrigin()}/book?trip=${trip.id}`
+    if (isEarlyBird && discountCodes) {
+      const accessCode =
+        discountCodes.find(
+          (dc) =>
+            dc.is_access_code &&
+            dc.access_code_mission_id === trip.mission_id,
+        ) ??
+        discountCodes.find(
+          (dc) => dc.is_access_code && dc.access_code_mission_id == null,
+        )
+      if (accessCode?.code) {
+        url += `&access=${encodeURIComponent(accessCode.code)}`
+      }
+    }
     void navigator.clipboard.writeText(url).then(() => {
-      showSuccessToast("Booking link copied to clipboard")
+      showSuccessToast(
+        isEarlyBird && !url.includes("&access=")
+          ? "Link copied. For early access trips, add &access=YOUR_CODE to the URL."
+          : "Booking link copied to clipboard",
+      )
     })
   }
 
