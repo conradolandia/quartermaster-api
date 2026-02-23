@@ -143,6 +143,7 @@ const Step2ItemSelection = ({
       const discountCodeData = await DiscountCodesService.validateDiscountCode({
         code: code.trim(),
         subtotalCents: subtotal,
+        tripId: bookingData.selectedTripId ?? undefined,
       })
 
       setAppliedDiscountCode(discountCodeData)

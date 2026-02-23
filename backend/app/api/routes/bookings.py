@@ -210,6 +210,20 @@ def _create_booking_impl(
                 detail="Access code is not valid for this mission",
             )
 
+    # Validate discount code restrictions (trip type, launch, mission, trip) when present
+    if booking_in.discount_code_id:
+        discount_code = session.get(DiscountCode, booking_in.discount_code_id)
+        if discount_code:
+            from app.services.discount_restrictions import (
+                check_discount_code_restrictions,
+            )
+
+            check_discount_code_restrictions(
+                session=session,
+                discount_code=discount_code,
+                trip_ids=list(distinct_trip_ids),
+            )
+
     # Validate all boats exist and are associated with the corresponding trip
     for item in booking_in.items:
         boat = session.get(Boat, item.boat_id)

@@ -16,6 +16,7 @@ from app.models import (
     DiscountCodePublic,
     DiscountCodeUpdate,
 )
+from app.services.discount_restrictions import check_discount_code_restrictions
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -237,9 +238,12 @@ def validate_discount_code(
     session: Session = Depends(deps.get_db),
     code: str,
     subtotal_cents: int = 0,
+    trip_id: uuid.UUID | None = None,
 ) -> DiscountCodePublic:
     """
     Validate discount code and return details if valid.
+    When the code has restrictions (trip type, launch, mission, trip), trip_id must be
+    provided to verify the code applies to the selected trip.
     """
     try:
         discount_code = session.exec(
@@ -291,6 +295,25 @@ def validate_discount_code(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Minimum order amount of ${discount_code.min_order_amount / 100:.2f} required for this discount code",
+            )
+
+        # Check restrictions (trip type, launch, mission, trip)
+        has_restriction = (
+            discount_code.restricted_trip_type is not None
+            or discount_code.restricted_launch_id is not None
+            or discount_code.restricted_mission_id is not None
+            or discount_code.restricted_trip_id is not None
+        )
+        if has_restriction:
+            if not trip_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This discount code requires selecting a trip first",
+                )
+            check_discount_code_restrictions(
+                session=session,
+                discount_code=discount_code,
+                trip_ids=[trip_id],
             )
 
         return DiscountCodePublic.model_validate(discount_code)
@@ -367,13 +390,44 @@ def validate_access_code(
                 valid=False, message="Access code has reached maximum usage limit"
             )
 
-        # Check mission restriction if specified
+        # Check mission restriction if specified (access_code_mission_id)
         if discount_code.access_code_mission_id and mission_id:
             if discount_code.access_code_mission_id != mission_id:
                 return AccessCodeValidationResponse(
                     valid=False,
                     message="Access code is not valid for this mission",
                 )
+
+        # Check other restrictions (trip type, launch, mission, trip) if trip_id provided
+        has_restriction = (
+            discount_code.restricted_trip_type is not None
+            or discount_code.restricted_launch_id is not None
+            or discount_code.restricted_mission_id is not None
+            or discount_code.restricted_trip_id is not None
+        )
+        if has_restriction and mission_id:
+            # For access code we have mission_id; we need trip_id to fully validate.
+            # If we only have mission_id, we can check restricted_mission_id and
+            # restricted_launch_id. For restricted_trip_id and restricted_trip_type
+            # we'd need trip_id. For now, validate what we can with mission_id.
+            mission = crud.get_mission(session=session, mission_id=mission_id)
+            if mission:
+                if (
+                    discount_code.restricted_mission_id
+                    and discount_code.restricted_mission_id != mission_id
+                ):
+                    return AccessCodeValidationResponse(
+                        valid=False,
+                        message="Access code is not valid for this mission",
+                    )
+                if (
+                    discount_code.restricted_launch_id
+                    and discount_code.restricted_launch_id != mission.launch_id
+                ):
+                    return AccessCodeValidationResponse(
+                        valid=False,
+                        message="Access code is not valid for this launch",
+                    )
 
         # If mission_id is provided, verify the mission exists
         if mission_id:

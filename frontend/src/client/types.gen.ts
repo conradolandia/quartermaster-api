@@ -280,6 +280,10 @@ export type DiscountCodeCreate = {
   max_discount_amount?: number | null
   is_access_code?: boolean
   access_code_mission_id?: string | null
+  restricted_trip_type?: string | null
+  restricted_launch_id?: string | null
+  restricted_mission_id?: string | null
+  restricted_trip_id?: string | null
 }
 
 export type DiscountCodePublic = {
@@ -296,6 +300,10 @@ export type DiscountCodePublic = {
   max_discount_amount?: number | null
   is_access_code?: boolean
   access_code_mission_id?: string | null
+  restricted_trip_type?: string | null
+  restricted_launch_id?: string | null
+  restricted_mission_id?: string | null
+  restricted_trip_id?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -316,6 +324,10 @@ export type DiscountCodeUpdate = {
   max_discount_amount?: number | null
   is_access_code?: boolean | null
   access_code_mission_id?: string | null
+  restricted_trip_type?: string | null
+  restricted_launch_id?: string | null
+  restricted_mission_id?: string | null
+  restricted_trip_id?: string | null
 }
 
 /**
@@ -1187,6 +1199,7 @@ export type DiscountCodesDeleteDiscountCodeResponse = {
 export type DiscountCodesValidateDiscountCodeData = {
   code: string
   subtotalCents?: number
+  tripId?: string | null
 }
 
 export type DiscountCodesValidateDiscountCodeResponse = DiscountCodePublic

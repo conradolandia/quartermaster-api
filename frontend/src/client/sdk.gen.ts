@@ -1298,9 +1298,12 @@ export class DiscountCodesService {
   /**
    * Validate Discount Code
    * Validate discount code and return details if valid.
+   * When the code has restrictions (trip type, launch, mission, trip), trip_id must be
+   * provided to verify the code applies to the selected trip.
    * @param data The data for the request.
    * @param data.code
    * @param data.subtotalCents
+   * @param data.tripId
    * @returns DiscountCodePublic Successful Response
    * @throws ApiError
    */
@@ -1315,6 +1318,7 @@ export class DiscountCodesService {
       },
       query: {
         subtotal_cents: data.subtotalCents,
+        trip_id: data.tripId,
       },
       errors: {
         422: "Validation Error",

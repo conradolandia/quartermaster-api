@@ -32,8 +32,13 @@ import {
   type DiscountCodePublic,
   type DiscountCodeUpdate,
   DiscountCodesService,
+  LaunchesService,
+  MissionsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { useMissionsByLaunch } from "@/hooks/useMissionsByLaunch"
+import { useTripsByMission } from "@/hooks/useTripsByMission"
+import { NativeSelect } from "@/components/ui/native-select"
 import { formatCents, handleError } from "@/utils"
 import { getPublicOrigin } from "@/utils/url"
 
@@ -54,6 +59,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     max_discount_amount: null,
     is_access_code: false,
     access_code_mission_id: null,
+    restricted_trip_type: null,
+    restricted_launch_id: null,
+    restricted_mission_id: null,
+    restricted_trip_id: null,
   })
 
   const queryClient = useQueryClient()
@@ -70,6 +79,28 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
         showSuccessToast("Booking URL copied to clipboard")
       })
   }
+
+  const { data: launchesData } = useQuery({
+    queryKey: ["launches"],
+    queryFn: () => LaunchesService.readLaunches(),
+    enabled: isAdding || !!editingId,
+  })
+  const { missions: missionsByLaunch } = useMissionsByLaunch(
+    formData.restricted_launch_id ?? undefined,
+    (isAdding || !!editingId) && !!formData.restricted_launch_id,
+  )
+  const { data: allMissionsData } = useQuery({
+    queryKey: ["missions"],
+    queryFn: () => MissionsService.readMissions({ limit: 500 }),
+    enabled: (isAdding || !!editingId) && !formData.restricted_launch_id,
+  })
+  const missions = formData.restricted_launch_id
+    ? missionsByLaunch
+    : allMissionsData?.data ?? []
+  const { trips } = useTripsByMission(
+    formData.restricted_mission_id ?? undefined,
+    (isAdding || !!editingId) && !!formData.restricted_mission_id,
+  )
 
   // Fetch discount codes
   const { data: discountCodes, isLoading } = useQuery({
@@ -130,6 +161,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
       max_discount_amount: null,
       is_access_code: false,
       access_code_mission_id: null,
+      restricted_trip_type: null,
+      restricted_launch_id: null,
+      restricted_mission_id: null,
+      restricted_trip_id: null,
     })
   }
 
@@ -159,6 +194,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
           : null,
       is_access_code: discountCode.is_access_code || false,
       access_code_mission_id: discountCode.access_code_mission_id || null,
+      restricted_trip_type: discountCode.restricted_trip_type || null,
+      restricted_launch_id: discountCode.restricted_launch_id || null,
+      restricted_mission_id: discountCode.restricted_mission_id || null,
+      restricted_trip_id: discountCode.restricted_trip_id || null,
     })
   }
 
@@ -190,6 +229,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
         formData.max_discount_amount != null
           ? Math.round(formData.max_discount_amount * 100)
           : null,
+      restricted_trip_type: formData.restricted_trip_type || null,
+      restricted_launch_id: formData.restricted_launch_id || null,
+      restricted_mission_id: formData.restricted_mission_id || null,
+      restricted_trip_id: formData.restricted_trip_id || null,
     } as DiscountCodeCreate
 
     if (editingId) {
@@ -406,6 +449,101 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   <Text fontSize="xs" color="gray.500" mt={1}>
                     When disabled, this discount code cannot be used
                   </Text>
+                </Box>
+              </HStack>
+
+              <Text fontSize="sm" fontWeight="medium" mt={2}>
+                Restrictions (optional)
+              </Text>
+              <Text fontSize="xs" color="gray.500" mb={2}>
+                Limit where this code can be used. Leave empty for no restriction.
+              </Text>
+              <HStack width="100%">
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Trip Type
+                  </Text>
+                  <NativeSelect
+                    value={formData.restricted_trip_type || ""}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData({
+                        ...formData,
+                        restricted_trip_type: e.target.value || null,
+                      })
+                    }
+                  >
+                    <option value="">Any</option>
+                    <option value="launch_viewing">Launch Viewing</option>
+                    <option value="pre_launch">Pre-Launch</option>
+                  </NativeSelect>
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Launch
+                  </Text>
+                  <NativeSelect
+                    value={formData.restricted_launch_id || ""}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData({
+                        ...formData,
+                        restricted_launch_id: e.target.value || null,
+                        restricted_mission_id: null,
+                        restricted_trip_id: null,
+                      })
+                    }
+                  >
+                    <option value="">Any</option>
+                    {launchesData?.data?.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Box>
+              </HStack>
+              <HStack width="100%">
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Mission
+                  </Text>
+                  <NativeSelect
+                    value={formData.restricted_mission_id || ""}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData({
+                        ...formData,
+                        restricted_mission_id: e.target.value || null,
+                        restricted_trip_id: null,
+                      })
+                    }
+                  >
+                    <option value="">Any</option>
+                    {missions.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Trip
+                  </Text>
+                  <NativeSelect
+                    value={formData.restricted_trip_id || ""}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData({
+                        ...formData,
+                        restricted_trip_id: e.target.value || null,
+                      })
+                    }
+                  >
+                    <option value="">Any</option>
+                    {trips.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name || t.type}
+                      </option>
+                    ))}
+                  </NativeSelect>
                 </Box>
               </HStack>
             </VStack>

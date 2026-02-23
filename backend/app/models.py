@@ -1431,6 +1431,13 @@ class DiscountCodeBase(SQLModel):
     access_code_mission_id: uuid.UUID | None = Field(
         default=None
     )  # Restrict to specific mission
+    # Restriction fields: code only valid when booking matches these (null = no restriction)
+    restricted_trip_type: str | None = Field(
+        default=None, max_length=50
+    )  # launch_viewing | pre_launch
+    restricted_launch_id: uuid.UUID | None = Field(default=None)
+    restricted_mission_id: uuid.UUID | None = Field(default=None)
+    restricted_trip_id: uuid.UUID | None = Field(default=None)
 
 
 class DiscountCodeCreate(SQLModel):
@@ -1446,6 +1453,10 @@ class DiscountCodeCreate(SQLModel):
     max_discount_amount: int | None = Field(default=None, ge=0)  # cents
     is_access_code: bool = Field(default=False)
     access_code_mission_id: uuid.UUID | None = Field(default=None)
+    restricted_trip_type: str | None = Field(default=None, max_length=50)
+    restricted_launch_id: uuid.UUID | None = Field(default=None)
+    restricted_mission_id: uuid.UUID | None = Field(default=None)
+    restricted_trip_id: uuid.UUID | None = Field(default=None)
 
 
 class DiscountCodeUpdate(SQLModel):
@@ -1461,6 +1472,10 @@ class DiscountCodeUpdate(SQLModel):
     max_discount_amount: int | None = Field(default=None, ge=0)  # cents
     is_access_code: bool | None = None
     access_code_mission_id: uuid.UUID | None = Field(default=None)
+    restricted_trip_type: str | None = Field(default=None, max_length=50)
+    restricted_launch_id: uuid.UUID | None = Field(default=None)
+    restricted_mission_id: uuid.UUID | None = Field(default=None)
+    restricted_trip_id: uuid.UUID | None = Field(default=None)
 
 
 class DiscountCode(DiscountCodeBase, table=True):

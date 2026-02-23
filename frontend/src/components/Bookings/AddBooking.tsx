@@ -311,6 +311,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       const discountCodeData = await DiscountCodesService.validateDiscountCode({
         code: code.trim(),
         subtotalCents: subtotal,
+        tripId: selectedTripId || undefined,
       })
 
       setAppliedDiscountCode(discountCodeData)
