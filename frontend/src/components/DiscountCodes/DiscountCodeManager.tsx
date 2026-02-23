@@ -34,6 +34,7 @@ import {
   DiscountCodesService,
   LaunchesService,
   MissionsService,
+  TripsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useMissionsByLaunch } from "@/hooks/useMissionsByLaunch"
@@ -107,6 +108,47 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     queryKey: ["discount-codes"],
     queryFn: () => DiscountCodesService.listDiscountCodes({ limit: 100 }),
   })
+
+  // Fetch lookups for restrictions display in table
+  const { data: tableLaunches } = useQuery({
+    queryKey: ["launches-table"],
+    queryFn: () => LaunchesService.readLaunches(),
+    enabled: !!discountCodes?.length,
+  })
+  const { data: tableMissions } = useQuery({
+    queryKey: ["missions-table"],
+    queryFn: () => MissionsService.readMissions({ limit: 500 }),
+    enabled: !!discountCodes?.length,
+  })
+  const { data: tableTrips } = useQuery({
+    queryKey: ["trips-table"],
+    queryFn: () => TripsService.readTrips({ limit: 500 }),
+    enabled: !!discountCodes?.length,
+  })
+
+  const formatRestrictions = (dc: DiscountCodePublic) => {
+    const parts: string[] = []
+    if (dc.restricted_trip_type) {
+      parts.push(
+        dc.restricted_trip_type === "launch_viewing" ? "Launch viewing" : "Pre-launch",
+      )
+    }
+    if (dc.restricted_launch_id && tableLaunches?.data) {
+      const launch = tableLaunches.data.find((l) => l.id === dc.restricted_launch_id)
+      parts.push(launch ? launch.name : "Launch")
+    }
+    if (dc.restricted_mission_id && tableMissions?.data) {
+      const mission = tableMissions.data.find(
+        (m) => m.id === dc.restricted_mission_id,
+      )
+      parts.push(mission ? mission.name : "Mission")
+    }
+    if (dc.restricted_trip_id && tableTrips?.data) {
+      const trip = tableTrips.data.find((t) => t.id === dc.restricted_trip_id)
+      parts.push(trip ? trip.name || trip.type : "Trip")
+    }
+    return parts.length > 0 ? parts.join(", ") : "—"
+  }
 
   // Create discount code mutation
   const createMutation = useMutation({
@@ -581,6 +623,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               <Table.ColumnHeader>Value</Table.ColumnHeader>
               <Table.ColumnHeader>Uses</Table.ColumnHeader>
               <Table.ColumnHeader>Access Code</Table.ColumnHeader>
+              <Table.ColumnHeader>Restrictions</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
               <Table.ColumnHeader>Booking URL</Table.ColumnHeader>
               <Table.ColumnHeader>Actions</Table.ColumnHeader>
@@ -593,7 +636,13 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   <Text fontWeight="medium">{discountCode.code}</Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text fontSize="sm" color="gray.600">
+                  <Text
+                    fontSize="sm"
+                    color="text.muted"
+                    maxW="200px"
+                    truncate
+                    title={discountCode.description || undefined}
+                  >
                     {discountCode.description || "—"}
                   </Text>
                 </Table.Cell>
@@ -622,10 +671,21 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   <Text
                     fontSize="sm"
                     color={
-                      discountCode.is_access_code ? "blue.500" : "gray.400"
+                      discountCode.is_access_code ? "blue.500" : "text.muted"
                     }
                   >
                     {discountCode.is_access_code ? "Yes" : "No"}
+                  </Text>
+                </Table.Cell>
+                <Table.Cell>
+                  <Text
+                    fontSize="sm"
+                    color="text.muted"
+                    title={formatRestrictions(discountCode)}
+                    maxW="200px"
+                    truncate
+                  >
+                    {formatRestrictions(discountCode)}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
@@ -640,7 +700,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   <HStack gap={2} align="center">
                     <Text
                       fontSize="xs"
-                      color="gray.500"
+                      color="text.muted"
                       title={buildBookingUrl(
                         discountCode.code,
                         !!discountCode.is_access_code,
@@ -691,7 +751,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
           </Table.Body>
         </Table.Root>
         {(!discountCodes || discountCodes.length === 0) && (
-          <Text color="gray.500" textAlign="center" py={4}>
+          <Text color="text.muted" textAlign="center" py={4}>
             No discount codes configured
           </Text>
         )}
