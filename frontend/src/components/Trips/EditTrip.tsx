@@ -497,7 +497,9 @@ const EditTrip = ({
     )
   }, [reassignFrom, reassignToBoatId, reassignTypeMapping, tripBoats])
 
-  // Sync inputs when dialog opens or trip changes (e.g. after duplicate)
+  // Sync inputs when dialog opens or trip changes (e.g. after duplicate).
+  // Only depend on isOpen and trip.id so we do not overwrite user edits when
+  // a refetch (e.g. after save) updates the trip prop.
   useEffect(() => {
     if (isOpen) {
       const zone = trip.timezone ?? "UTC"
@@ -526,21 +528,7 @@ const EditTrip = ({
         Math.round((b.getTime() - c.getTime()) / (60 * 1000)),
       )
     }
-  }, [
-    isOpen,
-    trip.id,
-    trip.mission_id,
-    trip.name,
-    trip.type,
-    trip.active,
-    trip.unlisted,
-    trip.booking_mode,
-    trip.check_in_time,
-    trip.boarding_time,
-    trip.departure_time,
-    trip.timezone,
-    (trip as { sales_open_at?: string | null }).sales_open_at,
-  ])
+  }, [isOpen, trip.id])
 
   // Create a map of boat ids to boat objects for quick lookup
   const boatsMap = new Map<string, any>()
@@ -840,10 +828,13 @@ const EditTrip = ({
                         width="100%"
                       >
                         <Text>Active</Text>
-                        <Box>
+                        <Box
+                          onClick={() => setActive(!active)}
+                          cursor={mutation.isPending ? "not-allowed" : "pointer"}
+                          opacity={mutation.isPending ? 0.5 : 1}
+                        >
                           <Switch
                             checked={active}
-                            onCheckedChange={({ checked }) => setActive(checked === true)}
                             disabled={mutation.isPending}
                             inputProps={{ id: "active" }}
                           />
@@ -859,10 +850,13 @@ const EditTrip = ({
                         width="100%"
                       >
                         <Text>Unlisted</Text>
-                        <Box>
+                        <Box
+                          onClick={() => setUnlisted(!unlisted)}
+                          cursor={mutation.isPending ? "not-allowed" : "pointer"}
+                          opacity={mutation.isPending ? 0.5 : 1}
+                        >
                           <Switch
                             checked={unlisted}
-                            onCheckedChange={({ checked }) => setUnlisted(checked === true)}
                             disabled={mutation.isPending}
                             inputProps={{ id: "unlisted" }}
                           />

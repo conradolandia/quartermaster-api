@@ -1,7 +1,18 @@
+import {
+  DialogActionTrigger,
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import {
   Box,
   Button,
+  ButtonGroup,
   Checkbox,
   Flex,
   HStack,
@@ -196,202 +207,215 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     <VStack align="stretch" gap={6}>
       <HStack justify="space-between" alignItems="center" py={2}>
         <Heading size="lg">Discount Codes Management</Heading>
-        {!isAdding && !editingId && (
-          <Button size="sm" onClick={() => setIsAdding(true)}>
-            <FiPlus style={{ marginRight: "4px" }} />
-            Add Discount Code
-          </Button>
-        )}
+        <Button size="sm" onClick={() => setIsAdding(true)}>
+          <FiPlus style={{ marginRight: "4px" }} />
+          Add Discount Code
+        </Button>
       </HStack>
 
-      {/* Add/Edit Form */}
-      {(isAdding || editingId) && (
-        <Box p={4} borderWidth="1px" borderRadius="md">
-          <VStack gap={3}>
-            <HStack width="100%">
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Code
-                </Text>
-                <Input
-                  value={formData.code || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value })
-                  }
-                  placeholder="DISCOUNT10"
-                />
-              </Box>
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Description
-                </Text>
-                <Input
-                  value={formData.description || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="10% off for early birds"
-                />
-              </Box>
-            </HStack>
+      {/* Add/Edit Modal */}
+      <DialogRoot
+        size={{ base: "xs", md: "lg" }}
+        placement="center"
+        open={isAdding || !!editingId}
+        onOpenChange={({ open }) => !open && cancelEdit()}
+      >
+        <DialogContent>
+          <DialogCloseTrigger />
+          <DialogHeader>
+            <DialogTitle>
+              {editingId ? "Edit Discount Code" : "Add Discount Code"}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <VStack gap={3}>
+              <HStack width="100%">
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Code
+                  </Text>
+                  <Input
+                    value={formData.code || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, code: e.target.value })
+                    }
+                    placeholder="DISCOUNT10"
+                  />
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Description
+                  </Text>
+                  <Input
+                    value={formData.description || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="10% off for early birds"
+                  />
+                </Box>
+              </HStack>
 
-            <HStack width="100%">
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Type
-                </Text>
-                <select
-                  value={formData.discount_type || "percentage"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      discount_type: e.target.value as
-                        | "percentage"
-                        | "fixed_amount",
-                    })
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.5rem",
-                    borderRadius: "0.375rem",
-                    border: "1px solid",
-                    borderColor: "inherit",
-                  }}
-                >
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed_amount">Fixed Amount</option>
-                </select>
-              </Box>
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Value
-                </Text>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={
-                    formData.discount_value !== undefined &&
-                    formData.discount_value !== null
-                      ? formData.discount_value
-                      : ""
-                  }
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setFormData({
-                      ...formData,
-                      discount_value:
-                        value === ""
-                          ? undefined
-                          : Number.parseFloat(value) ?? undefined,
-                    })
-                  }}
-                  placeholder={
-                    formData.is_access_code ? "0 (no discount)" : "10 or leave empty for 0"
-                  }
-                />
-              </Box>
-            </HStack>
-
-            <HStack width="100%">
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Max Uses
-                </Text>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.max_uses || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      max_uses: e.target.value
-                        ? Number.parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  placeholder="Unlimited"
-                />
-              </Box>
-              <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
-                  Min Order Amount
-                </Text>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.min_order_amount || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      min_order_amount: e.target.value
-                        ? Number.parseFloat(e.target.value)
-                        : null,
-                    })
-                  }
-                  placeholder="No minimum"
-                />
-              </Box>
-            </HStack>
-
-            <HStack width="100%" alignItems="center">
-              <Box flex={1}>
-                <Checkbox.Root
-                  checked={formData.is_access_code || false}
-                  onCheckedChange={(details) =>
-                    setFormData({
-                      ...formData,
-                      is_access_code: !!details.checked,
-                    })
-                  }
-                >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control />
-                  <Checkbox.Label>Early Bird Access Code</Checkbox.Label>
-                </Checkbox.Root>
-                <Text fontSize="xs" color="gray.500" mt={1}>
-                  When enabled, this code grants access to missions in "Early
-                  Bird" booking mode
-                </Text>
-              </Box>
-            </HStack>
-
-            <HStack width="100%" alignItems="center">
-              <Box flex={1}>
-                <Flex
-                  alignItems="center"
-                  justifyContent="space-between"
-                  width="100%"
-                >
-                  <Text fontSize="sm">Active</Text>
-                  <Box
-                    onClick={() => {
+              <HStack width="100%">
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Type
+                  </Text>
+                  <select
+                    value={formData.discount_type || "percentage"}
+                    onChange={(e) =>
                       setFormData({
                         ...formData,
-                        is_active: !formData.is_active,
+                        discount_type: e.target.value as
+                          | "percentage"
+                          | "fixed_amount",
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "0.375rem",
+                      border: "1px solid",
+                      borderColor: "inherit",
+                    }}
+                  >
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed_amount">Fixed Amount</option>
+                  </select>
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Value
+                  </Text>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={
+                      formData.discount_value !== undefined &&
+                      formData.discount_value !== null
+                        ? formData.discount_value
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setFormData({
+                        ...formData,
+                        discount_value:
+                          value === ""
+                            ? undefined
+                            : Number.parseFloat(value) ?? undefined,
                       })
                     }}
-                    cursor="pointer"
-                  >
-                    <Switch
-                      checked={formData.is_active ?? true}
-                      inputProps={{ id: "is_active" }}
-                    />
-                  </Box>
-                </Flex>
-                <Text fontSize="xs" color="gray.500" mt={1}>
-                  When disabled, this discount code cannot be used
-                </Text>
-              </Box>
-            </HStack>
+                    placeholder={
+                      formData.is_access_code
+                        ? "0 (no discount)"
+                        : "10 or leave empty for 0"
+                    }
+                  />
+                </Box>
+              </HStack>
 
-            <HStack width="100%" justify="flex-end">
-              <Button size="sm" onClick={cancelEdit}>
-                Cancel
-              </Button>
+              <HStack width="100%">
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Max Uses
+                  </Text>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.max_uses || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        max_uses: e.target.value
+                          ? Number.parseInt(e.target.value)
+                          : null,
+                      })
+                    }
+                    placeholder="Unlimited"
+                  />
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="sm" mb={1}>
+                    Min Order Amount
+                  </Text>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.min_order_amount || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        min_order_amount: e.target.value
+                          ? Number.parseFloat(e.target.value)
+                          : null,
+                      })
+                    }
+                    placeholder="No minimum"
+                  />
+                </Box>
+              </HStack>
+
+              <HStack width="100%" alignItems="center">
+                <Box flex={1}>
+                  <Checkbox.Root
+                    checked={formData.is_access_code || false}
+                    onCheckedChange={(details) =>
+                      setFormData({
+                        ...formData,
+                        is_access_code: !!details.checked,
+                      })
+                    }
+                  >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control />
+                    <Checkbox.Label>Early Bird Access Code</Checkbox.Label>
+                  </Checkbox.Root>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    When enabled, this code grants access to missions in "Early
+                    Bird" booking mode
+                  </Text>
+                </Box>
+              </HStack>
+
+              <HStack width="100%" alignItems="center">
+                <Box flex={1}>
+                  <Flex
+                    alignItems="center"
+                    justifyContent="space-between"
+                    width="100%"
+                  >
+                    <Text fontSize="sm">Active</Text>
+                    <Box
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          is_active: !formData.is_active,
+                        })
+                      }}
+                      cursor="pointer"
+                    >
+                      <Switch
+                        checked={formData.is_active ?? true}
+                        inputProps={{ id: "is_active" }}
+                      />
+                    </Box>
+                  </Flex>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    When disabled, this discount code cannot be used
+                  </Text>
+                </Box>
+              </HStack>
+            </VStack>
+          </DialogBody>
+          <DialogFooter gap={2}>
+            <ButtonGroup>
+              <DialogActionTrigger asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogActionTrigger>
               <Button
-                size="sm"
                 colorScheme="blue"
                 onClick={handleSubmit}
                 disabled={
@@ -403,10 +427,10 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               >
                 {editingId ? "Update" : "Create"} Discount Code
               </Button>
-            </HStack>
-          </VStack>
-        </Box>
-      )}
+            </ButtonGroup>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
 
       {/* Discount Codes List */}
       <Box>

@@ -837,7 +837,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="40"
-                minW="232px"
+                minW="150px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("booking_status")}
@@ -858,7 +858,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                   <SortIcon column="total_amount" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader w="12" fontWeight="bold" textAlign="center">
+              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
                 Qty
               </Table.ColumnHeader>
               <Table.ColumnHeader

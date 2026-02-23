@@ -555,6 +555,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Trip name (optional)"
+                    disabled={mutation.isPending}
                   />
                 </Field>
                 <Field label="Type" required>
@@ -564,6 +565,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setType(e.target.value)
                     }
+                    disabled={mutation.isPending}
                   >
                     <option value="launch_viewing">Launch Viewing</option>
                     <option value="pre_launch">Pre-Launch</option>
@@ -579,6 +581,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setBookingMode(e.target.value)
                     }
+                    disabled={mutation.isPending}
                   >
                     {bookingModeOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -609,6 +612,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                           )}`
                         : "Select mission for timezone"
                     }
+                    disabled={mutation.isPending}
                   />
                 </Field>
                 <Field
@@ -638,6 +642,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                           )}`
                         : "Select mission for timezone"
                     }
+                    disabled={mutation.isPending}
                   />
                 </Field>
                 <Field
@@ -654,6 +659,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         Math.max(0, parseInt(e.target.value, 10) || 0),
                       )
                     }
+                    disabled={mutation.isPending}
                   />
                 </Field>
                 <Field
@@ -670,6 +676,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         Math.max(0, parseInt(e.target.value, 10) || 0),
                       )
                     }
+                    disabled={mutation.isPending}
                   />
                 </Field>
                 <Field>

@@ -1,6 +1,7 @@
 import {
   type ApiError,
   BoatsService,
+  type BookingItemPublic,
   type BookingPublic,
   type BookingUpdate,
   BookingsService,
@@ -11,6 +12,7 @@ import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
+  DialogCloseTrigger,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -38,7 +40,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Controller,
   type SubmitHandler,
@@ -61,7 +63,7 @@ const EditBooking = ({
 }: EditBookingProps) => {
   const contentRef = useRef(null)
   const queryClient = useQueryClient()
-  const { showSuccessToast } = useCustomToast()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
   useDateFormatPreference()
 
   // Get trips for display
@@ -85,16 +87,6 @@ const EditBooking = ({
     return Array.from(ids)
   }, [booking?.items])
 
-  const ticketItemKeys = useMemo(() => {
-    if (!booking?.items) return []
-    const keys = new Map<string, { tripId: string; boatId: string }>()
-    for (const i of booking.items) {
-      if (!i.trip_merchandise_id && i.trip_id && i.boat_id)
-        keys.set(`${i.trip_id}/${i.boat_id}`, { tripId: i.trip_id, boatId: i.boat_id })
-    }
-    return Array.from(keys.values())
-  }, [booking?.items])
-
   const tripBoatsQueries = useQueries({
     queries: uniqueTripIds.map((tripId) => ({
       queryKey: ["trip-boats", tripId],
@@ -116,8 +108,19 @@ const EditBooking = ({
     return map
   }, [uniqueTripIds, tripBoatsQueries])
 
+  const allPricingKeys = useMemo(() => {
+    const keys: { tripId: string; boatId: string }[] = []
+    uniqueTripIds.forEach((tripId, i) => {
+      const q = tripBoatsQueries[i]
+      if (q.data && Array.isArray(q.data))
+        for (const tb of q.data as { boat_id: string }[])
+          keys.push({ tripId, boatId: tb.boat_id })
+    })
+    return keys
+  }, [uniqueTripIds, tripBoatsQueries])
+
   const pricingQueries = useQueries({
-    queries: ticketItemKeys.map(({ tripId, boatId }) => ({
+    queries: allPricingKeys.map(({ tripId, boatId }) => ({
       queryKey: ["effective-pricing", tripId, boatId],
       queryFn: () =>
         TripBoatsService.readEffectivePricing({ tripId, boatId }),
@@ -127,14 +130,14 @@ const EditBooking = ({
 
   const pricingByKey = useMemo(() => {
     const map: Record<string, { ticket_type: string; price: number }[]> = {}
-    ticketItemKeys.forEach((k, i) => {
+    allPricingKeys.forEach((k, i) => {
       const q = pricingQueries[i]
       const key = `${k.tripId}/${k.boatId}`
       if (q.data && Array.isArray(q.data))
         map[key] = q.data as { ticket_type: string; price: number }[]
     })
     return map
-  }, [ticketItemKeys, pricingQueries])
+  }, [allPricingKeys, pricingQueries])
 
   const updateItemTypeMutation = useMutation({
     mutationFn: ({
@@ -164,14 +167,19 @@ const EditBooking = ({
     mutationFn: ({
       itemId,
       boatId,
+      itemType,
     }: {
       itemId: string
       boatId: string
+      itemType?: string
     }) =>
       BookingsService.updateBookingItem({
         bookingId: booking.id,
         itemId,
-        requestBody: { boat_id: boatId },
+        requestBody: {
+          boat_id: boatId,
+          ...(itemType != null && { item_type: itemType }),
+        },
       }),
     onSuccess: (updated) => {
       queryClient.setQueryData(
@@ -183,6 +191,16 @@ const EditBooking = ({
     },
     onError: handleError,
   })
+
+  const [pendingBoatChange, setPendingBoatChange] = useState<{
+    itemId: string
+    item: BookingItemPublic
+    newBoatId: string
+    newBoatName: string
+    ticketTypeOptions: { ticket_type: string; price: number }[]
+  } | null>(null)
+  const [selectedTicketTypeForBoatChange, setSelectedTicketTypeForBoatChange] =
+    useState<string>("")
 
   const {
     register,
@@ -369,6 +387,7 @@ const EditBooking = ({
   }
 
   return (
+    <>
     <DialogRoot
       size={{ base: "lg", md: "xl" }}
       placement="center"
@@ -556,11 +575,43 @@ const EditBooking = ({
                                           disabled={!canChangeBoat || updatingBoat}
                                           onChange={(e) => {
                                             const v = e.target.value
-                                            if (v && v !== item.boat_id)
+                                            if (!v || v === item.boat_id) return
+                                            const newBoatName =
+                                              boats.find((b) => b.boat_id === v)
+                                                ?.name ?? v
+                                            const ticketTypesForNewBoat =
+                                              pricingByKey[`${item.trip_id}/${v}`]
+                                            const hasCurrentType =
+                                              ticketTypesForNewBoat?.some(
+                                                (p) =>
+                                                  p.ticket_type ===
+                                                  item.item_type,
+                                              )
+                                            if (hasCurrentType) {
                                               updateItemBoatMutation.mutate({
                                                 itemId: item.id,
                                                 boatId: v,
                                               })
+                                            } else if (
+                                              ticketTypesForNewBoat?.length
+                                            ) {
+                                              setPendingBoatChange({
+                                                itemId: item.id,
+                                                item,
+                                                newBoatId: v,
+                                                newBoatName,
+                                                ticketTypeOptions:
+                                                  ticketTypesForNewBoat,
+                                              })
+                                              setSelectedTicketTypeForBoatChange(
+                                                ticketTypesForNewBoat[0]
+                                                  .ticket_type,
+                                              )
+                                            } else {
+                                              showErrorToast(
+                                                `Ticket types for boat "${newBoatName}" are not loaded yet. Try again.`,
+                                              )
+                                            }
                                           }}
                                         >
                                           {boats.map((b) => (
@@ -1085,6 +1136,77 @@ const EditBooking = ({
         </form>
       </DialogContent>
     </DialogRoot>
+
+    <DialogRoot
+      open={!!pendingBoatChange}
+      onOpenChange={({ open }) => {
+        if (!open) {
+          setPendingBoatChange(null)
+          setSelectedTicketTypeForBoatChange("")
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogCloseTrigger />
+        <DialogHeader>
+          <DialogTitle>Choose ticket type for new boat</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          {pendingBoatChange && (
+            <VStack gap={4} align="stretch">
+              <Text>
+                Ticket type &quot;{getItemTypeLabel(pendingBoatChange.item.item_type)}
+                &quot; is not available on boat &quot;{pendingBoatChange.newBoatName}
+                &quot;. Select a ticket type for the new boat:
+              </Text>
+              <Field label="Ticket type">
+                <NativeSelect
+                  value={selectedTicketTypeForBoatChange}
+                  onChange={(e) =>
+                    setSelectedTicketTypeForBoatChange(e.target.value)
+                  }
+                >
+                  {pendingBoatChange.ticketTypeOptions.map((p) => (
+                    <option key={p.ticket_type} value={p.ticket_type}>
+                      {getItemTypeLabel(p.ticket_type)} (
+                      ${formatCents(p.price)})
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            </VStack>
+          )}
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPendingBoatChange(null)
+              setSelectedTicketTypeForBoatChange("")
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="solid"
+            disabled={!selectedTicketTypeForBoatChange}
+            onClick={() => {
+              if (!pendingBoatChange) return
+              updateItemBoatMutation.mutate({
+                itemId: pendingBoatChange.itemId,
+                boatId: pendingBoatChange.newBoatId,
+                itemType: selectedTicketTypeForBoatChange,
+              })
+              setPendingBoatChange(null)
+              setSelectedTicketTypeForBoatChange("")
+            }}
+          >
+            Change boat
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
+    </>
   )
 }
 

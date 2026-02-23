@@ -722,20 +722,16 @@ function TripsTable() {
                     <Flex justify="center" align="center" gap={1} flexWrap="wrap">
                       <Badge
                         colorPalette={
-                          (trip.effective_booking_mode ?? trip.booking_mode) ===
-                          "public"
+                          (trip.booking_mode ?? "private") === "public"
                             ? "blue"
-                            : (trip.effective_booking_mode ?? trip.booking_mode) ===
-                                "early_bird"
+                            : (trip.booking_mode ?? "private") === "early_bird"
                               ? "purple"
                               : "gray"
                         }
                       >
-                        {(trip.effective_booking_mode ?? trip.booking_mode) ===
-                        "public"
+                        {(trip.booking_mode ?? "private") === "public"
                           ? "Public"
-                          : (trip.effective_booking_mode ?? trip.booking_mode) ===
-                              "early_bird"
+                          : (trip.booking_mode ?? "private") === "early_bird"
                             ? "Early Bird"
                             : "Private"}
                       </Badge>
