@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import {
+  Badge,
   Box,
   Button,
   ButtonGroup,
@@ -622,7 +623,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
               <Table.ColumnHeader>Type</Table.ColumnHeader>
               <Table.ColumnHeader>Value</Table.ColumnHeader>
               <Table.ColumnHeader>Uses</Table.ColumnHeader>
-              <Table.ColumnHeader>Access Code</Table.ColumnHeader>
+              <Table.ColumnHeader>Category</Table.ColumnHeader>
               <Table.ColumnHeader>Restrictions</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
               <Table.ColumnHeader>Booking URL</Table.ColumnHeader>
@@ -647,9 +648,14 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text fontSize="sm">
+                  <Badge
+                    size="lg"
+                    colorPalette="green"
+                    px={2}
+                    py={0.5}
+                  >
                     {discountCode.discount_type === "percentage" ? "%" : "$"}
-                  </Text>
+                  </Badge>
                 </Table.Cell>
                 <Table.Cell>
                   <Text fontSize="sm">
@@ -668,14 +674,14 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Text
-                    fontSize="sm"
-                    color={
-                      discountCode.is_access_code ? "blue.500" : "text.muted"
+                  <Badge
+                    size="sm"
+                    colorPalette={
+                      discountCode.is_access_code ? "purple" : "gray"
                     }
                   >
-                    {discountCode.is_access_code ? "Yes" : "No"}
-                  </Text>
+                    {discountCode.is_access_code ? "Access Code" : "Discount"}
+                  </Badge>
                 </Table.Cell>
                 <Table.Cell>
                   <Text
