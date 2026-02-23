@@ -108,6 +108,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   >({})
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
+  const [bookingStatus, setBookingStatus] = useState<
+    "draft" | "confirmed"
+  >("confirmed")
   const [paymentStatus, setPaymentStatus] = useState<
     "pending_payment" | "paid" | "free"
   >("paid")
@@ -378,6 +381,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const mutation = useMutation({
     mutationFn: async (data: {
       bookingData: BookingCreate
+      bookingStatus: "draft" | "confirmed"
       paymentStatus: "pending_payment" | "paid" | "free"
       sendConfirmationEmail: boolean
     }) => {
@@ -388,23 +392,23 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
       // Set payment_status and booking_status on create
       if (booking.id) {
-        const isPaidOrFree =
-          data.paymentStatus === "paid" || data.paymentStatus === "free"
         await BookingsService.updateBooking({
           bookingId: booking.id,
           requestBody: {
             payment_status: data.paymentStatus,
-            ...(isPaidOrFree ? { booking_status: "confirmed" } : {}),
+            booking_status: data.bookingStatus,
           },
         })
       }
 
-      // Send confirmation email if requested (requires confirmed status)
+      // Send confirmation email if requested (requires confirmed status and paid/free)
       const isPaidOrFree =
         data.paymentStatus === "paid" || data.paymentStatus === "free"
+      const isConfirmed = data.bookingStatus === "confirmed"
       if (
         data.sendConfirmationEmail &&
         isPaidOrFree &&
+        isConfirmed &&
         booking.confirmation_code
       ) {
         await BookingsService.bookingPublicResendBookingConfirmationEmail({
@@ -420,19 +424,21 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
         queryKey: ["trip-merchandise", selectedTripId],
       })
       const isPaidOrFree = paymentStatus === "paid" || paymentStatus === "free"
+      const isConfirmed = bookingStatus === "confirmed"
       showSuccessToast(
-        isPaidOrFree
+        isConfirmed && isPaidOrFree
           ? sendConfirmationEmail
             ? "Booking created, marked as paid, and confirmation email sent."
             : "Booking created and marked as paid successfully."
-          : "Booking created as draft successfully.",
+          : "Booking created successfully.",
       )
       reset()
       setSelectedTripId("")
       setTripPricing([])
       setTripMerchandise([])
       setSelectedItems([])
-      setPaymentStatus("paid") // Reset to default
+      setBookingStatus("confirmed")
+      setPaymentStatus("paid")
       setSendConfirmationEmail(true)
       onSuccess()
       onClose()
@@ -468,7 +474,12 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       discount_code_id: appliedDiscountCode?.id || null,
       admin_notes: data.admin_notes?.trim() || null,
     }
-    mutation.mutate({ bookingData, paymentStatus, sendConfirmationEmail })
+    mutation.mutate({
+      bookingData,
+      bookingStatus,
+      paymentStatus,
+      sendConfirmationEmail,
+    })
   }
 
   // Handle trip selection
@@ -622,6 +633,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
       setTripPricing([])
       setTripMerchandise([])
       setSelectedItems([])
+      setBookingStatus("confirmed")
       setPaymentStatus("paid")
       setSendConfirmationEmail(true)
     }
@@ -1136,7 +1148,35 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                 </HStack>
               </VStack>
 
-              {/* Additional Fields */}
+              {/* Booking Status and Payment Status - separate fields, aligned with Edit form */}
+              <Field label="Booking Status">
+                <NativeSelect
+                  value={bookingStatus}
+                  onChange={(e) =>
+                    setBookingStatus(
+                      e.target.value as "draft" | "confirmed",
+                    )
+                  }
+                >
+                  <option value="draft">Draft</option>
+                  <option value="confirmed">Confirmed</option>
+                </NativeSelect>
+              </Field>
+              <Field label="Payment Status">
+                <NativeSelect
+                  value={paymentStatus}
+                  onChange={(e) =>
+                    setPaymentStatus(
+                      e.target.value as "pending_payment" | "paid" | "free",
+                    )
+                  }
+                >
+                  <option value="pending_payment">Pending Payment</option>
+                  <option value="paid">Paid</option>
+                  <option value="free">Free</option>
+                </NativeSelect>
+              </Field>
+
               <Field
                 invalid={!!errors.special_requests}
                 errorText={errors.special_requests?.message}
@@ -1153,21 +1193,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                   placeholder="Any special requests or notes"
                   rows={3}
                 />
-              </Field>
-
-              <Field label="Payment Status">
-                <NativeSelect
-                  value={paymentStatus}
-                  onChange={(e) =>
-                    setPaymentStatus(
-                      e.target.value as "pending_payment" | "paid" | "free",
-                    )
-                  }
-                >
-                  <option value="pending_payment">Pending Payment</option>
-                  <option value="paid">Paid</option>
-                  <option value="free">Free</option>
-                </NativeSelect>
               </Field>
 
               <Controller
@@ -1197,7 +1222,8 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
                     setSendConfirmationEmail(checked === true)
                   }
                   disabled={
-                    paymentStatus !== "paid" && paymentStatus !== "free"
+                    (paymentStatus !== "paid" && paymentStatus !== "free") ||
+                    bookingStatus !== "confirmed"
                   }
                 >
                   Send confirmation email
