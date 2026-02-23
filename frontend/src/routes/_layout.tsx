@@ -14,6 +14,26 @@ import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
 import { debugLog } from "@/utils/debugLog"
 
+/**
+ * Clears stuck body pointer-events/data-inert when no modal/drawer is mounted.
+ * Chakra/Ark layer stack can leave body blocked in edge cases (tab switch, rapid
+ * close, navigation during close). Safe to run: only clears when no dialog/drawer
+ * elements exist in DOM.
+ */
+function fixStuckModalState(): void {
+  const hasModal =
+    document.querySelectorAll('[data-scope="dialog"], [data-scope="drawer"]')
+      .length > 0
+  if (hasModal) return
+
+  const { body } = document
+  if (body.style.pointerEvents === "none" || body.hasAttribute("data-inert")) {
+    body.style.pointerEvents = ""
+    body.removeAttribute("data-inert")
+    if (body.style.length === 0) body.removeAttribute("style")
+  }
+}
+
 export const Route = createFileRoute("/_layout")({
   component: Layout,
   beforeLoad: async ({ location }) => {
@@ -57,6 +77,26 @@ function Layout() {
       to: "/login",
     })
   }
+
+  // Defensive cleanup for stuck modal state (body pointer-events/data-inert)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fixStuckModalState()
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange)
+  }, [])
+
+  useEffect(() => {
+    fixStuckModalState()
+  }, [router.state.location.pathname])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fixStuckModalState()
+    }, 3000)
+    return () => clearInterval(id)
+  }, [])
 
   // Minimal periodic DOM state log for sidebar unclickable bug monitoring
   useEffect(() => {
