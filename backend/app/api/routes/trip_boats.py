@@ -16,6 +16,20 @@ from app.models import (
     TripBoatUpdate,
 )
 
+
+def _remaining_capacity_from_pricing(
+    *,
+    pricing: list[EffectivePricingItem],
+) -> int:
+    """
+    Total available seats across all ticket types for the boat dropdown.
+    Sum of per-type remaining (each type has its own capacity pool).
+    """
+    if not pricing:
+        return 0
+    return sum(p.remaining for p in pricing)
+
+
 router = APIRouter(prefix="/trip-boats", tags=["trip-boats"])
 
 
@@ -103,9 +117,6 @@ def read_trip_boats_by_trip(
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
-        session=session, trip_id=trip_id
-    )
     paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
         session=session, trip_id=trip_id
     )
@@ -114,14 +125,13 @@ def read_trip_boats_by_trip(
         effective_max = (
             tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
         )
-        booked = paid_counts.get(tb.boat_id, 0)
-        remaining = max(0, effective_max - booked)
         pricing = crud.get_effective_pricing(
             session=session,
             trip_id=trip_id,
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
+        remaining = _remaining_capacity_from_pricing(pricing=pricing)
         used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
             session=session, trip_id=trip_id, boat_id=tb.boat_id
         )
@@ -303,9 +313,6 @@ def read_public_trip_boats_by_trip(
     trip_boats = crud.get_trip_boats_by_trip_with_boat_provider(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
-        session=session, trip_id=trip_id
-    )
     paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
         session=session, trip_id=trip_id
     )
@@ -314,14 +321,13 @@ def read_public_trip_boats_by_trip(
         effective_max = (
             tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
         )
-        booked = paid_counts.get(tb.boat_id, 0)
-        remaining = max(0, effective_max - booked)
         pricing = crud.get_effective_pricing(
             session=session,
             trip_id=trip_id,
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
+        remaining = _remaining_capacity_from_pricing(pricing=pricing)
         used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
             session=session, trip_id=trip_id, boat_id=tb.boat_id
         )

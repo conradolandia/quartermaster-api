@@ -135,7 +135,8 @@ def get_effective_pricing(
         )
         if cap is not None:
             capacity = cap
-            remaining = max(0, capacity - paid)
+            # Cap per-type remaining by total boat capacity so it matches boat-level availability
+            remaining = max(0, min(capacity - paid, effective_max - total_paid))
         else:
             capacity = effective_max
             remaining = max(0, effective_max - total_paid)

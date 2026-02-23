@@ -30,10 +30,12 @@ import {
   Box,
   Button,
   ButtonGroup,
+  Card,
   DialogActionTrigger,
   Heading,
   HStack,
   Input,
+  SimpleGrid,
   Table,
   Text,
   Textarea,
@@ -201,6 +203,67 @@ const EditBooking = ({
   } | null>(null)
   const [selectedTicketTypeForBoatChange, setSelectedTicketTypeForBoatChange] =
     useState<string>("")
+
+  const [newTicketTripId, setNewTicketTripId] = useState<string>("")
+  const [newTicketBoatId, setNewTicketBoatId] = useState<string>("")
+  const [newTicketType, setNewTicketType] = useState<string>("")
+  const [newTicketQty, setNewTicketQty] = useState<number>(1)
+
+  const { data: newTicketTripBoats } = useQuery({
+    queryKey: ["trip-boats", newTicketTripId],
+    queryFn: () =>
+      TripBoatsService.readTripBoatsByTrip({
+        tripId: newTicketTripId,
+        limit: 100,
+      }),
+    enabled: !!newTicketTripId,
+  })
+
+  const { data: newTicketPricing } = useQuery({
+    queryKey: ["effective-pricing", newTicketTripId, newTicketBoatId],
+    queryFn: () =>
+      TripBoatsService.readEffectivePricing({
+        tripId: newTicketTripId,
+        boatId: newTicketBoatId,
+      }),
+    enabled: !!newTicketTripId && !!newTicketBoatId,
+  })
+
+  const addTicketMutation = useMutation({
+    mutationFn: (item: {
+      trip_id: string
+      boat_id: string
+      item_type: string
+      quantity: number
+      price_per_unit: number
+    }) =>
+      BookingsService.addBookingItem({
+        bookingId: booking.id,
+        requestBody: {
+          trip_id: item.trip_id,
+          boat_id: item.boat_id,
+          trip_merchandise_id: null,
+          item_type: item.item_type,
+          quantity: item.quantity,
+          price_per_unit: item.price_per_unit,
+          status: "active",
+        },
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        ["booking", booking.confirmation_code],
+        updated,
+      )
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      showSuccessToast("Ticket added")
+      setNewTicketTripId("")
+      setNewTicketBoatId("")
+      setNewTicketType("")
+      setNewTicketQty(1)
+      onSuccess()
+    },
+    onError: handleError,
+  })
 
   const {
     register,
@@ -371,6 +434,42 @@ const EditBooking = ({
     return merchandiseMap[itemType] || itemType
   }
 
+  const tripsForAddTicket = useMemo(() => {
+    const trips = tripsData?.data ?? []
+    const futureTrips = trips.filter((t) => {
+      if (!t.departure_time) return false
+      const dep = new Date(t.departure_time)
+      return dep >= new Date()
+    })
+    const firstTicketItem = booking.items?.find((i) => !i.trip_merchandise_id)
+    if (!firstTicketItem) return futureTrips
+    const firstTrip = trips.find((t) => t.id === firstTicketItem.trip_id)
+    const missionId = firstTrip?.mission_id
+    if (!missionId) return futureTrips
+    return futureTrips.filter((t) => t.mission_id === missionId)
+  }, [tripsData?.data, booking.items])
+
+  const boatsForNewTicket =
+    (newTicketTripBoats as { boat_id: string; boat?: { name: string } }[])?.map(
+      (tb) => ({ boat_id: tb.boat_id, name: tb.boat?.name ?? tb.boat_id }),
+    ) ?? []
+
+  const handleAddTicket = () => {
+    if (!newTicketTripId || !newTicketBoatId || !newTicketType || newTicketQty < 1)
+      return
+    const pricing = (newTicketPricing as { ticket_type: string; price: number }[])?.find(
+      (p) => p.ticket_type === newTicketType,
+    )
+    if (!pricing) return
+    addTicketMutation.mutate({
+      trip_id: newTicketTripId,
+      boat_id: newTicketBoatId,
+      item_type: newTicketType,
+      quantity: newTicketQty,
+      price_per_unit: pricing.price,
+    })
+  }
+
   const getTripName = (tripId: string) => {
     const trip = tripsData?.data.find((t) => t.id === tripId)
     return trip
@@ -534,222 +633,340 @@ const EditBooking = ({
                       Tickets
                     </Text>
                     {booking.items.some((i) => !i.trip_merchandise_id) ? (
-                      <Table.Root size={"xs" as any} variant="outline">
-                        <Table.Header>
-                          <Table.Row>
-                            <Table.ColumnHeader>Trip</Table.ColumnHeader>
-                            <Table.ColumnHeader>Boat</Table.ColumnHeader>
-                            <Table.ColumnHeader>Type</Table.ColumnHeader>
-                            <Table.ColumnHeader>Qty</Table.ColumnHeader>
-                            <Table.ColumnHeader>Price</Table.ColumnHeader>
-                            <Table.ColumnHeader>Total</Table.ColumnHeader>
-                            <Table.ColumnHeader>Status</Table.ColumnHeader>
-                          </Table.Row>
-                        </Table.Header>
-                        <Table.Body>
-                          {booking.items.map(
-                            (item, index) =>
-                              !item.trip_merchandise_id && (
-                                <Table.Row key={item.id}>
-                                  <Table.Cell>
-                                    <Text>{getTripName(item.trip_id)}</Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    {(() => {
-                                      const boats = boatsByTripId[item.trip_id]
-                                      const canChangeBoat =
-                                        booking.booking_status !== "checked_in"
-                                      if (!boats?.length) {
-                                        return (
-                                          <Text>{getBoatName(item.boat_id)}</Text>
-                                        )
-                                      }
-                                      const updatingBoat =
-                                        updateItemBoatMutation.isPending &&
-                                        updateItemBoatMutation.variables?.itemId ===
-                                          item.id
-                                      return (
-                                        <NativeSelect
-                                          size="sm"
-                                          value={item.boat_id ?? ""}
-                                          disabled={!canChangeBoat || updatingBoat}
-                                          onChange={(e) => {
-                                            const v = e.target.value
-                                            if (!v || v === item.boat_id) return
-                                            const newBoatName =
-                                              boats.find((b) => b.boat_id === v)
-                                                ?.name ?? v
-                                            const ticketTypesForNewBoat =
-                                              pricingByKey[`${item.trip_id}/${v}`]
-                                            const hasCurrentType =
-                                              ticketTypesForNewBoat?.some(
-                                                (p) =>
-                                                  p.ticket_type ===
-                                                  item.item_type,
-                                              )
-                                            if (hasCurrentType) {
-                                              updateItemBoatMutation.mutate({
-                                                itemId: item.id,
-                                                boatId: v,
-                                              })
-                                            } else if (
-                                              ticketTypesForNewBoat?.length
-                                            ) {
-                                              setPendingBoatChange({
-                                                itemId: item.id,
-                                                item,
-                                                newBoatId: v,
-                                                newBoatName,
-                                                ticketTypeOptions:
-                                                  ticketTypesForNewBoat,
-                                              })
-                                              setSelectedTicketTypeForBoatChange(
-                                                ticketTypesForNewBoat[0]
-                                                  .ticket_type,
-                                              )
-                                            } else {
-                                              showErrorToast(
-                                                `Ticket types for boat "${newBoatName}" are not loaded yet. Try again.`,
-                                              )
-                                            }
-                                          }}
-                                        >
-                                          {boats.map((b) => (
-                                            <option
-                                              key={b.boat_id}
-                                              value={b.boat_id}
-                                            >
-                                              {b.name}
-                                            </option>
-                                          ))}
-                                        </NativeSelect>
-                                      )
-                                    })()}
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    {(() => {
-                                      const key = `${item.trip_id}/${item.boat_id}`
-                                      const options = pricingByKey[key]
-                                      const canChangeType =
-                                        booking.booking_status !== "checked_in"
-                                      if (!options?.length) {
-                                        return (
-                                          <Text>
-                                            {getItemTypeLabel(item.item_type)}
-                                            {item.variant_option
-                                              ? ` – ${item.variant_option}`
-                                              : ""}
-                                          </Text>
-                                        )
-                                      }
-                                      const updating =
-                                        updateItemTypeMutation.isPending &&
-                                        updateItemTypeMutation.variables?.itemId ===
-                                          item.id
-                                      return (
-                                        <NativeSelect
-                                          size="sm"
-                                          value={item.item_type ?? ""}
-                                          disabled={!canChangeType || updating}
-                                          onChange={(e) => {
-                                            const v = e.target.value
-                                            if (v && v !== item.item_type)
-                                              updateItemTypeMutation.mutate({
-                                                itemId: item.id,
-                                                itemType: v,
-                                              })
-                                          }}
-                                        >
-                                          {options.map((p) => (
-                                            <option
-                                              key={p.ticket_type}
-                                              value={p.ticket_type}
-                                            >
-                                              {getItemTypeLabel(p.ticket_type)} (
-                                              ${formatCents(p.price)})
-                                            </option>
-                                          ))}
-                                        </NativeSelect>
-                                      )
-                                    })()}
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Controller
-                                      name={
-                                        `item_quantity_updates.${index}.quantity` as const
-                                      }
-                                      control={control}
-                                      rules={{
-                                        min: {
-                                          value: 0,
-                                          message: "0 = remove",
-                                        },
-                                      }}
-                                      render={({ field }) => (
-                                        <Input
-                                          {...field}
-                                          type="number"
-                                          min={0}
-                                          w="16"
-                                          value={
-                                            field.value === undefined ||
-                                            field.value === null
-                                              ? item.quantity
-                                              : field.value
-                                          }
-                                          onChange={(e) =>
-                                            field.onChange(
-                                              Math.max(
-                                                0,
-                                                Number.parseInt(
-                                                  e.target.value,
-                                                  10,
-                                                ) ?? 0,
-                                              ),
+                      <VStack gap={4} align="stretch">
+                        {booking.items.map(
+                          (item, index) =>
+                            !item.trip_merchandise_id && (
+                              <Card.Root key={item.id} bg="bg.panel">
+                                <Card.Header>
+                                  <Card.Title>
+                                    {getTripName(item.trip_id)}
+                                  </Card.Title>
+                                </Card.Header>
+                                <Card.Body>
+                                  <VStack gap={4} align="stretch">
+                                    <SimpleGrid
+                                      columns={{ base: 1, sm: 2, md: 3 }}
+                                      gap={4}
+                                    >
+                                      <Field label="Boat">
+                                        {(() => {
+                                          const boats =
+                                            boatsByTripId[item.trip_id]
+                                          const canChangeBoat =
+                                            booking.booking_status !==
+                                            "checked_in"
+                                          if (!boats?.length) {
+                                            return (
+                                              <Text>
+                                                {getBoatName(item.boat_id)}
+                                              </Text>
                                             )
                                           }
-                                        />
-                                      )}
-                                    />
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Text>
-                                      ${formatCents(item.price_per_unit)}
-                                    </Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Text fontWeight="medium">
-                                      $
-                                      {formatCents(
-                                        (watchedItemQuantities?.[index]
-                                          ?.quantity ?? item.quantity) *
-                                          item.price_per_unit,
-                                      )}
-                                    </Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Badge
-                                      size="sm"
-                                      colorPalette={
-                                        item.status === "active"
-                                          ? "green"
-                                          : item.status === "refunded"
-                                          ? "red"
-                                          : "gray"
-                                      }
+                                          const updatingBoat =
+                                            updateItemBoatMutation.isPending &&
+                                            updateItemBoatMutation.variables
+                                              ?.itemId === item.id
+                                          return (
+                                            <NativeSelect
+                                              value={item.boat_id ?? ""}
+                                              disabled={
+                                                !canChangeBoat || updatingBoat
+                                              }
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                if (!v || v === item.boat_id)
+                                                  return
+                                                const newBoatName =
+                                                  boats.find(
+                                                    (b) => b.boat_id === v,
+                                                  )?.name ?? v
+                                                const ticketTypesForNewBoat =
+                                                  pricingByKey[
+                                                    `${item.trip_id}/${v}`
+                                                  ]
+                                                const hasCurrentType =
+                                                  ticketTypesForNewBoat?.some(
+                                                    (p) =>
+                                                      p.ticket_type ===
+                                                      item.item_type,
+                                                  )
+                                                if (hasCurrentType) {
+                                                  updateItemBoatMutation.mutate(
+                                                    {
+                                                      itemId: item.id,
+                                                      boatId: v,
+                                                    },
+                                                  )
+                                                } else if (
+                                                  ticketTypesForNewBoat?.length
+                                                ) {
+                                                  setPendingBoatChange({
+                                                    itemId: item.id,
+                                                    item,
+                                                    newBoatId: v,
+                                                    newBoatName,
+                                                    ticketTypeOptions:
+                                                      ticketTypesForNewBoat,
+                                                  })
+                                                  setSelectedTicketTypeForBoatChange(
+                                                    ticketTypesForNewBoat[0]
+                                                      .ticket_type,
+                                                  )
+                                                } else {
+                                                  showErrorToast(
+                                                    `Ticket types for boat "${newBoatName}" are not loaded yet. Try again.`,
+                                                  )
+                                                }
+                                              }}
+                                            >
+                                              {boats.map((b) => (
+                                                <option
+                                                  key={b.boat_id}
+                                                  value={b.boat_id}
+                                                >
+                                                  {b.name}
+                                                </option>
+                                              ))}
+                                            </NativeSelect>
+                                          )
+                                        })()}
+                                      </Field>
+                                      <Field label="Ticket type">
+                                        {(() => {
+                                          const key = `${item.trip_id}/${item.boat_id}`
+                                          const options = pricingByKey[key]
+                                          const canChangeType =
+                                            booking.booking_status !==
+                                            "checked_in"
+                                          if (!options?.length) {
+                                            return (
+                                              <Text>
+                                                {getItemTypeLabel(
+                                                  item.item_type,
+                                                )}
+                                                {item.variant_option
+                                                  ? ` – ${item.variant_option}`
+                                                  : ""}
+                                              </Text>
+                                            )
+                                          }
+                                          const updating =
+                                            updateItemTypeMutation.isPending &&
+                                            updateItemTypeMutation.variables
+                                              ?.itemId === item.id
+                                          return (
+                                            <NativeSelect
+                                              value={item.item_type ?? ""}
+                                              disabled={
+                                                !canChangeType || updating
+                                              }
+                                              onChange={(e) => {
+                                                const v = e.target.value
+                                                if (v && v !== item.item_type)
+                                                  updateItemTypeMutation.mutate(
+                                                    {
+                                                      itemId: item.id,
+                                                      itemType: v,
+                                                    },
+                                                  )
+                                              }}
+                                            >
+                                              {options.map((p) => (
+                                                <option
+                                                  key={p.ticket_type}
+                                                  value={p.ticket_type}
+                                                >
+                                                  {getItemTypeLabel(
+                                                    p.ticket_type,
+                                                  )}{" "}
+                                                  (${formatCents(p.price)})
+                                                </option>
+                                              ))}
+                                            </NativeSelect>
+                                          )
+                                        })()}
+                                      </Field>
+                                    </SimpleGrid>
+                                    <SimpleGrid
+                                      columns={{ base: 1, sm: 2, md: 4 }}
+                                      gap={4}
+                                      alignItems="end"
                                     >
-                                      {item.status}
-                                    </Badge>
-                                  </Table.Cell>
-                                </Table.Row>
-                              ),
-                          )}
-                        </Table.Body>
-                      </Table.Root>
+                                      <Field label="Quantity">
+                                        <Controller
+                                          name={
+                                            `item_quantity_updates.${index}.quantity` as const
+                                          }
+                                          control={control}
+                                          rules={{
+                                            min: {
+                                              value: 0,
+                                              message: "0 = remove",
+                                            },
+                                          }}
+                                          render={({ field }) => (
+                                            <Input
+                                              {...field}
+                                              type="number"
+                                              min={0}
+                                              w="20"
+                                              value={
+                                                field.value === undefined ||
+                                                field.value === null
+                                                  ? item.quantity
+                                                  : field.value
+                                              }
+                                              onChange={(e) =>
+                                                field.onChange(
+                                                  Math.max(
+                                                    0,
+                                                    Number.parseInt(
+                                                      e.target.value,
+                                                      10,
+                                                    ) ?? 0,
+                                                  ),
+                                                )
+                                              }
+                                            />
+                                          )}
+                                        />
+                                      </Field>
+                                      <Field label="Price">
+                                        <Text>
+                                          ${formatCents(item.price_per_unit)}
+                                        </Text>
+                                      </Field>
+                                      <Field label="Total">
+                                        <Text fontWeight="medium">
+                                          $
+                                          {formatCents(
+                                            (watchedItemQuantities?.[index]
+                                              ?.quantity ?? item.quantity) *
+                                              item.price_per_unit,
+                                          )}
+                                        </Text>
+                                      </Field>
+                                      <Field label="Status">
+                                        <Badge
+                                          size="sm"
+                                          colorPalette={
+                                            item.status === "active"
+                                              ? "green"
+                                              : item.status === "refunded"
+                                              ? "red"
+                                              : "gray"
+                                          }
+                                        >
+                                          {item.status}
+                                        </Badge>
+                                      </Field>
+                                    </SimpleGrid>
+                                  </VStack>
+                                </Card.Body>
+                              </Card.Root>
+                            ),
+                        )}
+                      </VStack>
                     ) : (
                       <Text color="text.muted" textAlign="center" py={2}>
                         No tickets.
                       </Text>
+                    )}
+                    {booking.booking_status !== "checked_in" && (
+                      <Card.Root mt={4} bg="bg.muted" borderStyle="dashed">
+                        <Card.Header>
+                          <Card.Title>Add ticket</Card.Title>
+                        </Card.Header>
+                        <Card.Body>
+                          <SimpleGrid
+                            columns={{ base: 1, sm: 2, md: 4 }}
+                            gap={4}
+                            alignItems="end"
+                          >
+                            <Field label="Trip" required>
+                              <NativeSelect
+                                value={newTicketTripId}
+                                onChange={(e) => {
+                                  setNewTicketTripId(e.target.value)
+                                  setNewTicketBoatId("")
+                                  setNewTicketType("")
+                                }}
+                              >
+                                <option value="">Select trip...</option>
+                                {tripsForAddTicket.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {getTripName(t.id)}
+                                  </option>
+                                ))}
+                              </NativeSelect>
+                            </Field>
+                            <Field label="Boat" required>
+                              <NativeSelect
+                                value={newTicketBoatId}
+                                onChange={(e) => {
+                                  setNewTicketBoatId(e.target.value)
+                                  setNewTicketType("")
+                                }}
+                                disabled={!newTicketTripId}
+                              >
+                                <option value="">Select boat...</option>
+                                {boatsForNewTicket.map((b) => (
+                                  <option key={b.boat_id} value={b.boat_id}>
+                                    {b.name}
+                                  </option>
+                                ))}
+                              </NativeSelect>
+                            </Field>
+                            <Field label="Ticket type" required>
+                              <NativeSelect
+                                value={newTicketType}
+                                onChange={(e) => setNewTicketType(e.target.value)}
+                                disabled={!newTicketBoatId}
+                              >
+                                <option value="">Select type...</option>
+                                {(newTicketPricing as { ticket_type: string; price: number }[] | undefined)?.map(
+                                  (p) => (
+                                    <option key={p.ticket_type} value={p.ticket_type}>
+                                      {getItemTypeLabel(p.ticket_type)} (
+                                      ${formatCents(p.price)})
+                                    </option>
+                                  ),
+                                ) ?? []}
+                              </NativeSelect>
+                            </Field>
+                            <Field label="Quantity" required>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={newTicketQty}
+                                onChange={(e) =>
+                                  setNewTicketQty(
+                                    Math.max(
+                                      1,
+                                      Number.parseInt(e.target.value, 10) || 1,
+                                    ),
+                                  )
+                                }
+                              />
+                            </Field>
+                          </SimpleGrid>
+                          <Button
+                            mt={4}
+                            onClick={handleAddTicket}
+                            disabled={
+                              !newTicketTripId ||
+                              !newTicketBoatId ||
+                              !newTicketType ||
+                              newTicketQty < 1 ||
+                              addTicketMutation.isPending
+                            }
+                            loading={addTicketMutation.isPending}
+                          >
+                            Add ticket
+                          </Button>
+                        </Card.Body>
+                      </Card.Root>
                     )}
                   </Box>
 

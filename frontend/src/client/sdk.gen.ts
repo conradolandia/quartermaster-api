@@ -42,6 +42,8 @@ import type {
   BookingsDeleteBookingResponse,
   BookingsUpdateBookingData,
   BookingsUpdateBookingResponse,
+  BookingsAddBookingItemData,
+  BookingsAddBookingItemResponse,
   BookingsUpdateBookingItemData,
   BookingsUpdateBookingItemResponse,
   BookingsRescheduleData,
@@ -766,6 +768,34 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "PATCH",
       url: "/api/v1/bookings/id/{booking_id}",
+      path: {
+        booking_id: data.bookingId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Add Booking Item
+   * Add a ticket item to an existing booking (admin only).
+   * Trip must match an existing ticket item's trip (same mission).
+   * Validates capacity and sets price from effective pricing.
+   * @param data The data for the request.
+   * @param data.bookingId
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static addBookingItem(
+    data: BookingsAddBookingItemData,
+  ): CancelablePromise<BookingsAddBookingItemResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/id/{booking_id}/items",
       path: {
         booking_id: data.bookingId,
       },

@@ -1058,6 +1058,13 @@ export type BookingsUpdateBookingData = {
 
 export type BookingsUpdateBookingResponse = BookingPublic
 
+export type BookingsAddBookingItemData = {
+  bookingId: string
+  requestBody: BookingItemCreate
+}
+
+export type BookingsAddBookingItemResponse = BookingPublic
+
 export type BookingsUpdateBookingItemData = {
   bookingId: string
   itemId: string
