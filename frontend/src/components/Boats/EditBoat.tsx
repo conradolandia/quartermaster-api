@@ -61,6 +61,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<BoatUpdate>({
     mode: "onBlur",
@@ -88,6 +89,9 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     queryFn: () => BoatPricingService.listBoatPricing({ boatId: boat.id }),
     enabled: isOpen && !!boat.id,
   })
+
+  const formCapacity = watch("capacity")
+  const effectiveCapacity = formCapacity ?? boat.capacity
 
   const mutation = useMutation({
     mutationFn: (data: BoatUpdate) =>
@@ -179,6 +183,16 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       cap < 0
     )
       return
+    const totalAllocated =
+      boatPricingList.reduce((sum, p) => sum + p.capacity, 0) + cap
+    if (totalAllocated > effectiveCapacity) {
+      handleError({
+        body: {
+          detail: `Sum of ticket-type capacities (${totalAllocated}) would exceed boat capacity (${effectiveCapacity})`,
+        },
+      } as ApiError)
+      return
+    }
     createPricingMutation.mutate({
       ticket_type: pricingForm.ticket_type.trim(),
       price: Math.round(priceDollars * 100),
@@ -290,6 +304,12 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                   Default ticket types and prices for this boat. Trips can
                   override per boat.
                 </Text>
+                {boatPricingList.length > 0 && (
+                  <Text fontSize="xs" color="gray.500" mb={2}>
+                    {boatPricingList.reduce((sum, bp) => sum + bp.capacity, 0)} of{" "}
+                    {effectiveCapacity} capacity used
+                  </Text>
+                )}
                 {isAddingPricing ? (
                   <VStack
                     align="stretch"
@@ -353,7 +373,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                     </HStack>
                     <Text fontSize="xs" color="gray.500">
                       Sum of ticket-type capacities must not exceed boat
-                      capacity ({boat.capacity}).
+                      capacity ({effectiveCapacity}).
                     </Text>
                     <HStack width="100%" justify="flex-end">
                       <Button
@@ -490,6 +510,18 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                                 !Number.isNaN(cap) &&
                                 cap >= 0
                               ) {
+                                const otherSum = boatPricingList
+                                  .filter((bp) => bp.id !== p.id)
+                                  .reduce((sum, bp) => sum + bp.capacity, 0)
+                                const totalAllocated = otherSum + cap
+                                if (totalAllocated > effectiveCapacity) {
+                                  handleError({
+                                    body: {
+                                      detail: `Sum of ticket-type capacities (${totalAllocated}) would exceed boat capacity (${effectiveCapacity})`,
+                                    },
+                                  } as ApiError)
+                                  return
+                                }
                                 updatePricingMutation.mutate({
                                   boatPricingId: p.id,
                                   ticket_type: ticketType,

@@ -248,6 +248,8 @@ import type {
   TripsReadTripsResponse,
   TripsCreateTripData,
   TripsCreateTripResponse,
+  TripsCreateTripFullData,
+  TripsCreateTripFullResponse,
   TripsReadTripData,
   TripsReadTripResponse,
   TripsUpdateTripData,
@@ -3442,6 +3444,28 @@ export class TripsService {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/v1/trips/",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Create Trip Full
+   * Create trip with boats, pricing, and merchandise in a single transaction.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static createTripFull(
+    data: TripsCreateTripFullData,
+  ): CancelablePromise<TripsCreateTripFullResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/create-full",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {

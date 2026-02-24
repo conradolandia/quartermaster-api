@@ -127,6 +127,19 @@ def update_boat(
                         ),
                     )
 
+    # Reject if new capacity would be below sum of BoatPricing capacities
+    if boat_in.capacity is not None:
+        boat_pricing = crud.get_boat_pricing_by_boat(session=session, boat_id=boat_id)
+        pricing_sum = sum(bp.capacity for bp in boat_pricing)
+        if boat_in.capacity < pricing_sum:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Boat capacity ({boat_in.capacity}) cannot be less than the sum of "
+                    f"ticket-type capacities ({pricing_sum}). Reduce ticket-type capacities first."
+                ),
+            )
+
     try:
         boat = crud.update_boat(session=session, db_obj=boat, obj_in=boat_in)
     except ValueError as e:

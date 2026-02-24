@@ -1486,6 +1486,40 @@ const EditTrip = ({
                                       borderWidth="1px"
                                       borderRadius="md"
                                     >
+                                      {selectedTripBoat && (() => {
+                                        const tb = tripBoats.find(
+                                          (t) => t.id === selectedTripBoat.id,
+                                        )
+                                        const boat = tb
+                                          ? boatsMap.get(tb.boat_id)
+                                          : null
+                                        const effectiveMax =
+                                          (tb as { max_capacity?: number })
+                                            ?.max_capacity ??
+                                          boat?.capacity ??
+                                          0
+                                        const allocated = (
+                                          tripBoatPricingList as Array<{
+                                            capacity?: number | null
+                                          }>
+                                        ).reduce(
+                                          (sum, p) =>
+                                            sum + (p.capacity ?? 0),
+                                          0,
+                                        )
+                                        const remaining =
+                                          effectiveMax - allocated
+                                        return (
+                                          <Text
+                                            fontSize="xs"
+                                            color="gray.500"
+                                          >
+                                            Effective max: {effectiveMax} seats.
+                                            Allocated: {allocated}. Remaining:{" "}
+                                            {remaining}
+                                          </Text>
+                                        )
+                                      })()}
                                       <HStack width="100%" align="flex-end">
                                         <Box flex={1}>
                                           <Text fontSize="sm" mb={1}>

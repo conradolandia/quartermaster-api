@@ -60,6 +60,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
     handleSubmit,
     reset,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<AddBoatForm>({
     mode: "onBlur",
@@ -83,7 +84,16 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
   })
 
   const onSubmit: SubmitHandler<AddBoatForm> = async (data) => {
-    if (data.capacity == null || data.capacity < 1) return
+    if (data.capacity == null || data.capacity < 1) {
+      setError("capacity", {
+        type: "manual",
+        message:
+          data.capacity == null
+            ? "Capacity is required"
+            : "Capacity must be at least 1",
+      })
+      return
+    }
     const boatPayload: BoatCreate = {
       name: data.name,
       capacity: data.capacity,

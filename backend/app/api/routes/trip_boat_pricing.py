@@ -58,22 +58,21 @@ def create_trip_boat_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Trip boat not found",
         )
-    obj = crud.create_trip_boat_pricing(
-        session=session, trip_boat_pricing_in=trip_boat_pricing_in
-    )
-    session.refresh(trip_boat)
     boat = session.get(Boat, trip_boat.boat_id)
     effective_max = (
         trip_boat.max_capacity
         if trip_boat.max_capacity is not None
         else (boat.capacity if boat else 0)
     )
+    # Validate capacity before create: simulate effective capacities with new row
     capacities = crud.get_effective_capacity_per_ticket_type(
         session=session, trip_id=trip_boat.trip_id, boat_id=trip_boat.boat_id
     )
+    # Add the new row's capacity (overwrites if same type, but duplicate check above)
+    capacities = dict(capacities)
+    capacities[trip_boat_pricing_in.ticket_type] = trip_boat_pricing_in.capacity
     constrained_sum = sum(v for v in capacities.values() if v is not None)
     if constrained_sum > effective_max:
-        crud.delete_trip_boat_pricing(session=session, trip_boat_pricing_id=obj.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
@@ -81,6 +80,9 @@ def create_trip_boat_pricing(
                 f"trip/boat max capacity ({effective_max})"
             ),
         )
+    obj = crud.create_trip_boat_pricing(
+        session=session, trip_boat_pricing_in=trip_boat_pricing_in
+    )
     return TripBoatPricingPublic.model_validate(obj)
 
 

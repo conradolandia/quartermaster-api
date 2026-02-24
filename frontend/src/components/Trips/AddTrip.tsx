@@ -25,9 +25,6 @@ import {
   LaunchesService,
   MerchandiseService,
   MissionsService,
-  TripBoatPricingService,
-  TripBoatsService,
-  TripMerchandiseService,
   TripsService,
 } from "@/client"
 import { MissionDropdown } from "@/components/Common/MissionDropdown"
@@ -107,6 +104,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [selectedBoats, setSelectedBoats] = useState<SelectedBoat[]>([])
   const [selectedBoatId, setSelectedBoatId] = useState("")
   const [maxCapacity, setMaxCapacity] = useState<number | undefined>(undefined)
+  const [useOnlyTripPricing, setUseOnlyTripPricing] = useState(false)
   const [isAddingBoat, setIsAddingBoat] = useState(false)
   const [selectedBoatForPricing, setSelectedBoatForPricing] = useState<{
     boatId: string
@@ -234,6 +232,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setSelectedBoats([])
       setSelectedBoatId("")
       setMaxCapacity(undefined)
+      setUseOnlyTripPricing(false)
       setIsAddingBoat(false)
       setSelectedBoatForPricing(null)
       setEditingCapacityBoatId(null)
@@ -264,7 +263,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       {
         boat_id: selectedBoatId,
         max_capacity: maxCapacity ?? null,
-        use_only_trip_pricing: false,
+        use_only_trip_pricing: useOnlyTripPricing,
         name: boatDetails?.name,
         capacity: boatDetails?.capacity,
         pricing: [],
@@ -272,6 +271,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     ])
     setSelectedBoatId("")
     setMaxCapacity(undefined)
+    setUseOnlyTripPricing(false)
     setIsAddingBoat(false)
   }
 
@@ -314,6 +314,28 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     )
       return
     if (cap !== undefined && (Number.isNaN(cap) || cap < 0)) return
+
+    const boat = selectedBoats.find(
+      (b) => b.boat_id === selectedBoatForPricing.boatId,
+    )
+    if (boat) {
+      const effectiveMax =
+        boat.max_capacity ?? boat.capacity ?? 0
+      const existingConstrained = boat.pricing.reduce(
+        (sum, p) => sum + (p.capacity ?? 0),
+        0,
+      )
+      const newConstrained = cap ?? 0
+      if (existingConstrained + newConstrained > effectiveMax) {
+        handleError({
+          body: {
+            detail: `Sum of ticket-type capacities (${existingConstrained + newConstrained}) would exceed effective max (${effectiveMax})`,
+          },
+        } as any)
+        return
+      }
+    }
+
     setSelectedBoats((prev) =>
       prev.map((b) =>
         b.boat_id === selectedBoatForPricing.boatId
@@ -396,68 +418,50 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     )
   }
 
-  // Use mutation for creating trip
+  // Use mutation for creating trip (atomic: trip + boats + pricing + merchandise)
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      // First create the trip
-      const tripResponse = await TripsService.createTrip({
-        requestBody: data,
-      })
-
-      const tripId = tripResponse.id
-
-      // Create boat associations, then per-boat trip-boat pricing
-      if (selectedBoats.length > 0) {
-        const tripBoatPromises = selectedBoats.map((boat) =>
-          TripBoatsService.createTripBoat({
-            requestBody: {
-              trip_id: tripId,
-              boat_id: boat.boat_id,
-              max_capacity: boat.max_capacity,
-              use_only_trip_pricing: boat.use_only_trip_pricing ?? false,
-            },
-          }),
-        )
-        const createdTripBoats = await Promise.all(tripBoatPromises)
-        const pricingPromises: Promise<unknown>[] = []
-        for (let i = 0; i < createdTripBoats.length; i++) {
-          const tb = createdTripBoats[i]
-          const boat = selectedBoats[i]
-          for (const p of boat.pricing ?? []) {
-            pricingPromises.push(
-              TripBoatPricingService.createTripBoatPricing({
-                requestBody: {
-                  trip_boat_id: tb.id,
-                  ticket_type: p.ticket_type,
-                  price: p.price,
-                  capacity: p.capacity ?? undefined,
-                },
-              }),
-            )
-          }
-        }
-        if (pricingPromises.length > 0) {
-          await Promise.all(pricingPromises)
-        }
+    mutationFn: async (data: {
+      mission_id: string
+      name: string | null
+      type: string
+      active: boolean
+      unlisted: boolean
+      booking_mode: string
+      sales_open_at: string | null
+      departure_time: string
+      boarding_minutes_before_departure: number
+      checkin_minutes_before_boarding: number
+      boats: typeof selectedBoats
+      merchandise: typeof selectedMerchandise
+    }) => {
+      const requestBody = {
+        mission_id: data.mission_id,
+        name: data.name,
+        type: data.type,
+        active: data.active,
+        unlisted: data.unlisted,
+        booking_mode: data.booking_mode,
+        sales_open_at: data.sales_open_at,
+        departure_time: data.departure_time,
+        boarding_minutes_before_departure: data.boarding_minutes_before_departure,
+        checkin_minutes_before_boarding: data.checkin_minutes_before_boarding,
+        boats: data.boats.map((boat) => ({
+          boat_id: boat.boat_id,
+          max_capacity: boat.max_capacity ?? null,
+          use_only_trip_pricing: boat.use_only_trip_pricing ?? false,
+          pricing: (boat.pricing ?? []).map((p) => ({
+            ticket_type: p.ticket_type,
+            price: p.price,
+            capacity: p.capacity ?? null,
+          })),
+        })),
+        merchandise: data.merchandise.map((item) => ({
+          merchandise_id: item.merchandise_id,
+          price_override: item.price_override ?? null,
+          quantity_available_override: item.quantity_available_override ?? null,
+        })),
       }
-
-      // Create merchandise (link catalog items to trip with optional overrides)
-      if (selectedMerchandise.length > 0) {
-        const merchandisePromises = selectedMerchandise.map((item) =>
-          TripMerchandiseService.createTripMerchandise({
-            requestBody: {
-              trip_id: tripId,
-              merchandise_id: item.merchandise_id,
-              price_override: item.price_override ?? null,
-              quantity_available_override:
-                item.quantity_available_override ?? null,
-            },
-          }),
-        )
-        await Promise.all(merchandisePromises)
-      }
-
-      return tripResponse
+      return TripsService.createTripFull({ requestBody })
     },
     onSuccess: () => {
       showSuccessToast("Trip was successfully added")
@@ -513,6 +517,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       departure_time: parseLocationTimeToUtc(departureTime, tz),
       boarding_minutes_before_departure: boardingMinutesBeforeDeparture,
       checkin_minutes_before_boarding: checkinMinutesBeforeBoarding,
+      boats: selectedBoats,
+      merchandise: selectedMerchandise,
     })
   }
 
@@ -1233,6 +1239,24 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                         />
                                       </Box>
                                     </HStack>
+                                    <Text fontSize="xs" color="gray.500">
+                                      Effective max:{" "}
+                                      {boat.max_capacity ?? boat.capacity ?? 0}{" "}
+                                      seats. Allocated:{" "}
+                                      {(boat.pricing ?? []).reduce(
+                                        (s, p) => s + (p.capacity ?? 0),
+                                        0,
+                                      )}
+                                      . Remaining:{" "}
+                                      {Math.max(
+                                        0,
+                                        (boat.max_capacity ?? boat.capacity ?? 0) -
+                                          (boat.pricing ?? []).reduce(
+                                            (s, p) => s + (p.capacity ?? 0),
+                                            0,
+                                          ),
+                                      )}
+                                    </Text>
                                     <HStack width="100%" justify="flex-end">
                                       <Button
                                         size="sm"
@@ -1327,6 +1351,27 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         min={1}
                       />
                     </Field>
+                    <Flex
+                      justify="space-between"
+                      align="center"
+                      width="100%"
+                      py={2}
+                    >
+                      <Text fontSize="sm">
+                        Use only trip pricing (ignore boat defaults)
+                      </Text>
+                      <Box
+                        onClick={() =>
+                          setUseOnlyTripPricing(!useOnlyTripPricing)
+                        }
+                        cursor="pointer"
+                      >
+                        <Switch
+                          checked={useOnlyTripPricing}
+                          inputProps={{ id: "use-only-trip-pricing" }}
+                        />
+                      </Box>
+                    </Flex>
                     <Flex justify="flex-end" gap={2}>
                       <Button
                         size="sm"

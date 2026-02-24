@@ -81,6 +81,25 @@ def create_trip_boat(
             )
 
     trip_boat = crud.create_trip_boat(session=session, trip_boat_in=trip_boat_in)
+
+    # Validate max_capacity >= sum of effective per-type capacities
+    if trip_boat_in.max_capacity is not None:
+        capacities = crud.get_effective_capacity_per_ticket_type(
+            session=session,
+            trip_id=trip_boat.trip_id,
+            boat_id=trip_boat.boat_id,
+        )
+        constrained_sum = sum(v for v in capacities.values() if v is not None)
+        if constrained_sum > trip_boat_in.max_capacity:
+            crud.delete_trip_boat(session=session, trip_boat_id=trip_boat.id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less than "
+                    f"the sum of ticket-type capacities ({constrained_sum}). "
+                    "Reduce per-type capacities or increase max capacity."
+                ),
+            )
     return TripBoatPublic(
         id=trip_boat.id,
         trip_id=trip_boat.trip_id,
@@ -237,6 +256,32 @@ def update_trip_boat(
                     f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less "
                     f"than passengers already booked on this trip for this boat ({booked}). "
                     "Reassign passengers to another boat or cancel bookings first."
+                ),
+            )
+
+    # Validate max_capacity >= sum of effective per-type capacities
+    if trip_boat_in.max_capacity is not None:
+        trip_id = (
+            trip_boat_in.trip_id
+            if trip_boat_in.trip_id is not None
+            else trip_boat.trip_id
+        )
+        boat_id = (
+            trip_boat_in.boat_id
+            if trip_boat_in.boat_id is not None
+            else trip_boat.boat_id
+        )
+        capacities = crud.get_effective_capacity_per_ticket_type(
+            session=session, trip_id=trip_id, boat_id=boat_id
+        )
+        constrained_sum = sum(v for v in capacities.values() if v is not None)
+        if constrained_sum > trip_boat_in.max_capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less than "
+                    f"the sum of ticket-type capacities ({constrained_sum}). "
+                    "Reduce per-type capacities or increase max capacity."
                 ),
             )
 

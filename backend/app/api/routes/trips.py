@@ -13,6 +13,7 @@ from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.models import (
+    Boat,
     BoatPublic,
     DiscountCode,
     PublicTripsResponse,
@@ -23,6 +24,7 @@ from app.models import (
     TripBoatPricingCreate,
     TripBoatPublic,
     TripCreate,
+    TripCreateFull,
     TripMerchandiseCreate,
     TripPublic,
     TripsPublic,
@@ -194,6 +196,163 @@ def create_trip(
         )
     trip = crud.create_trip(session=session, trip_in=payload)
     return _trip_to_public(session, trip)
+
+
+@router.post(
+    "/create-full",
+    response_model=TripPublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def create_trip_full(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_in: TripCreateFull,
+) -> Any:
+    """
+    Create trip with boats, pricing, and merchandise in a single transaction.
+    """
+    mission = crud.get_mission(session=session, mission_id=trip_in.mission_id)
+    if not mission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mission with ID {trip_in.mission_id} not found",
+        )
+    launch = crud.get_launch(session=session, launch_id=mission.launch_id)
+    if not launch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Launch for mission {trip_in.mission_id} not found",
+        )
+
+    boarding_min = trip_in.boarding_minutes_before_departure
+    checkin_min = trip_in.checkin_minutes_before_boarding
+    if boarding_min is None or checkin_min is None:
+        default_boarding, default_checkin = get_default_offsets_for_type(trip_in.type)
+        if boarding_min is None:
+            boarding_min = default_boarding
+        if checkin_min is None:
+            checkin_min = default_checkin
+
+    (
+        check_in_time,
+        boarding_time,
+        departure_time,
+    ) = compute_trip_times_from_departure_and_offsets(
+        trip_in.departure_time, boarding_min, checkin_min
+    )
+    payload = TripBase(
+        mission_id=trip_in.mission_id,
+        name=trip_in.name,
+        type=trip_in.type,
+        active=trip_in.active,
+        unlisted=trip_in.unlisted,
+        booking_mode=trip_in.booking_mode,
+        sales_open_at=trip_in.sales_open_at,
+        check_in_time=check_in_time,
+        boarding_time=boarding_time,
+        departure_time=departure_time,
+    )
+    temp_trip = Trip.model_validate(payload)
+    is_valid, error_msg = validate_trip_time_ordering(temp_trip)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot create trip: {error_msg}",
+        )
+    is_valid, error_msg = validate_trip_dates(temp_trip, mission, launch)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot create trip: {error_msg}",
+        )
+
+    new_trip = crud.create_trip(session=session, trip_in=payload)
+
+    for boat_item in trip_in.boats:
+        new_tb = crud.create_trip_boat(
+            session=session,
+            trip_boat_in=TripBoatCreate(
+                trip_id=new_trip.id,
+                boat_id=boat_item.boat_id,
+                max_capacity=boat_item.max_capacity,
+                use_only_trip_pricing=boat_item.use_only_trip_pricing,
+            ),
+        )
+        if boat_item.max_capacity is not None:
+            capacities = crud.get_effective_capacity_per_ticket_type(
+                session=session,
+                trip_id=new_trip.id,
+                boat_id=boat_item.boat_id,
+            )
+            constrained_sum = sum(v for v in capacities.values() if v is not None)
+            if constrained_sum > boat_item.max_capacity:
+                crud.delete_trip_boat(session=session, trip_boat_id=new_tb.id)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Custom capacity ({boat_item.max_capacity}) cannot be less than "
+                        f"the sum of ticket-type capacities ({constrained_sum}). "
+                        "Reduce per-type capacities or increase max capacity."
+                    ),
+                )
+        boat = session.get(Boat, boat_item.boat_id)
+        effective_max = (
+            boat_item.max_capacity
+            if boat_item.max_capacity is not None
+            else (boat.capacity if boat else 0)
+        )
+        for p in boat_item.pricing:
+            capacities = crud.get_effective_capacity_per_ticket_type(
+                session=session,
+                trip_id=new_trip.id,
+                boat_id=boat_item.boat_id,
+            )
+            capacities = dict(capacities)
+            capacities[p.ticket_type] = p.capacity
+            constrained_sum = sum(v for v in capacities.values() if v is not None)
+            if constrained_sum > effective_max:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Sum of constrained ticket-type capacities ({constrained_sum}) "
+                        f"would exceed trip/boat max capacity ({effective_max})"
+                    ),
+                )
+            crud.create_trip_boat_pricing(
+                session=session,
+                trip_boat_pricing_in=TripBoatPricingCreate(
+                    trip_boat_id=new_tb.id,
+                    ticket_type=p.ticket_type,
+                    price=p.price,
+                    capacity=p.capacity,
+                ),
+            )
+
+    for merch_item in trip_in.merchandise:
+        crud.create_trip_merchandise(
+            session=session,
+            trip_merchandise_in=TripMerchandiseCreate(
+                trip_id=new_trip.id,
+                merchandise_id=merch_item.merchandise_id,
+                quantity_available_override=merch_item.quantity_available_override,
+                price_override=merch_item.price_override,
+            ),
+        )
+
+    session.refresh(new_trip)
+    trip_with_boats = (
+        session.exec(
+            select(Trip)
+            .where(Trip.id == new_trip.id)
+            .options(
+                selectinload(Trip.trip_boats).selectinload(TripBoat.boat),
+            )
+        )
+        .unique()
+        .one()
+    )
+    return _trip_to_public(session, trip_with_boats)
 
 
 @router.get(

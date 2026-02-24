@@ -679,8 +679,27 @@ export type TripBoatCreate = {
   use_only_trip_pricing?: boolean
 }
 
+/**
+ * Boat with optional pricing for TripCreateFull.
+ */
+export type TripBoatCreateItem = {
+  boat_id: string
+  max_capacity?: number | null
+  use_only_trip_pricing?: boolean
+  pricing?: Array<TripBoatPricingCreateItem>
+}
+
 export type TripBoatPricingCreate = {
   trip_boat_id: string
+  ticket_type: string
+  price: number
+  capacity?: number | null
+}
+
+/**
+ * Pricing item for TripCreateFull; trip_boat_id is set when creating.
+ */
+export type TripBoatPricingCreateItem = {
   ticket_type: string
   price: number
   capacity?: number | null
@@ -775,11 +794,38 @@ export type TripCreate = {
   checkin_minutes_before_boarding?: number | null
 }
 
+/**
+ * Trip + boats + pricing + merchandise in one request.
+ */
+export type TripCreateFull = {
+  mission_id: string
+  name?: string | null
+  type: string
+  active?: boolean
+  unlisted?: boolean
+  booking_mode?: string
+  sales_open_at?: string | null
+  departure_time: string
+  boarding_minutes_before_departure?: number | null
+  checkin_minutes_before_boarding?: number | null
+  boats?: Array<TripBoatCreateItem>
+  merchandise?: Array<TripMerchandiseCreateItem>
+}
+
 export type TripMerchandiseCreate = {
   trip_id: string
   merchandise_id: string
   quantity_available_override?: number | null
   price_override?: number | null
+}
+
+/**
+ * Merchandise item for TripCreateFull; trip_id is set when creating.
+ */
+export type TripMerchandiseCreateItem = {
+  merchandise_id: string
+  price_override?: number | null
+  quantity_available_override?: number | null
 }
 
 export type TripMerchandisePublic = {
@@ -1768,6 +1814,12 @@ export type TripsCreateTripData = {
 }
 
 export type TripsCreateTripResponse = TripPublic
+
+export type TripsCreateTripFullData = {
+  requestBody: TripCreateFull
+}
+
+export type TripsCreateTripFullResponse = TripPublic
 
 export type TripsReadTripData = {
   tripId: string

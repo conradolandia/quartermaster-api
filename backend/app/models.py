@@ -577,6 +577,48 @@ class TripCreate(SQLModel):
     )
 
 
+class TripBoatPricingCreateItem(SQLModel):
+    """Pricing item for TripCreateFull; trip_boat_id is set when creating."""
+
+    ticket_type: str = Field(max_length=32)
+    price: int = Field(ge=0)  # cents
+    capacity: int | None = Field(default=None, ge=0)
+
+
+class TripBoatCreateItem(SQLModel):
+    """Boat with optional pricing for TripCreateFull."""
+
+    boat_id: uuid.UUID = Field(foreign_key="boat.id")
+    max_capacity: int | None = None
+    use_only_trip_pricing: bool = False
+    pricing: list[TripBoatPricingCreateItem] = Field(default_factory=list)
+
+
+class TripMerchandiseCreateItem(SQLModel):
+    """Merchandise item for TripCreateFull; trip_id is set when creating."""
+
+    merchandise_id: uuid.UUID = Field(foreign_key="merchandise.id")
+    price_override: int | None = Field(default=None, ge=0)  # cents
+    quantity_available_override: int | None = Field(default=None, ge=0)
+
+
+class TripCreateFull(SQLModel):
+    """Trip + boats + pricing + merchandise in one request."""
+
+    mission_id: uuid.UUID = Field(foreign_key="mission.id")
+    name: str | None = Field(default=None, max_length=255)
+    type: str = Field(max_length=50)  # launch_viewing or pre_launch
+    active: bool = Field(default=True)
+    unlisted: bool = Field(default=False)
+    booking_mode: str = Field(default="private", max_length=20)
+    sales_open_at: datetime | None = None
+    departure_time: datetime
+    boarding_minutes_before_departure: int | None = Field(default=None, ge=0)
+    checkin_minutes_before_boarding: int | None = Field(default=None, ge=0)
+    boats: list[TripBoatCreateItem] = Field(default_factory=list)
+    merchandise: list[TripMerchandiseCreateItem] = Field(default_factory=list)
+
+
 class TripUpdate(SQLModel):
     mission_id: uuid.UUID | None = None
     name: str | None = Field(default=None, max_length=255)
