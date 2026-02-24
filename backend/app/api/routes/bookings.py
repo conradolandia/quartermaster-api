@@ -1761,11 +1761,12 @@ def reschedule_booking(
     body: RescheduleBookingRequest,
 ) -> BookingPublic:
     """
-    Move all ticket items for this booking to another trip (same mission).
+    Move all ticket items for this booking to another trip (any mission).
 
-    Target trip may be Launch Viewing or Pre-Launch; cross-type rescheduling
-    is allowed. Merchandise items are left on their current trips. Target trip
-    must be active, not departed, and have capacity for the moved quantities.
+    Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
+    rescheduling are allowed. Merchandise items are left on their current trips.
+    Target trip must be active, not departed, and have capacity for the moved
+    quantities.
     """
     booking = session.get(Booking, booking_id)
     if not booking:
@@ -1798,18 +1799,6 @@ def reschedule_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Target trip is not active",
         )
-    first_trip = session.get(Trip, ticket_items[0].trip_id)
-    if not first_trip:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Booking item trip not found",
-        )
-    if target_trip.mission_id != first_trip.mission_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Target trip must belong to the same mission as the booking",
-        )
-
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=body.target_trip_id
     )

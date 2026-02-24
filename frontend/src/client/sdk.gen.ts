@@ -842,11 +842,12 @@ export class BookingsService {
 
   /**
    * Reschedule Booking
-   * Move all ticket items for this booking to another trip (same mission).
+   * Move all ticket items for this booking to another trip (any mission).
    *
-   * Target trip may be Launch Viewing or Pre-Launch; cross-type rescheduling
-   * is allowed. Merchandise items are left on their current trips. Target trip
-   * must be active, not departed, and have capacity for the moved quantities.
+   * Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
+   * rescheduling are allowed. Merchandise items are left on their current trips.
+   * Target trip must be active, not departed, and have capacity for the moved
+   * quantities.
    * @param data The data for the request.
    * @param data.bookingId
    * @param data.requestBody

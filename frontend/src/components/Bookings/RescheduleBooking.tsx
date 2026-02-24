@@ -11,9 +11,11 @@ import { useEffect, useState } from "react"
 
 import {
   BookingsService,
+  MissionsService,
   TripsService,
   TripBoatsService,
   type BookingPublic,
+  type MissionPublic,
   type TripPublic,
 } from "@/client"
 import {
@@ -48,6 +50,7 @@ export default function RescheduleBooking({
 }: RescheduleBookingProps) {
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
+  const [selectedMissionId, setSelectedMissionId] = useState<string>("")
   const [targetTripId, setTargetTripId] = useState<string>("")
   const [targetBoatId, setTargetBoatId] = useState<string | null>(null)
 
@@ -66,9 +69,16 @@ export default function RescheduleBooking({
 
   const effectiveMissionId = booking.mission_id ?? firstTrip?.mission_id ?? null
 
+  const { data: missionsData, isLoading: missionsLoading } = useQuery({
+    queryKey: ["missions"],
+    queryFn: () => MissionsService.readMissions({ limit: 500 }),
+    enabled: isOpen,
+  })
+  const missions = missionsData?.data ?? []
+
   const { trips, isLoading: tripsLoading } = useTripsByMission(
-    effectiveMissionId,
-    isOpen && !!effectiveMissionId,
+    selectedMissionId || null,
+    isOpen && !!selectedMissionId,
   )
 
   const { data: tripBoats = [], isLoading: boatsLoading } = useQuery({
@@ -83,10 +93,22 @@ export default function RescheduleBooking({
 
   useEffect(() => {
     if (!isOpen) {
+      setSelectedMissionId("")
       setTargetTripId("")
       setTargetBoatId(null)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && effectiveMissionId && !selectedMissionId) {
+      setSelectedMissionId(effectiveMissionId)
+    }
+  }, [isOpen, effectiveMissionId, selectedMissionId])
+
+  useEffect(() => {
+    setTargetTripId("")
+    setTargetBoatId(null)
+  }, [selectedMissionId])
 
   useEffect(() => {
     if (needsBoat) setTargetBoatId(null)
@@ -180,9 +202,9 @@ export default function RescheduleBooking({
         <DialogCloseTrigger />
         <DialogBody overflow="visible" pb={8}>
           <Text mb={4} fontSize="sm" color="text.muted">
-            Move this booking&apos;s ticket items to another trip in the same
-            mission (Launch Viewing or Pre-Launch). Merchandise items stay on
-            their current trips.
+            Move this booking&apos;s ticket items to another trip in any mission
+            (Launch Viewing or Pre-Launch). Merchandise items stay on their
+            current trips.
           </Text>
           {!hasTicketItems && (
             <Text color="status.error" mb={4}>
@@ -191,13 +213,47 @@ export default function RescheduleBooking({
           )}
           {hasTicketItems && (
             <VStack align="stretch" gap={4}>
-              {!effectiveMissionId && !firstTrip && (
-                <Text color="text.muted">
-                  Loading mission…
-                </Text>
+              {missionsLoading && missions.length === 0 && (
+                <Text color="text.muted">Loading missions…</Text>
               )}
-              {effectiveMissionId && (
+              {missions.length > 0 && (
                 <>
+                  <Field label="Mission">
+                    <Select.Root
+                      collection={createListCollection({
+                        items: missions.map((m: MissionPublic) => ({
+                          value: m.id,
+                          label: m.name ?? m.id,
+                        })),
+                      })}
+                      value={selectedMissionId ? [selectedMissionId] : []}
+                      onValueChange={(e: { value: string[] }) =>
+                        setSelectedMissionId(e.value[0] ?? "")
+                      }
+                    >
+                      <Select.Control width="100%">
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select a mission" />
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {missions.map((m: MissionPublic) => (
+                            <Select.Item
+                              key={m.id}
+                              item={{ value: m.id, label: m.name ?? m.id }}
+                            >
+                              {m.name ?? m.id}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </Field>
                   <Field label="Target trip">
                     <Select.Root
                       collection={createListCollection({
@@ -207,7 +263,7 @@ export default function RescheduleBooking({
                       onValueChange={(e: { value: string[] }) =>
                         setTargetTripId(e.value[0] ?? "")
                       }
-                      disabled={tripsLoading}
+                      disabled={!selectedMissionId || tripsLoading}
                     >
                       <Select.Control width="100%">
                         <Select.Trigger>
