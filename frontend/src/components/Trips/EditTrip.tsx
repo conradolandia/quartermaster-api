@@ -158,6 +158,16 @@ const EditTrip = ({
     capacity: "",
   })
   const [isAddingTripBoatPricing, setIsAddingTripBoatPricing] = useState(false)
+  const [renamePricingConfirmOpen, setRenamePricingConfirmOpen] = useState(false)
+  const [pendingRenamePricingPayload, setPendingRenamePricingPayload] =
+    useState<{
+      tripBoatPricingId: string
+      ticket_type?: string
+      price: number
+      capacity?: number | null
+    } | null>(null)
+  const [renamePricingAffectedCount, setRenamePricingAffectedCount] =
+    useState(0)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -1085,8 +1095,8 @@ const EditTrip = ({
                                   </Text>
                                   <Text fontSize="sm" color="gray.500" mb={2}>
                                     Boat default: {boat?.capacity ?? "—"} seats.
-                                    Set a lower limit for this trip or leave
-                                    default.
+                                    Set a custom limit for this trip or leave
+                                    as the boat default.
                                   </Text>
                                   <HStack
                                     gap={2}
@@ -1394,17 +1404,49 @@ const EditTrip = ({
                                                           cap < 0)
                                                       )
                                                         return
-                                                      updateTripBoatPricingMutation.mutate(
-                                                        {
-                                                          tripBoatPricingId:
-                                                            p.id,
-                                                          ticket_type:
-                                                            ticketType,
-                                                          price: cents,
-                                                          capacity:
-                                                            cap ?? undefined,
-                                                        },
-                                                      )
+                                                      const payload = {
+                                                        tripBoatPricingId: p.id,
+                                                        ticket_type: ticketType,
+                                                        price: cents,
+                                                        capacity:
+                                                          cap ?? undefined,
+                                                      }
+                                                      const isRename =
+                                                        ticketType !==
+                                                        p.ticket_type
+                                                      const used =
+                                                        selectedTripBoat &&
+                                                        "used_per_ticket_type" in
+                                                          selectedTripBoat
+                                                          ? (
+                                                              selectedTripBoat as {
+                                                                used_per_ticket_type?: Record<
+                                                                  string,
+                                                                  number
+                                                                >
+                                                              }
+                                                            ).used_per_ticket_type?.[
+                                                              p.ticket_type
+                                                            ] ?? 0
+                                                          : 0
+                                                      if (
+                                                        isRename &&
+                                                        used > 0
+                                                      ) {
+                                                        setRenamePricingAffectedCount(
+                                                          used,
+                                                        )
+                                                        setPendingRenamePricingPayload(
+                                                          payload,
+                                                        )
+                                                        setRenamePricingConfirmOpen(
+                                                          true,
+                                                        )
+                                                      } else {
+                                                        updateTripBoatPricingMutation.mutate(
+                                                          payload,
+                                                        )
+                                                      }
                                                     }
                                                   }}
                                                   loading={
@@ -1691,6 +1733,9 @@ const EditTrip = ({
                                           />
                                         </Box>
                                       </HStack>
+                                      <Text fontSize="xs" color="gray.500">
+                                        Leave capacity empty to share boat capacity (no per-type limit).
+                                      </Text>
                                       <HStack width="100%" justify="flex-end">
                                         <Button
                                           size="sm"
@@ -2238,6 +2283,62 @@ const EditTrip = ({
               disabled={!reassignCanSubmit}
             >
               Move passengers
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogRoot>
+
+      {/* Rename ticket type confirmation */}
+      <DialogRoot
+        size="xs"
+        placement="center"
+        open={renamePricingConfirmOpen}
+        onOpenChange={({ open }) => {
+          if (!open) {
+            setRenamePricingConfirmOpen(false)
+            setPendingRenamePricingPayload(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename ticket type</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Text>
+              This will update {renamePricingAffectedCount} existing booking
+              item(s) to use the new ticket type name. Continue?
+            </Text>
+          </DialogBody>
+          <DialogFooter gap={2}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setRenamePricingConfirmOpen(false)
+                setPendingRenamePricingPayload(null)
+              }}
+              disabled={updateTripBoatPricingMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                if (pendingRenamePricingPayload) {
+                  updateTripBoatPricingMutation.mutate(
+                    pendingRenamePricingPayload,
+                    {
+                      onSettled: () => {
+                        setRenamePricingConfirmOpen(false)
+                        setPendingRenamePricingPayload(null)
+                      },
+                    },
+                  )
+                }
+              }}
+              loading={updateTripBoatPricingMutation.isPending}
+            >
+              Update
             </Button>
           </DialogFooter>
         </DialogContent>

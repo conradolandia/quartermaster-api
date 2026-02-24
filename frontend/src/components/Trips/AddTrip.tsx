@@ -1256,6 +1256,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                             0,
                                           ),
                                       )}
+                                      . Leave capacity empty to share boat capacity.
                                     </Text>
                                     <HStack width="100%" justify="flex-end">
                                       <Button

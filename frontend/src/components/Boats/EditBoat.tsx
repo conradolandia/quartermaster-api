@@ -53,6 +53,15 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     price: "",
     capacity: "",
   })
+  const [renamePricingConfirmOpen, setRenamePricingConfirmOpen] =
+    useState(false)
+  const [pendingRenamePricingPayload, setPendingRenamePricingPayload] =
+    useState<{
+      boatPricingId: string
+      ticket_type?: string
+      price: number
+      capacity: number
+    } | null>(null)
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -205,6 +214,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
   }
 
   return (
+    <>
     <DialogRoot
       size={{ base: "xs", md: "md" }}
       placement="center"
@@ -522,12 +532,19 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                                   } as ApiError)
                                   return
                                 }
-                                updatePricingMutation.mutate({
+                                const payload = {
                                   boatPricingId: p.id,
                                   ticket_type: ticketType,
                                   price: Math.round(priceDollars * 100),
                                   capacity: cap,
-                                })
+                                }
+                                const isRename = ticketType !== p.ticket_type
+                                if (isRename) {
+                                  setPendingRenamePricingPayload(payload)
+                                  setRenamePricingConfirmOpen(true)
+                                } else {
+                                  updatePricingMutation.mutate(payload)
+                                }
                               }
                             }}
                             loading={updatePricingMutation.isPending}
@@ -615,6 +632,60 @@ const EditBoat = ({ boat }: EditBoatProps) => {
         </form>
       </DialogContent>
     </DialogRoot>
+
+    {/* Rename ticket type confirmation */}
+    <DialogRoot
+      size="xs"
+      placement="center"
+      open={renamePricingConfirmOpen}
+      onOpenChange={({ open }) => {
+        if (!open) {
+          setRenamePricingConfirmOpen(false)
+          setPendingRenamePricingPayload(null)
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename ticket type</DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <Text>
+            This will update all existing bookings with this ticket type to use
+            the new name. Continue?
+          </Text>
+        </DialogBody>
+        <DialogFooter gap={2}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setRenamePricingConfirmOpen(false)
+              setPendingRenamePricingPayload(null)
+            }}
+            disabled={updatePricingMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={() => {
+              if (pendingRenamePricingPayload) {
+                updatePricingMutation.mutate(pendingRenamePricingPayload, {
+                  onSettled: () => {
+                    setRenamePricingConfirmOpen(false)
+                    setPendingRenamePricingPayload(null)
+                  },
+                })
+              }
+            }}
+            loading={updatePricingMutation.isPending}
+          >
+            Update
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
+    </>
   )
 }
 

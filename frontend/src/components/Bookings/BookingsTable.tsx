@@ -22,6 +22,7 @@ import {
   BookingsService,
   MissionsService,
   TripsService,
+  TripBoatsService,
 } from "@/client"
 import type { TripPublic } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
@@ -280,6 +281,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     queryFn: () => BoatsService.readBoats({ limit: 200 }),
   })
 
+  // Fetch trip boats when a trip is selected (to filter boat dropdown)
+  const { data: tripBoatsData } = useQuery({
+    queryKey: ["trip-boats", tripId],
+    queryFn: () =>
+      TripBoatsService.readTripBoatsByTrip({ tripId: tripId!, limit: 200 }),
+    enabled: !!tripId,
+  })
+
   // Fetch all bookings to determine which missions have bookings
   const { data: allBookingsData } = useQuery({
     queryKey: ["all-bookings-for-missions"],
@@ -291,6 +300,29 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const missions = missionsData?.data || []
   const trips = tripsData?.data || []
   const boats = boatsData?.data || []
+
+  // When a trip is selected, only show boats that exist for that trip
+  const tripBoats = Array.isArray(tripBoatsData) ? tripBoatsData : []
+  const boatIdsForTrip = new Set(
+    tripBoats.map((tb: { boat_id: string }) => tb.boat_id),
+  )
+  const filteredBoats =
+    tripId && boatIdsForTrip.size > 0
+      ? (boats as { id: string; name: string }[]).filter((b) =>
+          boatIdsForTrip.has(b.id),
+        )
+      : (boats as { id: string; name: string }[])
+
+  // Clear boatId when it's invalid for the selected trip (e.g. from URL)
+  useEffect(() => {
+    if (!tripId || !boatId) return
+    const tb = Array.isArray(tripBoatsData) ? tripBoatsData : []
+    const ids = new Set(tb.map((x: { boat_id: string }) => x.boat_id))
+    if (ids.size > 0 && !ids.has(boatId)) {
+      setBoatId(undefined)
+      updateFiltersInUrl({ boatId: undefined })
+    }
+  }, [tripId, boatId, tripBoatsData])
 
   // Filter missions to only show those with existing bookings
   const missionsWithBookings = missions.filter((mission: any) =>
@@ -505,7 +537,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const boatsCollection = createListCollection({
     items: [
       { label: "All Boats", value: "" },
-      ...boats.map((boat: { id: string; name: string }) => ({
+      ...filteredBoats.map((boat: { id: string; name: string }) => ({
         label: boat.name,
         value: boat.id,
       })),
@@ -711,7 +743,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               size="xs"
               width={filterSelectWidth}
               borderColor="white"
-              value={boatId ? [boatId] : [""]}
+              value={
+                boatId && filteredBoats.some((b) => b.id === boatId)
+                  ? [boatId]
+                  : [""]
+              }
               onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
             >
               <Select.Control width="100%">
