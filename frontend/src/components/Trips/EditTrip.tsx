@@ -162,6 +162,32 @@ const EditTrip = ({
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
 
+  const hasPendingBoatsChanges =
+    editingCapacityTripBoatId !== null ||
+    isAddingTripBoatPricing ||
+    editingOverrideId !== null
+  const hasPendingMerchandiseChanges = isAddingMerchandise
+  const hasPendingTabChanges =
+    hasPendingBoatsChanges || hasPendingMerchandiseChanges
+
+  const discardPendingTabChanges = () => {
+    setEditingCapacityTripBoatId(null)
+    setCapacityInputValue("")
+    setIsAddingTripBoatPricing(false)
+    setTripBoatPricingForm({ ticket_type: "", price: "", capacity: "" })
+    setEditingOverrideId(null)
+    setEditingOverrideTicketType("")
+    setEditingOverridePrice("")
+    setEditingOverrideCapacity("")
+    setIsAddingMerchandise(false)
+    setMerchandiseForm({
+      merchandise_id: "",
+      price_override: "",
+      quantity_available_override: "",
+    })
+    setSelectedTripBoatForPricing(null)
+  }
+
   const mutation = useMutation({
     mutationFn: (data: TripUpdate) =>
       TripsService.updateTrip({
@@ -654,7 +680,10 @@ const EditTrip = ({
         size={{ base: "xs", md: "md" }}
         placement="center"
         open={isOpen}
-        onOpenChange={({ open }) => setOpen(open)}
+        onOpenChange={({ open }) => {
+          if (!open) discardPendingTabChanges()
+          setOpen(open)
+        }}
       >
         {!isControlled && (
           <DialogTrigger asChild>
@@ -2028,7 +2057,13 @@ const EditTrip = ({
               </Tabs.Root>
             </DialogBody>
 
-            <DialogFooter gap={2}>
+            <DialogFooter gap={2} justifyContent="flex-end">
+              {hasPendingTabChanges && (
+                <Text fontSize="xs" color="gray.500" flex={1}>
+                  Save or cancel pending changes in Boats or Merchandise tab
+                  before updating.
+                </Text>
+              )}
               <ButtonGroup>
                 <DialogActionTrigger asChild>
                   <Button
@@ -2046,7 +2081,13 @@ const EditTrip = ({
                   disabled={
                     !missionId ||
                     !departureTime ||
-                    mutation.isPending
+                    mutation.isPending ||
+                    hasPendingTabChanges
+                  }
+                  title={
+                    hasPendingTabChanges
+                      ? "Save or cancel pending changes in Boats or Merchandise tab first"
+                      : undefined
                   }
                 >
                   Update
