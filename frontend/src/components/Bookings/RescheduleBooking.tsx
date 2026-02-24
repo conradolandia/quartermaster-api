@@ -11,10 +11,12 @@ import { useEffect, useState } from "react"
 
 import {
   BookingsService,
+  LaunchesService,
   MissionsService,
   TripsService,
   TripBoatsService,
   type BookingPublic,
+  type LaunchPublic,
   type MissionPublic,
   type TripPublic,
 } from "@/client"
@@ -50,6 +52,7 @@ export default function RescheduleBooking({
 }: RescheduleBookingProps) {
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
+  const [selectedLaunchId, setSelectedLaunchId] = useState<string>("")
   const [selectedMissionId, setSelectedMissionId] = useState<string>("")
   const [targetTripId, setTargetTripId] = useState<string>("")
   const [targetBoatId, setTargetBoatId] = useState<string | null>(null)
@@ -69,12 +72,22 @@ export default function RescheduleBooking({
 
   const effectiveMissionId = booking.mission_id ?? firstTrip?.mission_id ?? null
 
-  const { data: missionsData, isLoading: missionsLoading } = useQuery({
+  const { data: launchesData, isLoading: launchesLoading } = useQuery({
+    queryKey: ["launches"],
+    queryFn: () => LaunchesService.readLaunches({ limit: 500 }),
+    enabled: isOpen,
+  })
+  const launches = launchesData?.data ?? []
+
+  const { data: missionsData } = useQuery({
     queryKey: ["missions"],
     queryFn: () => MissionsService.readMissions({ limit: 500 }),
     enabled: isOpen,
   })
-  const missions = missionsData?.data ?? []
+  const allMissions = missionsData?.data ?? []
+  const missions = selectedLaunchId
+    ? allMissions.filter((m) => m.launch_id === selectedLaunchId)
+    : []
 
   const { trips, isLoading: tripsLoading } = useTripsByMission(
     selectedMissionId || null,
@@ -91,8 +104,13 @@ export default function RescheduleBooking({
   const needsBoat = tripBoats.length > 1
   const singleBoatId = tripBoats.length === 1 ? tripBoats[0].boat_id : null
 
+  const effectiveLaunchId =
+    effectiveMissionId &&
+    allMissions.find((m) => m.id === effectiveMissionId)?.launch_id
+
   useEffect(() => {
     if (!isOpen) {
+      setSelectedLaunchId("")
       setSelectedMissionId("")
       setTargetTripId("")
       setTargetBoatId(null)
@@ -100,10 +118,27 @@ export default function RescheduleBooking({
   }, [isOpen])
 
   useEffect(() => {
-    if (isOpen && effectiveMissionId && !selectedMissionId) {
+    if (isOpen && effectiveLaunchId && !selectedLaunchId) {
+      setSelectedLaunchId(effectiveLaunchId)
+    }
+  }, [isOpen, effectiveLaunchId, selectedLaunchId])
+
+  useEffect(() => {
+    if (
+      isOpen &&
+      effectiveMissionId &&
+      !selectedMissionId &&
+      missions.some((m) => m.id === effectiveMissionId)
+    ) {
       setSelectedMissionId(effectiveMissionId)
     }
-  }, [isOpen, effectiveMissionId, selectedMissionId])
+  }, [isOpen, effectiveMissionId, selectedMissionId, missions])
+
+  useEffect(() => {
+    setSelectedMissionId("")
+    setTargetTripId("")
+    setTargetBoatId(null)
+  }, [selectedLaunchId])
 
   useEffect(() => {
     setTargetTripId("")
@@ -213,11 +248,47 @@ export default function RescheduleBooking({
           )}
           {hasTicketItems && (
             <VStack align="stretch" gap={4}>
-              {missionsLoading && missions.length === 0 && (
-                <Text color="text.muted">Loading missions…</Text>
+              {launchesLoading && launches.length === 0 && (
+                <Text color="text.muted">Loading launches…</Text>
               )}
-              {missions.length > 0 && (
+              {launches.length > 0 && (
                 <>
+                  <Field label="Launch">
+                    <Select.Root
+                      collection={createListCollection({
+                        items: launches.map((l: LaunchPublic) => ({
+                          value: l.id,
+                          label: l.name ?? l.id,
+                        })),
+                      })}
+                      value={selectedLaunchId ? [selectedLaunchId] : []}
+                      onValueChange={(e: { value: string[] }) =>
+                        setSelectedLaunchId(e.value[0] ?? "")
+                      }
+                    >
+                      <Select.Control width="100%">
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Select a launch" />
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {launches.map((l: LaunchPublic) => (
+                            <Select.Item
+                              key={l.id}
+                              item={{ value: l.id, label: l.name ?? l.id }}
+                            >
+                              {l.name ?? l.id}
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select.Root>
+                  </Field>
                   <Field label="Mission">
                     <Select.Root
                       collection={createListCollection({
@@ -230,6 +301,7 @@ export default function RescheduleBooking({
                       onValueChange={(e: { value: string[] }) =>
                         setSelectedMissionId(e.value[0] ?? "")
                       }
+                      disabled={!selectedLaunchId}
                     >
                       <Select.Control width="100%">
                         <Select.Trigger>
@@ -263,7 +335,11 @@ export default function RescheduleBooking({
                       onValueChange={(e: { value: string[] }) =>
                         setTargetTripId(e.value[0] ?? "")
                       }
-                      disabled={!selectedMissionId || tripsLoading}
+                      disabled={
+                        !selectedLaunchId ||
+                        !selectedMissionId ||
+                        tripsLoading
+                      }
                     >
                       <Select.Control width="100%">
                         <Select.Trigger>
