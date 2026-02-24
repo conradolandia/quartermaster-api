@@ -196,13 +196,17 @@ def get_trips_by_mission(
     *, session: Session, mission_id: uuid.UUID, skip: int = 0, limit: int = 100
 ) -> list[Trip]:
     """Get trips by mission."""
-    return session.exec(
-        select(Trip)
-        .where(Trip.mission_id == mission_id)
-        .order_by(Trip.check_in_time.desc())
-        .offset(skip)
-        .limit(limit)
-    ).all()
+    return (
+        session.exec(
+            select(Trip)
+            .where(Trip.mission_id == mission_id)
+            .order_by(Trip.check_in_time.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        .unique()
+        .all()
+    )
 
 
 def create_trip(*, session: Session, trip_in: TripBase) -> Trip:

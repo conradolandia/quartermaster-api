@@ -121,6 +121,44 @@ docker compose exec backend bash scripts/tests-start.sh -x
 
 When the tests are run, a file `htmlcov/index.html` is generated, you can open it in your browser to see the coverage of the tests.
 
+### Test Structure
+
+Tests are organized under `./backend/app/tests/`:
+
+```
+app/tests/
+├── api/routes/       # API endpoint integration tests
+│   ├── test_login.py
+│   ├── test_users.py
+│   └── test_private.py
+├── crud/             # CRUD operation tests
+│   ├── test_user.py
+│   ├── test_booking_items.py
+│   ├── test_effective_pricing.py
+│   ├── test_launches.py
+│   ├── test_missions.py
+│   └── test_trips.py
+├── services/         # Business logic / service layer tests
+│   ├── test_date_validator.py
+│   ├── test_trip_times.py
+│   └── test_yaml_validator.py
+├── scripts/          # Pre-start script tests
+│   └── test_backend_pre_start.py
+└── conftest.py       # Shared fixtures (db session, test entities)
+```
+
+**Service tests** cover pure business logic that doesn't require database access:
+- `date_validator`: datetime validation, trip time ordering, booking mode transitions
+- `trip_times`: check-in/boarding time calculations from departure
+- `yaml_validator`: YAML schema validation for launch/mission/trip imports
+
+**CRUD tests** cover database operations with test fixtures:
+- Entity CRUD (trips, missions, launches, users)
+- Pricing logic (effective pricing with overrides)
+- Booking item queries (ticket counts, passenger reassignment)
+
+**API tests** cover HTTP endpoints with authentication.
+
 ## Migrations
 
 As during local development your app directory is mounted as a volume inside the container, you can also run the migrations with `alembic` commands inside the container and the migration code will be in your app directory (instead of being only inside the container). So you can add it to your git repository.
