@@ -140,6 +140,8 @@ const PublicBookingForm = ({
   const search = useSearch({ from: "/book" })
   const navigate = useNavigate({ from: "/book" })
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
+  const [hasInitializedSelectionFromUrl, setHasInitializedSelectionFromUrl] =
+    useState(false)
   /** Survives Step4Review remounts (e.g. Strict Mode); prevents double booking create. */
   const createBookingStartedRef = useRef(false)
   /** When true, don't auto-jump to step 4 when URL has code (user clicked Back from step 4). */
@@ -201,17 +203,20 @@ const PublicBookingForm = ({
     const launch = search.launch ?? ""
     const trip = search.trip ?? ""
     const boat = search.boat ?? ""
-    if (!launch && !trip && !boat) return
-    setBookingData((prev) => ({
-      ...prev,
-      ...(launch && { selectedLaunchId: launch }),
-      ...(trip && { selectedTripId: trip }),
-      ...(boat && { selectedBoatId: boat }),
-    }))
+    if (launch || trip || boat) {
+      setBookingData((prev) => ({
+        ...prev,
+        ...(launch && { selectedLaunchId: launch }),
+        ...(trip && { selectedTripId: trip }),
+        ...(boat && { selectedBoatId: boat }),
+      }))
+    }
+    setHasInitializedSelectionFromUrl(true)
   }, [search.launch, search.trip, search.boat])
 
   // Sync selected launch/trip/boat to URL so the link stays shareable
   useEffect(() => {
+    if (!hasInitializedSelectionFromUrl) return
     const urlLaunch = search.launch ?? ""
     const urlTrip = search.trip ?? ""
     const urlBoat = search.boat ?? ""
@@ -240,6 +245,7 @@ const PublicBookingForm = ({
       }),
     })
   }, [
+    hasInitializedSelectionFromUrl,
     bookingData.selectedLaunchId,
     bookingData.selectedTripId,
     bookingData.selectedBoatId,

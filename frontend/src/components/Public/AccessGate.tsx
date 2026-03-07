@@ -70,11 +70,12 @@ const AccessGate = ({
     isLoading: isLoadingTrips,
     error: tripsError,
   } = useQuery({
-    queryKey: ["public-trips", submittedCode],
+    queryKey: ["public-trips", submittedCode, directTripId],
     queryFn: () =>
       TripsService.readPublicTrips({
         limit: 100,
         accessCode: submittedCode || undefined,
+        includeTripId: directTripId || undefined,
       }),
   })
 
@@ -84,6 +85,7 @@ const AccessGate = ({
     isLoading: isLoadingDirectTrip,
     isFetching: isFetchingDirectTrip,
     isError: isDirectTripError,
+    error: directTripError,
   } = useQuery({
     queryKey: ["public-trip", directTripId, submittedCode],
     queryFn: () =>
@@ -183,7 +185,56 @@ const AccessGate = ({
     )
   }
 
-  // Direct-link trip unavailable: trip not found, already departed, or launch already occurred (API returns 404)
+  // Direct-link trip 403: requires access code (private or early_bird) - show code form
+  const directTripRequiresCode =
+    directTripId &&
+    isDirectTripError &&
+    !isLoadingDirectTrip &&
+    (directTripError as { status?: number })?.status === 403
+  if (directTripRequiresCode) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={6} textAlign="center">
+              <Heading size="lg">Access Code Required</Heading>
+              <Text>
+                This trip requires an access code to book. If you have one,
+                enter it below to continue.
+              </Text>
+              <Box w="100%" maxW="400px">
+                <VStack gap={4}>
+                  <Input
+                    placeholder="Enter access code"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    size="lg"
+                    textAlign="center"
+                  />
+                  {codeError && (
+                    <Text color="red.500" fontSize="sm">
+                      {codeError}
+                    </Text>
+                  )}
+                  <Button
+                    colorPalette="blue"
+                    size="lg"
+                    onClick={handleSubmitCode}
+                    w="100%"
+                  >
+                    Continue
+                  </Button>
+                </VStack>
+              </Box>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    )
+  }
+
+  // Direct-link trip unavailable: 404 (not found, departed, launch past)
   if (directTripId && isDirectTripError && !isLoadingDirectTrip) {
     return (
       <Container maxW="container.md" py={16}>

@@ -3657,11 +3657,13 @@ export class TripsService {
    * - private: Not shown unless admin
    * - early_bird: Shown if valid access_code provided
    * - public: Always shown
+   * When trip_id is provided (direct link), include that trip even if unlisted.
    * all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.accessCode
+   * @param data.includeTripId
    * @returns PublicTripsResponse Successful Response
    * @throws ApiError
    */
@@ -3675,6 +3677,7 @@ export class TripsService {
         skip: data.skip,
         limit: data.limit,
         access_code: data.accessCode,
+        include_trip_id: data.includeTripId,
       },
       errors: {
         422: "Validation Error",

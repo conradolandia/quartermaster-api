@@ -67,12 +67,14 @@ const Step1TripSelection = ({
   const missions = missionsResponse?.data ?? []
 
   // Fetch all trips with their details (using public endpoint)
+  // When selectedTripId is set (direct link), include it so unlisted trips appear
   const { data: allTrips, isLoading: isLoadingTrips } = useQuery({
-    queryKey: ["public-trips", accessCode],
+    queryKey: ["public-trips", accessCode, bookingData.selectedTripId],
     queryFn: () =>
       TripsService.readPublicTrips({
         limit: 100,
         accessCode: accessCode || undefined,
+        includeTripId: bookingData.selectedTripId || undefined,
       }),
   })
 

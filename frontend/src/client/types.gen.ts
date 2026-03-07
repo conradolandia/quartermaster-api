@@ -1869,6 +1869,7 @@ export type TripsReadTripsByMissionResponse = TripsPublic
 
 export type TripsReadPublicTripsData = {
   accessCode?: string | null
+  includeTripId?: string | null
   limit?: number
   skip?: number
 }

@@ -28,8 +28,10 @@ def _remaining_capacity_from_pricing(
     Capped at effective_max to prevent negative seats taken when per-type
     capacities sum to more than boat capacity (misconfiguration).
     """
+    # No effective pricing rows means no ticket types are configured yet.
+    # Treat the boat as having full remaining capacity rather than "sold out".
     if not pricing:
-        return 0
+        return effective_max
     raw = sum(p.remaining for p in pricing)
     return min(raw, effective_max)
 

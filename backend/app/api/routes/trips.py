@@ -873,6 +873,7 @@ def read_public_trips(
     skip: int = 0,
     limit: int = 100,
     access_code: str | None = None,
+    include_trip_id: uuid.UUID | None = None,
 ) -> Any:
     """
     Retrieve public trips for booking form.
@@ -880,6 +881,7 @@ def read_public_trips(
     - private: Not shown unless admin
     - early_bird: Shown if valid access_code provided
     - public: Always shown
+    When trip_id is provided (direct link), include that trip even if unlisted.
     all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
     """
     trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
@@ -973,10 +975,15 @@ def read_public_trips(
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
             continue
         if trip_unlisted:
-            logger.info(
-                f"Trip {trip_id} ({trip_name}) filtered out: unlisted (only visible via direct link)"
-            )
-            continue
+            if include_trip_id and str(trip.get("id")) == str(include_trip_id):
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) included: unlisted but requested via direct link (include_trip_id)"
+                )
+            else:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: unlisted (only visible via direct link)"
+                )
+                continue
 
         # Filter out past trips (ensure timezone-aware for comparison)
         if departure_time:
@@ -1141,10 +1148,78 @@ def read_public_trip(
         now,
     )
     if booking_mode == "private":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tickets are not yet available for this trip",
-        )
+        if not access_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tickets are not yet available for this trip",
+            )
+        # Private with access code: validate like early_bird (allows unlisted private trips via direct link)
+        logger.info(f"Validating access code for private trip {trip_id}: {access_code}")
+        try:
+            discount_code_obj = session.exec(
+                select(DiscountCode).where(
+                    func.lower(DiscountCode.code) == access_code.lower()
+                )
+            ).first()
+
+            if not discount_code_obj:
+                logger.info(f"Access code {access_code} not found")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid access code",
+                )
+
+            if not discount_code_obj.is_access_code:
+                logger.info("Access code validation failed: not an access code")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid access code",
+                )
+
+            if not discount_code_obj.is_active:
+                logger.info("Access code validation failed: not active")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not active",
+                )
+
+            valid_from = discount_code_obj.valid_from
+            valid_until = discount_code_obj.valid_until
+            max_uses = discount_code_obj.max_uses
+            used_count = discount_code_obj.used_count
+
+            if valid_from and now < valid_from:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not yet valid",
+                )
+            elif valid_until and now > valid_until:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code has expired",
+                )
+            elif max_uses and used_count >= max_uses:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code usage limit reached",
+                )
+
+            access_code_mission_id = discount_code_obj.access_code_mission_id
+            if access_code_mission_id and access_code_mission_id != mission.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access code is not valid for this trip",
+                )
+
+            logger.info("Access code validated for private trip")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(f"Error validating access code: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Error validating access code",
+            )
     elif booking_mode == "early_bird":
         if not access_code:
             raise HTTPException(
