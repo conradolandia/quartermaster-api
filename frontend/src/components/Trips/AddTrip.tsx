@@ -188,7 +188,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     }
   }, [type])
 
-  // Pre-fill departure from launch (launch - 2h) when type is launch_viewing and mission/launch loaded (only when empty)
+  // Pre-fill departure from launch (launch - 1h) when type is launch_viewing and mission/launch loaded (only when empty)
   useEffect(() => {
     if (
       !isOpen ||
@@ -200,7 +200,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       return
     const launchDate = parseApiDate(launchData.launch_timestamp)
     const departureDate = new Date(
-      launchDate.getTime() - 2 * 60 * 60 * 1000,
+      launchDate.getTime() - 1 * 60 * 60 * 1000,
     )
     setDepartureTime(formatInLocationTimezone(departureDate, timezone))
   }, [isOpen, type, launchData?.launch_timestamp, timezone, departureTime])
@@ -631,7 +631,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   }
                   helperText={
                     type === "launch_viewing" && launchData
-                      ? "Pre-filled from launch time minus 2 hours"
+                      ? "Pre-filled from launch time minus 1 hour"
                       : undefined
                   }
                   required

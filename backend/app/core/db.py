@@ -155,9 +155,9 @@ def init_db(session: Session) -> None:
         select(Trip).where(Trip.mission_id == mission.id, Trip.type == "launch_viewing")
     ).first()
     if not trip:
-        # Departure 2h before launch; boarding 30 min before departure; check-in 30 min before boarding
+        # Departure 1h before launch; boarding 30 min before departure; check-in 30 min before boarding
         launch_time = launch.launch_timestamp
-        departure_time = launch_time - timedelta(hours=2)
+        departure_time = launch_time - timedelta(hours=1)
         boarding_time = departure_time - timedelta(minutes=30)
         check_in_time = boarding_time - timedelta(minutes=30)
 
