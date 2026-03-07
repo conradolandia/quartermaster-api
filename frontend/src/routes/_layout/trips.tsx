@@ -665,8 +665,16 @@ function TripsTable() {
                   >
                     {boats != null && boats.length > 0
                       ? boats.reduce(
-                          (sum, tb) =>
-                            sum + (tb.max_capacity - tb.remaining_capacity),
+                          (sum, tb) => {
+                            const remaining = Math.min(
+                              tb.remaining_capacity,
+                              tb.max_capacity,
+                            )
+                            return (
+                              sum +
+                              Math.max(0, tb.max_capacity - remaining)
+                            )
+                          },
                           0,
                         )
                       : 0}
@@ -683,9 +691,15 @@ function TripsTable() {
                     {boats != null && boats.length > 0 ? (
                       <VStack align="stretch" gap={2}>
                         {boats.map((tb) => {
-                          const used = tb.max_capacity - tb.remaining_capacity
+                          const remaining = Math.min(
+                            tb.remaining_capacity,
+                            tb.max_capacity,
+                          )
+                          const used = Math.max(
+                            0,
+                            tb.max_capacity - remaining,
+                          )
                           const name = tb.boat?.name ?? "Boat"
-                          const remaining = tb.remaining_capacity
                           const maxCap = tb.max_capacity
                           return (
                             <Box key={tb.boat_id}>

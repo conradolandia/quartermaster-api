@@ -919,12 +919,13 @@ const EditTrip = ({
                           const boat = boatsMap.get(tripBoat.boat_id)
                           const maxCap =
                             tripBoat.max_capacity ?? boat?.capacity ?? 0
-                          const remaining =
+                          const rawRemaining =
                             "remaining_capacity" in tripBoat
                               ? (tripBoat as { remaining_capacity: number })
                                   .remaining_capacity
                               : maxCap
-                          const used = maxCap - remaining
+                          const remaining = Math.min(rawRemaining, maxCap)
+                          const used = Math.max(0, maxCap - remaining)
                           const hasBookings = remaining < maxCap
                           const isPricingOpen =
                             selectedTripBoatForPricing?.id === tripBoat.id
@@ -977,7 +978,11 @@ const EditTrip = ({
                                         >
                                           {p.ticket_type}: $
                                           {formatCents(p.price)} (
-                                          {p.capacity - p.remaining}/{p.capacity}{" "}
+                                          {Math.max(
+                                            0,
+                                            p.capacity - p.remaining,
+                                          )}
+                                          /{p.capacity}{" "}
                                           taken)
                                         </Text>
                                       ))}

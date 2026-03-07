@@ -20,14 +20,18 @@ from app.models import (
 def _remaining_capacity_from_pricing(
     *,
     pricing: list[EffectivePricingItem],
+    effective_max: int,
 ) -> int:
     """
     Total available seats across all ticket types for the boat dropdown.
     Sum of per-type remaining (each type has its own capacity pool).
+    Capped at effective_max to prevent negative seats taken when per-type
+    capacities sum to more than boat capacity (misconfiguration).
     """
     if not pricing:
         return 0
-    return sum(p.remaining for p in pricing)
+    raw = sum(p.remaining for p in pricing)
+    return min(raw, effective_max)
 
 
 router = APIRouter(prefix="/trip-boats", tags=["trip-boats"])
@@ -150,7 +154,9 @@ def read_trip_boats_by_trip(
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
-        remaining = _remaining_capacity_from_pricing(pricing=pricing)
+        remaining = _remaining_capacity_from_pricing(
+            pricing=pricing, effective_max=effective_max
+        )
         used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
             session=session, trip_id=trip_id, boat_id=tb.boat_id
         )
@@ -372,7 +378,9 @@ def read_public_trip_boats_by_trip(
             boat_id=tb.boat_id,
             paid_by_type=paid_by_type,
         )
-        remaining = _remaining_capacity_from_pricing(pricing=pricing)
+        remaining = _remaining_capacity_from_pricing(
+            pricing=pricing, effective_max=effective_max
+        )
         used_per_ticket_type = crud.get_ticket_item_count_per_type_for_trip_boat(
             session=session, trip_id=trip_id, boat_id=tb.boat_id
         )
