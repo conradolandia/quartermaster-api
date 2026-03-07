@@ -50,9 +50,17 @@ export const Route = createFileRoute("/book")({
   validateSearch: (search) => normalizeBookSearch(search as Record<string, unknown>),
 })
 
+/** Fallback: read trip param from URL when router search may not have it yet (e.g. initial load). */
+function getTripIdFromUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined
+  const m = /[?&]trip=([^&]*)/.exec(window.location.search)
+  return m ? decodeURIComponent(m[1]).split("?")[0] : undefined
+}
+
 function PublicBookingPage() {
   const search = useSearch({ from: "/book" })
   const navigate = useNavigate({ from: "/book" })
+  const directTripId = search.trip ?? getTripIdFromUrl()
   const [discountCodeId, setDiscountCodeId] = useState<string | null>(null)
   // Freeze the code used for the gate on first load so that later URL updates (e.g. applying
   // a discount on Step 2) do not retrigger the gate and remount the form at step 1.
@@ -107,7 +115,7 @@ function PublicBookingPage() {
   return (
     <AccessGate
       accessCode={initialAccessCode}
-      directTripId={search.trip}
+      directTripId={directTripId}
       onAccessGranted={handleAccessGranted}
     >
       {(accessCodeValue, discountCodeIdFromGate) => (

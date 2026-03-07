@@ -82,6 +82,7 @@ const AccessGate = ({
   const {
     data: directTripData,
     isLoading: isLoadingDirectTrip,
+    isFetching: isFetchingDirectTrip,
     isError: isDirectTripError,
   } = useQuery({
     queryKey: ["public-trip", directTripId, submittedCode],
@@ -143,9 +144,14 @@ const AccessGate = ({
   }
 
   // Loading state (include direct-trip fetch when URL has ?trip= and no listed trips yet)
+  // When directTripId is set and no listed trips, wait for direct trip query to settle (loading or fetching)
+  const waitingForDirectTrip =
+    !!directTripId &&
+    !(tripsData?.data?.length ?? 0) &&
+    (isLoadingDirectTrip || isFetchingDirectTrip)
   if (
     isLoadingTrips ||
-    (!!directTripId && !tripsData?.data?.length && isLoadingDirectTrip) ||
+    waitingForDirectTrip ||
     (submittedCode && isValidatingCode)
   ) {
     return (
