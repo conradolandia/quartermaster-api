@@ -33,7 +33,6 @@ from app.models import (
     TripWithStats,
 )
 from app.services.date_validator import (
-    effective_booking_mode,
     ensure_aware,
     validate_trip_dates,
     validate_trip_time_ordering,
@@ -52,6 +51,12 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 
 def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
     """Build TripPublic with timezone and effective_booking_mode."""
+    crud.apply_sales_open_bump_if_needed(
+        session=session,
+        trip_id=trip.id,
+        booking_mode=trip.booking_mode,
+        sales_open_at=trip.sales_open_at,
+    )
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
     tz = "UTC"
     if mission:
@@ -64,9 +69,7 @@ def _trip_to_public(session: Session, trip: Trip) -> TripPublic:
                 tz = location.timezone
     data = trip.model_dump(mode="json", exclude={"mission"})
     data.setdefault("trip_boats", [])
-    data["effective_booking_mode"] = effective_booking_mode(
-        trip.booking_mode, trip.sales_open_at
-    )
+    data["effective_booking_mode"] = trip.booking_mode
     return TripPublic(**data, timezone=tz)
 
 
@@ -105,8 +108,12 @@ def read_trips(
             session=session, trip_ids=trip_ids
         )
         for t in trips:
-            t["effective_booking_mode"] = effective_booking_mode(
-                t.get("booking_mode", "private"), t.get("sales_open_at")
+            t["effective_booking_mode"] = crud.apply_sales_open_bump_if_needed(
+                session=session,
+                trip_id=t["id"],
+                booking_mode=t.get("booking_mode", "private"),
+                sales_open_at=t.get("sales_open_at"),
+                trip_dict_to_update=t,
             )
             t["trip_boats"] = [
                 TripBoatPublic(
@@ -764,6 +771,12 @@ def delete_trip(
             },
         )
     # Build response before delete; after delete the trip is detached
+    effective = crud.apply_sales_open_bump_if_needed(
+        session=session,
+        trip_id=trip.id,
+        booking_mode=trip.booking_mode,
+        sales_open_at=trip.sales_open_at,
+    )
     tz = "UTC"
     mission = crud.get_mission(session=session, mission_id=trip.mission_id)
     if mission:
@@ -790,9 +803,7 @@ def delete_trip(
         updated_at=trip.updated_at,
         trip_boats=[],
         timezone=tz,
-        effective_booking_mode=effective_booking_mode(
-            trip.booking_mode, trip.sales_open_at
-        ),
+        effective_booking_mode=effective,
     )
     crud.delete_trip(session=session, trip_id=trip_id)
     return response_data
@@ -841,6 +852,12 @@ def read_trips_by_mission(
 
     trip_dicts = []
     for trip in trips:
+        effective = crud.apply_sales_open_bump_if_needed(
+            session=session,
+            trip_id=trip.id,
+            booking_mode=trip.booking_mode,
+            sales_open_at=trip.sales_open_at,
+        )
         d = {
             "id": trip.id,
             "mission_id": trip.mission_id,
@@ -857,9 +874,7 @@ def read_trips_by_mission(
             "updated_at": trip.updated_at,
             "timezone": tz,
             "trip_boats": [],
-            "effective_booking_mode": effective_booking_mode(
-                trip.booking_mode, trip.sales_open_at
-            ),
+            "effective_booking_mode": effective,
         }
         trip_dicts.append(d)
 
@@ -1019,10 +1034,16 @@ def read_public_trips(
         # Do not filter by launch_timestamp: a trip can have future departure even if
         # the launch was rescheduled and the stored launch_timestamp is outdated.
 
-        # Effective mode: before sales_open_at, one level more restrictive
-        # (so early bird codes work before general sale)
+        # Apply sales-open bump if needed (persists so stored mode matches effective)
         sales_open_at = trip.get("sales_open_at")
-        effective_mode = effective_booking_mode(booking_mode, sales_open_at, now)
+        effective_mode = crud.apply_sales_open_bump_if_needed(
+            session=session,
+            trip_id=trip_id,
+            booking_mode=booking_mode,
+            sales_open_at=sales_open_at,
+            now=now,
+            trip_dict_to_update=trip,
+        )
 
         # Count bookable trips for all_trips_require_access_code
         if effective_mode in ("public", "early_bird"):
@@ -1141,11 +1162,12 @@ def read_public_trip(
     # Do not filter by launch_timestamp: a trip can have future departure even if
     # the launch was rescheduled and the stored launch_timestamp is outdated.
 
-    # Effective mode: before sales_open_at, one level more restrictive
-    booking_mode = effective_booking_mode(
-        getattr(trip, "booking_mode", "private"),
-        getattr(trip, "sales_open_at", None),
-        now,
+    booking_mode = crud.apply_sales_open_bump_if_needed(
+        session=session,
+        trip_id=trip.id,
+        booking_mode=getattr(trip, "booking_mode", "private"),
+        sales_open_at=getattr(trip, "sales_open_at", None),
+        now=now,
     )
     if booking_mode == "private":
         if not access_code:

@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import Session
 
 from app.crud.trips import (
+    apply_sales_open_bump_if_needed,
     create_trip,
     delete_trip,
     get_trip,
@@ -200,6 +201,116 @@ class TestUpdateTrip:
 
         assert result.booking_mode == "early_bird"
         assert result.type == original_type
+
+
+class TestApplySalesOpenBumpIfNeeded:
+    """Tests for apply_sales_open_bump_if_needed: persist bump when now >= sales_open_at."""
+
+    def test_after_sales_open_persists_bump_and_clears_sales_open(
+        self,
+        db: Session,
+        test_mission: Mission,
+    ) -> None:
+        sales_open = datetime(2025, 6, 10, tzinfo=timezone.utc)
+        now = datetime(2025, 6, 15, tzinfo=timezone.utc)
+        departure = now + timedelta(days=7)
+        trip = Trip(
+            mission_id=test_mission.id,
+            name="Bump test",
+            type="launch_viewing",
+            booking_mode="private",
+            sales_open_at=sales_open,
+            check_in_time=departure - timedelta(hours=1),
+            boarding_time=departure - timedelta(minutes=30),
+            departure_time=departure,
+        )
+        db.add(trip)
+        db.commit()
+        db.refresh(trip)
+
+        result = apply_sales_open_bump_if_needed(
+            session=db,
+            trip_id=trip.id,
+            booking_mode=trip.booking_mode,
+            sales_open_at=trip.sales_open_at,
+            now=now,
+        )
+
+        assert result == "early_bird"
+        db.refresh(trip)
+        assert trip.booking_mode == "early_bird"
+        assert trip.sales_open_at is None
+
+    def test_before_sales_open_does_not_persist(
+        self,
+        db: Session,
+        test_mission: Mission,
+    ) -> None:
+        sales_open = datetime(2025, 6, 20, tzinfo=timezone.utc)
+        now = datetime(2025, 6, 15, tzinfo=timezone.utc)
+        departure = now + timedelta(days=30)
+        trip = Trip(
+            mission_id=test_mission.id,
+            name="No bump test",
+            type="launch_viewing",
+            booking_mode="private",
+            sales_open_at=sales_open,
+            check_in_time=departure - timedelta(hours=1),
+            boarding_time=departure - timedelta(minutes=30),
+            departure_time=departure,
+        )
+        db.add(trip)
+        db.commit()
+        db.refresh(trip)
+
+        result = apply_sales_open_bump_if_needed(
+            session=db,
+            trip_id=trip.id,
+            booking_mode=trip.booking_mode,
+            sales_open_at=trip.sales_open_at,
+            now=now,
+        )
+
+        assert result == "private"
+        db.refresh(trip)
+        assert trip.booking_mode == "private"
+        assert trip.sales_open_at == sales_open
+
+    def test_updates_trip_dict_when_bumped(
+        self,
+        db: Session,
+        test_mission: Mission,
+    ) -> None:
+        sales_open = datetime(2025, 6, 10, tzinfo=timezone.utc)
+        now = datetime(2025, 6, 15, tzinfo=timezone.utc)
+        departure = now + timedelta(days=7)
+        trip = Trip(
+            mission_id=test_mission.id,
+            name="Dict bump test",
+            type="launch_viewing",
+            booking_mode="early_bird",
+            sales_open_at=sales_open,
+            check_in_time=departure - timedelta(hours=1),
+            boarding_time=departure - timedelta(minutes=30),
+            departure_time=departure,
+        )
+        db.add(trip)
+        db.commit()
+        db.refresh(trip)
+
+        trip_dict = {"booking_mode": "early_bird", "sales_open_at": sales_open}
+        result = apply_sales_open_bump_if_needed(
+            session=db,
+            trip_id=trip.id,
+            booking_mode=trip.booking_mode,
+            sales_open_at=trip.sales_open_at,
+            now=now,
+            trip_dict_to_update=trip_dict,
+        )
+
+        assert result == "public"
+        assert trip_dict["booking_mode"] == "public"
+        assert trip_dict["sales_open_at"] is None
 
 
 class TestDeleteTrip:

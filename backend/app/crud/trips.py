@@ -3,11 +3,50 @@ Trip CRUD operations.
 """
 
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import func
 from sqlmodel import Session, select, text
 
 from app.models import Booking, BookingItem, Trip, TripBase, TripUpdate
+from app.services.date_validator import effective_booking_mode
+
+
+def apply_sales_open_bump_if_needed(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    booking_mode: str,
+    sales_open_at: datetime | None,
+    now: datetime | None = None,
+    trip_dict_to_update: dict | None = None,
+) -> str:
+    """
+    If now >= sales_open_at, persist the one-level booking_mode bump and clear sales_open_at.
+    Returns the booking mode to use (stored or bumped). Call before using trip booking_mode.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    normalized = (
+        booking_mode
+        if booking_mode in ("private", "early_bird", "public")
+        else "private"
+    )
+    effective = effective_booking_mode(normalized, sales_open_at, now)
+    if effective == normalized:
+        return effective
+    trip = session.get(Trip, trip_id)
+    if not trip:
+        return effective
+    trip.booking_mode = effective
+    trip.sales_open_at = None
+    session.add(trip)
+    session.commit()
+    session.refresh(trip)
+    if trip_dict_to_update is not None:
+        trip_dict_to_update["booking_mode"] = effective
+        trip_dict_to_update["sales_open_at"] = None
+    return effective
 
 
 def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:

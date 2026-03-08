@@ -36,7 +36,6 @@ from app.models import (
     TripMerchandise,
     User,
 )
-from app.services.date_validator import effective_booking_mode
 from app.utils import (
     generate_booking_cancelled_email,
     generate_booking_confirmation_email,
@@ -138,23 +137,24 @@ def _create_booking_impl(
             detail="Mission is not active",
         )
 
-    # Enforce trip booking_mode access control (bypass for authenticated superusers)
-    # Use effective mode: before sales_open_at, mode is one level more restrictive
-    # so early bird codes work before general sale.
+    # Enforce trip booking_mode access control (bypass for authenticated superusers).
+    # Apply sales-open bump so stored mode is used.
     now = datetime.now(timezone.utc)
     distinct_trip_ids = {item.trip_id for item in booking_in.items}
     trips_with_modes = [(tid, session.get(Trip, tid)) for tid in distinct_trip_ids]
+    for _, t in trips_with_modes:
+        if t:
+            crud.apply_sales_open_bump_if_needed(
+                session=session,
+                trip_id=t.id,
+                booking_mode=getattr(t, "booking_mode", "private"),
+                sales_open_at=getattr(t, "sales_open_at", None),
+                now=now,
+            )
 
-    def _effective(t: Trip) -> str:
-        return effective_booking_mode(
-            getattr(t, "booking_mode", "private"),
-            getattr(t, "sales_open_at", None),
-            now,
-        )
-
-    any_private = any(_effective(t) == "private" for _, t in trips_with_modes if t)
+    any_private = any(t.booking_mode == "private" for _, t in trips_with_modes if t)
     any_early_bird = any(
-        _effective(t) == "early_bird" for _, t in trips_with_modes if t
+        t.booking_mode == "early_bird" for _, t in trips_with_modes if t
     )
     logger.info(
         "create_booking access check: mission_id=%s any_private=%s any_early_bird=%s "

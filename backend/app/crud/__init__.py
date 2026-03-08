@@ -131,6 +131,7 @@ from .trip_merchandise import (
     update_trip_merchandise,
 )
 from .trips import (
+    apply_sales_open_bump_if_needed,
     create_trip,
     delete_trip,
     get_trip,
@@ -232,6 +233,7 @@ __all__ = [
     "get_trips_by_mission",
     "get_trips_count",
     "get_trips_no_relationships",
+    "apply_sales_open_bump_if_needed",
     "get_trips_with_stats",
     "update_trip",
     # Trip Boats

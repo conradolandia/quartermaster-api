@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -356,7 +357,14 @@ def read_public_trip_boats_by_trip(
             detail=f"Trip with ID {trip_id} not found",
         )
 
-    booking_mode = getattr(trip, "booking_mode", "private")
+    now = datetime.now(timezone.utc)
+    booking_mode = crud.apply_sales_open_bump_if_needed(
+        session=session,
+        trip_id=trip_id,
+        booking_mode=getattr(trip, "booking_mode", "private"),
+        sales_open_at=getattr(trip, "sales_open_at", None),
+        now=now,
+    )
     if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -425,7 +433,15 @@ def read_public_effective_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    booking_mode = getattr(trip, "booking_mode", "private")
+
+    now = datetime.now(timezone.utc)
+    booking_mode = crud.apply_sales_open_bump_if_needed(
+        session=session,
+        trip_id=trip_id,
+        booking_mode=getattr(trip, "booking_mode", "private"),
+        sales_open_at=getattr(trip, "sales_open_at", None),
+        now=now,
+    )
     if booking_mode == "private":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
