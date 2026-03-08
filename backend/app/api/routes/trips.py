@@ -33,6 +33,7 @@ from app.models import (
     TripWithStats,
 )
 from app.services.date_validator import (
+    effective_booking_mode,
     ensure_aware,
     validate_trip_dates,
     validate_trip_time_ordering,
@@ -1034,16 +1035,9 @@ def read_public_trips(
         # Do not filter by launch_timestamp: a trip can have future departure even if
         # the launch was rescheduled and the stored launch_timestamp is outdated.
 
-        # Apply sales-open bump if needed (persists so stored mode matches effective)
+        # Use effective mode for filtering only (no persist here to avoid N commits and ~5s latency)
         sales_open_at = trip.get("sales_open_at")
-        effective_mode = crud.apply_sales_open_bump_if_needed(
-            session=session,
-            trip_id=trip_id,
-            booking_mode=booking_mode,
-            sales_open_at=sales_open_at,
-            now=now,
-            trip_dict_to_update=trip,
-        )
+        effective_mode = effective_booking_mode(booking_mode, sales_open_at, now)
 
         # Count bookable trips for all_trips_require_access_code
         if effective_mode in ("public", "early_bird"):

@@ -187,10 +187,12 @@ const PublicBookingForm = ({
     }))
   }, [])
 
-  // Handle URL parameters and initial discount code from AccessGate
+  // Handle URL parameters and initial discount code from AccessGate.
+  // When accessCode/initialDiscountCodeId are set, the gate is the source of truth;
+  // don't overwrite with URL so we avoid flicker when URL lags behind gate.
+  const lastSyncedDiscountRef = useRef<string | null>(null)
   useEffect(() => {
     if (search.discount) {
-      // Pre-fill discount code from URL parameter
       setBookingData((prev) => ({
         ...prev,
         discount_code: search.discount,
@@ -255,11 +257,16 @@ const PublicBookingForm = ({
     navigate,
   ])
 
-  // When user applies a new discount code in Step2, sync it to the URL so the link stays shareable
+  // When user applies a new discount code in Step2, sync it to the URL so the link stays shareable.
+  // Avoid flicker: only navigate when value actually changed from what we last synced, and don't clear discount when code came from gate (accessCode + initialDiscountCodeId).
   useEffect(() => {
-    const urlDiscount = search.discount ?? ""
     const dataDiscount = bookingData.discount_code ?? ""
+    const urlDiscount = search.discount ?? ""
+    const fromGate = !!(accessCode && initialDiscountCodeId)
     if (dataDiscount !== urlDiscount) {
+      if (dataDiscount === "" && fromGate) return
+      if (dataDiscount === "" && lastSyncedDiscountRef.current === "") return
+      lastSyncedDiscountRef.current = dataDiscount
       navigate({
         search: (prev: {
           discount?: string
@@ -270,8 +277,10 @@ const PublicBookingForm = ({
           discount: dataDiscount || undefined,
         }),
       })
+    } else {
+      lastSyncedDiscountRef.current = dataDiscount
     }
-  }, [bookingData.discount_code, search.discount, navigate])
+  }, [bookingData.discount_code, search.discount, navigate, accessCode, initialDiscountCodeId])
 
   // Apply discount code ID from AccessGate (access code validation)
   useEffect(() => {

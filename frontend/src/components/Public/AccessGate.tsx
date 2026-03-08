@@ -10,9 +10,10 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
-import { DiscountCodesService, TripsService } from "@/client"
+import { type ApiError, DiscountCodesService, TripsService } from "@/client"
 
 interface AccessGateProps {
   accessCode?: string
@@ -94,6 +95,10 @@ const AccessGate = ({
         accessCode: submittedCode || undefined,
       }),
     enabled: !!directTripId,
+    retry: (_, error) => {
+      const status = (error as ApiError)?.status
+      return status !== 403 && status !== 404
+    },
   })
 
   // Validate access code if provided
@@ -185,48 +190,56 @@ const AccessGate = ({
     )
   }
 
-  // Direct-link trip 403: requires access code (private or early_bird) - show code form
-  const directTripRequiresCode =
+  // Direct-link trip 403: private (not yet available) vs early_bird (access code required)
+  const directTrip403 =
     directTripId &&
     isDirectTripError &&
     !isLoadingDirectTrip &&
-    (directTripError as { status?: number })?.status === 403
-  if (directTripRequiresCode) {
+    (directTripError as ApiError)?.status === 403
+  if (directTrip403) {
+    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
+    const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
+    const isPrivateNotYetAvailable = detail.includes("not yet available")
     return (
       <Container maxW="container.md" py={16}>
         <Card.Root>
           <Card.Body>
             <VStack gap={6} textAlign="center">
-              <Heading size="lg">Access Code Required</Heading>
+              <Heading size="lg">
+                {isPrivateNotYetAvailable ? "Tickets Not Yet Available" : "Access Code Required"}
+              </Heading>
               <Text>
-                This trip requires an access code to book. If you have one,
-                enter it below to continue.
+                {isPrivateNotYetAvailable
+                  ? detail || "Tickets are not yet available for this trip."
+                  : "This trip requires an access code to book. If you have one, enter it below to continue."}
               </Text>
-              <Box w="100%" maxW="400px">
-                <VStack gap={4}>
-                  <Input
-                    placeholder="Enter access code"
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    size="lg"
-                    textAlign="center"
-                  />
-                  {codeError && (
-                    <Text color="red.500" fontSize="sm">
-                      {codeError}
-                    </Text>
-                  )}
-                  <Button
-                    colorPalette="blue"
-                    size="lg"
-                    onClick={handleSubmitCode}
-                    w="100%"
-                  >
-                    Continue
-                  </Button>
-                </VStack>
-              </Box>
+              {!isPrivateNotYetAvailable && (
+                <Box w="100%" maxW="400px">
+                  <VStack gap={4}>
+                    <Input
+                      placeholder="Enter access code"
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      size="lg"
+                      textAlign="center"
+                    />
+                    {codeError && (
+                      <Text color="red.500" fontSize="sm">
+                        {codeError}
+                      </Text>
+                    )}
+                    <Button
+                      colorPalette="blue"
+                      size="lg"
+                      onClick={handleSubmitCode}
+                      w="100%"
+                    >
+                      Continue
+                    </Button>
+                  </VStack>
+                </Box>
+              )}
             </VStack>
           </Card.Body>
         </Card.Root>
@@ -234,19 +247,32 @@ const AccessGate = ({
     )
   }
 
-  // Direct-link trip unavailable: 404 (not found, departed, launch past)
+  // Direct-link trip 404: not found (invalid ID) vs departed/unavailable
   if (directTripId && isDirectTripError && !isLoadingDirectTrip) {
+    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
+    const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
+    const isNotFound = (directTripError as ApiError)?.status === 404 && detail.toLowerCase().includes("not found")
     return (
       <Container maxW="container.md" py={16}>
         <Card.Root>
           <Card.Body>
             <VStack gap={4} textAlign="center">
-              <Heading size="lg">This Trip Is Not Available</Heading>
+              <Heading size="lg">
+                {isNotFound ? "Trip Not Found" : "This Trip Is Not Available"}
+              </Heading>
               <Text>
-                This trip is no longer available for booking. It may have
-                already departed, or the launch for this mission may have already
-                occurred. Please choose another trip from the main booking page.
+                {isNotFound
+                  ? "No trip exists with the given ID. The link may be incorrect or outdated."
+                  : "This trip is no longer available for booking. It may have already departed, or the launch for this mission may have already occurred."}
               </Text>
+              {isNotFound && (
+                <Button
+                  asChild
+                  colorPalette="blue"
+                >
+                  <Link to="/book" search={{}}>View available trips</Link>
+                </Button>
+              )}
             </VStack>
           </Card.Body>
         </Card.Root>

@@ -584,9 +584,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                   <NativeSelect
                     id="booking_mode"
                     value={bookingMode}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setBookingMode(e.target.value)
-                    }
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                      const mode = e.target.value
+                      setBookingMode(mode)
+                      if (mode === "public") setSalesOpenAt("")
+                    }}
                     disabled={mutation.isPending}
                   >
                     {bookingModeOptions.map((opt) => (
@@ -604,7 +606,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                         )})`
                       : "Sales Open"
                   }
-                  helperText="Trip is not bookable until this time. Leave empty for no restriction."
+                  helperText={
+                    bookingMode === "public"
+                      ? "Not used when booking mode is Public."
+                      : "Trip is not bookable until this time. Leave empty for no restriction. Cannot be in the past."
+                  }
                 >
                   <Input
                     id="sales_open_at"
@@ -618,7 +624,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                           )}`
                         : "Select mission for timezone"
                     }
-                    disabled={mutation.isPending}
+                    disabled={mutation.isPending || bookingMode === "public"}
+                    min={
+                      bookingMode !== "public" && timezone
+                        ? formatInLocationTimezone(new Date(), timezone)
+                        : undefined
+                    }
                   />
                 </Field>
                 <Field

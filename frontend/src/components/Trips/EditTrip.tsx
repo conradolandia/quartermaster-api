@@ -773,9 +773,14 @@ const EditTrip = ({
                       <NativeSelect
                         id="booking_mode"
                         value={bookingMode}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                          setBookingMode(e.target.value)
-                        }
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          const mode = e.target.value
+                          setBookingMode(mode)
+                          if (mode === "public") {
+                            setSalesOpenAt("")
+                            setUnlisted(false)
+                          }
+                        }}
                         disabled={mutation.isPending}
                       >
                         <option value="private">Private (Admin Only)</option>
@@ -790,7 +795,11 @@ const EditTrip = ({
                       label={`Sales Open (${formatLocationTimezoneDisplay(
                         tz,
                       )})`}
-                      helperText="Trip is not bookable until this time. Leave empty for no restriction."
+                      helperText={
+                        bookingMode === "public"
+                          ? "Not used when booking mode is Public."
+                          : "Trip is not bookable until this time. Leave empty for no restriction. Cannot be in the past."
+                      }
                     >
                       <Input
                         id="sales_open_at"
@@ -798,7 +807,12 @@ const EditTrip = ({
                         value={salesOpenAt}
                         onChange={(e) => setSalesOpenAt(e.target.value)}
                         placeholder={`Enter time in ${tz}`}
-                        disabled={mutation.isPending}
+                        disabled={mutation.isPending || bookingMode === "public"}
+                        min={
+                          bookingMode !== "public" && tz
+                            ? formatInLocationTimezone(new Date(), tz)
+                            : undefined
+                        }
                       />
                     </Field>
 
