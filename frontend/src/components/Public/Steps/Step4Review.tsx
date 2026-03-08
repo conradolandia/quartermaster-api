@@ -279,6 +279,7 @@ const Step4Review = ({
   }, [urlCode])
 
   // When we have bookingResult but URL has no code, add code for bookmarking (after create success).
+  // Preserve trip, launch, boat so resume/refresh keeps directTripId and AccessGate can grant access.
   useEffect(() => {
     const code = bookingResult?.booking?.confirmation_code
     if (code && search.code !== code) {
@@ -288,6 +289,9 @@ const Step4Review = ({
           discount: search.discount,
           access: search.access,
           code,
+          trip: search.trip,
+          launch: search.launch,
+          boat: search.boat,
         },
         replace: true,
       })
@@ -297,6 +301,9 @@ const Step4Review = ({
     search.code,
     search.discount,
     search.access,
+    search.trip,
+    search.launch,
+    search.boat,
     navigate,
   ])
 

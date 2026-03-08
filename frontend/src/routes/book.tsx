@@ -1,11 +1,23 @@
 import {
   createFileRoute,
+  Link,
   useNavigate,
   useSearch,
 } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
+import {
+  Button,
+  Card,
+  Container,
+  Heading,
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react"
+import { type ApiError, BookingsService } from "@/client"
 import AccessGate from "@/components/Public/AccessGate"
 import PublicBookingForm from "@/components/Public/PublicBookingForm"
 
@@ -57,14 +69,45 @@ function getTripIdFromUrl(): string | undefined {
   return m ? decodeURIComponent(m[1]).split("?")[0] : undefined
 }
 
+const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"]
+
 function PublicBookingPage() {
   const search = useSearch({ from: "/book" })
   const navigate = useNavigate({ from: "/book" })
-  const directTripId = search.trip ?? getTripIdFromUrl()
+  const urlTripId = search.trip ?? getTripIdFromUrl()
   const [discountCodeId, setDiscountCodeId] = useState<string | null>(null)
   // Freeze the code used for the gate on first load so that later URL updates (e.g. applying
   // a discount on Step 2) do not retrigger the gate and remount the form at step 1.
   const initialAccessCodeRef = useRef<string | null>(null)
+
+  // When URL has booking confirmation code but no trip (e.g. resume/refresh after step 4),
+  // fetch booking to get trip_id so AccessGate can grant access via directTripId.
+  const {
+    data: bookingByCode,
+    isLoading: isLoadingBookingByCode,
+    isError: isBookingByCodeError,
+    error: bookingByCodeError,
+  } = useQuery({
+    queryKey: ["booking-by-code", search.code],
+    queryFn: () =>
+      BookingsService.getBookingByConfirmationCode({
+        confirmationCode: search.code!,
+      }),
+    enabled: !!search.code && !urlTripId,
+  })
+
+  const tripIdFromBooking =
+    bookingByCode?.items?.[0]?.trip_id ?? undefined
+  const directTripId = urlTripId ?? tripIdFromBooking
+
+  // Redirect to confirmation when resuming by code and booking is already confirmed
+  useEffect(() => {
+    if (!search.code || !bookingByCode) return
+    const status = (bookingByCode.booking_status ?? "") as string
+    if (CONFIRMED_STATUSES.includes(status)) {
+      navigate({ to: "/bookings", search: { code: search.code }, replace: true })
+    }
+  }, [bookingByCode, search.code, navigate])
 
   // Replace malformed URL in bar (e.g. ?trip=uuid?access=CODE) with correct format
   const hasRedirectedRef = useRef(false)
@@ -110,6 +153,43 @@ function PublicBookingPage() {
     if (codeId) {
       setDiscountCodeId(codeId)
     }
+  }
+
+  const resumeByCode = !!search.code && !urlTripId
+  if (resumeByCode && isLoadingBookingByCode) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <VStack gap={4}>
+          <Spinner size="xl" />
+          <Text>Loading your booking...</Text>
+        </VStack>
+      </Container>
+    )
+  }
+  if (resumeByCode && isBookingByCodeError) {
+    const status = (bookingByCodeError as ApiError)?.status
+    const isNotFound = status === 404
+    return (
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={4} textAlign="center">
+              <Heading size="lg">
+                {isNotFound ? "Booking Not Found" : "Unable to Load Booking"}
+              </Heading>
+              <Text>
+                {isNotFound
+                  ? "No booking matches this link. It may be invalid or expired."
+                  : "We could not load this booking. Please try again or start a new booking."}
+              </Text>
+              <Button asChild colorPalette="blue">
+                <Link to="/book" search={{}}>Start a new booking</Link>
+              </Button>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    )
   }
 
   return (
