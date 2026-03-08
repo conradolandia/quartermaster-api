@@ -54,35 +54,43 @@ def get_trip(*, session: Session, trip_id: uuid.UUID) -> Trip | None:
     return session.get(Trip, trip_id)
 
 
-def get_trips(*, session: Session, skip: int = 0, limit: int = 100) -> list[Trip]:
-    """Get multiple trips."""
-    return (
-        session.exec(
-            select(Trip).order_by(Trip.check_in_time.desc()).offset(skip).limit(limit)
-        )
-        .unique()
-        .all()
-    )
+def get_trips(
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
+) -> list[Trip]:
+    """Get multiple trips. By default exclude archived."""
+    stmt = select(Trip).order_by(Trip.check_in_time.desc()).offset(skip).limit(limit)
+    if not include_archived:
+        stmt = stmt.where(Trip.archived == False)  # noqa: E712
+    return session.exec(stmt).unique().all()
 
 
 def get_trips_no_relationships(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
 ) -> list[dict]:
     """
     Get trips without loading relationships.
-    Returns dictionaries with trip data.
+    Returns dictionaries with trip data. By default exclude archived.
     """
-
+    where_clause = "" if include_archived else "WHERE t.archived = false"
     result = session.exec(
         text(
-            """
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.booking_mode,
+            f"""
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.archived, t.booking_mode,
                    t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
             JOIN mission m ON t.mission_id = m.id
             JOIN launch l ON m.launch_id = l.id
             JOIN location loc ON l.location_id = loc.id
+            {where_clause}
             ORDER BY t.check_in_time DESC
             LIMIT :limit OFFSET :skip
         """
@@ -91,6 +99,7 @@ def get_trips_no_relationships(
 
     trips_data = []
     for row in result:
+        # row index 6 is archived, 7+ shift by one from original
         trips_data.append(
             {
                 "id": row[0],
@@ -98,15 +107,16 @@ def get_trips_no_relationships(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "unlisted": row[5] if len(row) > 5 else False,
-                "booking_mode": row[6] or "private",
-                "sales_open_at": row[7],
-                "check_in_time": row[8],
-                "boarding_time": row[9],
-                "departure_time": row[10],
-                "created_at": row[11],
-                "updated_at": row[12],
-                "timezone": row[13] or "UTC",
+                "unlisted": row[5],
+                "archived": row[6] if len(row) > 6 else False,
+                "booking_mode": row[7] or "private",
+                "sales_open_at": row[8],
+                "check_in_time": row[9],
+                "boarding_time": row[10],
+                "departure_time": row[11],
+                "created_at": row[12],
+                "updated_at": row[13],
+                "timezone": row[14] or "UTC",
             }
         )
 
@@ -120,13 +130,17 @@ def get_trips_with_stats(
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
     type_: str | None = None,
+    include_archived: bool = False,
 ) -> list[dict]:
     """
     Get trips without loading relationships, with total_bookings and total_sales.
     Returns dictionaries with trip data plus total_bookings and total_sales.
+    By default exclude archived.
     """
     where_clauses = []
     params: dict = {"limit": limit, "skip": skip}
+    if not include_archived:
+        where_clauses.append("t.archived = false")
     if mission_id is not None:
         where_clauses.append("t.mission_id = :mission_id")
         params["mission_id"] = mission_id
@@ -138,7 +152,7 @@ def get_trips_with_stats(
     result = session.exec(
         text(
             f"""
-            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.booking_mode,
+            SELECT t.id, t.mission_id, t.name, t.type, t.active, t.unlisted, t.archived, t.booking_mode,
                    t.sales_open_at, t.check_in_time, t.boarding_time, t.departure_time,
                    t.created_at, t.updated_at, loc.timezone
             FROM trip t
@@ -198,15 +212,16 @@ def get_trips_with_stats(
                 "name": row[2],
                 "type": row[3],
                 "active": row[4],
-                "unlisted": row[5] if len(row) > 5 else False,
-                "booking_mode": row[6] or "private",
-                "sales_open_at": row[7],
-                "check_in_time": row[8],
-                "boarding_time": row[9],
-                "departure_time": row[10],
-                "created_at": row[11],
-                "updated_at": row[12],
-                "timezone": row[13] or "UTC",
+                "unlisted": row[5],
+                "archived": row[6] if len(row) > 6 else False,
+                "booking_mode": row[7] or "private",
+                "sales_open_at": row[8],
+                "check_in_time": row[9],
+                "boarding_time": row[10],
+                "departure_time": row[11],
+                "created_at": row[12],
+                "updated_at": row[13],
+                "timezone": row[14] or "UTC",
                 "total_bookings": total_bookings,
                 "total_sales": total_sales,
             }
@@ -220,9 +235,12 @@ def get_trips_count(
     session: Session,
     mission_id: uuid.UUID | None = None,
     type_: str | None = None,
+    include_archived: bool = False,
 ) -> int:
-    """Get the total count of trips, optionally filtered by mission_id and type."""
+    """Get the total count of trips, optionally filtered by mission_id and type. By default exclude archived."""
     stmt = select(func.count(Trip.id))
+    if not include_archived:
+        stmt = stmt.where(Trip.archived == False)  # noqa: E712
     if mission_id is not None:
         stmt = stmt.where(Trip.mission_id == mission_id)
     if type_ is not None:
@@ -232,20 +250,24 @@ def get_trips_count(
 
 
 def get_trips_by_mission(
-    *, session: Session, mission_id: uuid.UUID, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    mission_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
 ) -> list[Trip]:
-    """Get trips by mission."""
-    return (
-        session.exec(
-            select(Trip)
-            .where(Trip.mission_id == mission_id)
-            .order_by(Trip.check_in_time.desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        .unique()
-        .all()
+    """Get trips by mission. By default exclude archived."""
+    stmt = (
+        select(Trip)
+        .where(Trip.mission_id == mission_id)
+        .order_by(Trip.check_in_time.desc())
+        .offset(skip)
+        .limit(limit)
     )
+    if not include_archived:
+        stmt = stmt.where(Trip.archived == False)  # noqa: E712
+    return session.exec(stmt).unique().all()
 
 
 def create_trip(*, session: Session, trip_in: TripBase) -> Trip:

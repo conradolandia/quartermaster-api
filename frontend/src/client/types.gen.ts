@@ -781,6 +781,7 @@ export type TripCreate = {
   type: string
   active?: boolean
   unlisted?: boolean
+  archived?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   departure_time: string
@@ -803,6 +804,7 @@ export type TripCreateFull = {
   type: string
   active?: boolean
   unlisted?: boolean
+  archived?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   departure_time: string
@@ -859,6 +861,7 @@ export type TripPublic = {
   type: string
   active?: boolean
   unlisted?: boolean
+  archived?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   check_in_time: string
@@ -891,6 +894,7 @@ export type TripUpdate = {
   type?: string | null
   active?: boolean | null
   unlisted?: boolean | null
+  archived?: boolean | null
   booking_mode?: string | null
   sales_open_at?: string | null
   departure_time?: string | null
@@ -910,6 +914,7 @@ export type TripWithStats = {
   type: string
   active?: boolean
   unlisted?: boolean
+  archived?: boolean
   booking_mode?: string
   sales_open_at?: string | null
   check_in_time: string
@@ -1066,6 +1071,7 @@ export type BookingsCreateBookingResponse = BookingPublic
 export type BookingsListBookingsData = {
   boatId?: string | null
   bookingStatus?: Array<string> | null
+  includeArchived?: boolean
   limit?: number
   missionId?: string | null
   paymentStatus?: Array<string> | null
@@ -1801,6 +1807,7 @@ export type TripMerchandiseListPublicTripMerchandiseResponse =
   Array<TripMerchandisePublic>
 
 export type TripsReadTripsData = {
+  includeArchived?: boolean
   limit?: number
   missionId?: string | null
   skip?: number

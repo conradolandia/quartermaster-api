@@ -545,6 +545,9 @@ class TripBase(SQLModel):
     type: str = Field(max_length=50)  # launch_viewing or pre_launch
     active: bool = Field(default=True)
     unlisted: bool = Field(default=False)  # if True, only visible via direct link
+    archived: bool = Field(
+        default=False
+    )  # if True, hidden from default lists and public
     booking_mode: str = Field(
         default="private", max_length=20
     )  # private, early_bird, public
@@ -562,6 +565,7 @@ class TripCreate(SQLModel):
     type: str = Field(max_length=50)  # launch_viewing or pre_launch
     active: bool = Field(default=True)
     unlisted: bool = Field(default=False)
+    archived: bool = Field(default=False)
     booking_mode: str = Field(default="private", max_length=20)
     sales_open_at: datetime | None = None
     departure_time: datetime
@@ -610,6 +614,7 @@ class TripCreateFull(SQLModel):
     type: str = Field(max_length=50)  # launch_viewing or pre_launch
     active: bool = Field(default=True)
     unlisted: bool = Field(default=False)
+    archived: bool = Field(default=False)
     booking_mode: str = Field(default="private", max_length=20)
     sales_open_at: datetime | None = None
     departure_time: datetime
@@ -625,6 +630,7 @@ class TripUpdate(SQLModel):
     type: str | None = Field(default=None, max_length=50)
     active: bool | None = None
     unlisted: bool | None = None
+    archived: bool | None = None
     booking_mode: str | None = Field(default=None, max_length=20)
     sales_open_at: datetime | None = None
     departure_time: datetime | None = None

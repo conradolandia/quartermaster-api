@@ -642,6 +642,7 @@ export class BookingsService {
    * Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
    * booking_status and payment_status accept multiple values (include only those statuses).
    * Optional search filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive substring).
+   * By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
@@ -654,6 +655,7 @@ export class BookingsService {
    * @param data.search
    * @param data.sortBy
    * @param data.sortDirection
+   * @param data.includeArchived
    * @returns BookingsPaginatedResponse Successful Response
    * @throws ApiError
    */
@@ -675,6 +677,7 @@ export class BookingsService {
         search: data.search,
         sort_by: data.sortBy,
         sort_direction: data.sortDirection,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",
@@ -3404,11 +3407,13 @@ export class TripsService {
    * Read Trips
    * Retrieve trips with booking statistics.
    * Optionally filter by mission_id and trip_type (launch_viewing, pre_launch).
+   * By default exclude archived trips; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
    * @param data.missionId
    * @param data.tripType
+   * @param data.includeArchived
    * @returns TripsWithStatsPublic Successful Response
    * @throws ApiError
    */
@@ -3423,6 +3428,7 @@ export class TripsService {
         limit: data.limit,
         mission_id: data.missionId,
         trip_type: data.tripType,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",
@@ -3659,6 +3665,7 @@ export class TripsService {
    * - public: Always shown
    * When trip_id is provided (direct link), include that trip even if unlisted.
    * all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
+   * Archived trips are always excluded from public listing.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit

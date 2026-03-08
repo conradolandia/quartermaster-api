@@ -6,7 +6,7 @@ import {
 } from "../../client"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy, FiLink, FiMail } from "react-icons/fi"
+import { FiArchive, FiCopy, FiLink, FiMail } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -58,6 +58,22 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
     onError: handleError,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["trips"] })
+    },
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: (archived: boolean) =>
+      TripsService.updateTrip({
+        tripId: trip.id,
+        requestBody: { archived },
+      }),
+    onSuccess: (_, archived) => {
+      showSuccessToast(archived ? "Trip archived." : "Trip unarchived.")
+    },
+    onError: handleError,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips"] })
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
   })
 
@@ -142,6 +158,45 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
             Copy Booking Link
           </Button>
         </MenuItem>
+        {trip.archived ? (
+          <MenuItem
+            value="unarchive"
+            onClick={() => archiveMutation.mutate(false)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Unarchive
+            </Button>
+          </MenuItem>
+        ) : (
+          <MenuItem
+            value="archive"
+            onClick={() => archiveMutation.mutate(true)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Archive
+            </Button>
+          </MenuItem>
+        )}
         <DeleteTrip id={trip.id} type={trip.type} />
       </ActionsMenu>
       <EditTrip

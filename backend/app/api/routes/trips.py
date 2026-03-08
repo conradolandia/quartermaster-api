@@ -86,10 +86,12 @@ def read_trips(
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
     trip_type: str | None = None,
+    include_archived: bool = False,
 ) -> Any:
     """
     Retrieve trips with booking statistics.
     Optionally filter by mission_id and trip_type (launch_viewing, pre_launch).
+    By default exclude archived trips; set include_archived=true to include them.
     """
     trips = crud.get_trips_with_stats(
         session=session,
@@ -97,11 +99,13 @@ def read_trips(
         limit=limit,
         mission_id=mission_id,
         type_=trip_type,
+        include_archived=include_archived,
     )
     count = crud.get_trips_count(
         session=session,
         mission_id=mission_id,
         type_=trip_type,
+        include_archived=include_archived,
     )
     if trips:
         trip_ids = [t["id"] for t in trips]
@@ -899,8 +903,11 @@ def read_public_trips(
     - public: Always shown
     When trip_id is provided (direct link), include that trip even if unlisted.
     all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
+    Archived trips are always excluded from public listing.
     """
-    trips = crud.get_trips_no_relationships(session=session, skip=skip, limit=limit)
+    trips = crud.get_trips_no_relationships(
+        session=session, skip=skip, limit=limit, include_archived=False
+    )
     logger.info(f"Found {len(trips)} total trips in database")
 
     # Validate access code if provided - reuse the validation logic from validate-access endpoint
@@ -979,14 +986,18 @@ def read_public_trips(
         trip_name = trip.get("type", "unknown")
         trip_active = trip.get("active", False)
         trip_unlisted = trip.get("unlisted", False)
+        trip_archived = trip.get("archived", False)
         departure_time = trip.get("departure_time")
         booking_mode = trip.get("booking_mode", "private")
 
         logger.info(
-            f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}, unlisted: {trip_unlisted}, booking_mode: {booking_mode}"
+            f"Processing trip {trip_id} ({trip_name}) - active: {trip_active}, unlisted: {trip_unlisted}, archived: {trip_archived}, booking_mode: {booking_mode}"
         )
 
-        # trips from get_trips_no_relationships are dicts
+        # trips from get_trips_no_relationships are dicts; we pass include_archived=False so archived are already excluded, skip if present anyway
+        if trip_archived:
+            logger.info(f"Trip {trip_id} ({trip_name}) filtered out: archived")
+            continue
         if not trip_active:
             logger.info(f"Trip {trip_id} ({trip_name}) filtered out: not active")
             continue
@@ -1123,10 +1134,15 @@ def read_public_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
+    if getattr(trip, "archived", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trip with ID {trip_id} is archived",
+        )
     if not trip.active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Trip with ID {trip_id} is not available",
+            detail=f"Trip with ID {trip_id} is not active",
         )
 
     # Filter out past trips (ensure timezone-aware for comparison)

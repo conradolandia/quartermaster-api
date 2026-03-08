@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import nulls_first, or_
+from sqlalchemy import exists, nulls_first, or_
 from sqlmodel import Session, func, select
 
 from app import crud
@@ -650,12 +650,14 @@ def list_bookings(
     search: str | None = None,
     sort_by: str = "created_at",
     sort_direction: str = "desc",
+    include_archived: bool = False,
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
     Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
     booking_status and payment_status accept multiple values (include only those statuses).
     Optional search filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive substring).
+    By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
     """
     try:
         # Parameter validation
@@ -691,6 +693,15 @@ def list_bookings(
         else:
             search_cond = None
 
+        # Exclude bookings that have any item on an archived trip (when include_archived=False)
+        booking_has_archived_item = exists(
+            select(1)
+            .select_from(BookingItem)
+            .join(Trip, Trip.id == BookingItem.trip_id)
+            .where(BookingItem.booking_id == Booking.id)
+            .where(Trip.archived == True)  # noqa: E712
+        )
+
         # Build base query
         # When we have join filters (mission/trip/boat/trip_type) AND sort by trip_name/trip_type,
         # we must avoid SELECT DISTINCT + ORDER BY (expression not in SELECT) - PostgreSQL rejects it.
@@ -714,6 +725,8 @@ def list_bookings(
                 id_subq = id_subq.where(BookingItem.trip_id == trip_id)
             if boat_id:
                 id_subq = id_subq.where(BookingItem.boat_id == boat_id)
+            if not include_archived:
+                id_subq = id_subq.where(~booking_has_archived_item)
             if booking_status:
                 id_subq = id_subq.where(Booking.booking_status.in_(booking_status))
             if payment_status:
@@ -739,6 +752,8 @@ def list_bookings(
                 if boat_id:
                     base_query = base_query.where(BookingItem.boat_id == boat_id)
                 base_query = base_query.distinct()
+            if not include_archived:
+                base_query = base_query.where(~booking_has_archived_item)
             if booking_status:
                 base_query = base_query.where(
                     Booking.booking_status.in_(booking_status)
@@ -796,6 +811,8 @@ def list_bookings(
                 )
             if search_term:
                 count_query = count_query.where(search_cond)
+            if not include_archived:
+                count_query = count_query.where(~booking_has_archived_item)
             total_count = session.exec(count_query).first()
             logger.info(f"Total bookings count: {total_count}")
         except Exception as e:

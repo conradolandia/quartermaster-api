@@ -1,6 +1,7 @@
 import {
   Badge,
   Box,
+  Checkbox,
   HStack,
   Button,
   Flex,
@@ -124,6 +125,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         PAYMENT_STATUSES,
       ),
   )
+  const [includeArchived, setIncludeArchived] = useState<boolean>(
+    () => initialSearch.get("includeArchived") === "true",
+  )
   const [searchQuery, setSearchQuery] = useState<string>(
     initialSearch.get("search") || "",
   )
@@ -195,6 +199,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       setPaymentStatusFilter(
         parseStatusList(params.get("paymentStatuses"), PAYMENT_STATUSES),
       )
+      setIncludeArchived(params.get("includeArchived") === "true")
     }
 
     window.addEventListener("popstate", handlePopState)
@@ -221,6 +226,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       debouncedSearchQuery || null,
       sortBy,
       sortDirection,
+      includeArchived,
     ],
     queryFn: () =>
       BookingsService.listBookings({
@@ -243,6 +249,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         search: debouncedSearchQuery || undefined,
         sortBy: sortBy,
         sortDirection: sortDirection,
+        includeArchived: includeArchived,
       }),
   })
 
@@ -269,10 +276,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     queryFn: () => MissionsService.readMissions({ limit: 100 }),
   })
 
-  // Fetch trips for filter dropdown
+  // Fetch trips for filter dropdown (include archived when showing archived bookings)
   const { data: tripsData } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => TripsService.readTrips({ limit: 500 }),
+    queryKey: ["trips", includeArchived],
+    queryFn: () =>
+      TripsService.readTrips({ limit: 500, includeArchived: includeArchived }),
   })
 
   // Fetch boats for filter dropdown
@@ -361,6 +369,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     bookingStatuses?: string[]
     paymentStatuses?: string[]
     search?: string
+    includeArchived?: boolean
   }) => {
     const params = new URLSearchParams(window.location.search)
     if (updates.missionId !== undefined) {
@@ -396,6 +405,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     if (updates.search !== undefined) {
       if (updates.search) params.set("search", updates.search)
       else params.delete("search")
+    }
+    if (updates.includeArchived !== undefined) {
+      if (updates.includeArchived) params.set("includeArchived", "true")
+      else params.delete("includeArchived")
     }
     params.set("page", "1")
     window.history.replaceState(
@@ -433,6 +446,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const handleTripTypeFilter = (selectedTripType?: string) => {
     setTripType(selectedTripType)
     updateFiltersInUrl({ tripType: selectedTripType })
+  }
+
+  const handleIncludeArchivedChange = (checked: boolean) => {
+    setIncludeArchived(checked)
+    updateFiltersInUrl({ includeArchived: checked })
   }
 
   const toggleBookingStatus = (status: string) => {
@@ -766,6 +784,18 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Select.Positioner>
             </Select.Root>
           </HStack>
+          <Checkbox.Root
+            checked={includeArchived}
+            onCheckedChange={(e) =>
+              handleIncludeArchivedChange(e.checked === true)
+            }
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label fontSize="sm" color="text.secondary">
+              Include archived
+            </Checkbox.Label>
+          </Checkbox.Root>
         </Flex>
         {(missionId ||
           tripId ||

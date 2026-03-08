@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Container,
   EmptyState,
   Flex,
@@ -87,6 +88,7 @@ const tripsSearchSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
   missionId: z.string().optional(),
   tripType: z.string().optional(),
+  includeArchived: z.coerce.boolean().catch(false),
 })
 
 function getTripsQueryOptions({
@@ -94,11 +96,13 @@ function getTripsQueryOptions({
   pageSize,
   missionId,
   tripType,
+  includeArchived,
 }: {
   page: number
   pageSize: number
   missionId?: string
   tripType?: string
+  includeArchived?: boolean
 }) {
   return {
     queryFn: () =>
@@ -107,8 +111,9 @@ function getTripsQueryOptions({
         limit: pageSize,
         missionId: missionId || undefined,
         tripType: tripType || undefined,
+        includeArchived: includeArchived ?? false,
       }),
-    queryKey: ["trips", { page, pageSize, missionId, tripType }],
+    queryKey: ["trips", { page, pageSize, missionId, tripType, includeArchived }],
   }
 }
 
@@ -127,8 +132,15 @@ const filterSelectWidth = "160px"
 
 function TripsTable() {
   useDateFormatPreference()
-  const { page, pageSize, sortBy, sortDirection, missionId, tripType } =
-    Route.useSearch()
+  const {
+    page,
+    pageSize,
+    sortBy,
+    sortDirection,
+    missionId,
+    tripType,
+    includeArchived,
+  } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
 
   // Handle sorting
@@ -158,6 +170,7 @@ function TripsTable() {
       pageSize: effectivePageSize,
       missionId,
       tripType,
+      includeArchived: includeArchived ?? false,
     }),
     placeholderData: (prevData) => prevData,
   })
@@ -246,6 +259,16 @@ function TripsTable() {
         ...prev,
         missionId: undefined,
         tripType: undefined,
+        page: 1,
+      }),
+    })
+  }
+
+  const handleIncludeArchivedChange = (checked: boolean) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        includeArchived: checked,
         page: 1,
       }),
     })
@@ -445,6 +468,18 @@ function TripsTable() {
             </Select.Positioner>
           </Select.Root>
         </HStack>
+        <Checkbox.Root
+          checked={includeArchived ?? false}
+          onCheckedChange={(e) =>
+            handleIncludeArchivedChange(e.checked === true)
+          }
+        >
+          <Checkbox.HiddenInput />
+          <Checkbox.Control />
+          <Checkbox.Label fontSize="sm" color="text.secondary">
+            Include archived
+          </Checkbox.Label>
+        </Checkbox.Root>
         <Button
           size="sm"
           variant="ghost"
@@ -618,17 +653,24 @@ function TripsTable() {
               return (
                 <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell minW="8rem" px={1} pl={3} verticalAlign="top">
-                    <Link
-                      asChild
-                      color="dark.accent.primary"
-                      _hover={{ textDecoration: "underline" }}
-                    >
-                      <RouterLink to="/bookings" search={{ tripId: trip.id }}>
-                        <Text fontSize="lg" fontWeight="500" as="span">
-                          {trip.name || "—"}
-                        </Text>
-                      </RouterLink>
-                    </Link>
+                    <HStack gap={2} align="center">
+                      <Link
+                        asChild
+                        color="dark.accent.primary"
+                        _hover={{ textDecoration: "underline" }}
+                      >
+                        <RouterLink to="/bookings" search={{ tripId: trip.id }}>
+                          <Text fontSize="lg" fontWeight="500" as="span">
+                            {trip.name || "—"}
+                          </Text>
+                        </RouterLink>
+                      </Link>
+                      {(trip as TripWithStats).archived && (
+                        <Badge size="sm" colorPalette="gray">
+                          Archived
+                        </Badge>
+                      )}
+                    </HStack>
                   </Table.Cell>
                   <Table.Cell
                     minW="6rem"

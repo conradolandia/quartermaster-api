@@ -31,6 +31,7 @@ const bookingsSearchSchema = z.object({
   sortDirection: z.string().optional(),
   bookingStatuses: z.string().optional(),
   paymentStatuses: z.string().optional(),
+  includeArchived: z.coerce.boolean().optional(),
 })
 
 export const Route = createFileRoute("/_layout/bookings")({
