@@ -84,12 +84,9 @@ def cascade_boat_ticket_type_rename(
     Cascade a ticket type rename from BoatPricing to TripBoatPricing and BookingItem.
     Call after updating BoatPricing.ticket_type so existing bookings reflect the new name.
     """
-    trip_boat_ids = [
-        row[0]
-        for row in session.exec(
-            select(TripBoat.id).where(TripBoat.boat_id == boat_id)
-        ).all()
-    ]
+    trip_boat_ids = list(
+        session.exec(select(TripBoat.id).where(TripBoat.boat_id == boat_id)).all()
+    )
     if trip_boat_ids:
         session.execute(
             update(TripBoatPricing)

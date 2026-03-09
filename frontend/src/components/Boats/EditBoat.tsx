@@ -167,6 +167,8 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       refetchBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["boat-pricing"] })
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
     },
     onError: (err: ApiError) => handleError(err),
   })

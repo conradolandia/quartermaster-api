@@ -170,6 +170,7 @@ const EditTrip = ({
     } | null>(null)
   const [renamePricingAffectedCount, setRenamePricingAffectedCount] =
     useState(0)
+  const [renamePricingOldType, setRenamePricingOldType] = useState("")
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
   const contentRef = useRef(null)
@@ -396,6 +397,9 @@ const EditTrip = ({
       refetchTripBoatPricing()
       queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      refetchTripBoats()
+      queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
+      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", trip.id] })
     },
     onError: (err: ApiError) => handleError(err),
   })
@@ -1460,6 +1464,9 @@ const EditTrip = ({
                                                         setRenamePricingAffectedCount(
                                                           used,
                                                         )
+                                                        setRenamePricingOldType(
+                                                          p.ticket_type,
+                                                        )
                                                         setPendingRenamePricingPayload(
                                                           payload,
                                                         )
@@ -2330,8 +2337,9 @@ const EditTrip = ({
           </DialogHeader>
           <DialogBody>
             <Text>
-              This will update {renamePricingAffectedCount} existing booking
-              item(s) to use the new ticket type name. Continue?
+              Renaming "{renamePricingOldType}" to "
+              {pendingRenamePricingPayload?.ticket_type}" will update{" "}
+              {renamePricingAffectedCount} existing booking item(s). Continue?
             </Text>
           </DialogBody>
           <DialogFooter gap={2}>
