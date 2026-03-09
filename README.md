@@ -25,7 +25,7 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
 - [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) for configuration
 - JWT authentication
 
-### Frontend (Stage 0 / MVP)
+### Frontend
 - [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
 - [Chakra UI v3](https://chakra-ui.com) component library
 - [TanStack Router](https://tanstack.com/router) + [TanStack Query](https://tanstack.com/query)
