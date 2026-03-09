@@ -241,19 +241,23 @@ def update_trip_boat(
                 detail=f"Boat with ID {trip_boat_in.boat_id} not found",
             )
 
+    # Resolve the post-update state of all fields
+    trip_id = (
+        trip_boat_in.trip_id if trip_boat_in.trip_id is not None else trip_boat.trip_id
+    )
+    boat_id = (
+        trip_boat_in.boat_id if trip_boat_in.boat_id is not None else trip_boat.boat_id
+    )
+    boat = crud.get_boat(session=session, boat_id=boat_id)
+    new_max = (
+        trip_boat_in.max_capacity
+        if trip_boat_in.max_capacity is not None
+        else trip_boat.max_capacity
+    )
+    effective_max = new_max if new_max is not None else (boat.capacity if boat else 0)
+
     # If setting custom capacity, it must not be below confirmed/checked-in bookings
-    # (drafts do not consume capacity)
     if trip_boat_in.max_capacity is not None:
-        trip_id = (
-            trip_boat_in.trip_id
-            if trip_boat_in.trip_id is not None
-            else trip_boat.trip_id
-        )
-        boat_id = (
-            trip_boat_in.boat_id
-            if trip_boat_in.boat_id is not None
-            else trip_boat.boat_id
-        )
         paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
             session=session, trip_id=trip_id
         )
@@ -268,28 +272,32 @@ def update_trip_boat(
                 ),
             )
 
-    # Validate max_capacity >= sum of effective per-type capacities
-    if trip_boat_in.max_capacity is not None:
-        trip_id = (
-            trip_boat_in.trip_id
-            if trip_boat_in.trip_id is not None
-            else trip_boat.trip_id
-        )
-        boat_id = (
-            trip_boat_in.boat_id
-            if trip_boat_in.boat_id is not None
-            else trip_boat.boat_id
-        )
-        capacities = crud.get_effective_capacity_per_ticket_type(
-            session=session, trip_id=trip_id, boat_id=boat_id
-        )
+    # Validate effective_max >= sum of effective per-type capacities.
+    # Runs whenever max_capacity or use_only_trip_pricing changes, since
+    # toggling use_only_trip_pricing changes which ticket types are active.
+    if (
+        trip_boat_in.max_capacity is not None
+        or trip_boat_in.use_only_trip_pricing is not None
+    ):
+        # When use_only_trip_pricing is being toggled, we need to simulate
+        # the post-update state. Temporarily apply the flag so
+        # get_effective_capacity_per_ticket_type sees the new value.
+        old_flag = trip_boat.use_only_trip_pricing
+        if trip_boat_in.use_only_trip_pricing is not None:
+            trip_boat.use_only_trip_pricing = trip_boat_in.use_only_trip_pricing
+        try:
+            capacities = crud.get_effective_capacity_per_ticket_type(
+                session=session, trip_id=trip_id, boat_id=boat_id
+            )
+        finally:
+            trip_boat.use_only_trip_pricing = old_flag
         constrained_sum = sum(v for v in capacities.values() if v is not None)
-        if constrained_sum > trip_boat_in.max_capacity:
+        if constrained_sum > effective_max:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
-                    f"Custom capacity ({trip_boat_in.max_capacity}) cannot be less than "
-                    f"the sum of ticket-type capacities ({constrained_sum}). "
+                    f"Sum of ticket-type capacities ({constrained_sum}) would exceed "
+                    f"trip/boat max capacity ({effective_max}). "
                     "Reduce per-type capacities or increase max capacity."
                 ),
             )
