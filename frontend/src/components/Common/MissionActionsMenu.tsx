@@ -122,7 +122,7 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
               disabled={archiveMutation.isPending}
             >
               <FiArchive fontSize="16px" />
-              Unarchive
+              Unarchive Mission
             </Button>
           </MenuItem>
         ) : (
@@ -141,7 +141,7 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
               disabled={archiveMutation.isPending}
             >
               <FiArchive fontSize="16px" />
-              Archive
+              Archive Mission
             </Button>
           </MenuItem>
         )}

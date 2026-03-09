@@ -121,7 +121,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
               disabled={archiveMutation.isPending}
             >
               <FiArchive fontSize="16px" />
-              Unarchive
+              Unarchive Launch
             </Button>
           </MenuItem>
         ) : (
@@ -140,7 +140,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
               disabled={archiveMutation.isPending}
             >
               <FiArchive fontSize="16px" />
-              Archive
+              Archive Launch
             </Button>
           </MenuItem>
         )}
