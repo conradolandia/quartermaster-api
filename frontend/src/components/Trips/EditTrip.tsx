@@ -933,14 +933,6 @@ const EditTrip = ({
                           const boat = boatsMap.get(tripBoat.boat_id)
                           const maxCap =
                             tripBoat.max_capacity ?? boat?.capacity ?? 0
-                          const rawRemaining =
-                            "remaining_capacity" in tripBoat
-                              ? (tripBoat as { remaining_capacity: number })
-                                  .remaining_capacity
-                              : maxCap
-                          const remaining = Math.min(rawRemaining, maxCap)
-                          const used = Math.max(0, maxCap - remaining)
-                          const hasBookings = remaining < maxCap
                           const isPricingOpen =
                             selectedTripBoatForPricing?.id === tripBoat.id
                           const pricing =
@@ -959,6 +951,25 @@ const EditTrip = ({
                                   }
                                 ).pricing
                               : []
+                          // Seats taken = actual bookings (used_per_ticket_type or from pricing), not remaining_capacity
+                          const used =
+                            "used_per_ticket_type" in tripBoat &&
+                            tripBoat.used_per_ticket_type != null
+                              ? Object.values(
+                                  tripBoat.used_per_ticket_type as Record<
+                                    string,
+                                    number
+                                  >,
+                                ).reduce((a, b) => a + b, 0)
+                              : pricing.length > 0
+                                ? pricing.reduce(
+                                    (sum, p) =>
+                                      sum + Math.max(0, p.capacity - p.remaining),
+                                    0,
+                                  )
+                                : 0
+                          const remaining = Math.max(0, maxCap - used)
+                          const hasBookings = used > 0
                           return (
                             <Box key={tripBoat.id}>
                               <Flex

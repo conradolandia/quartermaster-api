@@ -130,6 +130,23 @@ const TRIP_TYPES = [
 
 const filterSelectWidth = "160px"
 
+/** Seats taken = actual bookings (used_per_ticket_type or from pricing), not remaining_capacity. */
+function seatsTakenFromTripBoat(
+  tb: TripBoatPublicWithAvailability,
+): number {
+  if (tb.used_per_ticket_type != null && typeof tb.used_per_ticket_type === "object") {
+    return Object.values(tb.used_per_ticket_type).reduce((a, b) => a + b, 0)
+  }
+  const pricing = tb.pricing
+  if (Array.isArray(pricing) && pricing.length > 0) {
+    return pricing.reduce(
+      (sum, p) => sum + Math.max(0, (p.capacity ?? 0) - (p.remaining ?? 0)),
+      0,
+    )
+  }
+  return 0
+}
+
 function TripsTable() {
   useDateFormatPreference()
   const {
@@ -703,19 +720,10 @@ function TripsTable() {
                     textAlign="center"
                   >
                     {boats != null && boats.length > 0
-                      ? boats.reduce(
-                          (sum, tb) => {
-                            const remaining = Math.min(
-                              tb.remaining_capacity,
-                              tb.max_capacity,
-                            )
-                            return (
-                              sum +
-                              Math.max(0, tb.max_capacity - remaining)
-                            )
-                          },
-                          0,
-                        )
+                      ? boats.reduce((sum, tb) => {
+                          const used = seatsTakenFromTripBoat(tb)
+                          return sum + used
+                        }, 0)
                       : 0}
                   </Table.Cell>
                   <Table.Cell
@@ -730,16 +738,10 @@ function TripsTable() {
                     {boats != null && boats.length > 0 ? (
                       <VStack align="stretch" gap={2}>
                         {boats.map((tb) => {
-                          const remaining = Math.min(
-                            tb.remaining_capacity,
-                            tb.max_capacity,
-                          )
-                          const used = Math.max(
-                            0,
-                            tb.max_capacity - remaining,
-                          )
-                          const name = tb.boat?.name ?? "Boat"
+                          const used = seatsTakenFromTripBoat(tb)
                           const maxCap = tb.max_capacity
+                          const remaining = Math.max(0, maxCap - used)
+                          const name = tb.boat?.name ?? "Boat"
                           return (
                             <Box key={tb.boat_id}>
                               <Text fontSize="sm">
