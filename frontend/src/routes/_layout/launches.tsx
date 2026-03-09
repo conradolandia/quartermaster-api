@@ -1,6 +1,8 @@
 import {
+  Badge,
   Box,
   Button,
+  Checkbox,
   Container,
   EmptyState,
   Flex,
@@ -52,6 +54,7 @@ const launchesSearchSchema = z.object({
     .enum(["name", "launch_timestamp", "summary", "location_id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
+  includeArchived: z.coerce.boolean().catch(false),
 })
 
 // Helper function to sort launches
@@ -97,17 +100,20 @@ const sortLaunches = (
 function getLaunchesQueryOptions({
   page,
   pageSize,
+  includeArchived,
 }: {
   page: number
   pageSize: number
+  includeArchived?: boolean
 }) {
   return {
     queryFn: () =>
       LaunchesService.readLaunches({
         skip: (page - 1) * pageSize,
         limit: pageSize,
+        includeArchived: includeArchived ?? false,
       }),
-    queryKey: ["launches", { page, pageSize }],
+    queryKey: ["launches", { page, pageSize, includeArchived }],
   }
 }
 
@@ -137,7 +143,8 @@ export const Route = createFileRoute("/_layout/launches")({
 function LaunchesTable() {
   useDateFormatPreference()
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection, includeArchived } =
+    Route.useSearch()
   const locationsMap = useLocationsMap()
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
@@ -154,8 +161,22 @@ function LaunchesTable() {
     })
   }
 
+  const handleIncludeArchivedChange = (checked: boolean) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        includeArchived: checked,
+        page: 1,
+      }),
+    })
+  }
+
   const { data, isLoading, isPlaceholderData } = useQuery({
-    ...getLaunchesQueryOptions({ page, pageSize: effectivePageSize }),
+    ...getLaunchesQueryOptions({
+      page,
+      pageSize: effectivePageSize,
+      includeArchived: includeArchived ?? false,
+    }),
     placeholderData: (prevData) => prevData,
   })
 
@@ -186,24 +207,6 @@ function LaunchesTable() {
 
   if (isLoading) {
     return <PendingLaunches />
-  }
-
-  if (launches.length === 0) {
-    return (
-      <EmptyState.Root>
-        <EmptyState.Content>
-          <EmptyState.Indicator>
-            <FiSearch />
-          </EmptyState.Indicator>
-          <VStack textAlign="center">
-            <EmptyState.Title>You don't have any launches yet</EmptyState.Title>
-            <EmptyState.Description>
-              Add a new launch to get started
-            </EmptyState.Description>
-          </VStack>
-        </EmptyState.Content>
-      </EmptyState.Root>
-    )
   }
 
   const SortIcon = ({ column }: { column: SortableColumn }) => {
@@ -243,6 +246,37 @@ function LaunchesTable() {
 
   return (
     <>
+      <Flex align="center" gap={3} mb={4}>
+        <Checkbox.Root
+          checked={includeArchived ?? false}
+          onCheckedChange={(e) =>
+            handleIncludeArchivedChange(e.checked === true)
+          }
+        >
+          <Checkbox.HiddenInput />
+          <Checkbox.Control />
+          <Checkbox.Label fontSize="sm" color="text.secondary">
+            Include archived
+          </Checkbox.Label>
+        </Checkbox.Root>
+      </Flex>
+
+      {launches.length === 0 ? (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <FiSearch />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>You don't have any launches yet</EmptyState.Title>
+              <EmptyState.Description>
+                Add a new launch to get started
+              </EmptyState.Description>
+            </VStack>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      ) : (
+      <>
       <Box overflowX="auto">
         <Table.Root size={{ base: "sm", md: "md" }}>
           <Table.Header>
@@ -295,6 +329,9 @@ function LaunchesTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
+                Status
+              </Table.ColumnHeader>
+              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
                 Actions
               </Table.ColumnHeader>
             </Table.Row>
@@ -326,6 +363,15 @@ function LaunchesTable() {
                 >
                   {locationsMap.get(launch.location_id)?.name ||
                     launch.location_id}
+                </Table.Cell>
+                <Table.Cell w="16" textAlign="center">
+                  {launch.archived ? (
+                    <Badge size="sm" colorPalette="gray">
+                      Archived
+                    </Badge>
+                  ) : (
+                    <Text fontSize="sm" color="text.muted">—</Text>
+                  )}
                 </Table.Cell>
                 <Table.Cell w="16" textAlign="center">
                   <Flex justify="center">
@@ -361,6 +407,8 @@ function LaunchesTable() {
             </PaginationRoot>
           )}
         </Flex>
+      )}
+      </>
       )}
     </>
   )

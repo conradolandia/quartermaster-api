@@ -31,36 +31,58 @@ def get_mission(*, session: Session, mission_id: uuid.UUID) -> Mission | None:
     return session.get(Mission, mission_id)
 
 
-def get_missions(*, session: Session, skip: int = 0, limit: int = 100) -> list[Mission]:
-    """Get multiple missions."""
-    return session.exec(select(Mission).offset(skip).limit(limit)).all()
+def get_missions(
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
+) -> list[Mission]:
+    """Get multiple missions. By default exclude archived."""
+    stmt = select(Mission).offset(skip).limit(limit)
+    if not include_archived:
+        stmt = stmt.where(Mission.archived == False)  # noqa: E712
+    return session.exec(stmt).all()
 
 
 def get_missions_by_launch(
-    *, session: Session, launch_id: uuid.UUID, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    launch_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
 ) -> list[Mission]:
-    """Get missions by launch."""
-    return session.exec(
+    """Get missions by launch. By default exclude archived."""
+    stmt = (
         select(Mission).where(Mission.launch_id == launch_id).offset(skip).limit(limit)
-    ).all()
+    )
+    if not include_archived:
+        stmt = stmt.where(Mission.archived == False)  # noqa: E712
+    return session.exec(stmt).all()
 
 
 def get_active_missions(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> list[Mission]:
-    """Get active missions."""
+    """Get active, non-archived missions."""
     return session.exec(
-        select(Mission).where(Mission.active).offset(skip).limit(limit)
+        select(Mission)
+        .where(Mission.active)
+        .where(Mission.archived == False)  # noqa: E712
+        .offset(skip)
+        .limit(limit)
     ).all()
 
 
 def get_public_missions(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> list[Mission]:
-    """Get missions that have at least one trip with public or early_bird booking_mode."""
+    """Get non-archived missions that have at least one trip with public or early_bird booking_mode."""
     return session.exec(
         select(Mission)
         .join(Trip, Trip.mission_id == Mission.id)
+        .where(Mission.archived == False)  # noqa: E712
         .where(Trip.booking_mode.in_(["public", "early_bird"]))
         .distinct()
         .offset(skip)
@@ -69,18 +91,23 @@ def get_public_missions(
 
 
 def get_missions_no_relationships(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
 ) -> list[dict]:
     """
     Get missions without loading relationships.
-    Returns dictionaries with mission data.
+    Returns dictionaries with mission data. By default exclude archived.
     """
-
+    where_clause = "" if include_archived else "WHERE archived = false"
     result = session.exec(
         text(
-            """
-            SELECT id, name, launch_id, active, refund_cutoff_hours, created_at, updated_at
+            f"""
+            SELECT id, name, launch_id, active, archived, refund_cutoff_hours, created_at, updated_at
             FROM mission
+            {where_clause}
             ORDER BY created_at DESC
             LIMIT :limit OFFSET :skip
         """
@@ -95,38 +122,48 @@ def get_missions_no_relationships(
                 "name": row[1],
                 "launch_id": row[2],
                 "active": row[3],
-                "refund_cutoff_hours": row[4],
-                "created_at": row[5],
-                "updated_at": row[6],
+                "archived": row[4],
+                "refund_cutoff_hours": row[5],
+                "created_at": row[6],
+                "updated_at": row[7],
             }
         )
 
     return missions_data
 
 
-def get_missions_count(*, session: Session) -> int:
-    """Get the total count of missions."""
-    count = session.exec(select(func.count(Mission.id))).first()
+def get_missions_count(*, session: Session, include_archived: bool = False) -> int:
+    """Get the total count of missions. By default exclude archived."""
+    stmt = select(func.count(Mission.id))
+    if not include_archived:
+        stmt = stmt.where(Mission.archived == False)  # noqa: E712
+    count = session.exec(stmt).first()
     return count or 0
 
 
 def get_missions_with_stats(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *,
+    session: Session,
+    skip: int = 0,
+    limit: int = 100,
+    include_archived: bool = False,
 ) -> list[dict]:
     """
     Get a list of missions with booking statistics.
     Returns dictionaries with mission data plus total_bookings and total_sales.
+    By default exclude archived.
     """
-
+    where_clause = "" if include_archived else "AND m.archived = false"
     # Get all missions with location timezone (mission->launch->location)
     missions_result = session.exec(
         text(
-            """
-            SELECT m.id, m.name, m.launch_id, m.active,
+            f"""
+            SELECT m.id, m.name, m.launch_id, m.active, m.archived,
                    m.refund_cutoff_hours, m.created_at, m.updated_at, loc.timezone
             FROM mission m
             JOIN launch l ON m.launch_id = l.id
             JOIN location loc ON l.location_id = loc.id
+            WHERE 1=1 {where_clause}
             ORDER BY m.created_at DESC
             LIMIT :limit OFFSET :skip
         """
@@ -139,10 +176,11 @@ def get_missions_with_stats(
         mission_name = mission_row[1]
         launch_id = mission_row[2]
         active = mission_row[3]
-        refund_cutoff_hours = mission_row[4]
-        created_at = mission_row[5]
-        updated_at = mission_row[6]
-        timezone_val = mission_row[7] or "UTC"
+        archived = mission_row[4]
+        refund_cutoff_hours = mission_row[5]
+        created_at = mission_row[6]
+        updated_at = mission_row[7]
+        timezone_val = mission_row[8] or "UTC"
 
         # Get all trips for this mission (just IDs to avoid relationship loading)
         trips_statement = select(Trip.id).where(Trip.mission_id == mission_id)
@@ -201,6 +239,7 @@ def get_missions_with_stats(
                 "name": mission_name,
                 "launch_id": launch_id,
                 "active": active,
+                "archived": archived,
                 "refund_cutoff_hours": refund_cutoff_hours,
                 "created_at": created_at,
                 "updated_at": updated_at,
@@ -224,6 +263,18 @@ def update_mission(
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
+
+def archive_mission_cascade(*, session: Session, mission_id: uuid.UUID) -> None:
+    """Set mission and all its trips to archived. Call after update_mission(archived=True)."""
+    mission = session.get(Mission, mission_id)
+    if mission:
+        mission.archived = True
+        session.add(mission)
+    for trip in session.exec(select(Trip).where(Trip.mission_id == mission_id)):
+        trip.archived = True
+        session.add(trip)
+    session.commit()
 
 
 def delete_mission(*, session: Session, db_obj: Mission) -> None:

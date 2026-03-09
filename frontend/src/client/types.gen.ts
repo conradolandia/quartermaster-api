@@ -393,6 +393,7 @@ export type LaunchCreate = {
   launch_timestamp: string
   summary: string
   location_id: string
+  archived?: boolean
 }
 
 export type LaunchesPublic = {
@@ -405,6 +406,7 @@ export type LaunchPublic = {
   launch_timestamp: string
   summary: string
   location_id: string
+  archived?: boolean
   id: string
   created_at: string
   updated_at: string
@@ -416,6 +418,7 @@ export type LaunchUpdate = {
   launch_timestamp?: string | null
   summary?: string | null
   location_id?: string | null
+  archived?: boolean | null
 }
 
 /**
@@ -528,6 +531,7 @@ export type MissionCreate = {
   name: string
   launch_id: string
   active?: boolean
+  archived?: boolean
   refund_cutoff_hours?: number
 }
 
@@ -535,6 +539,7 @@ export type MissionPublic = {
   name: string
   launch_id: string
   active?: boolean
+  archived?: boolean
   refund_cutoff_hours?: number
   id: string
   created_at: string
@@ -556,6 +561,7 @@ export type MissionUpdate = {
   name?: string | null
   launch_id?: string | null
   active?: boolean | null
+  archived?: boolean | null
   refund_cutoff_hours?: number | null
 }
 
@@ -563,6 +569,7 @@ export type MissionWithStats = {
   name: string
   launch_id: string
   active?: boolean
+  archived?: boolean
   refund_cutoff_hours?: number
   id: string
   created_at: string
@@ -1319,6 +1326,7 @@ export type JurisdictionsDeleteJurisdictionData = {
 export type JurisdictionsDeleteJurisdictionResponse = void
 
 export type LaunchesReadLaunchesData = {
+  includeArchived?: boolean
   limit?: number
   skip?: number
 }
@@ -1528,6 +1536,7 @@ export type MerchandiseDeleteMerchandiseVariationData = {
 export type MerchandiseDeleteMerchandiseVariationResponse = void
 
 export type MissionsReadMissionsData = {
+  includeArchived?: boolean
   limit?: number
   skip?: number
 }
@@ -1566,6 +1575,7 @@ export type MissionsDeleteMissionData = {
 export type MissionsDeleteMissionResponse = void
 
 export type MissionsReadMissionsByLaunchData = {
+  includeArchived?: boolean
   launchId: string
   limit?: number
   skip?: number

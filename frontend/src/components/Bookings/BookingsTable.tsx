@@ -588,7 +588,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   return (
     <>
       <VStack key="bookings-filter-bar" align="stretch" gap={3} mb={4}>
-        <Flex align="center" gap={3}>
+        <Flex align="center" gap={3} flexWrap="wrap">
           <Text fontSize="sm" fontWeight="medium" color="text.secondary">
             Search:
           </Text>
@@ -602,6 +602,18 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               borderColor="white"
             />
           </InputGroup>
+          <Checkbox.Root
+            checked={includeArchived}
+            onCheckedChange={(e) =>
+              handleIncludeArchivedChange(e.checked === true)
+            }
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label fontSize="sm" color="text.secondary">
+              Include archived
+            </Checkbox.Label>
+          </Checkbox.Root>
         </Flex>
         <Flex gap={3} align="center" flexWrap="wrap">
           <HStack gap={3}>
@@ -784,18 +796,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Select.Positioner>
             </Select.Root>
           </HStack>
-          <Checkbox.Root
-            checked={includeArchived}
-            onCheckedChange={(e) =>
-              handleIncludeArchivedChange(e.checked === true)
-            }
-          >
-            <Checkbox.HiddenInput />
-            <Checkbox.Control />
-            <Checkbox.Label fontSize="sm" color="text.secondary">
-              Include archived
-            </Checkbox.Label>
-          </Checkbox.Root>
         </Flex>
         {(missionId ||
           tripId ||

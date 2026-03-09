@@ -4,7 +4,7 @@ import { createUser } from "./utils/privateApi.ts"
 import { randomEmail, randomPassword } from "./utils/random"
 import { logInUser, logOutUser } from "./utils/user"
 
-const tabs = ["My profile", "Password", "Appearance"]
+const tabs = ["My profile", "Display", "Password"]
 
 // User Information
 
@@ -41,10 +41,10 @@ test.describe("Edit user full name and email successfully", () => {
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Full name").fill(updatedName)
     await page.getByRole("button", { name: "Save" }).click()
-    await expect(page.getByText("User updated successfully")).toBeVisible()
+    await expect(page.getByText("User updated successfully.")).toBeVisible()
     // Check if the new name is displayed on the page
     await expect(
-      page.getByLabel("My profile").getByText(updatedName, { exact: true }),
+      page.getByRole("tabpanel", { name: "My profile" }).getByText(updatedName, { exact: true }),
     ).toBeVisible()
   })
 
@@ -63,9 +63,9 @@ test.describe("Edit user full name and email successfully", () => {
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Email").fill(updatedEmail)
     await page.getByRole("button", { name: "Save" }).click()
-    await expect(page.getByText("User updated successfully")).toBeVisible()
+    await expect(page.getByText("User updated successfully.")).toBeVisible()
     await expect(
-      page.getByLabel("My profile").getByText(updatedEmail, { exact: true }),
+      page.getByRole("tabpanel", { name: "My profile" }).getByText(updatedEmail, { exact: true }),
     ).toBeVisible()
   })
 })
@@ -108,7 +108,7 @@ test.describe("Edit user with invalid data", () => {
     await page.getByRole("button", { name: "Cancel" }).first().click()
     await expect(
       page
-        .getByLabel("My profile")
+        .getByRole("tabpanel", { name: "My profile" })
         .getByText(user.full_name as string, { exact: true }),
     ).toBeVisible()
   })
@@ -129,7 +129,7 @@ test.describe("Edit user with invalid data", () => {
     await page.getByLabel("Email").fill(updatedEmail)
     await page.getByRole("button", { name: "Cancel" }).first().click()
     await expect(
-      page.getByLabel("My profile").getByText(email, { exact: true }),
+      page.getByRole("tabpanel", { name: "My profile" }).getByText(email, { exact: true }),
     ).toBeVisible()
   })
 })
@@ -230,65 +230,68 @@ test.describe("Change password with invalid data", () => {
   })
 })
 
-// Appearance
+// Display
 
-test("Appearance tab is visible", async ({ page }) => {
+test("Display tab is visible", async ({ page }) => {
   await page.goto("/settings")
-  await page.getByRole("tab", { name: "Appearance" }).click()
-  await expect(page.getByLabel("Appearance")).toBeVisible()
+  await page.getByRole("tab", { name: "Display" }).click()
+  await expect(page.getByRole("tabpanel", { name: "Display" })).toBeVisible()
 })
 
-test("User can switch from light mode to dark mode and vice versa", async ({
-  page,
-}) => {
-  await page.goto("/settings")
-  await page.getByRole("tab", { name: "Appearance" }).click()
+test.skip(
+  "User can switch from light mode to dark mode and vice versa",
+  async ({ page }) => {
+    // Appearance tab (with theme toggles) is commented out in settings; Display tab has date format only.
+    await page.goto("/settings")
+    await page.getByRole("tab", { name: "Display" }).click()
 
-  // Ensure the initial state is light mode
-  if (
-    await page.evaluate(() =>
+    // Ensure the initial state is light mode
+    if (
+      await page.evaluate(() =>
+        document.documentElement.classList.contains("dark"),
+      )
+    ) {
+      await page
+        .locator("label")
+        .filter({ hasText: "Light Mode" })
+        .locator("span")
+        .first()
+        .click()
+    }
+
+    let isLightMode = await page.evaluate(() =>
+      document.documentElement.classList.contains("light"),
+    )
+    expect(isLightMode).toBe(true)
+
+    await page
+      .locator("label")
+      .filter({ hasText: "Dark Mode" })
+      .locator("span")
+      .first()
+      .click()
+    const isDarkMode = await page.evaluate(() =>
       document.documentElement.classList.contains("dark"),
     )
-  ) {
+    expect(isDarkMode).toBe(true)
+
     await page
       .locator("label")
       .filter({ hasText: "Light Mode" })
       .locator("span")
       .first()
       .click()
-  }
+    isLightMode = await page.evaluate(() =>
+      document.documentElement.classList.contains("light"),
+    )
+    expect(isLightMode).toBe(true)
+  },
+)
 
-  let isLightMode = await page.evaluate(() =>
-    document.documentElement.classList.contains("light"),
-  )
-  expect(isLightMode).toBe(true)
-
-  await page
-    .locator("label")
-    .filter({ hasText: "Dark Mode" })
-    .locator("span")
-    .first()
-    .click()
-  const isDarkMode = await page.evaluate(() =>
-    document.documentElement.classList.contains("dark"),
-  )
-  expect(isDarkMode).toBe(true)
-
-  await page
-    .locator("label")
-    .filter({ hasText: "Light Mode" })
-    .locator("span")
-    .first()
-    .click()
-  isLightMode = await page.evaluate(() =>
-    document.documentElement.classList.contains("light"),
-  )
-  expect(isLightMode).toBe(true)
-})
-
-test("Selected mode is preserved across sessions", async ({ page }) => {
+// Skipped: Appearance tab (theme toggles) is commented out in settings.
+test.skip("Selected mode is preserved across sessions", async ({ page }) => {
   await page.goto("/settings")
-  await page.getByRole("tab", { name: "Appearance" }).click()
+  await page.getByRole("tab", { name: "Display" }).click()
 
   // Ensure the initial state is light mode
   if (

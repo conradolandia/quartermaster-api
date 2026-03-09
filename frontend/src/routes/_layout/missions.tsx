@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Container,
   Flex,
   Heading,
@@ -62,6 +63,7 @@ const missionsSearchSchema = z.object({
     ])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
+  includeArchived: z.coerce.boolean().catch(false),
 })
 
 // Helper function to sort missions
@@ -109,11 +111,12 @@ const sortMissions = (
   })
 }
 
-// Function to create a map of launch IDs to launch objects
+// Function to create a map of launch IDs to launch objects (include archived so archived missions show launch name)
 function useLaunchesMap() {
   const { data } = useQuery({
     queryKey: ["launches-map"],
-    queryFn: () => LaunchesService.readLaunches({ limit: 100 }),
+    queryFn: () =>
+      LaunchesService.readLaunches({ limit: 500, includeArchived: true }),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   })
 
@@ -136,7 +139,8 @@ function Missions() {
   const [isAddMissionOpen, setIsAddMissionOpen] = useState(false)
   const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
   const launchesMap = useLaunchesMap()
-  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection, includeArchived } =
+    Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
@@ -149,6 +153,16 @@ function Missions() {
         ...prev,
         sortBy: column,
         sortDirection: newDirection,
+      }),
+    })
+  }
+
+  const handleIncludeArchivedChange = (checked: boolean) => {
+    navigate({
+      search: (prev: Record<string, string | number | undefined>) => ({
+        ...prev,
+        includeArchived: checked,
+        page: 1,
       }),
     })
   }
@@ -178,12 +192,13 @@ function Missions() {
   } = useQuery({
     queryKey: [
       "missions",
-      { page, pageSize: effectivePageSize, sortBy, sortDirection },
+      { page, pageSize: effectivePageSize, sortBy, sortDirection, includeArchived },
     ],
     queryFn: () =>
       MissionsService.readMissions({
         skip: ((page ?? 1) - 1) * effectivePageSize,
         limit: effectivePageSize,
+        includeArchived: includeArchived ?? false,
       }),
   })
 
@@ -228,6 +243,22 @@ function Missions() {
         </Flex>
       </Flex>
 
+      {!isLoading && !isError && (
+        <Flex align="center" gap={3} mb={4}>
+          <Checkbox.Root
+            checked={includeArchived ?? false}
+            onCheckedChange={(e) =>
+              handleIncludeArchivedChange(e.checked === true)
+            }
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label fontSize="sm" color="text.secondary">
+              Include archived
+            </Checkbox.Label>
+          </Checkbox.Root>
+        </Flex>
+      )}
       {isLoading ? (
         <PendingMissions />
       ) : isError ? (
@@ -361,8 +392,20 @@ function Missions() {
                     </Text>
                   </Table.Cell>
                   <Table.Cell textAlign="center" w="14">
-                    <Badge colorPalette={mission.active ? "green" : "red"}>
-                      {mission.active ? "Active" : "Inactive"}
+                    <Badge
+                      colorPalette={
+                        mission.archived
+                          ? "gray"
+                          : mission.active
+                            ? "green"
+                            : "red"
+                      }
+                    >
+                      {mission.archived
+                        ? "Archived"
+                        : mission.active
+                          ? "Active"
+                          : "Inactive"}
                     </Badge>
                   </Table.Cell>
                   <Table.Cell textAlign="center" w="14">
@@ -371,6 +414,7 @@ function Missions() {
                         mission={{
                           ...mission,
                           active: mission.active ?? false,
+                          archived: mission.archived ?? false,
                           refund_cutoff_hours: mission.refund_cutoff_hours ?? 0,
                         }}
                       />

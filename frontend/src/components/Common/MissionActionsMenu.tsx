@@ -1,7 +1,7 @@
 import { type MissionPublic, MissionsService } from "../../client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy, FiMail } from "react-icons/fi"
+import { FiArchive, FiCopy, FiMail } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -17,6 +17,7 @@ interface Mission {
   name: string
   launch_id: string
   active: boolean
+  archived?: boolean
   refund_cutoff_hours: number
   created_at: string
   updated_at: string
@@ -46,6 +47,23 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
     onError: handleError,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["missions"] })
+    },
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: (archived: boolean) =>
+      MissionsService.updateMission({
+        missionId: mission.id,
+        requestBody: { archived },
+      }),
+    onSuccess: (_, archived) => {
+      showSuccessToast(archived ? "Mission archived." : "Mission unarchived.")
+    },
+    onError: handleError,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["missions"] })
+      queryClient.invalidateQueries({ queryKey: ["trips"] })
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
   })
 
@@ -88,6 +106,45 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
             Send Update
           </Button>
         </MenuItem>
+        {mission.archived ? (
+          <MenuItem
+            value="unarchive"
+            onClick={() => archiveMutation.mutate(false)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Unarchive
+            </Button>
+          </MenuItem>
+        ) : (
+          <MenuItem
+            value="archive"
+            onClick={() => archiveMutation.mutate(true)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Archive
+            </Button>
+          </MenuItem>
+        )}
         <DeleteMission id={mission.id} name={mission.name} />
       </ActionsMenu>
       <EditMission

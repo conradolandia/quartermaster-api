@@ -1575,9 +1575,11 @@ export class LaunchesService {
   /**
    * Read Launches
    * Retrieve launches.
+   * By default exclude archived; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
+   * @param data.includeArchived
    * @returns LaunchesPublic Successful Response
    * @throws ApiError
    */
@@ -1590,6 +1592,7 @@ export class LaunchesService {
       query: {
         skip: data.skip,
         limit: data.limit,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",
@@ -2366,9 +2369,11 @@ export class MissionsService {
   /**
    * Read Missions
    * Retrieve missions with booking statistics.
+   * By default exclude archived; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.skip
    * @param data.limit
+   * @param data.includeArchived
    * @returns MissionsWithStatsPublic Successful Response
    * @throws ApiError
    */
@@ -2381,6 +2386,7 @@ export class MissionsService {
       query: {
         skip: data.skip,
         limit: data.limit,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",
@@ -2509,10 +2515,12 @@ export class MissionsService {
   /**
    * Read Missions By Launch
    * Retrieve missions for a specific launch.
+   * By default exclude archived; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.launchId
    * @param data.skip
    * @param data.limit
+   * @param data.includeArchived
    * @returns MissionsPublic Successful Response
    * @throws ApiError
    */
@@ -2528,6 +2536,7 @@ export class MissionsService {
       query: {
         skip: data.skip,
         limit: data.limit,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",

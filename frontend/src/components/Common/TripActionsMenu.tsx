@@ -193,7 +193,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
               disabled={archiveMutation.isPending}
             >
               <FiArchive fontSize="16px" />
-              Archive
+              Archive Trips
             </Button>
           </MenuItem>
         )}

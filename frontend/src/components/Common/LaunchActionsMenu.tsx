@@ -4,7 +4,7 @@ import {
 } from "../../client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiCopy, FiLink } from "react-icons/fi"
+import { FiArchive, FiCopy, FiLink } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
 
 import useCustomToast from "@/hooks/useCustomToast"
@@ -37,6 +37,24 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
     onError: handleError,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["launches"] })
+    },
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: (archived: boolean) =>
+      LaunchesService.updateLaunch({
+        launchId: launch.id,
+        requestBody: { archived },
+      }),
+    onSuccess: (_, archived) => {
+      showSuccessToast(archived ? "Launch archived." : "Launch unarchived.")
+    },
+    onError: handleError,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["launches"] })
+      queryClient.invalidateQueries({ queryKey: ["missions"] })
+      queryClient.invalidateQueries({ queryKey: ["trips"] })
+      queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
   })
 
@@ -87,6 +105,45 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
             Copy Booking Link
           </Button>
         </MenuItem>
+        {launch.archived ? (
+          <MenuItem
+            value="unarchive"
+            onClick={() => archiveMutation.mutate(false)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Unarchive
+            </Button>
+          </MenuItem>
+        ) : (
+          <MenuItem
+            value="archive"
+            onClick={() => archiveMutation.mutate(true)}
+            disabled={archiveMutation.isPending}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+              disabled={archiveMutation.isPending}
+            >
+              <FiArchive fontSize="16px" />
+              Archive
+            </Button>
+          </MenuItem>
+        )}
         <DeleteLaunch id={launch.id} />
       </ActionsMenu>
       <EditLaunch

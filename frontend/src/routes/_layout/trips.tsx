@@ -175,10 +175,14 @@ function TripsTable() {
     placeholderData: (prevData) => prevData,
   })
 
-  // Get missions for display purposes
+  // Get missions for display purposes (include archived when showing archived trips)
   const { data: missionsData } = useQuery({
-    queryKey: ["missions-for-trips"],
-    queryFn: () => MissionsService.readMissions({ limit: 100 }),
+    queryKey: ["missions-for-trips", includeArchived],
+    queryFn: () =>
+      MissionsService.readMissions({
+        limit: 100,
+        includeArchived: includeArchived ?? false,
+      }),
   })
 
   // Create a map of missions for easy lookup
@@ -653,24 +657,17 @@ function TripsTable() {
               return (
                 <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell minW="8rem" px={1} pl={3} verticalAlign="top">
-                    <HStack gap={2} align="center">
-                      <Link
-                        asChild
-                        color="dark.accent.primary"
-                        _hover={{ textDecoration: "underline" }}
-                      >
-                        <RouterLink to="/bookings" search={{ tripId: trip.id }}>
-                          <Text fontSize="lg" fontWeight="500" as="span">
-                            {trip.name || "—"}
-                          </Text>
-                        </RouterLink>
-                      </Link>
-                      {(trip as TripWithStats).archived && (
-                        <Badge size="sm" colorPalette="gray">
-                          Archived
-                        </Badge>
-                      )}
-                    </HStack>
+                    <Link
+                      asChild
+                      color="dark.accent.primary"
+                      _hover={{ textDecoration: "underline" }}
+                    >
+                      <RouterLink to="/bookings" search={{ tripId: trip.id }}>
+                        <Text fontSize="lg" fontWeight="500" as="span">
+                          {trip.name || "—"}
+                        </Text>
+                      </RouterLink>
+                    </Link>
                   </Table.Cell>
                   <Table.Cell
                     minW="6rem"
@@ -807,8 +804,20 @@ function TripsTable() {
                     textAlign="center"
                   >
                     <Flex justify="center">
-                      <Badge colorPalette={trip.active ? "green" : "red"}>
-                        {trip.active ? "Active" : "Inactive"}
+                      <Badge
+                        colorPalette={
+                          (trip as TripWithStats).archived
+                            ? "gray"
+                            : trip.active
+                              ? "green"
+                              : "red"
+                        }
+                      >
+                        {(trip as TripWithStats).archived
+                          ? "Archived"
+                          : trip.active
+                            ? "Active"
+                            : "Inactive"}
                       </Badge>
                     </Flex>
                   </Table.Cell>

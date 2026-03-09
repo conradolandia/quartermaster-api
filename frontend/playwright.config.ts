@@ -26,6 +26,11 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://localhost:5173',
 
+    /* In Docker/CI use bundled browser; locally use system Chrome when available. */
+    ...(process.env.E2E_IN_DOCKER || process.env.CI
+      ? {}
+      : { channel: 'chrome' as const }),
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -38,6 +43,9 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        ...(process.env.E2E_IN_DOCKER || process.env.CI
+          ? {}
+          : { channel: 'chrome' as const }),
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],

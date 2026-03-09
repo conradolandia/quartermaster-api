@@ -49,6 +49,7 @@ from .jurisdictions import (
     update_jurisdiction,
 )
 from .launches import (
+    archive_launch_cascade,
     create_launch,
     delete_launch,
     get_launch,
@@ -84,6 +85,7 @@ from .merchandise_variation import (
     update_merchandise_variation,
 )
 from .missions import (
+    archive_mission_cascade,
     create_mission,
     delete_mission,
     get_active_missions,
@@ -202,6 +204,7 @@ __all__ = [
     "get_launches_by_location",
     "get_launches_count",
     "get_launches_no_relationships",
+    "archive_launch_cascade",
     "update_launch",
     # Missions
     "create_mission",
@@ -214,6 +217,7 @@ __all__ = [
     "get_missions_no_relationships",
     "get_missions_with_stats",
     "get_public_missions",
+    "archive_mission_cascade",
     "update_mission",
     # Boats
     "create_boat",

@@ -48,14 +48,19 @@ def read_launches(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    include_archived: bool = False,
 ) -> Any:
     """
     Retrieve launches.
+    By default exclude archived; set include_archived=true to include them.
     """
     launches = crud.get_launches_no_relationships(
-        session=session, skip=skip, limit=limit
+        session=session,
+        skip=skip,
+        limit=limit,
+        include_archived=include_archived,
     )
-    count = crud.get_launches_count(session=session)
+    count = crud.get_launches_count(session=session, include_archived=include_archived)
     return LaunchesPublic(data=launches, count=count)
 
 
@@ -171,6 +176,9 @@ def update_launch(
             )
 
     launch = crud.update_launch(session=session, db_obj=launch, obj_in=launch_in)
+    if launch_in.archived is True:
+        crud.archive_launch_cascade(session=session, launch_id=launch_id)
+        launch = crud.get_launch(session=session, launch_id=launch_id)
     return _launch_to_public(session, launch)
 
 

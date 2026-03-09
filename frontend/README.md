@@ -125,30 +125,56 @@ The frontend code is structured as follows:
 
 ## End-to-End Testing with Playwright
 
-The frontend includes initial end-to-end tests using Playwright. To run the tests, you need to have the Docker Compose stack running. Start the stack with the following command:
+The frontend includes end-to-end tests using Playwright.
+
+### Run tests locally
+
+Start the backend (and optionally Mailcatcher for reset-password tests), then run tests:
 
 ```bash
-docker compose up -d --wait backend
-```
-
-Then, you can run the tests with the following command:
-
-```bash
+docker compose up -d db backend mailcatcher
 npx playwright test
 ```
 
-You can also run your tests in UI mode to see the browser and interact with it running:
+Or from the `frontend` directory:
+
+```bash
+npm run test:e2e
+```
+
+Tests that require Mailcatcher (e.g. reset-password email flow) are skipped when `MAILCATCHER_HOST` is not set.
+
+### Run tests inside Docker (full suite)
+
+Running tests in the Playwright container gives you backend, Mailcatcher, and the right env so more tests run (including reset-password and user-settings that use the API).
+
+From the project root:
+
+```bash
+docker compose up -d db backend mailcatcher
+docker compose run --rm playwright
+```
+
+Or from the `frontend` directory:
+
+```bash
+npm run test:e2e:docker
+```
+
+The Playwright container starts the frontend dev server and runs the test suite. Ensure `FIRST_SUPERUSER` and `FIRST_SUPERUSER_PASSWORD` are set in `.env` for auth setup.
+
+### Other options
+
+Run tests in UI mode (local only):
 
 ```bash
 npx playwright test --ui
 ```
 
-To stop and remove the Docker Compose stack and clean the data created in tests, use the following command:
+To stop the stack and remove data:
 
 ```bash
 docker compose down -v
 ```
 
-To update the tests, navigate to the tests directory and modify the existing test files or add new ones as needed.
-
-For more information on writing and running Playwright tests, refer to the official [Playwright documentation](https://playwright.dev/docs/intro).
+For more on writing and running Playwright tests, see the [Playwright documentation](https://playwright.dev/docs/intro).

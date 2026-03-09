@@ -43,12 +43,19 @@ def read_missions(
     session: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    include_archived: bool = False,
 ) -> Any:
     """
     Retrieve missions with booking statistics.
+    By default exclude archived; set include_archived=true to include them.
     """
-    missions = crud.get_missions_with_stats(session=session, skip=skip, limit=limit)
-    count = crud.get_missions_count(session=session)
+    missions = crud.get_missions_with_stats(
+        session=session,
+        skip=skip,
+        limit=limit,
+        include_archived=include_archived,
+    )
+    count = crud.get_missions_count(session=session, include_archived=include_archived)
     return MissionsWithStatsPublic(data=missions, count=count)
 
 
@@ -176,6 +183,9 @@ def update_mission(
         launch = new_launch
 
     mission = crud.update_mission(session=session, db_obj=mission, obj_in=mission_in)
+    if mission_in.archived is True:
+        crud.archive_mission_cascade(session=session, mission_id=mission_id)
+        session.refresh(mission)
     return _mission_to_public(session, mission)
 
 
@@ -219,9 +229,11 @@ def read_missions_by_launch(
     launch_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
+    include_archived: bool = False,
 ) -> Any:
     """
     Retrieve missions for a specific launch.
+    By default exclude archived; set include_archived=true to include them.
     """
     # Verify that the launch exists
     launch = crud.get_launch(session=session, launch_id=launch_id)
@@ -234,7 +246,11 @@ def read_missions_by_launch(
     tz = location.timezone if location else "UTC"
 
     missions = crud.get_missions_by_launch(
-        session=session, launch_id=launch_id, skip=skip, limit=limit
+        session=session,
+        launch_id=launch_id,
+        skip=skip,
+        limit=limit,
+        include_archived=include_archived,
     )
     count = len(missions)
 
@@ -244,6 +260,7 @@ def read_missions_by_launch(
             "name": mission.name,
             "launch_id": mission.launch_id,
             "active": mission.active,
+            "archived": getattr(mission, "archived", False),
             "refund_cutoff_hours": mission.refund_cutoff_hours,
             "created_at": mission.created_at,
             "updated_at": mission.updated_at,

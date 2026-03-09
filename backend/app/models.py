@@ -304,6 +304,7 @@ class LaunchBase(SQLModel):
     launch_timestamp: datetime
     summary: str = Field(max_length=1000)
     location_id: uuid.UUID = Field(foreign_key="location.id")
+    archived: bool = Field(default=False)
 
 
 class LaunchCreate(LaunchBase):
@@ -315,6 +316,7 @@ class LaunchUpdate(SQLModel):
     launch_timestamp: datetime | None = None
     summary: str | None = Field(default=None, max_length=1000)
     location_id: uuid.UUID | None = None
+    archived: bool | None = None
 
 
 class Launch(LaunchBase, table=True):
@@ -366,6 +368,7 @@ class MissionBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     launch_id: uuid.UUID = Field(foreign_key="launch.id")
     active: bool = Field(default=True)
+    archived: bool = Field(default=False)
     refund_cutoff_hours: int = Field(default=12, ge=0, le=72)
 
 
@@ -377,6 +380,7 @@ class MissionUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     launch_id: uuid.UUID | None = None
     active: bool | None = None
+    archived: bool | None = None
     refund_cutoff_hours: int | None = Field(default=None, ge=0, le=72)
 
 
