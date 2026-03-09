@@ -289,6 +289,7 @@ def create_trip_full(
                 boat_id=boat_item.boat_id,
                 max_capacity=boat_item.max_capacity,
                 use_only_trip_pricing=boat_item.use_only_trip_pricing,
+                sales_enabled=boat_item.sales_enabled,
             ),
         )
         if boat_item.max_capacity is not None:
@@ -438,6 +439,7 @@ def duplicate_trip(
                 boat_id=tb.boat_id,
                 max_capacity=tb.max_capacity,
                 use_only_trip_pricing=tb.use_only_trip_pricing,
+                sales_enabled=tb.sales_enabled,
             ),
         )
         old_to_new_tb[tb.id] = new_tb

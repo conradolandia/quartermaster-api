@@ -684,6 +684,10 @@ export type TripBoatCreate = {
    * When True, ignore boat defaults; only TripBoatPricing applies.
    */
   use_only_trip_pricing?: boolean
+  /**
+   * When False, new bookings on this boat are blocked; existing reservations are kept.
+   */
+  sales_enabled?: boolean
 }
 
 /**
@@ -693,6 +697,7 @@ export type TripBoatCreateItem = {
   boat_id: string
   max_capacity?: number | null
   use_only_trip_pricing?: boolean
+  sales_enabled?: boolean
   pricing?: Array<TripBoatPricingCreateItem>
 }
 
@@ -736,6 +741,10 @@ export type TripBoatPublic = {
    * When True, ignore boat defaults; only TripBoatPricing applies.
    */
   use_only_trip_pricing?: boolean
+  /**
+   * When False, new bookings on this boat are blocked; existing reservations are kept.
+   */
+  sales_enabled?: boolean
   id: string
   created_at: string
   updated_at: string
@@ -753,6 +762,10 @@ export type TripBoatPublicWithAvailability = {
    * When True, ignore boat defaults; only TripBoatPricing applies.
    */
   use_only_trip_pricing?: boolean
+  /**
+   * When False, new bookings on this boat are blocked; existing reservations are kept.
+   */
+  sales_enabled?: boolean
   id: string
   created_at: string
   updated_at: string
@@ -772,6 +785,7 @@ export type TripBoatUpdate = {
   boat_id?: string | null
   max_capacity?: number | null
   use_only_trip_pricing?: boolean | null
+  sales_enabled?: boolean | null
 }
 
 export type TripCapacityResponse = {

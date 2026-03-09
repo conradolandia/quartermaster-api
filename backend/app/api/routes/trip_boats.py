@@ -170,6 +170,7 @@ def read_trip_boats_by_trip(
                 id=tb.id,
                 max_capacity=effective_max,
                 use_only_trip_pricing=tb.use_only_trip_pricing,
+                sales_enabled=tb.sales_enabled,
                 created_at=tb.created_at,
                 updated_at=tb.updated_at,
                 boat=BoatPublic.model_validate(tb.boat),
@@ -387,6 +388,8 @@ def read_public_trip_boats_by_trip(
     )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
+        if not tb.sales_enabled:
+            continue
         effective_max = (
             tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
         )
@@ -409,6 +412,7 @@ def read_public_trip_boats_by_trip(
                 id=tb.id,
                 max_capacity=effective_max,
                 use_only_trip_pricing=tb.use_only_trip_pricing,
+                sales_enabled=tb.sales_enabled,
                 created_at=tb.created_at,
                 updated_at=tb.updated_at,
                 boat=BoatPublic.model_validate(tb.boat),

@@ -599,6 +599,7 @@ class TripBoatCreateItem(SQLModel):
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
     max_capacity: int | None = None
     use_only_trip_pricing: bool = False
+    sales_enabled: bool = True
     pricing: list[TripBoatPricingCreateItem] = Field(default_factory=list)
 
 
@@ -750,6 +751,10 @@ class TripBoatBase(SQLModel):
         default=False,
         description="When True, ignore boat defaults; only TripBoatPricing applies.",
     )
+    sales_enabled: bool = Field(
+        default=True,
+        description="When False, new bookings on this boat are blocked; existing reservations are kept.",
+    )
 
 
 class TripBoatCreate(TripBoatBase):
@@ -761,6 +766,7 @@ class TripBoatUpdate(SQLModel):
     boat_id: uuid.UUID | None = None
     max_capacity: int | None = None
     use_only_trip_pricing: bool | None = None
+    sales_enabled: bool | None = None
 
 
 class TripBoat(TripBoatBase, table=True):

@@ -28,6 +28,7 @@ import {
 import PricingOverridesPanel from "@/components/Trips/PricingOverridesPanel"
 import ReassignPassengersDialog from "@/components/Trips/ReassignPassengersDialog"
 import { Field } from "@/components/ui/field"
+import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
 
@@ -102,6 +103,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       tripBoatId: string
       max_capacity?: number | null
       use_only_trip_pricing?: boolean
+      sales_enabled?: boolean
     }) =>
       TripBoatsService.updateTripBoat({
         tripBoatId: body.tripBoatId,
@@ -112,6 +114,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
           ...(body.use_only_trip_pricing !== undefined && {
             use_only_trip_pricing: body.use_only_trip_pricing,
           }),
+          ...(body.sales_enabled !== undefined && {
+            sales_enabled: body.sales_enabled,
+          }),
         },
       }),
     onSuccess: async (_, variables) => {
@@ -121,6 +126,10 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
         setCapacityInputValue("")
       } else if (variables.use_only_trip_pricing !== undefined) {
         showSuccessToast("Pricing mode updated.")
+      } else if (variables.sales_enabled !== undefined) {
+        showSuccessToast(
+          variables.sales_enabled ? "Sales enabled." : "Sales disabled.",
+        )
       }
       await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
@@ -330,6 +339,11 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       >
                         {used} of {maxCap} seats taken ({remaining}{" "}
                         remaining)
+                        {(tripBoat.sales_enabled === false) && (
+                          <Text as="span" color="orange.400" ml={1}>
+                            — sales paused
+                          </Text>
+                        )}
                       </Text>
                       {pricing.length > 0 && (
                         <VStack align="start" gap={0}>
@@ -387,14 +401,14 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                         <FiDollarSign />
                       </IconButton>
                       <IconButton
-                        aria-label="Capacity override"
-                        title="Capacity"
+                        aria-label="Boat settings"
+                        title="Settings"
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          const isCapacityOpen =
+                          const isSettingsOpen =
                             editingCapacityTripBoatId === tripBoat.id
-                          if (isCapacityOpen) {
+                          if (isSettingsOpen) {
                             setEditingCapacityTripBoatId(null)
                             setCapacityInputValue("")
                           } else {
@@ -446,9 +460,46 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       _dark={{ borderColor: "gray.600" }}
                     >
                       <Text fontWeight="bold" mb={2} fontSize="sm">
-                        Capacity override for {boat?.name || "Unknown"}
+                        Settings for {boat?.name || "Unknown"}
                       </Text>
-                      <Text fontSize="sm" color="gray.500" mb={2}>
+                      <Flex
+                        alignItems="center"
+                        justifyContent="space-between"
+                        mb={3}
+                      >
+                        <Box>
+                          <Text fontSize="sm">Sales enabled</Text>
+                          <Text fontSize="xs" color="gray.500">
+                            When off, new bookings on this boat are blocked.
+                            Existing reservations are kept.
+                          </Text>
+                        </Box>
+                        <Box
+                          onClick={() =>
+                            updateTripBoatMutation.mutate({
+                              tripBoatId: tripBoat.id,
+                              sales_enabled: !(tripBoat.sales_enabled ?? true),
+                            })
+                          }
+                          cursor={
+                            updateTripBoatMutation.isPending
+                              ? "not-allowed"
+                              : "pointer"
+                          }
+                          opacity={
+                            updateTripBoatMutation.isPending ? 0.5 : 1
+                          }
+                        >
+                          <Switch
+                            checked={tripBoat.sales_enabled ?? true}
+                            disabled={updateTripBoatMutation.isPending}
+                          />
+                        </Box>
+                      </Flex>
+                      <Text fontSize="sm" fontWeight="medium" mb={1}>
+                        Capacity override
+                      </Text>
+                      <Text fontSize="xs" color="gray.500" mb={2}>
                         Boat default: {boat?.capacity ?? "—"} seats. Set a
                         custom limit for this trip or leave as the boat
                         default.
