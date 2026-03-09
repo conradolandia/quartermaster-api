@@ -30,6 +30,20 @@ const bookSearchSchema = z.object({
   boat: z.string().optional(),
 })
 
+/** Coerce all values to strings (TanStack Router may parse numeric params as numbers). */
+function coerceToStrings(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    result[key] =
+      value !== undefined && value !== null && typeof value !== "string"
+        ? String(value)
+        : value
+  }
+  return result
+}
+
 /**
  * Normalize malformed URLs where ? was used instead of & for additional params.
  * e.g. ?trip=uuid?access=CODE parses as trip="uuid?access=CODE" and access is lost.
@@ -38,19 +52,20 @@ const bookSearchSchema = z.object({
 function normalizeBookSearch(
   raw: Record<string, unknown>,
 ): Record<string, string | undefined> {
-  const trip = typeof raw.trip === "string" ? raw.trip : undefined
-  if (!trip) return bookSearchSchema.parse(raw) as Record<string, string | undefined>
+  const coerced = coerceToStrings(raw)
+  const trip = typeof coerced.trip === "string" ? coerced.trip : undefined
+  if (!trip) return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
 
   const accessMatch = trip.match(/\?access=([^&]*)/) ?? trip.match(/&access=([^&]*)/)
   const discountMatch =
     trip.match(/\?discount=([^&]*)/) ?? trip.match(/&discount=([^&]*)/)
   const match = accessMatch ?? discountMatch
-  if (!match) return bookSearchSchema.parse(raw) as Record<string, string | undefined>
+  if (!match) return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
 
   const paramValue = decodeURIComponent(match[1].replace(/\+/g, " "))
   const cleanTrip = trip.slice(0, match.index).replace(/[?&]$/, "")
   const normalized = {
-    ...raw,
+    ...coerced,
     trip: cleanTrip || undefined,
     ...(accessMatch ? { access: paramValue } : { discount: paramValue }),
   }

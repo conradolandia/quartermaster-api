@@ -1275,7 +1275,7 @@ const EditTrip = ({
                                               borderColor="gray.400"
                                               _dark={{
                                                 borderColor: "gray.600",
-                                                bg: "gray.800",
+                                                bg: "gray.700/40",
                                               }}
                                             >
                                               <Text fontSize="sm">
@@ -1283,10 +1283,9 @@ const EditTrip = ({
                                               </Text>
                                               <Text
                                                 fontSize="sm"
-                                                color="gray.500"
+                                                color="gray.400"
                                               >
-                                                ${formatCents(bp.price)}{" "}
-                                                (default)
+                                                ${formatCents(bp.price)} {" "} ({bp.capacity} seats)
                                               </Text>
                                             </HStack>
                                           ))}

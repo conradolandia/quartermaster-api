@@ -15,6 +15,9 @@ import { useEffect, useState } from "react"
 
 import { type ApiError, DiscountCodesService, TripsService } from "@/client"
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 interface AccessGateProps {
   accessCode?: string
   /** When set (e.g. from URL ?trip=), fetch this trip by ID; if valid (e.g. unlisted), grant access even when listed trips is empty */
@@ -65,19 +68,27 @@ const AccessGate = ({
     }
   }, [initialAccessCode, submittedCode])
 
+  const validDirectTripId =
+    directTripId && UUID_RE.test(directTripId) ? directTripId : undefined
+  const invalidDirectTripId = !!directTripId && !validDirectTripId
+
   // Fetch public trips (filtered by trip booking_mode and optional access code)
   const {
     data: tripsData,
     isLoading: isLoadingTrips,
     error: tripsError,
   } = useQuery({
-    queryKey: ["public-trips", submittedCode, directTripId],
+    queryKey: ["public-trips", submittedCode, validDirectTripId],
     queryFn: () =>
       TripsService.readPublicTrips({
         limit: 100,
         accessCode: submittedCode || undefined,
-        includeTripId: directTripId || undefined,
+        includeTripId: validDirectTripId || undefined,
       }),
+    retry: (_, error) => {
+      const status = (error as ApiError)?.status
+      return status !== 422
+    },
   })
 
   // Direct-link trip (e.g. unlisted): fetch single trip by ID when URL has ?trip=; grant access only if valid (active, not departed, launch not past)
@@ -88,16 +99,16 @@ const AccessGate = ({
     isError: isDirectTripError,
     error: directTripError,
   } = useQuery({
-    queryKey: ["public-trip", directTripId, submittedCode],
+    queryKey: ["public-trip", validDirectTripId, submittedCode],
     queryFn: () =>
       TripsService.readPublicTrip({
-        tripId: directTripId!,
+        tripId: validDirectTripId!,
         accessCode: submittedCode || undefined,
       }),
-    enabled: !!directTripId,
+    enabled: !!validDirectTripId,
     retry: (_, error) => {
       const status = (error as ApiError)?.status
-      return status !== 403 && status !== 404
+      return status !== 403 && status !== 404 && status !== 422
     },
   })
 
@@ -114,7 +125,7 @@ const AccessGate = ({
   // Only treat direct-link trip as valid when fetch succeeded; do not use it if unavailable by date/launch (API returns 404)
   const hasTrips =
     (tripsData?.data?.length ?? 0) > 0 ||
-    (!!directTripId && !!directTripData && !isDirectTripError)
+    (!!validDirectTripId && !!directTripData && !isDirectTripError)
   const allTripsRequireAccessCode =
     tripsData?.all_trips_require_access_code === true
   const accessCodeValid = accessCodeValidation?.valid === true
@@ -150,10 +161,32 @@ const AccessGate = ({
     }
   }
 
+  // Invalid trip ID format (not a UUID) - show error immediately, no API calls
+  if (invalidDirectTripId) {
+    return (
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={4} textAlign="center">
+              <Heading size="lg">Trip Not Found</Heading>
+              <Text>
+                The trip ID in the URL is not valid. The link may be incorrect or
+                outdated.
+              </Text>
+              <Button asChild colorPalette="blue">
+                <Link to="/book" search={{}}>View available trips</Link>
+              </Button>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    )
+  }
+
   // Loading state (include direct-trip fetch when URL has ?trip= and no listed trips yet)
-  // When directTripId is set and no listed trips, wait for direct trip query to settle (loading or fetching)
+  // When validDirectTripId is set and no listed trips, wait for direct trip query to settle (loading or fetching)
   const waitingForDirectTrip =
-    !!directTripId &&
+    !!validDirectTripId &&
     !(tripsData?.data?.length ?? 0) &&
     (isLoadingDirectTrip || isFetchingDirectTrip)
   if (
@@ -191,8 +224,9 @@ const AccessGate = ({
   }
 
   // Direct-link trip 403: private (not yet available) vs early_bird (access code required)
+  // Also handles invalid/expired access code errors when a code was submitted.
   const directTrip403 =
-    directTripId &&
+    validDirectTripId &&
     isDirectTripError &&
     !isLoadingDirectTrip &&
     (directTripError as ApiError)?.status === 403
@@ -200,20 +234,32 @@ const AccessGate = ({
     const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
     const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
     const isPrivateNotYetAvailable = detail.includes("not yet available")
+    const isRequiresCode = detail.includes("requires an access code")
+    // User submitted a code but it was rejected (invalid, expired, inactive, etc.)
+    const isCodeRejected = !!submittedCode && !isPrivateNotYetAvailable && !isRequiresCode
+
+    let heading: string
+    let message: string
+    if (isPrivateNotYetAvailable) {
+      heading = "Tickets Not Yet Available"
+      message = detail || "Tickets are not yet available for this trip."
+    } else if (isCodeRejected) {
+      heading = "Access Denied"
+      message = detail || "The access code you entered is not valid for this trip."
+    } else {
+      heading = "Access Code Required"
+      message = "This trip requires an access code to book. If you have one, enter it below to continue."
+    }
+
+    const showCodeForm = !isPrivateNotYetAvailable
     return (
       <Container maxW="container.md" py={16}>
         <Card.Root>
           <Card.Body>
             <VStack gap={6} textAlign="center">
-              <Heading size="lg">
-                {isPrivateNotYetAvailable ? "Tickets Not Yet Available" : "Access Code Required"}
-              </Heading>
-              <Text>
-                {isPrivateNotYetAvailable
-                  ? detail || "Tickets are not yet available for this trip."
-                  : "This trip requires an access code to book. If you have one, enter it below to continue."}
-              </Text>
-              {!isPrivateNotYetAvailable && (
+              <Heading size="lg">{heading}</Heading>
+              <Text>{message}</Text>
+              {showCodeForm && (
                 <Box w="100%" maxW="400px">
                   <VStack gap={4}>
                     <Input
@@ -235,7 +281,7 @@ const AccessGate = ({
                       onClick={handleSubmitCode}
                       w="100%"
                     >
-                      Continue
+                      {isCodeRejected ? "Try Again" : "Continue"}
                     </Button>
                   </VStack>
                 </Box>
@@ -248,7 +294,7 @@ const AccessGate = ({
   }
 
   // Direct-link trip 404: not found (invalid ID) vs departed/unavailable
-  if (directTripId && isDirectTripError && !isLoadingDirectTrip) {
+  if (validDirectTripId && isDirectTripError && !isLoadingDirectTrip) {
     const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
     const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
     const isNotFound = (directTripError as ApiError)?.status === 404 && detail.toLowerCase().includes("not found")

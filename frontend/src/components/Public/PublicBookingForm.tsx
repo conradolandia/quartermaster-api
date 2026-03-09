@@ -14,6 +14,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { BookingPublic } from "@/client"
 import Logo from "/assets/images/qm-logo.svg"
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // Types for the booking flow
 export interface BookingStepData {
   // Step 1: Launch and Trip Selection
@@ -200,11 +203,12 @@ const PublicBookingForm = ({
     }
   }, [search.discount])
 
-  // Apply launch/trip/boat from URL so the form opens with a specific selection
+  // Apply launch/trip/boat from URL so the form opens with a specific selection.
+  // Only use values that are valid UUIDs; ignore malformed IDs silently.
   useEffect(() => {
-    const launch = search.launch ?? ""
-    const trip = search.trip ?? ""
-    const boat = search.boat ?? ""
+    const launch = search.launch && UUID_RE.test(search.launch) ? search.launch : ""
+    const trip = search.trip && UUID_RE.test(search.trip) ? search.trip : ""
+    const boat = search.boat && UUID_RE.test(search.boat) ? search.boat : ""
     if (launch || trip || boat) {
       setBookingData((prev) => ({
         ...prev,
