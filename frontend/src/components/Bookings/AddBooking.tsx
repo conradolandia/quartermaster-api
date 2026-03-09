@@ -160,7 +160,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   const { data: pricingData } = useQuery({
     queryKey: ["effective-pricing", selectedTripId, selectedBoatId],
     queryFn: () =>
-      TripBoatsService.readPublicEffectivePricing({
+      TripBoatsService.readEffectivePricing({
         tripId: selectedTripId,
         boatId: selectedBoatId,
       }),
