@@ -266,12 +266,14 @@ def update_mission(
 
 
 def archive_mission_cascade(*, session: Session, mission_id: uuid.UUID) -> None:
-    """Set mission and all its trips to archived. Call after update_mission(archived=True)."""
+    """Set mission and all its trips to archived."""
     mission = session.get(Mission, mission_id)
     if mission:
         mission.archived = True
         session.add(mission)
-    for trip in session.exec(select(Trip).where(Trip.mission_id == mission_id)):
+    for trip in session.exec(
+        select(Trip).where(Trip.mission_id == mission_id)
+    ).unique():
         trip.archived = True
         session.add(trip)
     session.commit()

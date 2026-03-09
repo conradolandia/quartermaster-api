@@ -184,13 +184,13 @@ function TripsTable() {
     placeholderData: (prevData) => prevData,
   })
 
-  // Get missions for display purposes (include archived when showing archived trips)
+  // Always include archived missions so trip rows can resolve their mission name
   const { data: missionsData } = useQuery({
-    queryKey: ["missions-for-trips", includeArchived],
+    queryKey: ["missions", "for-trips"],
     queryFn: () =>
       MissionsService.readMissions({
         limit: 100,
-        includeArchived: includeArchived ?? false,
+        includeArchived: true,
       }),
   })
 

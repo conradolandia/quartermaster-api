@@ -123,22 +123,25 @@ def update_launch(*, session: Session, db_obj: Launch, obj_in: LaunchUpdate) -> 
 
 
 def archive_launch_cascade(*, session: Session, launch_id: uuid.UUID) -> None:
-    """Set launch, all its missions, and all their trips to archived. Call after update_launch(archived=True)."""
+    """Set launch, all its missions, and all their trips to archived."""
     launch = session.get(Launch, launch_id)
     if launch:
         launch.archived = True
         session.add(launch)
-    mission_ids = [
-        row[0]
-        for row in session.exec(
-            select(Mission.id).where(Mission.launch_id == launch_id)
-        ).all()
-    ]
-    for mission in session.exec(select(Mission).where(Mission.launch_id == launch_id)):
+    missions = (
+        session.exec(select(Mission).where(Mission.launch_id == launch_id))
+        .unique()
+        .all()
+    )
+    mission_ids = []
+    for mission in missions:
         mission.archived = True
         session.add(mission)
-    for mission_id in mission_ids:
-        for trip in session.exec(select(Trip).where(Trip.mission_id == mission_id)):
+        mission_ids.append(mission.id)
+    if mission_ids:
+        for trip in session.exec(
+            select(Trip).where(Trip.mission_id.in_(mission_ids))
+        ).unique():
             trip.archived = True
             session.add(trip)
     session.commit()
