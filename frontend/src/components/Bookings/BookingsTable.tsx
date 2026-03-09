@@ -46,6 +46,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
+import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatCents,
@@ -125,9 +126,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         PAYMENT_STATUSES,
       ),
   )
-  const [includeArchived, setIncludeArchived] = useState<boolean>(
-    () => initialSearch.get("includeArchived") === "true",
-  )
+  const { includeArchived, setIncludeArchived } = useIncludeArchived()
   const [searchQuery, setSearchQuery] = useState<string>(
     initialSearch.get("search") || "",
   )
@@ -199,7 +198,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       setPaymentStatusFilter(
         parseStatusList(params.get("paymentStatuses"), PAYMENT_STATUSES),
       )
-      setIncludeArchived(params.get("includeArchived") === "true")
     }
 
     window.addEventListener("popstate", handlePopState)
@@ -270,17 +268,17 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     wasFetchingRef.current = isFetching
   }, [isFetching, debouncedSearchQuery])
 
-  // Fetch missions for filter dropdown
+  // Fetch all missions (including archived for name resolution)
   const { data: missionsData } = useQuery({
-    queryKey: ["missions"],
-    queryFn: () => MissionsService.readMissions({ limit: 100 }),
+    queryKey: ["missions", "for-bookings"],
+    queryFn: () => MissionsService.readMissions({ limit: 100, includeArchived: true }),
   })
 
-  // Fetch trips for filter dropdown (include archived when showing archived bookings)
+  // Fetch all trips (including archived for name resolution and archived detection)
   const { data: tripsData } = useQuery({
-    queryKey: ["trips", includeArchived],
+    queryKey: ["trips", "for-bookings"],
     queryFn: () =>
-      TripsService.readTrips({ limit: 500, includeArchived: includeArchived }),
+      TripsService.readTrips({ limit: 500, includeArchived: true }),
   })
 
   // Fetch boats for filter dropdown
@@ -347,17 +345,19 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     }
   }, [tripId, boatId, tripBoatsData])
 
-  // Filter missions to only show those with existing bookings
-  const missionsWithBookings = missions.filter((mission: any) =>
-    allBookingsData?.data?.some(
-      (booking: any) => booking.mission_id === mission.id,
-    ),
-  )
+  // Filter missions to only show those with existing bookings, respecting archived state
+  const missionsWithBookings = missions
+    .filter((mission: any) => includeArchived || !mission.archived)
+    .filter((mission: any) =>
+      allBookingsData?.data?.some(
+        (booking: any) => booking.mission_id === mission.id,
+      ),
+    )
 
-  // Filter trips by selected mission
-  const filteredTrips = missionId
-    ? (trips as TripPublic[]).filter((t) => t.mission_id === missionId)
-    : (trips as TripPublic[])
+  // Filter trips by selected mission, respecting archived state
+  const filteredTrips = (trips as TripPublic[])
+    .filter((t) => includeArchived || !t.archived)
+    .filter((t) => !missionId || t.mission_id === missionId)
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -384,7 +384,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     bookingStatuses?: string[]
     paymentStatuses?: string[]
     search?: string
-    includeArchived?: boolean
   }) => {
     const params = new URLSearchParams(window.location.search)
     if (updates.missionId !== undefined) {
@@ -420,10 +419,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     if (updates.search !== undefined) {
       if (updates.search) params.set("search", updates.search)
       else params.delete("search")
-    }
-    if (updates.includeArchived !== undefined) {
-      if (updates.includeArchived) params.set("includeArchived", "true")
-      else params.delete("includeArchived")
     }
     params.set("page", "1")
     window.history.replaceState(
@@ -465,7 +460,14 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   const handleIncludeArchivedChange = (checked: boolean) => {
     setIncludeArchived(checked)
-    updateFiltersInUrl({ includeArchived: checked })
+    const params = new URLSearchParams(window.location.search)
+    params.set("page", "1")
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    )
+    setSearchParams(new URLSearchParams(params.toString()))
   }
 
   const toggleBookingStatus = (status: string) => {
@@ -711,7 +713,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Select.Trigger>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content minWidth="300px">
+                <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
                   {missionsCollection.items.map((item) => (
                     <Select.Item key={item.value} item={item}>
                       {item.label}
@@ -739,7 +741,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Select.Trigger>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content minWidth="320px">
+                <Select.Content minWidth="320px" maxHeight="60vh" overflowY="auto">
                   {tripsCollection.items.map((item) => (
                     <Select.Item key={item.value} item={item}>
                       {item.label}
@@ -801,7 +803,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Select.Trigger>
               </Select.Control>
               <Select.Positioner>
-                <Select.Content minWidth="220px">
+                <Select.Content minWidth="220px" maxHeight="60vh" overflowY="auto">
                   {boatsCollection.items.map((item) => (
                     <Select.Item key={item.value} item={item}>
                       {item.label}

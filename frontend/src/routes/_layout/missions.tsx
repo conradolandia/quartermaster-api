@@ -37,6 +37,7 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
+import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
 import { formatCents } from "@/utils"
 
 // Define sortable columns (must match MissionWithStats keys)
@@ -63,7 +64,6 @@ const missionsSearchSchema = z.object({
     ])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
-  includeArchived: z.coerce.boolean().catch(false),
 })
 
 // Helper function to sort missions
@@ -147,9 +147,9 @@ function Missions() {
   const [isAddMissionOpen, setIsAddMissionOpen] = useState(false)
   const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
   const launchesMap = useLaunchesMap()
-  const { page, pageSize, sortBy, sortDirection, includeArchived } =
-    Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const { includeArchived, setIncludeArchived } = useIncludeArchived()
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
   const handleSort = (column: SortableColumn) => {
@@ -166,10 +166,10 @@ function Missions() {
   }
 
   const handleIncludeArchivedChange = (checked: boolean) => {
+    setIncludeArchived(checked)
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
         ...prev,
-        includeArchived: checked,
         page: 1,
       }),
     })
@@ -201,12 +201,13 @@ function Missions() {
     queryKey: [
       "missions",
       { page, pageSize: effectivePageSize, sortBy, sortDirection, includeArchived },
+
     ],
     queryFn: () =>
       MissionsService.readMissions({
         skip: ((page ?? 1) - 1) * effectivePageSize,
         limit: effectivePageSize,
-        includeArchived: includeArchived ?? false,
+        includeArchived,
       }),
   })
 
@@ -254,7 +255,7 @@ function Missions() {
       {!isLoading && !isError && (
         <Flex align="center" gap={3} mb={4}>
           <Checkbox.Root
-            checked={includeArchived ?? false}
+            checked={includeArchived}
             onCheckedChange={(e) =>
               handleIncludeArchivedChange(e.checked === true)
             }

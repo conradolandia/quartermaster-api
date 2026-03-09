@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
+import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
 import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
@@ -54,7 +55,6 @@ const launchesSearchSchema = z.object({
     .enum(["name", "launch_timestamp", "summary", "location_id"])
     .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
-  includeArchived: z.coerce.boolean().catch(false),
 })
 
 // Helper function to sort launches
@@ -151,8 +151,8 @@ export const Route = createFileRoute("/_layout/launches")({
 function LaunchesTable() {
   useDateFormatPreference()
   const navigate = useNavigate({ from: Route.fullPath })
-  const { page, pageSize, sortBy, sortDirection, includeArchived } =
-    Route.useSearch()
+  const { page, pageSize, sortBy, sortDirection } = Route.useSearch()
+  const { includeArchived, setIncludeArchived } = useIncludeArchived()
   const locationsMap = useLocationsMap()
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
 
@@ -170,10 +170,10 @@ function LaunchesTable() {
   }
 
   const handleIncludeArchivedChange = (checked: boolean) => {
+    setIncludeArchived(checked)
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
         ...prev,
-        includeArchived: checked,
         page: 1,
       }),
     })
@@ -183,7 +183,7 @@ function LaunchesTable() {
     ...getLaunchesQueryOptions({
       page,
       pageSize: effectivePageSize,
-      includeArchived: includeArchived ?? false,
+      includeArchived,
     }),
     placeholderData: (prevData) => prevData,
   })
@@ -256,7 +256,7 @@ function LaunchesTable() {
     <>
       <Flex align="center" gap={3} mb={4}>
         <Checkbox.Root
-          checked={includeArchived ?? false}
+          checked={includeArchived}
           onCheckedChange={(e) =>
             handleIncludeArchivedChange(e.checked === true)
           }

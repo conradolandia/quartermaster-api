@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/pagination.tsx"
 import { YamlImportService } from "@/services/yamlImportService"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
+import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
 import {
   formatCents,
   formatInLocationTimezoneWithAbbr,
@@ -88,7 +89,6 @@ const tripsSearchSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),
   missionId: z.string().optional(),
   tripType: z.string().optional(),
-  includeArchived: z.coerce.boolean().catch(false),
 })
 
 function getTripsQueryOptions({
@@ -148,9 +148,9 @@ function TripsTable() {
     sortDirection,
     missionId,
     tripType,
-    includeArchived,
   } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const { includeArchived, setIncludeArchived } = useIncludeArchived()
 
   // Handle sorting
   const handleSort = (column: SortableColumn) => {
@@ -179,7 +179,7 @@ function TripsTable() {
       pageSize: effectivePageSize,
       missionId,
       tripType,
-      includeArchived: includeArchived ?? false,
+      includeArchived,
     }),
     placeholderData: (prevData) => prevData,
   })
@@ -278,19 +278,23 @@ function TripsTable() {
   }
 
   const handleIncludeArchivedChange = (checked: boolean) => {
+    setIncludeArchived(checked)
     navigate({
       search: (prev: Record<string, string | number | undefined>) => ({
         ...prev,
-        includeArchived: checked,
         page: 1,
       }),
     })
   }
 
+  const missionsForDropdown = (missionsData?.data ?? []).filter(
+    (m) => includeArchived || !m.archived,
+  )
+
   const missionsCollection = createListCollection({
     items: [
       { label: "All Missions", value: "" },
-      ...(missionsData?.data ?? []).map((m) => ({
+      ...missionsForDropdown.map((m) => ({
         label: m.name,
         value: m.id,
       })),
@@ -444,7 +448,7 @@ function TripsTable() {
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content minWidth="300px">
+              <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
                 {missionsCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
                     {item.label}
@@ -485,7 +489,7 @@ function TripsTable() {
           </Select.Root>
         </HStack>
         <Checkbox.Root
-          checked={includeArchived ?? false}
+          checked={includeArchived}
           onCheckedChange={(e) =>
             handleIncludeArchivedChange(e.checked === true)
           }
