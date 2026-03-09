@@ -1072,20 +1072,12 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       <Text fontSize="xs" color="text.muted" whiteSpace="nowrap">
                         Payment:{" "}
                         {isPartiallyRefunded(booking) ? (
-                          <>
-                            <Badge
-                              size="xs"
-                              colorPalette={getPaymentStatusColor("paid")}
-                            >
-                              {formatPaymentStatusLabel("paid")}
-                            </Badge>{" "}
-                            <Badge
-                              size="xs"
-                              colorPalette="red"
-                            >
-                              {formatPaymentStatusLabel("partially_refunded")}
-                            </Badge>
-                          </>
+                          <Badge
+                            size="xs"
+                            colorPalette="red"
+                          >
+                            {formatPaymentStatusLabel("partially_refunded")}
+                          </Badge>
                         ) : (
                           <Badge
                             size="xs"
