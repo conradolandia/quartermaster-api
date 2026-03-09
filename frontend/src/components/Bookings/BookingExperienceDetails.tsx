@@ -144,15 +144,12 @@ export default function BookingExperienceDetails({
           gap={6}
         >
           <VStack align="stretch" gap={3}>
-            {exp.mission_name && (
-              <Row label="Mission" value={exp.mission_name} />
-            )}
             {exp.launch_name && (
               <>
                 <Row label="Launch" value={exp.launch_name} />
                 {exp.launch_timestamp && (
                   <Row
-                    label="Launch window"
+                    label="Launch time"
                     value={formatDateTimeInLocationTz(
                       exp.launch_timestamp,
                       exp.launch_timezone,
@@ -163,6 +160,9 @@ export default function BookingExperienceDetails({
                   <Row label="Summary" value={exp.launch_summary} />
                 )}
               </>
+            )}
+            {exp.mission_name && (
+              <Row label="Mission" value={exp.mission_name} />
             )}
           </VStack>
           <VStack align="stretch" gap={3}>
@@ -205,17 +205,6 @@ export default function BookingExperienceDetails({
                     )}
                   />
                 )}
-                {exp.trip_type === "launch_viewing" &&
-                  exp.launch_timestamp &&
-                  exp.launch_timezone && (
-                    <Row
-                      label="Launch time"
-                      value={formatDateTimeInLocationTz(
-                        exp.launch_timestamp,
-                        exp.launch_timezone,
-                      )}
-                    />
-                  )}
               </>
             )}
           </VStack>
@@ -226,7 +215,7 @@ export default function BookingExperienceDetails({
             {exp.boat_name && <Row label="Boat" value={exp.boat_name} />}
             {exp.departure_location && (
               <Row
-                label="Departure location"
+                label="Location"
                 value={
                   exp.map_link ? (
                     <Link
@@ -267,13 +256,12 @@ export default function BookingExperienceDetails({
         gap={6}
       >
         <VStack align="stretch" gap={3}>
-          {mission && <Row label="Mission" value={mission.name} />}
           {launch && (
             <>
               <Row label="Launch" value={launch.name} />
               {launch.launch_timestamp && (
                 <Row
-                  label="Launch window"
+                  label="Launch time"
                   value={formatDateTimeInLocationTz(
                     launch.launch_timestamp,
                     launch.timezone,
@@ -283,6 +271,7 @@ export default function BookingExperienceDetails({
               {launch.summary && <Row label="Summary" value={launch.summary} />}
             </>
           )}
+          {mission && <Row label="Mission" value={mission.name} />}
         </VStack>
         <VStack align="stretch" gap={3}>
           {trip && (
@@ -307,17 +296,6 @@ export default function BookingExperienceDetails({
                 label="Departure"
                 value={formatDateTimeInLocationTz(trip.departure_time, tz)}
               />
-              {trip.type === "launch_viewing" &&
-                launch?.launch_timestamp &&
-                launch?.timezone && (
-                  <Row
-                    label="Launch time"
-                    value={formatDateTimeInLocationTz(
-                      launch.launch_timestamp,
-                      launch.timezone,
-                    )}
-                  />
-                )}
             </>
           )}
         </VStack>
@@ -338,7 +316,7 @@ export default function BookingExperienceDetails({
             const prov = b?.provider
             return (
               <Row
-                label="Departure location"
+                label="Location"
                 value={
                   prov?.map_link ? (
                     <Link

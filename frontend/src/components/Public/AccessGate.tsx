@@ -53,21 +53,16 @@ const AccessGate = ({
   const [codeError, setCodeError] = useState<string | null>(null)
 
   // Sync state when initialAccessCode prop changes (e.g., URL parameter changes)
-  // This allows URL parameters like ?access=EARLY23 to automatically trigger validation
+  // This allows URL parameters like ?access=EARLY23 to automatically trigger validation.
+  // Must NOT depend on submittedCode, otherwise user edits get reverted to the initial value.
   useEffect(() => {
     if (initialAccessCode) {
       const trimmedCode = initialAccessCode.trim()
       setAccessCode(trimmedCode)
       setSubmittedCode(trimmedCode)
       setCodeError(null)
-    } else if (initialAccessCode === undefined || initialAccessCode === null) {
-      // Only clear if explicitly undefined/null (not empty string from user input)
-      // This prevents clearing user input when URL param is removed
-      if (!submittedCode) {
-        setAccessCode("")
-      }
     }
-  }, [initialAccessCode, submittedCode])
+  }, [initialAccessCode])
 
   const validDirectTripId =
     directTripId && UUID_RE.test(directTripId) ? directTripId : undefined
