@@ -173,13 +173,16 @@ def update_trip_boat_pricing(
         if trip_boat.max_capacity is not None
         else (boat.capacity if boat else 0)
     )
-    boat_pricing = crud.get_boat_pricing_by_boat(
-        session=session, boat_id=trip_boat.boat_id
-    )
     tbp_list = crud.get_trip_boat_pricing_by_trip_boat(
         session=session, trip_boat_id=obj.trip_boat_id
     )
-    by_boat = {bp.ticket_type: bp.capacity for bp in boat_pricing}
+    use_only_trip = getattr(trip_boat, "use_only_trip_pricing", False)
+    by_boat: dict[str, int] = {}
+    if not use_only_trip:
+        boat_pricing = crud.get_boat_pricing_by_boat(
+            session=session, boat_id=trip_boat.boat_id
+        )
+        by_boat = {bp.ticket_type: bp.capacity for bp in boat_pricing}
     by_trip: dict[str, int] = {}
     for tbp in tbp_list:
         if tbp.id == trip_boat_pricing_id:
