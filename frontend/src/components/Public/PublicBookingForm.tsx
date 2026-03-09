@@ -8,119 +8,20 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { Link, useNavigate, useSearch } from "@tanstack/react-router"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Link } from "@tanstack/react-router"
+import { useCallback, useRef, useState } from "react"
 
-import type { BookingPublic } from "@/client"
 import Logo from "/assets/images/qm-logo.svg"
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import {
+  type BookingResult,
+  type BookingStepData,
+  INITIAL_BOOKING_DATA,
+  STEPS,
+  bookingPublicToStepData,
+} from "./bookingTypes"
+import { useBookingUrlSync } from "./useBookingUrlSync"
 
-// Types for the booking flow
-export interface BookingStepData {
-  // Step 1: Launch and Trip Selection
-  selectedLaunchId: string
-  selectedTripId: string
-  selectedBoatId: string
-  /** Remaining passenger capacity for the selected boat (from API). */
-  boatRemainingCapacity: number | null
-
-  // Step 2: Item Selection
-  selectedItems: Array<{
-    trip_id: string
-    item_type: string
-    quantity: number
-    price_per_unit: number
-    trip_merchandise_id?: string
-    variant_option?: string
-  }>
-
-  // Step 3: Customer Information
-  customerInfo: {
-    first_name: string
-    last_name: string
-    email: string
-    phone: string
-    special_requests?: string
-    billing_address?: string
-    launch_updates_pref: boolean
-    terms_accepted: boolean
-  }
-
-  // Pricing
-  subtotal: number
-  discount_amount: number
-  tax_rate: number
-  tax_amount: number
-  tip: number
-  total: number
-  discount_code_id: string | null
-  discount_code?: string
-}
-
-/** Map API booking (e.g. from getBookingByConfirmationCode) to form step data for pre-fill when resuming. */
-function bookingPublicToStepData(booking: BookingPublic): BookingStepData {
-  const first_name = booking.first_name ?? ""
-  const last_name = booking.last_name ?? ""
-  const items = booking.items ?? []
-  const firstItem = items[0]
-  const subtotal = booking.subtotal ?? 0
-  const tax_rate =
-    subtotal > 0 && (booking.tax_amount ?? 0) > 0
-      ? Math.round(((booking.tax_amount ?? 0) / subtotal) * 100)
-      : 0
-
-  return {
-    selectedLaunchId: "",
-    selectedTripId: firstItem?.trip_id ?? "",
-    selectedBoatId: firstItem?.boat_id ?? "",
-    boatRemainingCapacity: null,
-    selectedItems: items.map((item) => ({
-      trip_id: item.trip_id,
-      item_type: item.item_type,
-      quantity: item.quantity,
-      price_per_unit: item.price_per_unit,
-      trip_merchandise_id: item.trip_merchandise_id ?? undefined,
-      variant_option: item.variant_option ?? undefined,
-    })),
-    customerInfo: {
-      first_name,
-      last_name,
-      email: booking.user_email ?? "",
-      phone: booking.user_phone ?? "",
-      special_requests: booking.special_requests ?? "",
-      billing_address: booking.billing_address ?? "",
-      launch_updates_pref: booking.launch_updates_pref ?? false,
-      terms_accepted: true,
-    },
-    subtotal,
-    discount_amount: booking.discount_amount ?? 0,
-    tax_rate,
-    tax_amount: booking.tax_amount ?? 0,
-    tip: booking.tip_amount ?? 0,
-    total: booking.total_amount ?? 0,
-    discount_code_id: booking.discount_code_id ?? null,
-    discount_code: booking.discount_code?.code,
-  }
-}
-
-const STEPS = [
-  {
-    id: 1,
-    title: "Select Mission & Trip",
-    description: "Choose your mission, trip and boat",
-  },
-  {
-    id: 2,
-    title: "Select Items",
-    description: "Choose tickets and merchandise",
-  },
-  { id: 3, title: "Your Information", description: "Enter your details" },
-  { id: 4, title: "Review & Pay", description: "Review and complete booking" },
-]
-
-// Import step components
 import Step1TripSelection from "./Steps/Step1TripSelection"
 import Step2ItemSelection from "./Steps/Step2ItemSelection"
 import Step3CustomerInfo from "./Steps/Step3CustomerInfo"
@@ -132,56 +33,21 @@ interface PublicBookingFormProps {
   accessCode?: string | null
 }
 
-export type BookingResult = { booking: any; paymentData: any }
-
 const PublicBookingForm = ({
   initialDiscountCodeId,
   accessCodeDiscountCodeId,
   accessCode,
 }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
-  const search = useSearch({ from: "/book" })
-  const navigate = useNavigate({ from: "/book" })
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
-  const [hasInitializedSelectionFromUrl, setHasInitializedSelectionFromUrl] =
-    useState(false)
   /** Survives Step4Review remounts (e.g. Strict Mode); prevents double booking create. */
   const createBookingStartedRef = useRef(false)
   /** When true, don't auto-jump to step 4 when URL has code (user clicked Back from step 4). */
   const didGoBackFromStep4Ref = useRef(false)
   /** Code we already pre-filled form for; don't overwrite form when re-loading after user went Back. */
   const hydratedForCodeRef = useRef<string | null>(null)
-  const [bookingData, setBookingData] = useState<BookingStepData>({
-    // Step 1: Launch and Trip Selection
-    selectedLaunchId: "",
-    selectedTripId: "",
-    selectedBoatId: "",
-    boatRemainingCapacity: null,
-
-    // Step 2: Item Selection
-    selectedItems: [],
-
-    // Step 3: Customer Information
-    customerInfo: {
-      first_name: "",
-      last_name: "",
-      email: "",
-      phone: "",
-      special_requests: "",
-      billing_address: "",
-      launch_updates_pref: false,
-      terms_accepted: false,
-    },
-
-    // Pricing
-    subtotal: 0,
-    discount_amount: 0,
-    tax_rate: 0,
-    tax_amount: 0,
-    tip: 0,
-    total: 0,
-    discount_code_id: null,
-  })
+  const [bookingData, setBookingData] =
+    useState<BookingStepData>(INITIAL_BOOKING_DATA)
 
   const updateBookingData = useCallback((updates: Partial<BookingStepData>) => {
     setBookingData((prev) => ({
@@ -190,131 +56,16 @@ const PublicBookingForm = ({
     }))
   }, [])
 
-  // Handle URL parameters and initial discount code from AccessGate.
-  // When accessCode/initialDiscountCodeId are set, the gate is the source of truth;
-  // don't overwrite with URL so we avoid flicker when URL lags behind gate.
-  const lastSyncedDiscountRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (search.discount) {
-      setBookingData((prev) => ({
-        ...prev,
-        discount_code: search.discount,
-      }))
-    }
-  }, [search.discount])
-
-  // Apply launch/trip/boat from URL so the form opens with a specific selection.
-  // Only use values that are valid UUIDs; ignore malformed IDs silently.
-  useEffect(() => {
-    const launch = search.launch && UUID_RE.test(search.launch) ? search.launch : ""
-    const trip = search.trip && UUID_RE.test(search.trip) ? search.trip : ""
-    const boat = search.boat && UUID_RE.test(search.boat) ? search.boat : ""
-    if (launch || trip || boat) {
-      setBookingData((prev) => ({
-        ...prev,
-        ...(launch && { selectedLaunchId: launch }),
-        ...(trip && { selectedTripId: trip }),
-        ...(boat && { selectedBoatId: boat }),
-      }))
-    }
-    setHasInitializedSelectionFromUrl(true)
-  }, [search.launch, search.trip, search.boat])
-
-  // Sync selected launch/trip/boat to URL so the link stays shareable
-  useEffect(() => {
-    if (!hasInitializedSelectionFromUrl) return
-    const urlLaunch = search.launch ?? ""
-    const urlTrip = search.trip ?? ""
-    const urlBoat = search.boat ?? ""
-    const dataLaunch = bookingData.selectedLaunchId ?? ""
-    const dataTrip = bookingData.selectedTripId ?? ""
-    const dataBoat = bookingData.selectedBoatId ?? ""
-    if (
-      dataLaunch === urlLaunch &&
-      dataTrip === urlTrip &&
-      dataBoat === urlBoat
-    )
-      return
-    navigate({
-      search: (prev: {
-        discount?: string
-        access?: string
-        code?: string
-        launch?: string
-        trip?: string
-        boat?: string
-      }) => ({
-        ...prev,
-        launch: dataLaunch || undefined,
-        trip: dataTrip || undefined,
-        boat: dataBoat || undefined,
-      }),
-    })
-  }, [
-    hasInitializedSelectionFromUrl,
-    bookingData.selectedLaunchId,
-    bookingData.selectedTripId,
-    bookingData.selectedBoatId,
-    search.launch,
-    search.trip,
-    search.boat,
-    navigate,
-  ])
-
-  // When user applies a new discount code in Step2, sync it to the URL so the link stays shareable.
-  // Avoid flicker: only navigate when value actually changed from what we last synced, and don't clear discount when code came from gate (accessCode + initialDiscountCodeId).
-  useEffect(() => {
-    const dataDiscount = bookingData.discount_code ?? ""
-    const urlDiscount = search.discount ?? ""
-    const fromGate = !!(accessCode && initialDiscountCodeId)
-    if (dataDiscount !== urlDiscount) {
-      if (dataDiscount === "" && fromGate) return
-      if (dataDiscount === "" && lastSyncedDiscountRef.current === "") return
-      lastSyncedDiscountRef.current = dataDiscount
-      navigate({
-        search: (prev: {
-          discount?: string
-          access?: string
-          code?: string
-        }) => ({
-          ...prev,
-          discount: dataDiscount || undefined,
-        }),
-      })
-    } else {
-      lastSyncedDiscountRef.current = dataDiscount
-    }
-  }, [bookingData.discount_code, search.discount, navigate, accessCode, initialDiscountCodeId])
-
-  // Apply discount code ID from AccessGate (access code validation)
-  useEffect(() => {
-    if (initialDiscountCodeId) {
-      setBookingData((prev) => ({
-        ...prev,
-        discount_code_id: initialDiscountCodeId,
-      }))
-    }
-  }, [initialDiscountCodeId])
-
-  // When access=CODE is used and gate gave us the code ID, treat that code as the discount too so Step2 validates and applies it
-  useEffect(() => {
-    if (accessCode && initialDiscountCodeId) {
-      setBookingData((prev) =>
-        prev.discount_code ? prev : { ...prev, discount_code: accessCode }
-      )
-    }
-  }, [accessCode, initialDiscountCodeId])
-
-  // When URL has a confirmation code, show step 4 so resume flow runs there (unless user went Back from step 4)
-  useEffect(() => {
-    if (search.code && !didGoBackFromStep4Ref.current) {
-      setCurrentStep(4)
-    }
-    if (!search.code) {
-      didGoBackFromStep4Ref.current = false
-      hydratedForCodeRef.current = null
-    }
-  }, [search.code])
+  const { search } = useBookingUrlSync({
+    bookingData,
+    setBookingData,
+    setCurrentStep,
+    initialDiscountCodeId,
+    accessCodeDiscountCodeId,
+    accessCode,
+    didGoBackFromStep4Ref,
+    hydratedForCodeRef,
+  })
 
   const nextStep = () => {
     if (currentStep < STEPS.length) {
@@ -333,7 +84,6 @@ const PublicBookingForm = ({
     setBookingResult(null)
     createBookingStartedRef.current = false
     prevStep()
-    // Keep code in URL so returning to step 4 resumes the same booking
   }
 
   const renderCurrentStep = () => {
@@ -374,7 +124,6 @@ const PublicBookingForm = ({
             bookingResult={bookingResult}
             onBookingReady={(result) => {
               setBookingResult(result)
-              // Mark that we have shown this booking so returning from step 3 does not overwrite edits
               if (result?.booking?.confirmation_code) {
                 hydratedForCodeRef.current = result.booking.confirmation_code
               }

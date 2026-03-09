@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { formatCents } from "@/utils"
 
-import type { BookingStepData } from "../PublicBookingForm"
+import type { BookingStepData } from "../bookingTypes"
 
 export const customerInfoSchema = z
   .object({

@@ -27,7 +27,7 @@ $ source .venv/bin/activate
 
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
 
-Modify or add SQLModel models for data and SQL tables in `./backend/app/models.py`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/crud.py`.
+Modify or add SQLModel models in `./backend/app/models/`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) in `./backend/app/crud/`. Run the test suite and check coverage as described in [Backend tests](#backend-tests).
 
 ## VS Code
 
@@ -91,73 +91,46 @@ Nevertheless, if it doesn't detect a change but a syntax error, it will just sto
 
 ## Backend tests
 
-To test the backend run:
+The test suite uses **pytest** with **coverage**. All test runs execute under coverage; a terminal report is always printed. Configuration is in `pyproject.toml` (`[tool.coverage.run]`, `[tool.coverage.report]`); coverage must meet the configured threshold (e.g. `fail_under`) or the run fails.
+
+### Running tests
+
+From `./backend/` (with stack not required for script):
 
 ```console
 $ bash ./scripts/test.sh
 ```
 
-The tests run with Pytest, modify and add tests to `./backend/app/tests/`.
-
-If you use GitHub Actions the tests will run automatically.
-
-### Test running stack
-
-If your stack is already up and you just want to run the tests, you can use:
+With the stack already up, run tests inside the backend container:
 
 ```bash
 docker compose exec backend bash scripts/tests-start.sh
 ```
 
-That `/app/scripts/tests-start.sh` script just calls `pytest` after making sure that the rest of the stack is running. If you need to pass extra arguments to `pytest`, you can pass them to that command and they will be forwarded.
-
-For example, to stop on first error:
+`scripts/tests-start.sh` runs pre-start checks then `scripts/test.sh`; any extra arguments are passed to pytest. Example: stop on first failure:
 
 ```bash
 docker compose exec backend bash scripts/tests-start.sh -x
 ```
 
-### Test Coverage
+In CI (e.g. GitHub Actions), tests run automatically; the HTML coverage report is skipped to avoid container/htmlcov path issues.
 
-When the tests are run, a file `htmlcov/index.html` is generated, you can open it in your browser to see the coverage of the tests.
+### Coverage
 
-### Test Structure
+- **Terminal report**: every run produces `coverage report` (missing lines, percentage).
+- **HTML report**: generated only when `CI` is not set (e.g. local runs). Open `htmlcov/index.html` in a browser to inspect line coverage. To generate HTML in a CI-like environment, run tests with `CI=` or run `coverage html --title "Quartermaster Coverage"` after the test run.
 
-Tests are organized under `./backend/app/tests/`:
+### Test structure
 
-```
-app/tests/
-├── api/routes/       # API endpoint integration tests
-│   ├── test_login.py
-│   ├── test_users.py
-│   └── test_private.py
-├── crud/             # CRUD operation tests
-│   ├── test_user.py
-│   ├── test_booking_items.py
-│   ├── test_effective_pricing.py
-│   ├── test_launches.py
-│   ├── test_missions.py
-│   └── test_trips.py
-├── services/         # Business logic / service layer tests
-│   ├── test_date_validator.py
-│   ├── test_trip_times.py
-│   └── test_yaml_validator.py
-├── scripts/          # Pre-start script tests
-│   └── test_backend_pre_start.py
-└── conftest.py       # Shared fixtures (db session, test entities)
-```
+Tests live under `./backend/app/tests/`:
 
-**Service tests** cover pure business logic that doesn't require database access:
-- `date_validator`: datetime validation, trip time ordering, booking mode transitions
-- `trip_times`: check-in/boarding time calculations from departure
-- `yaml_validator`: YAML schema validation for launch/mission/trip imports
+- **`api/routes/`** — HTTP endpoint tests (auth, users, bookings, trips, payments, etc.).
+- **`crud/`** — Database and CRUD tests (users, trips, missions, launches, bookings, pricing, ticket types).
+- **`services/`** — Business logic without DB: `test_date_validator.py`, `test_trip_times.py`, `test_yaml_validator.py`.
+- **`scripts/`** — Pre-start and script tests.
+- **`conftest.py`** — Shared fixtures (DB session, test data).
 
-**CRUD tests** cover database operations with test fixtures:
-- Entity CRUD (trips, missions, launches, users)
-- Pricing logic (effective pricing with overrides)
-- Booking item queries (ticket counts, passenger reassignment)
-
-**API tests** cover HTTP endpoints with authentication.
+Add and edit tests under these directories; keep coverage above the project threshold.
 
 ## Migrations
 

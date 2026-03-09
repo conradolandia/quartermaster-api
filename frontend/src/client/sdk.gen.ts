@@ -30,12 +30,12 @@ import type {
   BoatsReadPublicBoatResponse,
   BoatsReadPublicBoatsData,
   BoatsReadPublicBoatsResponse,
-  BookingsCreateBookingData,
-  BookingsCreateBookingResponse,
-  BookingsListBookingsData,
-  BookingsListBookingsResponse,
   BookingsDuplicateBookingData,
   BookingsDuplicateBookingResponse,
+  BookingsListBookingsData,
+  BookingsListBookingsResponse,
+  BookingsCreateBookingData,
+  BookingsCreateBookingResponse,
   BookingsGetBookingByIdData,
   BookingsGetBookingByIdResponse,
   BookingsDeleteBookingData,
@@ -52,24 +52,24 @@ import type {
   BookingsCheckInBookingResponse,
   BookingsRevertCheckInData,
   BookingsRevertCheckInResponse,
-  BookingPublicResendBookingConfirmationEmailData,
-  BookingPublicResendBookingConfirmationEmailResponse,
-  BookingsProcessRefundData,
-  BookingsProcessRefundResponse,
-  BookingsExportBookingsCsvData,
-  BookingsExportBookingsCsvResponse,
   BookingsGetBookingQrCodeData,
   BookingsGetBookingQrCodeResponse,
   BookingPublicUpdateDraftBookingData,
   BookingPublicUpdateDraftBookingResponse,
   BookingsGetBookingByConfirmationCodeData,
   BookingsGetBookingByConfirmationCodeResponse,
+  BookingPublicResendBookingConfirmationEmailData,
+  BookingPublicResendBookingConfirmationEmailResponse,
   BookingsInitializePaymentData,
   BookingsInitializePaymentResponse,
   BookingsResumePaymentData,
   BookingsResumePaymentResponse,
   BookingsConfirmFreeBookingData,
   BookingsConfirmFreeBookingResponse,
+  BookingsExportBookingsCsvData,
+  BookingsExportBookingsCsvResponse,
+  BookingsProcessRefundData,
+  BookingsProcessRefundResponse,
   DebugLogDomStateData,
   DebugLogDomStateResponse,
   DiscountCodesCreateDiscountCodeData,
@@ -615,21 +615,23 @@ export class BoatsService {
 
 export class BookingsService {
   /**
-   * Create Booking
-   * Create new booking (authentication optional - public or admin).
+   * Duplicate Booking
+   * Duplicate a booking as a new draft (admin only).
+   * Copies customer data and items; new booking has status draft and a new confirmation code.
    * @param data The data for the request.
-   * @param data.requestBody
+   * @param data.bookingId
    * @returns BookingPublic Successful Response
    * @throws ApiError
    */
-  public static createBooking(
-    data: BookingsCreateBookingData,
-  ): CancelablePromise<BookingsCreateBookingResponse> {
+  public static duplicateBooking(
+    data: BookingsDuplicateBookingData,
+  ): CancelablePromise<BookingsDuplicateBookingResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/bookings/",
-      body: data.requestBody,
-      mediaType: "application/json",
+      url: "/api/v1/bookings/id/{booking_id}/duplicate",
+      path: {
+        booking_id: data.bookingId,
+      },
       errors: {
         422: "Validation Error",
       },
@@ -686,23 +688,21 @@ export class BookingsService {
   }
 
   /**
-   * Duplicate Booking
-   * Duplicate a booking as a new draft (admin only).
-   * Copies customer data and items; new booking has status draft and a new confirmation code.
+   * Create Booking
+   * Create new booking (authentication optional - public or admin).
    * @param data The data for the request.
-   * @param data.bookingId
+   * @param data.requestBody
    * @returns BookingPublic Successful Response
    * @throws ApiError
    */
-  public static duplicateBooking(
-    data: BookingsDuplicateBookingData,
-  ): CancelablePromise<BookingsDuplicateBookingResponse> {
+  public static createBooking(
+    data: BookingsCreateBookingData,
+  ): CancelablePromise<BookingsCreateBookingResponse> {
     return __request(OpenAPI, {
       method: "POST",
-      url: "/api/v1/bookings/id/{booking_id}/duplicate",
-      path: {
-        booking_id: data.bookingId,
-      },
+      url: "/api/v1/bookings/",
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
@@ -935,109 +935,6 @@ export class BookingsService {
   }
 
   /**
-   * Resend Booking Confirmation Email
-   * Resend booking confirmation email.
-   *
-   * Args:
-   * confirmation_code: The booking confirmation code
-   *
-   * Returns:
-   * dict: Status of the email sending
-   * @param data The data for the request.
-   * @param data.confirmationCode
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static bookingPublicResendBookingConfirmationEmail(
-    data: BookingPublicResendBookingConfirmationEmailData,
-  ): CancelablePromise<BookingPublicResendBookingConfirmationEmailResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/bookings/{confirmation_code}/resend-email",
-      path: {
-        confirmation_code: data.confirmationCode,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Process Refund
-   * Process a refund for a booking.
-   *
-   * refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
-   * Validates the booking and processes the refund through Stripe,
-   * then updates the booking status to 'refunded'.
-   * @param data The data for the request.
-   * @param data.confirmationCode
-   * @param data.requestBody
-   * @returns BookingPublic Successful Response
-   * @throws ApiError
-   */
-  public static processRefund(
-    data: BookingsProcessRefundData,
-  ): CancelablePromise<BookingsProcessRefundResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/bookings/refund/{confirmation_code}",
-      path: {
-        confirmation_code: data.confirmationCode,
-      },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Export Bookings Csv
-   * Export bookings data to CSV format.
-   *
-   * Supports filtering by mission_id, trip_id, boat_id, and booking_status.
-   * Supports field selection via the fields parameter (comma-separated list of field names).
-   * Available fields: confirmation_code, customer_name, email, phone, billing_address,
-   * booking_status, payment_status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
-   * trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
-   * ticket_types_total); swag (or swag_description, swag_total).
-   *
-   * When ticket-type columns are requested (ticket_types, ticket_types_quantity, etc.),
-   * trip_id should be provided. The ticket-type columns will be derived from that trip's
-   * effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
-   * Booking items will be matched to the trip's ticket types (with backward compatibility
-   * for legacy naming variants like "adult" vs "adult_ticket").
-   * @param data The data for the request.
-   * @param data.missionId
-   * @param data.tripId
-   * @param data.boatId
-   * @param data.bookingStatus
-   * @param data.fields
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static exportBookingsCsv(
-    data: BookingsExportBookingsCsvData = {},
-  ): CancelablePromise<BookingsExportBookingsCsvResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/bookings/export/csv",
-      query: {
-        mission_id: data.missionId,
-        trip_id: data.tripId,
-        boat_id: data.boatId,
-        booking_status: data.bookingStatus,
-        fields: data.fields,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Get Booking Qr Code
    * Get QR code image for a booking confirmation code.
    * @param data The data for the request.
@@ -1102,6 +999,35 @@ export class BookingsService {
     return __request(OpenAPI, {
       method: "GET",
       url: "/api/v1/bookings/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Resend Booking Confirmation Email
+   * Resend booking confirmation email.
+   *
+   * Args:
+   * confirmation_code: The booking confirmation code
+   *
+   * Returns:
+   * dict: Status of the email sending
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static bookingPublicResendBookingConfirmationEmail(
+    data: BookingPublicResendBookingConfirmationEmailData,
+  ): CancelablePromise<BookingPublicResendBookingConfirmationEmailResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/{confirmation_code}/resend-email",
       path: {
         confirmation_code: data.confirmationCode,
       },
@@ -1177,6 +1103,80 @@ export class BookingsService {
       path: {
         confirmation_code: data.confirmationCode,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Export Bookings Csv
+   * Export bookings data to CSV format.
+   *
+   * Supports filtering by mission_id, trip_id, boat_id, and booking_status.
+   * Supports field selection via the fields parameter (comma-separated list of field names).
+   * Available fields: confirmation_code, customer_name, email, phone, billing_address,
+   * booking_status, payment_status, total_amount, subtotal, discount_amount, tax_amount, tip_amount, created_at,
+   * trip_type, boat_name; ticket_types (or ticket_types_quantity, ticket_types_price,
+   * ticket_types_total); swag (or swag_description, swag_total).
+   *
+   * When ticket-type columns are requested (ticket_types, ticket_types_quantity, etc.),
+   * trip_id should be provided. The ticket-type columns will be derived from that trip's
+   * effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
+   * Booking items will be matched to the trip's ticket types (with backward compatibility
+   * for legacy naming variants like "adult" vs "adult_ticket").
+   * @param data The data for the request.
+   * @param data.missionId
+   * @param data.tripId
+   * @param data.boatId
+   * @param data.bookingStatus
+   * @param data.fields
+   * @returns unknown Successful Response
+   * @throws ApiError
+   */
+  public static exportBookingsCsv(
+    data: BookingsExportBookingsCsvData = {},
+  ): CancelablePromise<BookingsExportBookingsCsvResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/export/csv",
+      query: {
+        mission_id: data.missionId,
+        trip_id: data.tripId,
+        boat_id: data.boatId,
+        booking_status: data.bookingStatus,
+        fields: data.fields,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Process Refund
+   * Process a refund for a booking.
+   *
+   * refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
+   * Validates the booking and processes the refund through Stripe,
+   * then updates the booking status to 'refunded'.
+   * @param data The data for the request.
+   * @param data.confirmationCode
+   * @param data.requestBody
+   * @returns BookingPublic Successful Response
+   * @throws ApiError
+   */
+  public static processRefund(
+    data: BookingsProcessRefundData,
+  ): CancelablePromise<BookingsProcessRefundResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/refund/{confirmation_code}",
+      path: {
+        confirmation_code: data.confirmationCode,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },

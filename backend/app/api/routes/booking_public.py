@@ -13,17 +13,20 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 from sqlmodel import Session, select
 
+from app import crud
 from app.api import deps
 from app.core.config import settings
 from app.core.stripe import update_payment_intent_amount
 from app.models import (
     Booking,
+    BookingCreate,
     BookingDraftUpdate,
     BookingExperienceDisplay,
     BookingItemPublic,
     BookingPublic,
     BookingStatus,
     PaymentStatus,
+    User,
 )
 from app.utils import generate_booking_confirmation_email, send_email
 
@@ -41,6 +44,23 @@ from .booking_utils import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
+
+
+@router.post("/", response_model=BookingPublic, status_code=201)
+def create_booking(
+    *,
+    session: Session = Depends(deps.get_db),
+    booking_in: BookingCreate,
+    current_user: User | None = Depends(deps.get_optional_current_user),
+) -> BookingPublic:
+    """
+    Create new booking (authentication optional - public or admin).
+    """
+    return crud.create_booking_impl(
+        session=session,
+        booking_in=booking_in,
+        current_user=current_user,
+    )
 
 
 @router.get("/qr/{confirmation_code}")

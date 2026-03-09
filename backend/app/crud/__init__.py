@@ -34,6 +34,9 @@ from .booking_items import (
     reassign_trip_boat_passengers,
     update_booking_item,
 )
+from .bookings import (
+    create_booking_impl,
+)
 from .effective_pricing import (
     get_effective_capacity_per_ticket_type,
     get_effective_pricing,
@@ -276,6 +279,8 @@ __all__ = [
     "get_effective_capacity_per_ticket_type",
     "get_effective_pricing",
     "get_effective_ticket_types_for_trip",
+    # Bookings
+    "create_booking_impl",
     # Booking Items
     "create_booking_item",
     "delete_booking_item",

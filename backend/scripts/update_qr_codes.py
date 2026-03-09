@@ -11,7 +11,7 @@ import logging
 
 from sqlmodel import Session, select
 
-from app.api.routes.bookings import generate_qr_code
+from app.api.routes.booking_utils import generate_qr_code
 from app.core.db import engine
 from app.models import Booking
 

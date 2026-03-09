@@ -1083,11 +1083,11 @@ export type BoatsReadPublicBoatsData = {
 
 export type BoatsReadPublicBoatsResponse = BoatsPublic
 
-export type BookingsCreateBookingData = {
-  requestBody: BookingCreate
+export type BookingsDuplicateBookingData = {
+  bookingId: string
 }
 
-export type BookingsCreateBookingResponse = BookingPublic
+export type BookingsDuplicateBookingResponse = BookingPublic
 
 export type BookingsListBookingsData = {
   boatId?: string | null
@@ -1106,11 +1106,11 @@ export type BookingsListBookingsData = {
 
 export type BookingsListBookingsResponse = BookingsPaginatedResponse
 
-export type BookingsDuplicateBookingData = {
-  bookingId: string
+export type BookingsCreateBookingData = {
+  requestBody: BookingCreate
 }
 
-export type BookingsDuplicateBookingResponse = BookingPublic
+export type BookingsCreateBookingResponse = BookingPublic
 
 export type BookingsGetBookingByIdData = {
   bookingId: string
@@ -1167,31 +1167,6 @@ export type BookingsRevertCheckInData = {
 
 export type BookingsRevertCheckInResponse = BookingPublic
 
-export type BookingPublicResendBookingConfirmationEmailData = {
-  confirmationCode: string
-}
-
-export type BookingPublicResendBookingConfirmationEmailResponse = {
-  [key: string]: unknown
-}
-
-export type BookingsProcessRefundData = {
-  confirmationCode: string
-  requestBody: RefundRequest
-}
-
-export type BookingsProcessRefundResponse = BookingPublic
-
-export type BookingsExportBookingsCsvData = {
-  boatId?: string | null
-  bookingStatus?: string | null
-  fields?: string | null
-  missionId?: string | null
-  tripId?: string | null
-}
-
-export type BookingsExportBookingsCsvResponse = unknown
-
 export type BookingsGetBookingQrCodeData = {
   confirmationCode: string
 }
@@ -1210,6 +1185,14 @@ export type BookingsGetBookingByConfirmationCodeData = {
 }
 
 export type BookingsGetBookingByConfirmationCodeResponse = BookingPublic
+
+export type BookingPublicResendBookingConfirmationEmailData = {
+  confirmationCode: string
+}
+
+export type BookingPublicResendBookingConfirmationEmailResponse = {
+  [key: string]: unknown
+}
 
 export type BookingsInitializePaymentData = {
   confirmationCode: string
@@ -1234,6 +1217,23 @@ export type BookingsConfirmFreeBookingData = {
 export type BookingsConfirmFreeBookingResponse = {
   [key: string]: unknown
 }
+
+export type BookingsExportBookingsCsvData = {
+  boatId?: string | null
+  bookingStatus?: string | null
+  fields?: string | null
+  missionId?: string | null
+  tripId?: string | null
+}
+
+export type BookingsExportBookingsCsvResponse = unknown
+
+export type BookingsProcessRefundData = {
+  confirmationCode: string
+  requestBody: RefundRequest
+}
+
+export type BookingsProcessRefundResponse = BookingPublic
 
 export type DebugLogDomStateData = {
   requestBody: DomStateLog
