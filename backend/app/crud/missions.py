@@ -279,6 +279,20 @@ def archive_mission_cascade(*, session: Session, mission_id: uuid.UUID) -> None:
     session.commit()
 
 
+def unarchive_mission_cascade(*, session: Session, mission_id: uuid.UUID) -> None:
+    """Unarchive mission and all its trips."""
+    mission = session.get(Mission, mission_id)
+    if mission:
+        mission.archived = False
+        session.add(mission)
+    for trip in session.exec(
+        select(Trip).where(Trip.mission_id == mission_id)
+    ).unique():
+        trip.archived = False
+        session.add(trip)
+    session.commit()
+
+
 def delete_mission(*, session: Session, db_obj: Mission) -> None:
     """Delete a mission. Fails if any trips reference it."""
     trips_count = (

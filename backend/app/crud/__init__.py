@@ -57,6 +57,7 @@ from .launches import (
     get_launches_by_location,
     get_launches_count,
     get_launches_no_relationships,
+    unarchive_launch_cascade,
     update_launch,
 )
 from .locations import (
@@ -96,6 +97,7 @@ from .missions import (
     get_missions_no_relationships,
     get_missions_with_stats,
     get_public_missions,
+    unarchive_mission_cascade,
     update_mission,
 )
 from .providers import (
@@ -205,6 +207,7 @@ __all__ = [
     "get_launches_count",
     "get_launches_no_relationships",
     "archive_launch_cascade",
+    "unarchive_launch_cascade",
     "update_launch",
     # Missions
     "create_mission",
@@ -218,6 +221,7 @@ __all__ = [
     "get_missions_with_stats",
     "get_public_missions",
     "archive_mission_cascade",
+    "unarchive_mission_cascade",
     "update_mission",
     # Boats
     "create_boat",

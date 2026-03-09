@@ -43,12 +43,14 @@ interface EditLaunchProps {
   /** When provided, dialog open state is controlled (e.g. open after duplicate). */
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  disabled?: boolean
 }
 
 const EditLaunch = ({
   launch,
   isOpen: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  disabled = false,
 }: EditLaunchProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
@@ -140,7 +142,7 @@ const EditLaunch = ({
     >
       {!isControlled && (
         <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" color="dark.accent.primary">
+          <Button variant="ghost" size="sm" color="dark.accent.primary" disabled={disabled}>
             <FaExchangeAlt fontSize="16px" />
             Edit Launch
           </Button>

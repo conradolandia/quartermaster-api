@@ -75,7 +75,7 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
   return (
     <>
       <ActionsMenu ariaLabel="Mission actions">
-        <EditMission mission={mission} />
+        <EditMission mission={mission} disabled={!!mission.archived} />
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
@@ -94,13 +94,19 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
             Duplicate
           </Button>
         </MenuItem>
-        <MenuItem value="send-update" onClick={() => setSendUpdateOpen(true)} asChild>
+        <MenuItem
+          value="send-update"
+          onClick={() => setSendUpdateOpen(true)}
+          disabled={!!mission.archived}
+          asChild
+        >
           <Button
             variant="ghost"
             size="sm"
             color="dark.accent.primary"
             justifyContent="start"
             w="full"
+            disabled={!!mission.archived}
           >
             <FiMail fontSize="16px" />
             Send Update
@@ -145,7 +151,7 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
             </Button>
           </MenuItem>
         )}
-        <DeleteMission id={mission.id} name={mission.name} />
+        <DeleteMission id={mission.id} name={mission.name} disabled={!!mission.archived} />
       </ActionsMenu>
       <EditMission
         mission={

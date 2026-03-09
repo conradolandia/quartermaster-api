@@ -63,9 +63,17 @@ const sortLaunches = (
   sortBy: SortableColumn | undefined,
   sortDirection: SortDirection | undefined,
 ) => {
-  if (!sortBy || !sortDirection) return launches
+  if (!sortBy || !sortDirection) {
+    return [...launches].sort((a, b) => {
+      if (a.archived !== b.archived) return a.archived ? 1 : -1
+      return 0
+    })
+  }
 
   return [...launches].sort((a, b) => {
+    // Archived items always sort to the bottom
+    if (a.archived !== b.archived) return a.archived ? 1 : -1
+
     let aValue = a[sortBy]
     let bValue = b[sortBy]
 
@@ -338,7 +346,11 @@ function LaunchesTable() {
           </Table.Header>
           <Table.Body>
             {launches?.map((launch) => (
-              <Table.Row key={launch.id} opacity={isPlaceholderData ? 0.5 : 1}>
+              <Table.Row
+                key={launch.id}
+                opacity={isPlaceholderData ? 0.5 : launch.archived ? 0.6 : 1}
+                bg={launch.archived ? "bg.muted" : undefined}
+              >
                 <Table.Cell truncate maxW="sm">
                   {launch.name}
                 </Table.Cell>

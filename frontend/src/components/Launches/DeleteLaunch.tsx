@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 
-const DeleteLaunch = ({ id }: { id: string }) => {
+const DeleteLaunch = ({ id, disabled = false }: { id: string; disabled?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -59,7 +59,7 @@ const DeleteLaunch = ({ id }: { id: string }) => {
       onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" color="status.error">
+        <Button variant="ghost" size="sm" color="status.error" disabled={disabled}>
           <FiTrash2 fontSize="16px" />
           Delete Launch
         </Button>

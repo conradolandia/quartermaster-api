@@ -110,11 +110,12 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   return (
     <>
       <ActionsMenu ariaLabel="Trip actions">
-        <EditTrip trip={trip} />
+        <EditTrip trip={trip} disabled={trip.archived} />
         <EditTrip
           trip={trip}
           initialTab="boats"
           triggerLabel="Manage Boats"
+          disabled={trip.archived}
         />
         <MenuItem
           value="duplicate"
@@ -134,25 +135,37 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
             Duplicate
           </Button>
         </MenuItem>
-        <MenuItem value="send-update" onClick={() => setSendUpdateOpen(true)} asChild>
+        <MenuItem
+          value="send-update"
+          onClick={() => setSendUpdateOpen(true)}
+          disabled={trip.archived}
+          asChild
+        >
           <Button
             variant="ghost"
             size="sm"
             color="dark.accent.primary"
             justifyContent="start"
             w="full"
+            disabled={trip.archived}
           >
             <FiMail fontSize="16px" />
             Send Update
           </Button>
         </MenuItem>
-        <MenuItem value="copy-booking-link" onClick={copyBookingLink} asChild>
+        <MenuItem
+          value="copy-booking-link"
+          onClick={copyBookingLink}
+          disabled={trip.archived}
+          asChild
+        >
           <Button
             variant="ghost"
             size="sm"
             color="dark.accent.primary"
             justifyContent="start"
             w="full"
+            disabled={trip.archived}
           >
             <FiLink fontSize="16px" />
             Copy Booking Link
@@ -197,7 +210,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
             </Button>
           </MenuItem>
         )}
-        <DeleteTrip id={trip.id} type={trip.type} />
+        <DeleteTrip id={trip.id} type={trip.type} disabled={trip.archived} />
       </ActionsMenu>
       <EditTrip
         trip={editingTrip ?? trip}

@@ -49,6 +49,8 @@ interface BookingActionsMenuProps {
   onPermanentDeleteSuccess?: () => void
   /** Actions to hide in the menu because they are shown as standalone buttons (e.g. on the detail page). */
   hideInMenu?: BookingActionHideInMenu[]
+  /** When true, disables all mutating actions except Refund. */
+  archived?: boolean
 }
 
 const BookingActionsMenu = ({
@@ -61,6 +63,7 @@ const BookingActionsMenu = ({
   editDisabled = false,
   onPermanentDeleteSuccess,
   hideInMenu = [],
+  archived = false,
 }: BookingActionsMenuProps) => {
   const hide = (key: BookingActionHideInMenu) => hideInMenu.includes(key)
   const [internalEditOpen, setInternalEditOpen] = useState(false)
@@ -175,13 +178,14 @@ const BookingActionsMenu = ({
           </MenuItem>
         )}
         {!isEditControlled && !editDisabled && (
-          <MenuItem value="edit" onClick={handleOpenEdit} asChild>
+          <MenuItem value="edit" onClick={handleOpenEdit} disabled={archived} asChild>
             <Button
               variant="ghost"
               size="sm"
               color="dark.accent.primary"
               justifyContent="start"
               w="full"
+              disabled={archived}
             >
               <FiEdit fontSize="16px" />
               Edit Booking
@@ -191,7 +195,7 @@ const BookingActionsMenu = ({
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
-          disabled={duplicateMutation.isPending}
+          disabled={duplicateMutation.isPending || archived}
           asChild
         >
           <Button
@@ -200,7 +204,7 @@ const BookingActionsMenu = ({
             color="dark.accent.primary"
             justifyContent="start"
             w="full"
-            disabled={duplicateMutation.isPending}
+            disabled={duplicateMutation.isPending || archived}
           >
             <FiCopy fontSize="16px" />
             Duplicate
@@ -210,7 +214,7 @@ const BookingActionsMenu = ({
           <MenuItem
             value="check-in"
             onClick={() => checkInMutation.mutate()}
-            disabled={checkInMutation.isPending}
+            disabled={checkInMutation.isPending || archived}
             asChild
           >
             <Button
@@ -219,7 +223,7 @@ const BookingActionsMenu = ({
               color="dark.accent.primary"
               justifyContent="start"
               w="full"
-              disabled={checkInMutation.isPending}
+              disabled={checkInMutation.isPending || archived}
             >
               <FiCheck fontSize="16px" />
               Check In
@@ -230,7 +234,7 @@ const BookingActionsMenu = ({
           <MenuItem
             value="revert-check-in"
             onClick={() => revertCheckInMutation.mutate()}
-            disabled={revertCheckInMutation.isPending}
+            disabled={revertCheckInMutation.isPending || archived}
             asChild
           >
             <Button
@@ -239,7 +243,7 @@ const BookingActionsMenu = ({
               color="dark.accent.primary"
               justifyContent="start"
               w="full"
-              disabled={revertCheckInMutation.isPending}
+              disabled={revertCheckInMutation.isPending || archived}
             >
               <FiCornerUpLeft fontSize="16px" />
               Revert Check-in
@@ -250,6 +254,7 @@ const BookingActionsMenu = ({
           <MenuItem
             value="reschedule"
             onClick={() => setRescheduleModalOpen(true)}
+            disabled={archived}
             asChild
           >
             <Button
@@ -258,6 +263,7 @@ const BookingActionsMenu = ({
               color="dark.accent.primary"
               justifyContent="start"
               w="full"
+              disabled={archived}
             >
               <FiCalendar fontSize="16px" />
               Reschedule
@@ -285,6 +291,7 @@ const BookingActionsMenu = ({
         <MenuItem
           value="cancel"
           onClick={() => setDeleteModalOpen(true)}
+          disabled={archived}
           asChild
         >
           <Button
@@ -293,6 +300,7 @@ const BookingActionsMenu = ({
             color="status.error"
             justifyContent="start"
             w="full"
+            disabled={archived}
           >
             <FiTrash2 fontSize="16px" />
             Cancel Booking
@@ -301,6 +309,7 @@ const BookingActionsMenu = ({
         <MenuItem
           value="delete"
           onClick={() => setPermanentDeleteModalOpen(true)}
+          disabled={archived}
           asChild
         >
           <Button
@@ -309,6 +318,7 @@ const BookingActionsMenu = ({
             color="status.error"
             justifyContent="start"
             w="full"
+            disabled={archived}
           >
             <FiXCircle fontSize="16px" />
             Delete

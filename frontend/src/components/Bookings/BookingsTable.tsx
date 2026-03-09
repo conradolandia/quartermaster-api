@@ -303,11 +303,26 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     queryFn: () => BookingsService.listBookings({ limit: 1000 }),
   })
 
-  const bookings = bookingsData?.data || []
+  const rawBookings = bookingsData?.data || []
   const count = bookingsData?.total || 0
   const missions = missionsData?.data || []
   const trips = tripsData?.data || []
   const boats = boatsData?.data || []
+
+  // Identify archived trips so we can style/sort archived bookings
+  const archivedTripIds = new Set(
+    (trips as TripPublic[]).filter((t) => t.archived).map((t) => t.id),
+  )
+  const isBookingArchived = (booking: (typeof rawBookings)[0]) =>
+    booking.items?.some((item) => archivedTripIds.has(item.trip_id)) ?? false
+
+  // Sort archived bookings to the bottom
+  const bookings = [...rawBookings].sort((a, b) => {
+    const aArchived = isBookingArchived(a)
+    const bArchived = isBookingArchived(b)
+    if (aArchived !== bArchived) return aArchived ? 1 : -1
+    return 0
+  })
 
   // When a trip is selected, only show boats that exist for that trip
   const tripBoats = Array.isArray(tripBoatsData) ? tripBoatsData : []
@@ -957,11 +972,15 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {bookings.map((booking) => (
+            {bookings.map((booking) => {
+              const bookingArchived = isBookingArchived(booking)
+              return (
               <Table.Row
                 key={booking.id}
                 cursor="pointer"
                 onClick={() => onBookingClick(booking.confirmation_code)}
+                opacity={bookingArchived ? 0.6 : 1}
+                bg={bookingArchived ? "bg.muted" : undefined}
               >
                 <Table.Cell w="36" minW="28">
                   <Flex align="center" gap={2}>
@@ -1118,11 +1137,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     <BookingActionsMenu
                       booking={booking}
                       editDisabled={booking.booking_status === "checked_in"}
+                      archived={bookingArchived}
                     />
                   </Flex>
                 </Table.Cell>
               </Table.Row>
-            ))}
+              )
+            })}
           </Table.Body>
         </Table.Root>
       </Box>

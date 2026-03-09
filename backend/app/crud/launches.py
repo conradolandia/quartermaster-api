@@ -147,6 +147,31 @@ def archive_launch_cascade(*, session: Session, launch_id: uuid.UUID) -> None:
     session.commit()
 
 
+def unarchive_launch_cascade(*, session: Session, launch_id: uuid.UUID) -> None:
+    """Unarchive launch, all its missions, and all their trips."""
+    launch = session.get(Launch, launch_id)
+    if launch:
+        launch.archived = False
+        session.add(launch)
+    missions = (
+        session.exec(select(Mission).where(Mission.launch_id == launch_id))
+        .unique()
+        .all()
+    )
+    mission_ids = []
+    for mission in missions:
+        mission.archived = False
+        session.add(mission)
+        mission_ids.append(mission.id)
+    if mission_ids:
+        for trip in session.exec(
+            select(Trip).where(Trip.mission_id.in_(mission_ids))
+        ).unique():
+            trip.archived = False
+            session.add(trip)
+    session.commit()
+
+
 def delete_launch(*, session: Session, db_obj: Launch) -> None:
     """Delete a launch. Fails if any missions reference it."""
     missions_count = (

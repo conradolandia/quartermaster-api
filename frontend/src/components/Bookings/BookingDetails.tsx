@@ -82,8 +82,8 @@ export default function BookingDetails({
       : "UTC"
 
   const { data: tripsData } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => TripsService.readTrips({ limit: 500 }),
+    queryKey: ["trips", "for-booking-detail"],
+    queryFn: () => TripsService.readTrips({ limit: 500, includeArchived: true }),
     enabled: !!booking?.items?.length,
   })
 
@@ -104,6 +104,11 @@ export default function BookingDetails({
     const boat = boatsData?.data?.find((b: { id: string }) => b.id === boatId)
     return boat ? boat.name : boatId
   }
+
+  const isArchived = booking?.items?.some((item) => {
+    const trip = tripsData?.data?.find((t: { id: string }) => t.id === item.trip_id)
+    return trip?.archived
+  }) ?? false
 
   const displayItems = useMemo(() => {
     if (!booking?.items?.length) return []
@@ -250,17 +255,20 @@ export default function BookingDetails({
             onClick={handleEmail}
             loading={emailSending}
             disabled={
+              isArchived ||
               emailSending ||
               !["confirmed", "checked_in", "completed"].includes(
                 booking?.booking_status ?? "",
               )
             }
             title={
-              !["confirmed", "checked_in", "completed"].includes(
-                booking?.booking_status ?? "",
-              )
-                ? "Resend email is only available for confirmed, checked-in, or completed bookings"
-                : undefined
+              isArchived
+                ? "Cannot resend email for archived bookings"
+                : !["confirmed", "checked_in", "completed"].includes(
+                    booking?.booking_status ?? "",
+                  )
+                  ? "Resend email is only available for confirmed, checked-in, or completed bookings"
+                  : undefined
             }
           >
             <Flex align="center" gap={2}>
@@ -274,6 +282,7 @@ export default function BookingDetails({
                 size="sm"
                 variant="ghost"
                 onClick={() => setRescheduleDialogOpen(true)}
+                disabled={isArchived}
               >
                 <Flex align="center" gap={2}>
                   <FiCalendar />
@@ -284,6 +293,7 @@ export default function BookingDetails({
                 size="sm"
                 variant="ghost"
                 onClick={() => setEditModalOpen(true)}
+                disabled={isArchived}
               >
                 <Flex align="center" gap={2}>
                   <FiEdit />
@@ -298,6 +308,7 @@ export default function BookingDetails({
               colorPalette="green"
               onClick={() => checkInMutation.mutate()}
               loading={checkInMutation.isPending}
+              disabled={isArchived}
             >
               <Flex align="center" gap={2}>
                 <FiCheck />
@@ -312,6 +323,7 @@ export default function BookingDetails({
               colorPalette="orange"
               onClick={() => revertCheckInMutation.mutate()}
               loading={revertCheckInMutation.isPending}
+              disabled={isArchived}
               title="Revert check-in so the booking is confirmed again"
             >
               <Flex align="center" gap={2}>
@@ -334,6 +346,7 @@ export default function BookingDetails({
               "check-in",
               "revert-check-in",
             ]}
+            archived={isArchived}
           />
         </Flex>
       </Flex>

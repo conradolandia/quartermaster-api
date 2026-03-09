@@ -20,9 +20,10 @@ import { FiTrash2 } from "react-icons/fi"
 interface DeleteTripProps {
   id: string
   type: string
+  disabled?: boolean
 }
 
-const DeleteTrip = ({ id, type }: DeleteTripProps) => {
+const DeleteTrip = ({ id, type, disabled = false }: DeleteTripProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -69,7 +70,7 @@ const DeleteTrip = ({ id, type }: DeleteTripProps) => {
       onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" color="status.error">
+        <Button variant="ghost" size="sm" color="status.error" disabled={disabled}>
           <FiTrash2 fontSize="16px" />
           Delete Trip
         </Button>

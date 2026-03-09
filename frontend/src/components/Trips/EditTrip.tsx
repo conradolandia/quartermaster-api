@@ -68,6 +68,7 @@ interface EditTripProps {
   /** When provided, dialog open state is controlled (e.g. open after duplicate). */
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  disabled?: boolean
 }
 
 const EditTrip = ({
@@ -76,6 +77,7 @@ const EditTrip = ({
   triggerLabel = "Edit Trip",
   isOpen: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  disabled = false,
 }: EditTripProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
@@ -701,6 +703,7 @@ const EditTrip = ({
               variant="ghost"
               size="sm"
               color="dark.accent.primary"
+              disabled={disabled}
             >
               <FiEdit fontSize="16px" />
               {triggerLabel}

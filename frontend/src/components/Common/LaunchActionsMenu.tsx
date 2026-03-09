@@ -73,7 +73,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
   return (
     <>
       <ActionsMenu ariaLabel="Launch actions">
-        <EditLaunch launch={launch} />
+        <EditLaunch launch={launch} disabled={launch.archived} />
         <MenuItem
           value="duplicate"
           onClick={() => duplicateMutation.mutate()}
@@ -92,14 +92,20 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
             Duplicate
           </Button>
         </MenuItem>
-        <SendLaunchUpdate launch={launch} />
-        <MenuItem value="copy-booking-link" onClick={copyBookingLink} asChild>
+        <SendLaunchUpdate launch={launch} disabled={launch.archived} />
+        <MenuItem
+          value="copy-booking-link"
+          onClick={copyBookingLink}
+          disabled={launch.archived}
+          asChild
+        >
           <Button
             variant="ghost"
             size="sm"
             color="dark.accent.primary"
             justifyContent="start"
             w="full"
+            disabled={launch.archived}
           >
             <FiLink fontSize="16px" />
             Copy Booking Link
@@ -144,7 +150,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
             </Button>
           </MenuItem>
         )}
-        <DeleteLaunch id={launch.id} />
+        <DeleteLaunch id={launch.id} disabled={launch.archived} />
       </ActionsMenu>
       <EditLaunch
         launch={editingLaunch ?? launch}

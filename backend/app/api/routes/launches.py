@@ -179,6 +179,9 @@ def update_launch(
     if launch_in.archived is True:
         crud.archive_launch_cascade(session=session, launch_id=launch_id)
         launch = crud.get_launch(session=session, launch_id=launch_id)
+    elif launch_in.archived is False:
+        crud.unarchive_launch_cascade(session=session, launch_id=launch_id)
+        launch = crud.get_launch(session=session, launch_id=launch_id)
     return _launch_to_public(session, launch)
 
 

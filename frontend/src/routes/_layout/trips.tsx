@@ -312,6 +312,9 @@ function TripsTable() {
   const effectiveSortDirection = sortDirection || "desc"
 
   tripsToShow = tripsToShow.sort((a, b) => {
+    // Archived items always sort to the bottom
+    if (a.archived !== b.archived) return a.archived ? 1 : -1
+
     let aValue: unknown = a[effectiveSortBy as keyof TripWithStats]
     let bValue: unknown = b[effectiveSortBy as keyof TripWithStats]
 
@@ -664,7 +667,11 @@ function TripsTable() {
               const boats = tripBoatsByTrip[trip.id]
 
               return (
-                <Table.Row key={trip.id} opacity={isPlaceholderData ? 0.5 : 1}>
+                <Table.Row
+                  key={trip.id}
+                  opacity={isPlaceholderData ? 0.5 : trip.archived ? 0.6 : 1}
+                  bg={trip.archived ? "bg.muted" : undefined}
+                >
                   <Table.Cell minW="8rem" px={1} pl={3} verticalAlign="top">
                     <Link
                       asChild

@@ -186,6 +186,9 @@ def update_mission(
     if mission_in.archived is True:
         crud.archive_mission_cascade(session=session, mission_id=mission_id)
         session.refresh(mission)
+    elif mission_in.archived is False:
+        crud.unarchive_mission_cascade(session=session, mission_id=mission_id)
+        session.refresh(mission)
     return _mission_to_public(session, mission)
 
 

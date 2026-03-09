@@ -72,9 +72,17 @@ const sortMissions = (
   sortBy: SortableColumn | undefined,
   sortDirection: SortDirection | undefined,
 ) => {
-  if (!sortBy || !sortDirection) return missions
+  if (!sortBy || !sortDirection) {
+    return [...missions].sort((a, b) => {
+      if (a.archived !== b.archived) return a.archived ? 1 : -1
+      return 0
+    })
+  }
 
   return [...missions].sort((a, b) => {
+    // Archived items always sort to the bottom
+    if (a.archived !== b.archived) return a.archived ? 1 : -1
+
     let aValue: unknown = a[sortBy]
     let bValue: unknown = b[sortBy]
 
@@ -348,7 +356,11 @@ function Missions() {
             </Table.Header>
             <Table.Body>
               {missions.map((mission) => (
-                <Table.Row key={mission.id}>
+                <Table.Row
+                  key={mission.id}
+                  opacity={mission.archived ? 0.6 : 1}
+                  bg={mission.archived ? "bg.muted" : undefined}
+                >
                   <Table.Cell>
                     <Link
                       asChild

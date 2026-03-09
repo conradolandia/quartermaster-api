@@ -53,6 +53,7 @@ export interface SendLaunchUpdateProps {
   onOpenChange?: (open: boolean) => void
   /** Dialog title. Defaults to "Send Launch Update". */
   dialogTitle?: string
+  disabled?: boolean
 }
 
 const SendLaunchUpdate = ({
@@ -65,6 +66,7 @@ const SendLaunchUpdate = ({
   isOpen: controlledOpen,
   onOpenChange,
   dialogTitle = "Send Launch Update",
+  disabled = false,
 }: SendLaunchUpdateProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = controlledOpen ?? internalOpen
@@ -185,7 +187,7 @@ const SendLaunchUpdate = ({
     >
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" color="dark.accent.primary">
+          <Button variant="ghost" size="sm" color="dark.accent.primary" disabled={disabled}>
             <FiMail fontSize="16px" />
             Send Update
           </Button>
