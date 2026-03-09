@@ -182,6 +182,12 @@ def update_mission(
             )
         launch = new_launch
 
+    if mission_in.archived is False and launch.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot unarchive mission: its launch is archived. Unarchive the launch first.",
+        )
+
     mission = crud.update_mission(session=session, db_obj=mission, obj_in=mission_in)
     if mission_in.archived is True:
         crud.archive_mission_cascade(session=session, mission_id=mission_id)

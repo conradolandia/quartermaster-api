@@ -687,6 +687,12 @@ def update_trip(
             detail=f"Launch for mission {mission_id} not found",
         )
 
+    if trip_in.archived is False and mission.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot unarchive trip: its mission is archived. Unarchive the mission first.",
+        )
+
     update_data = trip_in.model_dump(exclude_unset=True)
     time_fields = {
         "departure_time",
