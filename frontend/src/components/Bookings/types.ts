@@ -161,5 +161,34 @@ export const getStatusColor = (status: string) => {
   return getBookingStatusColor(status)
 }
 
+// Filter option sets for BookingsTable
+export const BOOKING_STATUSES = [
+  "draft",
+  "confirmed",
+  "checked_in",
+  "completed",
+  "cancelled",
+] as const
+
+export const PAYMENT_STATUSES = [
+  "pending_payment",
+  "paid",
+  "free",
+  "failed",
+  "refunded",
+  "partially_refunded",
+] as const
+
+/** Parse comma-separated status list from URL param; return valid subset or full list. */
+export function parseStatusList(
+  param: string | null,
+  all: readonly string[],
+): string[] {
+  if (!param?.trim()) return [...all]
+  const parsed = param.split(",").map((s) => s.trim()).filter(Boolean)
+  const valid = parsed.filter((s) => all.includes(s))
+  return valid.length > 0 ? valid : [...all]
+}
+
 // Helper function to format dates (delegates to utils for international format support)
 export { formatDateTimeInLocationTz as formatDate } from "@/utils"

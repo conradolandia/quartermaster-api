@@ -1,14 +1,10 @@
 import {
   Badge,
   Box,
-  Checkbox,
-  HStack,
-  Button,
   Flex,
+  HStack,
   Icon,
   IconButton,
-  Input,
-  Select,
   Table,
   Text,
   VStack,
@@ -16,7 +12,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiChevronDown, FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone, FiSearch, FiX } from "react-icons/fi"
+import { FiArrowDown, FiArrowUp, FiCopy, FiMail, FiPhone } from "react-icons/fi"
 
 import {
   BoatsService,
@@ -28,13 +24,7 @@ import {
 import type { TripPublic } from "@/client"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import PendingBookings from "@/components/Pending/PendingBookings"
-import {
-  MenuCheckboxItem,
-  MenuContent,
-  MenuRoot,
-  MenuTrigger,
-} from "@/components/ui/menu"
-import { InputGroup } from "@/components/ui/input-group"
+import BookingsFilterBar from "@/components/Bookings/BookingsFilterBar"
 import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
@@ -54,6 +44,8 @@ import {
   parseApiDate,
 } from "@/utils"
 import {
+  BOOKING_STATUSES,
+  PAYMENT_STATUSES,
   type SortDirection,
   type SortableColumn,
   formatBookingStatusLabel,
@@ -62,38 +54,12 @@ import {
   getPaymentStatusColor,
   getRefundedCents,
   isPartiallyRefunded,
+  parseStatusList,
   totalTicketQuantity,
 } from "./types"
 
 interface BookingsTableProps {
   onBookingClick: (confirmationCode: string) => void
-}
-
-const BOOKING_STATUSES = [
-  "draft",
-  "confirmed",
-  "checked_in",
-  "completed",
-  "cancelled",
-] as const
-
-const PAYMENT_STATUSES = [
-  "pending_payment",
-  "paid",
-  "free",
-  "failed",
-  "refunded",
-  "partially_refunded",
-] as const
-
-function parseStatusList(
-  param: string | null,
-  all: readonly string[],
-): string[] {
-  if (!param?.trim()) return [...all]
-  const parsed = param.split(",").map((s) => s.trim()).filter(Boolean)
-  const valid = parsed.filter((s) => all.includes(s))
-  return valid.length > 0 ? valid : [...all]
 }
 
 export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
@@ -596,263 +562,71 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       ? "All"
       : `${paymentStatusFilter.length} of ${PAYMENT_STATUSES.length}`
 
-  const filterSelectWidth = "160px"
   const userTz =
     typeof Intl !== "undefined" && Intl.DateTimeFormat
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC"
 
+  const hasActiveFilters = !!(
+    missionId ||
+    tripId ||
+    boatId ||
+    tripType ||
+    bookingStatusFilter.length < BOOKING_STATUSES.length ||
+    paymentStatusFilter.length < PAYMENT_STATUSES.length ||
+    debouncedSearchQuery
+  )
+
+  const handleClearFilters = () => {
+    setMissionId(undefined)
+    setTripId(undefined)
+    setBoatId(undefined)
+    setTripType(undefined)
+    setBookingStatusFilter([...BOOKING_STATUSES])
+    setPaymentStatusFilter([...PAYMENT_STATUSES])
+    setSearchQuery("")
+    setDebouncedSearchQuery("")
+    updateFiltersInUrl({
+      missionId: undefined,
+      tripId: undefined,
+      boatId: undefined,
+      tripType: undefined,
+      bookingStatuses: [...BOOKING_STATUSES],
+      paymentStatuses: [...PAYMENT_STATUSES],
+      search: undefined,
+    })
+  }
+
   return (
     <>
-      <VStack key="bookings-filter-bar" align="stretch" gap={3} mb={4}>
-        <Flex align="center" gap={3} flexWrap="wrap">
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-            Search:
-          </Text>
-          <InputGroup width="480px" maxWidth="100%" startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}>
-            <Input
-              ref={searchInputRef}
-              size="xs"
-              placeholder="Search code, name, email, phone"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              borderColor="white"
-            />
-          </InputGroup>
-          <Checkbox.Root
-            checked={includeArchived}
-            onCheckedChange={(e) =>
-              handleIncludeArchivedChange(e.checked === true)
-            }
-          >
-            <Checkbox.HiddenInput />
-            <Checkbox.Control />
-            <Checkbox.Label fontSize="sm" color="text.secondary">
-              Include archived
-            </Checkbox.Label>
-          </Checkbox.Root>
-        </Flex>
-        <Flex gap={3} align="center" flexWrap="wrap">
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Booking:
-            </Text>
-            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-              <MenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  width={filterSelectWidth}
-                  borderColor="white"
-                  justifyContent="space-between"
-                >
-                  {bookingStatusLabel}
-                  <Icon as={FiChevronDown} ml={1} />
-                </Button>
-              </MenuTrigger>
-              <MenuContent minWidth="180px">
-                {BOOKING_STATUSES.map((status) => (
-                  <MenuCheckboxItem
-                    key={status}
-                    checked={bookingStatusFilter.includes(status)}
-                    onCheckedChange={() => toggleBookingStatus(status)}
-                    value={status}
-                  >
-                    {status.replace(/_/g, " ").toUpperCase()}
-                  </MenuCheckboxItem>
-                ))}
-              </MenuContent>
-            </MenuRoot>
-          </HStack>
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Payment:
-            </Text>
-            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-              <MenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  width={filterSelectWidth}
-                  borderColor="white"
-                  justifyContent="space-between"
-                >
-                  {paymentStatusLabel}
-                  <Icon as={FiChevronDown} ml={1} />
-                </Button>
-              </MenuTrigger>
-              <MenuContent minWidth="200px">
-                {PAYMENT_STATUSES.map((status) => (
-                  <MenuCheckboxItem
-                    key={status}
-                    checked={paymentStatusFilter.includes(status)}
-                    onCheckedChange={() => togglePaymentStatus(status)}
-                    value={status}
-                  >
-                    {status.replace(/_/g, " ").toUpperCase()}
-                  </MenuCheckboxItem>
-                ))}
-              </MenuContent>
-            </MenuRoot>
-          </HStack>
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Mission:
-            </Text>
-            <Select.Root
-              collection={missionsCollection}
-              size="xs"
-              width={filterSelectWidth}
-              borderColor="white"
-              value={missionId ? [missionId] : [""]}
-              onValueChange={(e) => handleMissionFilter(e.value[0] || undefined)}
-            >
-              <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Missions" />
-                </Select.Trigger>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
-                  {missionsCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
-          </HStack>
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Trip:
-            </Text>
-            <Select.Root
-              collection={tripsCollection}
-              size="xs"
-              width={filterSelectWidth}
-              borderColor="white"
-              value={tripId ? [tripId] : [""]}
-              onValueChange={(e) => handleTripFilter(e.value[0] || undefined)}
-            >
-              <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Trips" />
-                </Select.Trigger>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content minWidth="320px" maxHeight="60vh" overflowY="auto">
-                  {tripsCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
-          </HStack>
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Type:
-            </Text>
-            <Select.Root
-              collection={tripTypeFilterCollection}
-              size="xs"
-              width={filterSelectWidth}
-              borderColor="white"
-              value={tripType ? [tripType] : [""]}
-              onValueChange={(e) =>
-                handleTripTypeFilter(e.value[0] || undefined)
-              }
-            >
-              <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Types" />
-                </Select.Trigger>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content minWidth="180px">
-                  {tripTypeFilterCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
-          </HStack>
-          <HStack gap={3}>
-            <Text fontSize="sm" fontWeight="medium" color="text.secondary">
-              Boat:
-            </Text>
-            <Select.Root
-              collection={boatsCollection}
-              size="xs"
-              width={filterSelectWidth}
-              borderColor="white"
-              value={
-                boatId && filteredBoats.some((b) => b.id === boatId)
-                  ? [boatId]
-                  : [""]
-              }
-              onValueChange={(e) => handleBoatFilter(e.value[0] || undefined)}
-            >
-              <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Boats" />
-                </Select.Trigger>
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content minWidth="220px" maxHeight="60vh" overflowY="auto">
-                  {boatsCollection.items.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      {item.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
-          </HStack>
-        </Flex>
-        {(missionId ||
-          tripId ||
-          boatId ||
-          tripType ||
-          bookingStatusFilter.length < BOOKING_STATUSES.length ||
-          paymentStatusFilter.length < PAYMENT_STATUSES.length ||
-          debouncedSearchQuery) && (
-          <Flex>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setMissionId(undefined)
-                setTripId(undefined)
-                setBoatId(undefined)
-                setTripType(undefined)
-                setBookingStatusFilter([...BOOKING_STATUSES])
-                setPaymentStatusFilter([...PAYMENT_STATUSES])
-                setSearchQuery("")
-                setDebouncedSearchQuery("")
-                updateFiltersInUrl({
-                  missionId: undefined,
-                  tripId: undefined,
-                  boatId: undefined,
-                  tripType: undefined,
-                  bookingStatuses: [...BOOKING_STATUSES],
-                  paymentStatuses: [...PAYMENT_STATUSES],
-                  search: undefined,
-                })
-              }}
-            >
-              <Flex align="center" gap={1}>
-                <FiX />
-                Clear filters
-              </Flex>
-            </Button>
-          </Flex>
-        )}
-      </VStack>
+      <BookingsFilterBar
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+        searchInputRef={searchInputRef}
+        includeArchived={includeArchived}
+        onIncludeArchivedChange={handleIncludeArchivedChange}
+        bookingStatusLabel={bookingStatusLabel}
+        paymentStatusLabel={paymentStatusLabel}
+        bookingStatusFilter={bookingStatusFilter}
+        paymentStatusFilter={paymentStatusFilter}
+        onToggleBookingStatus={toggleBookingStatus}
+        onTogglePaymentStatus={togglePaymentStatus}
+        missionId={missionId}
+        onMissionFilter={handleMissionFilter}
+        missionsCollection={missionsCollection}
+        tripId={tripId}
+        onTripFilter={handleTripFilter}
+        tripsCollection={tripsCollection}
+        tripType={tripType}
+        onTripTypeFilter={handleTripTypeFilter}
+        tripTypeFilterCollection={tripTypeFilterCollection}
+        boatId={boatId}
+        onBoatFilter={handleBoatFilter}
+        boatsCollection={boatsCollection}
+        filteredBoats={filteredBoats}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={handleClearFilters}
+      />
 
       <Box overflowX="auto">
         <Table.Root

@@ -27,7 +27,7 @@ import {
   MissionsService,
   TripsService,
 } from "@/client"
-import { MissionDropdown } from "@/components/Common/MissionDropdown"
+import BasicInfoTab from "@/components/Trips/BasicInfoTab"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -45,7 +45,6 @@ import useCustomToast from "@/hooks/useCustomToast"
 import {
   formatCents,
   formatInLocationTimezone,
-  formatLocationTimezoneDisplay,
   handleError,
   parseApiDate,
   parseLocationTimeToUtc,
@@ -75,12 +74,6 @@ interface SelectedMerchandise {
   price_override?: number | null
   quantity_available_override?: number | null
 }
-
-const bookingModeOptions = [
-  { label: "Private (Admin Only)", value: "private" },
-  { label: "Early Bird (Access Code Required)", value: "early_bird" },
-  { label: "Public (Open to All)", value: "public" },
-]
 
 const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [missionId, setMissionId] = useState("")
@@ -540,199 +533,35 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
             </Tabs.List>
 
             <Tabs.Content value="basic-info">
-              <VStack gap={4}>
-                <Field label="Mission" required>
-                  <MissionDropdown
-                    id="mission_id"
-                    value={missionId}
-                    onChange={setMissionId}
-                    isDisabled={mutation.isPending}
-                    portalRef={contentRef}
-                  />
-                </Field>
-                <Field
-                  label="Name"
-                  helperText="Optional custom label for this trip"
-                >
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Trip name (optional)"
-                    disabled={mutation.isPending}
-                  />
-                </Field>
-                <Field label="Type" required>
-                  <NativeSelect
-                    id="type"
-                    value={type}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setType(e.target.value)
-                    }
-                    disabled={mutation.isPending}
-                  >
-                    <option value="launch_viewing">Launch Viewing</option>
-                    <option value="pre_launch">Pre-Launch</option>
-                  </NativeSelect>
-                </Field>
-                <Field
-                  label="Booking Mode"
-                  helperText="Controls who can book this trip"
-                >
-                  <NativeSelect
-                    id="booking_mode"
-                    value={bookingMode}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                      const mode = e.target.value
-                      setBookingMode(mode)
-                      if (mode === "public") setSalesOpenAt("")
-                    }}
-                    disabled={mutation.isPending}
-                  >
-                    {bookingModeOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-                <Field
-                  label={
-                    timezone
-                      ? `Sales Open (${formatLocationTimezoneDisplay(
-                          timezone,
-                        )})`
-                      : "Sales Open"
-                  }
-                  helperText={
-                    bookingMode === "public"
-                      ? "Not used when booking mode is Public."
-                      : "Trip is not bookable until this time. Leave empty for no restriction. Cannot be in the past."
-                  }
-                >
-                  <Input
-                    id="sales_open_at"
-                    type="datetime-local"
-                    value={salesOpenAt}
-                    onChange={(e) => setSalesOpenAt(e.target.value)}
-                    placeholder={
-                      timezone
-                        ? `Enter time in ${formatLocationTimezoneDisplay(
-                            timezone,
-                          )}`
-                        : "Select mission for timezone"
-                    }
-                    disabled={mutation.isPending || bookingMode === "public"}
-                    min={
-                      bookingMode !== "public" && timezone
-                        ? formatInLocationTimezone(new Date(), timezone)
-                        : undefined
-                    }
-                  />
-                </Field>
-                <Field
-                  label={
-                    timezone
-                      ? `Departure Time (${formatLocationTimezoneDisplay(
-                          timezone,
-                        )})`
-                      : "Departure Time"
-                  }
-                  helperText={
-                    type === "launch_viewing" && launchData
-                      ? "Pre-filled from launch time minus 1 hour"
-                      : undefined
-                  }
-                  required
-                >
-                  <Input
-                    id="departure_time"
-                    type="datetime-local"
-                    value={departureTime}
-                    onChange={(e) => setDepartureTime(e.target.value)}
-                    placeholder={
-                      timezone
-                        ? `Enter time in ${formatLocationTimezoneDisplay(
-                            timezone,
-                          )}`
-                        : "Select mission for timezone"
-                    }
-                    disabled={mutation.isPending}
-                  />
-                </Field>
-                <Field
-                  label="Boarding (minutes before departure)"
-                  helperText="When boarding starts relative to departure"
-                >
-                  <Input
-                    id="boarding_minutes"
-                    type="number"
-                    min={0}
-                    value={boardingMinutesBeforeDeparture}
-                    onChange={(e) =>
-                      setBoardingMinutesBeforeDeparture(e.target.value)
-                    }
-                    disabled={mutation.isPending}
-                  />
-                </Field>
-                <Field
-                  label="Check-in (minutes before boarding)"
-                  helperText="When check-in opens relative to boarding"
-                >
-                  <Input
-                    id="checkin_minutes"
-                    type="number"
-                    min={0}
-                    value={checkinMinutesBeforeBoarding}
-                    onChange={(e) =>
-                      setCheckinMinutesBeforeBoarding(e.target.value)
-                    }
-                    disabled={mutation.isPending}
-                  />
-                </Field>
-                <Field>
-                  <Flex
-                    alignItems="center"
-                    justifyContent="space-between"
-                    width="100%"
-                  >
-                    <Text>Active</Text>
-                    <Box
-                      onClick={() => setActive(!active)}
-                      cursor={mutation.isPending ? "not-allowed" : "pointer"}
-                      opacity={mutation.isPending ? 0.5 : 1}
-                    >
-                      <Switch
-                        checked={active}
-                        disabled={mutation.isPending}
-                        inputProps={{ id: "active" }}
-                      />
-                    </Box>
-                  </Flex>
-                </Field>
-                <Field
-                  helperText="Only visible via direct link; excluded from public listing."
-                >
-                  <Flex
-                    alignItems="center"
-                    justifyContent="space-between"
-                    width="100%"
-                  >
-                    <Text>Unlisted</Text>
-                    <Box
-                      onClick={() => setUnlisted(!unlisted)}
-                      cursor={mutation.isPending ? "not-allowed" : "pointer"}
-                      opacity={mutation.isPending ? 0.5 : 1}
-                    >
-                      <Switch
-                        checked={unlisted}
-                        disabled={mutation.isPending}
-                        inputProps={{ id: "unlisted" }}
-                      />
-                    </Box>
-                  </Flex>
-                </Field>
-              </VStack>
+              <BasicInfoTab
+                missionId={missionId}
+                setMissionId={setMissionId}
+                name={name}
+                setName={setName}
+                type={type}
+                setType={setType}
+                bookingMode={bookingMode}
+                setBookingMode={setBookingMode}
+                salesOpenAt={salesOpenAt}
+                setSalesOpenAt={setSalesOpenAt}
+                departureTime={departureTime}
+                setDepartureTime={setDepartureTime}
+                boardingMinutesBeforeDeparture={boardingMinutesBeforeDeparture}
+                setBoardingMinutesBeforeDeparture={
+                  setBoardingMinutesBeforeDeparture
+                }
+                checkinMinutesBeforeBoarding={checkinMinutesBeforeBoarding}
+                setCheckinMinutesBeforeBoarding={
+                  setCheckinMinutesBeforeBoarding
+                }
+                active={active}
+                setActive={setActive}
+                unlisted={unlisted}
+                setUnlisted={setUnlisted}
+                tz={timezone ?? "UTC"}
+                isPending={mutation.isPending}
+                contentRef={contentRef}
+              />
             </Tabs.Content>
 
             {/* Boats Tab - same interface as Edit Trip */}
