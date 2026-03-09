@@ -4,9 +4,9 @@ You can deploy the project using Docker Compose to a remote server.
 
 This project expects you to have a Traefik proxy handling communication to the outside world and HTTPS certificates.
 
-You can use CI/CD (continuous integration and continuous deployment) systems to deploy automatically, there are already configurations to do it with GitHub Actions.
+CI/CD via GitHub Actions is planned but not yet configured. The section below describes the intended setup.
 
-But you have to configure a couple things first. 🤓
+You have to configure a couple things first.
 
 ## Preparation
 
@@ -198,13 +198,9 @@ docker compose -f docker-compose.yml up -d
 
 For production you wouldn't want to have the overrides in `docker-compose.override.yml`, that's why we explicitly specify `docker-compose.yml` as the file to use.
 
-## Continuous Deployment (CD)
+## Continuous Deployment (CD) (planned)
 
-You can use GitHub Actions to deploy your project automatically. 😎
-
-You can have multiple environment deployments.
-
-There are already two environments configured, `staging` and `production`. 🚀
+> **Note:** GitHub Actions workflows have not been created yet. The following describes the intended setup for when CI/CD is implemented.
 
 ### Install GitHub Actions Runner
 
@@ -299,14 +295,12 @@ The current Github Actions workflows expect these secrets:
 * `LATEST_CHANGES`
 * `SMOKESHOW_AUTH_KEY`
 
-## GitHub Action Deployment Workflows
+## GitHub Action Deployment Workflows (planned)
 
-There are GitHub Action workflows in the `.github/workflows` directory already configured for deploying to the environments (GitHub Actions runners with the labels):
+When implemented, the intended workflow triggers are:
 
 * `staging`: after pushing (or merging) to the branch `master`.
 * `production`: after publishing a release.
-
-If you need to add extra environments you could use those as a starting point.
 
 ## URLs
 

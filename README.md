@@ -159,8 +159,8 @@ Deployment uses Docker Compose with Traefik for TLS termination and routing. See
 
 - Traefik proxy setup with Let's Encrypt
 - Environment variable configuration
-- GitHub Actions self-hosted runner for CD
 - DNS and subdomain configuration
+- GitHub Actions self-hosted runner for CD (planned)
 
 ### Production URLs
 
