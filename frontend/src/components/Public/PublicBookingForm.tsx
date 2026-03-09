@@ -8,7 +8,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { useNavigate, useSearch } from "@tanstack/react-router"
+import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { BookingPublic } from "@/client"
@@ -430,13 +430,17 @@ const PublicBookingForm = ({
                 align={{ base: "stretch", md: "center" }}
                 gap={{ base: 3, md: 0 }}
               >
-                <Heading
-                  fontFamily="logo"
-                  size={{ base: "2xl", md: "3xl" }}
-                  fontWeight="400"
-                >
-                  Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
-                </Heading>
+                <Link to="/book" search={{}} style={{ textDecoration: "none" }}>
+                  <Heading
+                    fontFamily="logo"
+                    size={{ base: "2xl", md: "3xl" }}
+                    fontWeight="400"
+                    _hover={{ opacity: 0.85 }}
+                    transition="opacity 0.15s"
+                  >
+                    Star<Span color="dark.accent.primary">✦</Span>Fleet Tours
+                  </Heading>
+                </Link>
                 <VStack
                   gap={1}
                   align={{ base: "stretch", md: "flex-end" }}

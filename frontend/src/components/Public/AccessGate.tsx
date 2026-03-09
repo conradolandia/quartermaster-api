@@ -3,8 +3,8 @@ import {
   Button,
   Card,
   Container,
-  Heading,
   Input,
+  Heading,
   Spinner,
   Text,
   VStack,
@@ -14,6 +14,7 @@ import { Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { type ApiError, DiscountCodesService, TripsService } from "@/client"
+import BookingPageLayout from "@/components/Public/BookingPageLayout"
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -164,22 +165,24 @@ const AccessGate = ({
   // Invalid trip ID format (not a UUID) - show error immediately, no API calls
   if (invalidDirectTripId) {
     return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={4} textAlign="center">
-              <Heading size="lg">Trip Not Found</Heading>
-              <Text>
-                The trip ID in the URL is not valid. The link may be incorrect or
-                outdated.
-              </Text>
-              <Button asChild colorPalette="blue">
-                <Link to="/book" search={{}}>View available trips</Link>
-              </Button>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={4} textAlign="center">
+                <Heading size="lg">Trip Not Found</Heading>
+                <Text>
+                  The trip ID in the URL is not valid. The link may be incorrect
+                  or outdated.
+                </Text>
+                <Button asChild colorPalette="blue">
+                  <Link to="/book" search={{}}>View available trips</Link>
+                </Button>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
@@ -195,31 +198,35 @@ const AccessGate = ({
     (submittedCode && isValidatingCode)
   ) {
     return (
-      <Container maxW="container.md" py={16}>
-        <VStack gap={4}>
-          <Spinner size="xl" />
-          <Text>Checking availability...</Text>
-        </VStack>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <VStack gap={4}>
+            <Spinner size="xl" color="white" />
+            <Text color="white">Checking availability...</Text>
+          </VStack>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
   // Error state: generic trips list failure
   if (tripsError) {
     return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={4} textAlign="center">
-              <Heading size="lg">Unable to Load Trips</Heading>
-              <Text>
-                We encountered an error while loading available trips. Please
-                try again later.
-              </Text>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={4} textAlign="center">
+                <Heading size="lg">Unable to Load Trips</Heading>
+                <Text>
+                  We encountered an error while loading available trips. Please
+                  try again later.
+                </Text>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
@@ -253,13 +260,107 @@ const AccessGate = ({
 
     const showCodeForm = !isPrivateNotYetAvailable
     return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={6} textAlign="center">
-              <Heading size="lg">{heading}</Heading>
-              <Text>{message}</Text>
-              {showCodeForm && (
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={6} textAlign="center">
+                <Heading size="lg">{heading}</Heading>
+                <Text>{message}</Text>
+                {showCodeForm && (
+                  <Box w="100%" maxW="400px">
+                    <VStack gap={4}>
+                      <Input
+                        placeholder="Enter access code"
+                        value={accessCode}
+                        onChange={(e) => setAccessCode(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        size="lg"
+                        textAlign="center"
+                      />
+                      {codeError && (
+                        <Text color="red.500" fontSize="sm">
+                          {codeError}
+                        </Text>
+                      )}
+                      <Button
+                        colorPalette="blue"
+                        size="lg"
+                        onClick={handleSubmitCode}
+                        w="100%"
+                      >
+                        {isCodeRejected ? "Try Again" : "Continue"}
+                      </Button>
+                    </VStack>
+                  </Box>
+                )}
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
+    )
+  }
+
+  // Direct-link trip 404: not found (invalid ID) vs departed/unavailable
+  if (validDirectTripId && isDirectTripError && !isLoadingDirectTrip) {
+    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
+    const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
+    const isNotFound = (directTripError as ApiError)?.status === 404 && detail.toLowerCase().includes("not found")
+    return (
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={4} textAlign="center">
+                <Heading size="lg">
+                  {isNotFound ? "Trip Not Found" : "This Trip Is Not Available"}
+                </Heading>
+                <Text>
+                  {isNotFound
+                    ? "No trip exists with the given ID. The link may be incorrect or outdated."
+                    : "This trip is no longer available for booking. It may have already departed, or the launch for this mission may have already occurred."}
+                </Text>
+                {isNotFound && (
+                  <Button
+                    asChild
+                    colorPalette="blue"
+                  >
+                    <Link to="/book" search={{}}>View available trips</Link>
+                  </Button>
+                )}
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
+    )
+  }
+
+  // If we have trips available, grant access and show children (pass discount code ID for early_bird)
+  if (hasTrips) {
+    const discountCodeId =
+      accessCodeValid && accessCodeValidation?.discount_code
+        ? accessCodeValidation.discount_code.id
+        : null
+    return (
+      <>{children(accessCodeValid ? submittedCode : null, discountCodeId)}</>
+    )
+  }
+
+  // No trips available - show code prompt only when ALL bookable trips require a code
+  if (allTripsRequireAccessCode && !submittedCode) {
+    return (
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={6} textAlign="center">
+                <Heading size="lg">Early Access Required</Heading>
+                <Text>
+                  Tickets are not yet available to the public. If you have an
+                  early access code, enter it below to continue.
+                </Text>
                 <Box w="100%" maxW="400px">
                   <VStack gap={4}>
                     <Input
@@ -281,119 +382,33 @@ const AccessGate = ({
                       onClick={handleSubmitCode}
                       w="100%"
                     >
-                      {isCodeRejected ? "Try Again" : "Continue"}
+                      Continue
                     </Button>
                   </VStack>
                 </Box>
-              )}
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
-    )
-  }
-
-  // Direct-link trip 404: not found (invalid ID) vs departed/unavailable
-  if (validDirectTripId && isDirectTripError && !isLoadingDirectTrip) {
-    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
-    const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
-    const isNotFound = (directTripError as ApiError)?.status === 404 && detail.toLowerCase().includes("not found")
-    return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={4} textAlign="center">
-              <Heading size="lg">
-                {isNotFound ? "Trip Not Found" : "This Trip Is Not Available"}
-              </Heading>
-              <Text>
-                {isNotFound
-                  ? "No trip exists with the given ID. The link may be incorrect or outdated."
-                  : "This trip is no longer available for booking. It may have already departed, or the launch for this mission may have already occurred."}
-              </Text>
-              {isNotFound && (
-                <Button
-                  asChild
-                  colorPalette="blue"
-                >
-                  <Link to="/book" search={{}}>View available trips</Link>
-                </Button>
-              )}
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
-    )
-  }
-
-  // If we have trips available, grant access and show children (pass discount code ID for early_bird)
-  if (hasTrips) {
-    const discountCodeId =
-      accessCodeValid && accessCodeValidation?.discount_code
-        ? accessCodeValidation.discount_code.id
-        : null
-    return (
-      <>{children(accessCodeValid ? submittedCode : null, discountCodeId)}</>
-    )
-  }
-
-  // No trips available - show code prompt only when ALL bookable trips require a code
-  if (allTripsRequireAccessCode && !submittedCode) {
-    return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={6} textAlign="center">
-              <Heading size="lg">Early Access Required</Heading>
-              <Text>
-                Tickets are not yet available to the public. If you have an
-                early access code, enter it below to continue.
-              </Text>
-              <Box w="100%" maxW="400px">
-                <VStack gap={4}>
-                  <Input
-                    placeholder="Enter access code"
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    size="lg"
-                    textAlign="center"
-                  />
-                  {codeError && (
-                    <Text color="red.500" fontSize="sm">
-                      {codeError}
-                    </Text>
-                  )}
-                  <Button
-                    colorPalette="blue"
-                    size="lg"
-                    onClick={handleSubmitCode}
-                    w="100%"
-                  >
-                    Continue
-                  </Button>
-                </VStack>
-              </Box>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
   // No trips and not all require code: show simple "no trips" (no code form)
   if (!hasTrips && !allTripsRequireAccessCode) {
     return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={4} textAlign="center">
-              <Heading size="lg">No Trips Available</Heading>
-              <Text>No trips are currently available for booking.</Text>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={4} textAlign="center">
+                <Heading size="lg">No Trips Available</Heading>
+                <Text>No trips are currently available for booking.</Text>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
@@ -419,36 +434,38 @@ const AccessGate = ({
   }
 
   return (
-    <Container maxW="container.md" py={16}>
-      <Card.Root>
-        <Card.Body>
-          <VStack gap={6} textAlign="center">
-            <Heading size="lg">{heading}</Heading>
-            <Text>{errorMessage}</Text>
-            <Box w="100%" maxW="400px">
-              <VStack gap={4}>
-                <Input
-                  placeholder="Enter access code"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  size="lg"
-                  textAlign="center"
-                />
-                <Button
-                  colorPalette="blue"
-                  size="lg"
-                  onClick={handleSubmitCode}
-                  w="100%"
-                >
-                  Try Again
-                </Button>
-              </VStack>
-            </Box>
-          </VStack>
-        </Card.Body>
-      </Card.Root>
-    </Container>
+    <BookingPageLayout>
+      <Container maxW="container.md" py={16}>
+        <Card.Root>
+          <Card.Body>
+            <VStack gap={6} textAlign="center">
+              <Heading size="lg">{heading}</Heading>
+              <Text>{errorMessage}</Text>
+              <Box w="100%" maxW="400px">
+                <VStack gap={4}>
+                  <Input
+                    placeholder="Enter access code"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    size="lg"
+                    textAlign="center"
+                  />
+                  <Button
+                    colorPalette="blue"
+                    size="lg"
+                    onClick={handleSubmitCode}
+                    w="100%"
+                  >
+                    Try Again
+                  </Button>
+                </VStack>
+              </Box>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      </Container>
+    </BookingPageLayout>
   )
 }
 

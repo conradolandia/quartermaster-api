@@ -19,6 +19,7 @@ import {
 } from "@chakra-ui/react"
 import { type ApiError, BookingsService } from "@/client"
 import AccessGate from "@/components/Public/AccessGate"
+import BookingPageLayout from "@/components/Public/BookingPageLayout"
 import PublicBookingForm from "@/components/Public/PublicBookingForm"
 
 const bookSearchSchema = z.object({
@@ -173,37 +174,41 @@ function PublicBookingPage() {
   const resumeByCode = !!search.code && !urlTripId
   if (resumeByCode && isLoadingBookingByCode) {
     return (
-      <Container maxW="container.md" py={16}>
-        <VStack gap={4}>
-          <Spinner size="xl" />
-          <Text>Loading your booking...</Text>
-        </VStack>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <VStack gap={4}>
+            <Spinner size="xl" color="white" />
+            <Text color="white">Loading your booking...</Text>
+          </VStack>
+        </Container>
+      </BookingPageLayout>
     )
   }
   if (resumeByCode && isBookingByCodeError) {
     const status = (bookingByCodeError as ApiError)?.status
     const isNotFound = status === 404
     return (
-      <Container maxW="container.md" py={16}>
-        <Card.Root>
-          <Card.Body>
-            <VStack gap={4} textAlign="center">
-              <Heading size="lg">
-                {isNotFound ? "Booking Not Found" : "Unable to Load Booking"}
-              </Heading>
-              <Text>
-                {isNotFound
-                  ? "No booking matches this link. It may be invalid or expired."
-                  : "We could not load this booking. Please try again or start a new booking."}
-              </Text>
-              <Button asChild colorPalette="blue">
-                <Link to="/book" search={{}}>Start a new booking</Link>
-              </Button>
-            </VStack>
-          </Card.Body>
-        </Card.Root>
-      </Container>
+      <BookingPageLayout>
+        <Container maxW="container.md" py={16}>
+          <Card.Root>
+            <Card.Body>
+              <VStack gap={4} textAlign="center">
+                <Heading size="lg">
+                  {isNotFound ? "Booking Not Found" : "Unable to Load Booking"}
+                </Heading>
+                <Text>
+                  {isNotFound
+                    ? "No booking matches this link. It may be invalid or expired."
+                    : "We could not load this booking. Please try again or start a new booking."}
+                </Text>
+                <Button asChild colorPalette="blue">
+                  <Link to="/book" search={{}}>Start a new booking</Link>
+                </Button>
+              </VStack>
+            </Card.Body>
+          </Card.Root>
+        </Container>
+      </BookingPageLayout>
     )
   }
 
