@@ -89,11 +89,11 @@ const EditTrip = ({
   )
   const [boardingMinutesBeforeDeparture, setBoardingMinutesBeforeDeparture] =
     useState(() =>
-      Math.round((dep.getTime() - board.getTime()) / (60 * 1000)),
+      String(Math.round((dep.getTime() - board.getTime()) / (60 * 1000))),
     )
   const [checkinMinutesBeforeBoarding, setCheckinMinutesBeforeBoarding] =
     useState(() =>
-      Math.round((board.getTime() - checkIn.getTime()) / (60 * 1000)),
+      String(Math.round((board.getTime() - checkIn.getTime()) / (60 * 1000))),
     )
   const [hasPendingMerchandiseChanges, setHasPendingMerchandiseChanges] =
     useState(false)
@@ -148,21 +148,19 @@ const EditTrip = ({
       const b = parseApiDate(trip.boarding_time)
       const c = parseApiDate(trip.check_in_time)
       setBoardingMinutesBeforeDeparture(
-        Math.round((d.getTime() - b.getTime()) / (60 * 1000)),
+        String(Math.round((d.getTime() - b.getTime()) / (60 * 1000))),
       )
       setCheckinMinutesBeforeBoarding(
-        Math.round((b.getTime() - c.getTime()) / (60 * 1000)),
+        String(Math.round((b.getTime() - c.getTime()) / (60 * 1000))),
       )
     }
   }, [isOpen, trip.id])
 
   const handleSubmit = () => {
     if (!missionId || !departureTime) return
-    if (
-      boardingMinutesBeforeDeparture < 0 ||
-      checkinMinutesBeforeBoarding < 0
-    )
-      return
+    const boardingMins = parseInt(boardingMinutesBeforeDeparture, 10) || 0
+    const checkinMins = parseInt(checkinMinutesBeforeBoarding, 10) || 0
+    if (boardingMins < 0 || checkinMins < 0) return
 
     mutation.mutate({
       mission_id: missionId,
@@ -175,8 +173,8 @@ const EditTrip = ({
         ? parseLocationTimeToUtc(salesOpenAt, tz)
         : null,
       departure_time: parseLocationTimeToUtc(departureTime, tz),
-      boarding_minutes_before_departure: boardingMinutesBeforeDeparture,
-      checkin_minutes_before_boarding: checkinMinutesBeforeBoarding,
+      boarding_minutes_before_departure: boardingMins,
+      checkin_minutes_before_boarding: checkinMins,
     })
   }
 

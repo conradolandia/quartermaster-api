@@ -23,10 +23,10 @@ interface BasicInfoTabProps {
   setSalesOpenAt: (val: string) => void
   departureTime: string
   setDepartureTime: (val: string) => void
-  boardingMinutesBeforeDeparture: number
-  setBoardingMinutesBeforeDeparture: (val: number) => void
-  checkinMinutesBeforeBoarding: number
-  setCheckinMinutesBeforeBoarding: (val: number) => void
+  boardingMinutesBeforeDeparture: string
+  setBoardingMinutesBeforeDeparture: (val: string) => void
+  checkinMinutesBeforeBoarding: string
+  setCheckinMinutesBeforeBoarding: (val: string) => void
   active: boolean
   setActive: (val: boolean) => void
   unlisted: boolean
@@ -171,11 +171,7 @@ const BasicInfoTab = ({
           type="number"
           min={0}
           value={boardingMinutesBeforeDeparture}
-          onChange={(e) =>
-            setBoardingMinutesBeforeDeparture(
-              Math.max(0, parseInt(e.target.value, 10) || 0),
-            )
-          }
+          onChange={(e) => setBoardingMinutesBeforeDeparture(e.target.value)}
           disabled={isPending}
         />
       </Field>
@@ -189,11 +185,7 @@ const BasicInfoTab = ({
           type="number"
           min={0}
           value={checkinMinutesBeforeBoarding}
-          onChange={(e) =>
-            setCheckinMinutesBeforeBoarding(
-              Math.max(0, parseInt(e.target.value, 10) || 0),
-            )
-          }
+          onChange={(e) => setCheckinMinutesBeforeBoarding(e.target.value)}
           disabled={isPending}
         />
       </Field>

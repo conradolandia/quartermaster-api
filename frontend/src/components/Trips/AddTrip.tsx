@@ -92,9 +92,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   const [departureTime, setDepartureTime] = useState("")
   const [salesOpenAt, setSalesOpenAt] = useState("")
   const [boardingMinutesBeforeDeparture, setBoardingMinutesBeforeDeparture] =
-    useState(30)
+    useState("30")
   const [checkinMinutesBeforeBoarding, setCheckinMinutesBeforeBoarding] =
-    useState(30)
+    useState("30")
   const { showSuccessToast } = useCustomToast()
   const queryClient = useQueryClient()
   const contentRef = useRef(null)
@@ -180,11 +180,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   // Default offsets by type: launch_viewing 30/30, pre_launch 15/15
   useEffect(() => {
     if (type === "launch_viewing") {
-      setBoardingMinutesBeforeDeparture(30)
-      setCheckinMinutesBeforeBoarding(30)
+      setBoardingMinutesBeforeDeparture("30")
+      setCheckinMinutesBeforeBoarding("30")
     } else {
-      setBoardingMinutesBeforeDeparture(15)
-      setCheckinMinutesBeforeBoarding(15)
+      setBoardingMinutesBeforeDeparture("15")
+      setCheckinMinutesBeforeBoarding("15")
     }
   }, [type])
 
@@ -227,8 +227,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setBookingMode("private")
       setDepartureTime("")
       setSalesOpenAt("")
-      setBoardingMinutesBeforeDeparture(30)
-      setCheckinMinutesBeforeBoarding(30)
+      setBoardingMinutesBeforeDeparture("30")
+      setCheckinMinutesBeforeBoarding("30")
       setSelectedBoats([])
       setSelectedBoatId("")
       setMaxCapacity(undefined)
@@ -471,8 +471,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       setBookingMode("private")
       setDepartureTime("")
       setSalesOpenAt("")
-      setBoardingMinutesBeforeDeparture(30)
-      setCheckinMinutesBeforeBoarding(30)
+      setBoardingMinutesBeforeDeparture("30")
+      setCheckinMinutesBeforeBoarding("30")
       setSelectedBoats([])
       setSelectedBoatForPricing(null)
       setEditingCapacityBoatId(null)
@@ -493,11 +493,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
 
   const handleSubmit = async () => {
     if (!missionId || !departureTime) return
-    if (
-      boardingMinutesBeforeDeparture < 0 ||
-      checkinMinutesBeforeBoarding < 0
-    )
-      return
+    const boardingMins = parseInt(boardingMinutesBeforeDeparture, 10) || 0
+    const checkinMins = parseInt(checkinMinutesBeforeBoarding, 10) || 0
+    if (boardingMins < 0 || checkinMins < 0) return
     if (selectedBoats.length === 0) {
       showSuccessToast("Please add at least one boat to the trip")
       return
@@ -515,8 +513,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
         ? parseLocationTimeToUtc(salesOpenAt, tz)
         : null,
       departure_time: parseLocationTimeToUtc(departureTime, tz),
-      boarding_minutes_before_departure: boardingMinutesBeforeDeparture,
-      checkin_minutes_before_boarding: checkinMinutesBeforeBoarding,
+      boarding_minutes_before_departure: boardingMins,
+      checkin_minutes_before_boarding: checkinMins,
       boats: selectedBoats,
       merchandise: selectedMerchandise,
     })
@@ -672,9 +670,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     min={0}
                     value={boardingMinutesBeforeDeparture}
                     onChange={(e) =>
-                      setBoardingMinutesBeforeDeparture(
-                        Math.max(0, parseInt(e.target.value, 10) || 0),
-                      )
+                      setBoardingMinutesBeforeDeparture(e.target.value)
                     }
                     disabled={mutation.isPending}
                   />
@@ -689,9 +685,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     min={0}
                     value={checkinMinutesBeforeBoarding}
                     onChange={(e) =>
-                      setCheckinMinutesBeforeBoarding(
-                        Math.max(0, parseInt(e.target.value, 10) || 0),
-                      )
+                      setCheckinMinutesBeforeBoarding(e.target.value)
                     }
                     disabled={mutation.isPending}
                   />
