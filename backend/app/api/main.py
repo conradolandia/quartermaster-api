@@ -23,7 +23,9 @@ from app.api.routes import (
     trip_boat_pricing,
     trip_boats,
     trip_merchandise,
-    trips,
+    trips_admin,
+    trips_operations,
+    trips_public,
     users,
     utils,
 )
@@ -42,7 +44,10 @@ api_router.include_router(launches.router)
 api_router.include_router(missions.router)
 api_router.include_router(boats.router)
 api_router.include_router(boat_pricing.router)
-api_router.include_router(trips.router)
+# Trip routes: public first (more specific paths), then operations, then admin
+api_router.include_router(trips_public.router)
+api_router.include_router(trips_operations.router)
+api_router.include_router(trips_admin.router)
 api_router.include_router(imports.router)
 api_router.include_router(trip_boats.router)
 api_router.include_router(trip_boat_pricing.router)

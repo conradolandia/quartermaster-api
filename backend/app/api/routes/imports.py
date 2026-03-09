@@ -8,7 +8,7 @@ from app.api import deps
 from app.api.deps import get_current_active_superuser
 from app.api.routes.launches import _launch_to_public
 from app.api.routes.missions import _mission_to_public
-from app.api.routes.trips import _trip_to_public
+from app.api.routes.trip_utils import trip_to_public
 from app.models import LaunchPublic, MissionPublic, TripPublic
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
@@ -62,7 +62,7 @@ def import_yaml_document(
             missions=[
                 _mission_to_public(session, mission) for mission in created_missions
             ],
-            trips=[_trip_to_public(session, trip) for trip in created_trips],
+            trips=[trip_to_public(session, trip) for trip in created_trips],
         )
 
     except YamlValidationError as e:

@@ -244,6 +244,12 @@ import type {
   TripMerchandiseDeleteTripMerchandiseResponse,
   TripMerchandiseListPublicTripMerchandiseData,
   TripMerchandiseListPublicTripMerchandiseResponse,
+  TripsReadPublicTripsData,
+  TripsReadPublicTripsResponse,
+  TripsReadPublicTripData,
+  TripsReadPublicTripResponse,
+  TripsImportTripFromYamlData,
+  TripsImportTripFromYamlResponse,
   TripsReadTripsData,
   TripsReadTripsResponse,
   TripsCreateTripData,
@@ -264,12 +270,6 @@ import type {
   TripsReadTripCapacityResponse,
   TripsReadTripsByMissionData,
   TripsReadTripsByMissionResponse,
-  TripsReadPublicTripsData,
-  TripsReadPublicTripsResponse,
-  TripsReadPublicTripData,
-  TripsReadPublicTripResponse,
-  TripsImportTripFromYamlData,
-  TripsImportTripFromYamlResponse,
   UsersReadUsersData,
   UsersReadUsersResponse,
   UsersCreateUserData,
@@ -3413,6 +3413,105 @@ export class TripMerchandiseService {
 
 export class TripsService {
   /**
+   * Read Public Trips
+   * Retrieve public trips for booking form.
+   * Filters by trip booking_mode:
+   * - private: Not shown unless admin
+   * - early_bird: Shown if valid access_code provided
+   * - public: Always shown
+   * When trip_id is provided (direct link), include that trip even if unlisted.
+   * all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
+   * Archived trips are always excluded from public listing.
+   * @param data The data for the request.
+   * @param data.skip
+   * @param data.limit
+   * @param data.accessCode
+   * @param data.includeTripId
+   * @returns PublicTripsResponse Successful Response
+   * @throws ApiError
+   */
+  public static readPublicTrips(
+    data: TripsReadPublicTripsData = {},
+  ): CancelablePromise<TripsReadPublicTripsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/public/",
+      query: {
+        skip: data.skip,
+        limit: data.limit,
+        access_code: data.accessCode,
+        include_trip_id: data.includeTripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Public Trip
+   * Get public trip by ID for booking form.
+   * Checks booking_mode to determine access.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.accessCode
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static readPublicTrip(
+    data: TripsReadPublicTripData,
+  ): CancelablePromise<TripsReadPublicTripResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/public/{trip_id}",
+      path: {
+        trip_id: data.tripId,
+      },
+      query: {
+        access_code: data.accessCode,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Import Trip From Yaml
+   * Import a trip from YAML file.
+   *
+   * Expected YAML format:
+   * ```yaml
+   * name: "Mars Sample Return Viewing Experience"
+   * mission_id: "mars-sample-return"
+   * type: "launch_viewing"
+   * base_price: 299.99
+   * departure_time: "2024-03-15T10:00:00Z"
+   * return_time: "2024-03-15T18:00:00Z"
+   * departure_location_id: "port-canaveral-marina"
+   * description: "Watch the historic Mars Sample Return launch"
+   * max_capacity: 50
+   * ```
+   * @param data The data for the request.
+   * @param data.formData
+   * @returns TripPublic Successful Response
+   * @throws ApiError
+   */
+  public static importTripFromYaml(
+    data: TripsImportTripFromYamlData,
+  ): CancelablePromise<TripsImportTripFromYamlResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/import-yaml",
+      formData: data.formData,
+      mediaType: "multipart/form-data",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Read Trips
    * Retrieve trips with booking statistics.
    * Optionally filter by mission_id and trip_type (launch_viewing, pre_launch).
@@ -3659,105 +3758,6 @@ export class TripsService {
         skip: data.skip,
         limit: data.limit,
       },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Read Public Trips
-   * Retrieve public trips for booking form.
-   * Filters by trip booking_mode:
-   * - private: Not shown unless admin
-   * - early_bird: Shown if valid access_code provided
-   * - public: Always shown
-   * When trip_id is provided (direct link), include that trip even if unlisted.
-   * all_trips_require_access_code: True when every bookable trip is early_bird (show code prompt).
-   * Archived trips are always excluded from public listing.
-   * @param data The data for the request.
-   * @param data.skip
-   * @param data.limit
-   * @param data.accessCode
-   * @param data.includeTripId
-   * @returns PublicTripsResponse Successful Response
-   * @throws ApiError
-   */
-  public static readPublicTrips(
-    data: TripsReadPublicTripsData = {},
-  ): CancelablePromise<TripsReadPublicTripsResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/trips/public/",
-      query: {
-        skip: data.skip,
-        limit: data.limit,
-        access_code: data.accessCode,
-        include_trip_id: data.includeTripId,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Read Public Trip
-   * Get public trip by ID for booking form.
-   * Checks booking_mode to determine access.
-   * @param data The data for the request.
-   * @param data.tripId
-   * @param data.accessCode
-   * @returns TripPublic Successful Response
-   * @throws ApiError
-   */
-  public static readPublicTrip(
-    data: TripsReadPublicTripData,
-  ): CancelablePromise<TripsReadPublicTripResponse> {
-    return __request(OpenAPI, {
-      method: "GET",
-      url: "/api/v1/trips/public/{trip_id}",
-      path: {
-        trip_id: data.tripId,
-      },
-      query: {
-        access_code: data.accessCode,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
-   * Import Trip From Yaml
-   * Import a trip from YAML file.
-   *
-   * Expected YAML format:
-   * ```yaml
-   * name: "Mars Sample Return Viewing Experience"
-   * mission_id: "mars-sample-return"
-   * type: "launch_viewing"
-   * base_price: 299.99
-   * departure_time: "2024-03-15T10:00:00Z"
-   * return_time: "2024-03-15T18:00:00Z"
-   * departure_location_id: "port-canaveral-marina"
-   * description: "Watch the historic Mars Sample Return launch"
-   * max_capacity: 50
-   * ```
-   * @param data The data for the request.
-   * @param data.formData
-   * @returns TripPublic Successful Response
-   * @throws ApiError
-   */
-  public static importTripFromYaml(
-    data: TripsImportTripFromYamlData,
-  ): CancelablePromise<TripsImportTripFromYamlResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/trips/import-yaml",
-      formData: data.formData,
-      mediaType: "multipart/form-data",
       errors: {
         422: "Validation Error",
       },

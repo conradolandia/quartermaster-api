@@ -1830,6 +1830,28 @@ export type TripMerchandiseListPublicTripMerchandiseData = {
 export type TripMerchandiseListPublicTripMerchandiseResponse =
   Array<TripMerchandisePublic>
 
+export type TripsReadPublicTripsData = {
+  accessCode?: string | null
+  includeTripId?: string | null
+  limit?: number
+  skip?: number
+}
+
+export type TripsReadPublicTripsResponse = PublicTripsResponse
+
+export type TripsReadPublicTripData = {
+  accessCode?: string | null
+  tripId: string
+}
+
+export type TripsReadPublicTripResponse = TripPublic
+
+export type TripsImportTripFromYamlData = {
+  formData: Body_trips_import_trip_from_yaml
+}
+
+export type TripsImportTripFromYamlResponse = TripPublic
+
 export type TripsReadTripsData = {
   includeArchived?: boolean
   limit?: number
@@ -1897,28 +1919,6 @@ export type TripsReadTripsByMissionData = {
 }
 
 export type TripsReadTripsByMissionResponse = TripsPublic
-
-export type TripsReadPublicTripsData = {
-  accessCode?: string | null
-  includeTripId?: string | null
-  limit?: number
-  skip?: number
-}
-
-export type TripsReadPublicTripsResponse = PublicTripsResponse
-
-export type TripsReadPublicTripData = {
-  accessCode?: string | null
-  tripId: string
-}
-
-export type TripsReadPublicTripResponse = TripPublic
-
-export type TripsImportTripFromYamlData = {
-  formData: Body_trips_import_trip_from_yaml
-}
-
-export type TripsImportTripFromYamlResponse = TripPublic
 
 export type UsersReadUsersData = {
   limit?: number
