@@ -112,7 +112,6 @@ const BasicInfoTab = ({
             setBookingMode(mode)
             if (mode === "public") {
               setSalesOpenAt("")
-              setUnlisted(false)
             }
           }}
           disabled={isPending}
