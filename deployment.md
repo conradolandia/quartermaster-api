@@ -1,4 +1,4 @@
-# FastAPI Project - Deployment
+# Quartermaster - Deployment
 
 You can deploy the project using Docker Compose to a remote server.
 
@@ -12,7 +12,7 @@ But you have to configure a couple things first. 🤓
 
 * Have a remote server ready and available.
 * Configure the DNS records of your domain to point to the IP of the server you just created.
-* Configure a wildcard subdomain for your domain, so that you can have multiple subdomains for different services, e.g. `*.fastapi-project.example.com`. This will be useful for accessing different components, like `dashboard.fastapi-project.example.com`, `api.fastapi-project.example.com`, `traefik.fastapi-project.example.com`, `adminer.fastapi-project.example.com`, etc. And also for `staging`, like `dashboard.staging.fastapi-project.example.com`, `adminer.staging..fastapi-project.example.com`, etc.
+* Configure a wildcard subdomain for your domain, so that you can have multiple subdomains for different services, e.g. `*.book.star-fleet.tours`. This is used for accessing different components: `admin.book.star-fleet.tours` (admin dashboard), `api.book.star-fleet.tours` (backend API), `traefik.book.star-fleet.tours`, `adminer.book.star-fleet.tours`, etc. And also for staging: `admin.staging.book.star-fleet.tours`, `api.staging.book.star-fleet.tours`, etc.
 * Install and configure [Docker](https://docs.docker.com/engine/install/) on the remote server (Docker Engine, not Docker Desktop).
 
 ## Public Traefik
@@ -78,7 +78,7 @@ echo $HASHED_PASSWORD
 * Create an environment variable with the domain name for your server, e.g.:
 
 ```bash
-export DOMAIN=fastapi-project.example.com
+export DOMAIN=book.star-fleet.tours
 ```
 
 * Create an environment variable with the email for Let's Encrypt, e.g.:
@@ -103,11 +103,32 @@ Now with the environment variables set and the `docker-compose.traefik.yml` in p
 docker compose -f docker-compose.traefik.yml up -d
 ```
 
-## Deploy the FastAPI Project
+## Deploy Quartermaster
 
-Now that you have Traefik in place you can deploy your FastAPI project with Docker Compose.
+Now that you have Traefik in place you can deploy Quartermaster with Docker Compose.
 
 **Note**: You might want to jump ahead to the section about Continuous Deployment with GitHub Actions.
+
+### Subdomain routing
+
+The production `docker-compose.yml` configures Traefik to route the frontend to two domains:
+
+* **`${DOMAIN}`** (e.g. `book.star-fleet.tours`) -- public booking form
+* **`admin.${DOMAIN}`** (e.g. `admin.book.star-fleet.tours`) -- admin dashboard
+
+The backend API is served at **`api.${DOMAIN}`**. Both domains serve the same frontend container; client-side routing determines which UI is shown.
+
+Make sure your DNS has wildcard records (`*.book.star-fleet.tours`) or individual A/CNAME records for each subdomain (`admin.`, `api.`, `adminer.`, `traefik.`, and their staging equivalents).
+
+### Stripe webhook
+
+In production, configure a Stripe webhook endpoint pointing to:
+
+```
+https://api.book.star-fleet.tours/api/v1/bookings/stripe-webhook
+```
+
+Set the signing secret as `STRIPE_WEBHOOK_SECRET` in your environment.
 
 ## Environment Variables
 
@@ -119,16 +140,16 @@ Set the `ENVIRONMENT`, by default `local` (for development), but when deploying 
 export ENVIRONMENT=production
 ```
 
-Set the `DOMAIN`, by default `localhost` (for development), but when deploying you would use your own domain, for example:
+Set the `DOMAIN`, by default `localhost` (for development), but when deploying you would use your own domain:
 
 ```bash
-export DOMAIN=fastapi-project.example.com
+export DOMAIN=book.star-fleet.tours
 ```
 
 You can set several variables, like:
 
-* `PROJECT_NAME`: The name of the project, used in the API for the docs and emails.
-* `STACK_NAME`: The name of the stack used for Docker Compose labels and project name, this should be different for `staging`, `production`, etc. You could use the same domain replacing dots with dashes, e.g. `fastapi-project-example-com` and `staging-fastapi-project-example-com`.
+* `PROJECT_NAME`: The name of the project, used in the API docs and emails (default: `Quartermaster API`).
+* `STACK_NAME`: The name of the stack used for Docker Compose labels and project name (default: `quartermaster-api`). This should be different for `staging` and `production`, e.g. `quartermaster-api` and `staging-quartermaster-api`.
 * `BACKEND_CORS_ORIGINS`: **Additional** CORS origins (comma-separated). The backend always allows `FRONTEND_HOST`; set this only when you need **extra** origins (e.g. a second frontend, staging when the same API serves both prod and staging, or another domain). Format: full URLs including scheme, e.g. `https://dashboard.staging.book.star-fleet.tours`. Leave empty or unset if you have a single frontend at `FRONTEND_HOST`.
 * `SECRET_KEY`: The secret key for the FastAPI project, used to sign tokens.
 * `FIRST_SUPERUSER`: The email of the first superuser, this superuser will be the one that can create new users.
@@ -141,8 +162,12 @@ You can set several variables, like:
 * `POSTGRES_PORT`: The port of the PostgreSQL server. You can leave the default. You normally wouldn't need to change this unless you are using a third-party provider.
 * `POSTGRES_PASSWORD`: The Postgres password.
 * `POSTGRES_USER`: The Postgres user, you can leave the default.
-* `POSTGRES_DB`: The database name to use for this application. You can leave the default of `app`.
+* `POSTGRES_DB`: The database name to use for this application (default: `quartermaster_api`).
 * `SENTRY_DSN`: The DSN for Sentry, if you are using it.
+* `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key (live mode for production).
+* `STRIPE_SECRET_KEY`: Stripe secret key (live mode for production).
+* `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret.
+* `QR_CODE_BASE_URL`: Base URL encoded in QR code tickets for check-in (e.g. `https://admin.book.star-fleet.tours`). Defaults to `FRONTEND_HOST` if unset.
 
 ## GitHub Actions Environment Variables
 
@@ -268,6 +293,9 @@ The current Github Actions workflows expect these secrets:
 * `FIRST_SUPERUSER_PASSWORD`
 * `POSTGRES_PASSWORD`
 * `SECRET_KEY`
+* `STRIPE_PUBLISHABLE_KEY`
+* `STRIPE_SECRET_KEY`
+* `STRIPE_WEBHOOK_SECRET`
 * `LATEST_CHANGES`
 * `SMOKESHOW_AUTH_KEY`
 
@@ -282,28 +310,28 @@ If you need to add extra environments you could use those as a starting point.
 
 ## URLs
 
-Replace `fastapi-project.example.com` with your domain.
+### Traefik Dashboard
 
-### Main Traefik Dashboard
-
-Traefik UI: `https://traefik.fastapi-project.example.com`
+Traefik UI: `https://traefik.book.star-fleet.tours`
 
 ### Production
 
-Frontend: `https://dashboard.fastapi-project.example.com`
-
-Backend API docs: `https://api.fastapi-project.example.com/docs`
-
-Backend API base URL: `https://api.fastapi-project.example.com`
-
-Adminer: `https://adminer.fastapi-project.example.com`
+| Service | URL |
+|---|---|
+| Public booking | `https://book.star-fleet.tours` |
+| Admin dashboard | `https://admin.book.star-fleet.tours` |
+| Backend API | `https://api.book.star-fleet.tours` |
+| API documentation (Swagger) | `https://api.book.star-fleet.tours/docs` |
+| API documentation (ReDoc) | `https://api.book.star-fleet.tours/redoc` |
+| Adminer | `https://adminer.book.star-fleet.tours` |
 
 ### Staging
 
-Frontend: `https://dashboard.staging.fastapi-project.example.com`
-
-Backend API docs: `https://api.staging.fastapi-project.example.com/docs`
-
-Backend API base URL: `https://api.staging.fastapi-project.example.com`
-
-Adminer: `https://adminer.staging.fastapi-project.example.com`
+| Service | URL |
+|---|---|
+| Public booking | `https://staging.book.star-fleet.tours` |
+| Admin dashboard | `https://admin.staging.book.star-fleet.tours` |
+| Backend API | `https://api.staging.book.star-fleet.tours` |
+| API documentation (Swagger) | `https://api.staging.book.star-fleet.tours/docs` |
+| API documentation (ReDoc) | `https://api.staging.book.star-fleet.tours/redoc` |
+| Adminer | `https://adminer.staging.book.star-fleet.tours` |

@@ -1,239 +1,199 @@
-# Full Stack FastAPI Template
+# Quartermaster
 
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3ATest" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test/badge.svg" alt="Test"></a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/full-stack-fastapi-template" target="_blank"><img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/full-stack-fastapi-template.svg" alt="Coverage"></a>
+Booking and management system for [Star Fleet Tours](https://star-fleet.tours), handling ticket sales for rocket launch viewing trips. Manages the customer journey from trip discovery through payment and check-in, and provides administrative tools for operations.
 
-## Technology Stack and Features
+Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) by Sebastián Ramírez.
 
-- ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python backend API.
-    - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) for the Python SQL database interactions (ORM).
-    - 🔍 [Pydantic](https://docs.pydantic.dev), used by FastAPI, for the data validation and settings management.
-    - 💾 [PostgreSQL](https://www.postgresql.org) as the SQL database.
-- 🚀 [React](https://react.dev) for the frontend.
-    - 💃 Using TypeScript, hooks, Vite, and other parts of a modern frontend stack.
-    - 🎨 [Chakra UI](https://chakra-ui.com) for the frontend components.
-    - 🤖 An automatically generated frontend client.
-    - 🧪 [Playwright](https://playwright.dev) for End-to-End testing.
-    - 🦇 Dark mode support.
-- 🐋 [Docker Compose](https://www.docker.com) for development and production.
-- 🔒 Secure password hashing by default.
-- 🔑 JWT (JSON Web Token) authentication.
-- 📫 Email based password recovery.
-- ✅ Tests with [Pytest](https://pytest.org).
-- 📞 [Traefik](https://traefik.io) as a reverse proxy / load balancer.
-- 🚢 Deployment instructions using Docker Compose, including how to set up a frontend Traefik proxy to handle automatic HTTPS certificates.
-- 🏭 CI (continuous integration) and CD (continuous deployment) based on GitHub Actions.
+## Features
 
-### Dashboard Login
+- **Mission and trip management** for rocket launch viewing events
+- **Multi-step public booking flow** with Stripe payment integration
+- **QR code tickets** for passenger check-in
+- **Admin dashboard** for booking, trip, and fleet management
+- **Refund processing** through Stripe
+- **Transactional emails** (booking confirmations, launch updates) via SMTP/SendGrid
+- **YAML-based import** for launches, missions, and trips
+- **Reporting and CSV export** for passenger manifests
 
-[![API docs](img/login.png)](https://github.com/fastapi/full-stack-fastapi-template)
+## Tech Stack
 
-### Dashboard - Admin
+### Backend
+- [FastAPI](https://fastapi.tiangolo.com) (Python 3.12)
+- [SQLModel](https://sqlmodel.tiangolo.com) ORM + [PostgreSQL](https://www.postgresql.org)
+- [Alembic](https://alembic.sqlalchemy.org) for database migrations
+- [Stripe](https://stripe.com) for payment processing
+- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) for configuration
+- JWT authentication
 
-[![API docs](img/dashboard.png)](https://github.com/fastapi/full-stack-fastapi-template)
+### Frontend (Stage 0 / MVP)
+- [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+- [Chakra UI v3](https://chakra-ui.com) component library
+- [TanStack Router](https://tanstack.com/router) + [TanStack Query](https://tanstack.com/query)
+- [Stripe Elements](https://stripe.com/docs/stripe-js) for payment forms
+- Auto-generated API client from OpenAPI schema
+- [Playwright](https://playwright.dev) for end-to-end testing
 
-### Dashboard - Create User
+### Infrastructure
+- [Docker Compose](https://docs.docker.com/compose/) for development and production
+- [Traefik](https://traefik.io) as reverse proxy with automatic HTTPS (Let's Encrypt)
+- [MailCatcher](https://mailcatcher.me) for local email testing
 
-[![API docs](img/dashboard-create.png)](https://github.com/fastapi/full-stack-fastapi-template)
+## Project Structure
 
-### Dashboard - Items
-
-[![API docs](img/dashboard-items.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - User Settings
-
-[![API docs](img/dashboard-user-settings.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Dark Mode
-
-[![API docs](img/dashboard-dark.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Interactive API Documentation
-
-[![API docs](img/docs.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-## How To Use It
-
-You can **just fork or clone** this repository and use it as is.
-
-✨ It just works. ✨
-
-### How to Use a Private Repository
-
-If you want to have a private repository, GitHub won't allow you to simply fork it as it doesn't allow changing the visibility of forks.
-
-But you can do the following:
-
-- Create a new GitHub repo, for example `my-full-stack`.
-- Clone this repository manually, set the name with the name of the project you want to use, for example `my-full-stack`:
-
-```bash
-git clone git@github.com:fastapi/full-stack-fastapi-template.git my-full-stack
+```
+quartermaster-api/
+├── backend/                 # FastAPI application
+│   ├── app/
+│   │   ├── api/routes/      # API endpoint handlers
+│   │   ├── crud/            # Database operations
+│   │   ├── alembic/         # Database migrations
+│   │   ├── email-templates/ # MJML email templates (src/) and compiled HTML (build/)
+│   │   ├── tests/           # Pytest test suite
+│   │   ├── models.py        # SQLModel data models
+│   │   ├── core/            # Config, security, database setup
+│   │   └── main.py          # Application entry point
+│   └── scripts/             # Maintenance scripts (QR regeneration, audits, etc.)
+├── frontend/                # React SPA
+│   ├── src/
+│   │   ├── client/          # Auto-generated OpenAPI client
+│   │   ├── components/      # UI components (Admin, Public booking, Common)
+│   │   ├── routes/          # TanStack Router page definitions
+│   │   └── hooks/           # Custom React hooks
+│   └── tests/               # Playwright e2e tests
+├── scripts/                 # Build, deploy, and utility scripts
+├── examples/yaml/           # Sample YAML files for data import
+├── docker-compose.yml           # Production compose configuration
+├── docker-compose.override.yml  # Local development overrides
+└── docker-compose.traefik.yml   # Traefik proxy for production
 ```
 
-- Enter into the new directory:
+## Local Development
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/engine/install/) and Docker Compose
+- [uv](https://docs.astral.sh/uv/) (Python package manager, for backend development)
+- [Node.js](https://nodejs.org/) (managed via `.nvmrc`; use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm))
+
+### Quick Start
+
+1. Copy `.env.example` to `.env` and fill in required values (see [Configuration](#configuration)).
+
+2. Start the stack:
 
 ```bash
-cd my-full-stack
+docker compose up -d backend adminer mailcatcher
 ```
 
-- Set the new origin to your new repository, copy it from the GitHub interface, for example:
+3. Start the frontend dev server (with live reload):
 
 ```bash
-git remote set-url origin git@github.com:octocat/my-full-stack.git
+cd frontend && npm install && npm run dev
 ```
 
-- Add this repo as another "remote" to allow you to get updates later:
+4. Access the services:
+
+| Service | URL |
+|---|---|
+| Frontend (public booking + admin) | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API documentation (Swagger UI) | http://localhost:8000/docs |
+| API documentation (ReDoc) | http://localhost:8000/redoc |
+| Adminer (database UI) | http://localhost:8080 |
+| MailCatcher (email testing) | http://localhost:1080 |
+
+See [development.md](./development.md) for detailed local development workflows, Docker Compose usage, pre-commit hooks, and subdomain-based local testing with Traefik.
+
+### Running Tests
+
+Backend (Pytest):
 
 ```bash
-git remote add upstream git@github.com:fastapi/full-stack-fastapi-template.git
+docker compose exec backend bash scripts/tests-start.sh
 ```
 
-- Push the code to your new repository:
+Frontend (Playwright e2e):
 
 ```bash
-git push -u origin master
+docker compose up -d db backend mailcatcher
+docker compose run --rm playwright
 ```
 
-### Update From the Original Template
+See [backend/README.md](./backend/README.md) and [frontend/README.md](./frontend/README.md) for more details.
 
-After cloning the repository, and after doing changes, you might want to get the latest changes from this original template.
+### Regenerating the Frontend API Client
 
-- Make sure you added the original repository as a remote, you can check it with:
+After backend schema changes:
 
 ```bash
-git remote -v
-
-origin    git@github.com:octocat/my-full-stack.git (fetch)
-origin    git@github.com:octocat/my-full-stack.git (push)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (fetch)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (push)
+source backend/.venv/bin/activate
+./scripts/generate-client.sh
 ```
 
-- Pull the latest changes without merging:
+## Configuration
 
-```bash
-git pull --no-commit upstream master
-```
+Configuration is managed through environment variables, loaded from `.env`. See `.env.example` for all available variables.
 
-This will download the latest changes from this template without committing them, that way you can check everything is right before committing.
+Key variables to set before deployment:
 
-- If there are conflicts, solve them in your editor.
+| Variable | Purpose |
+|---|---|
+| `SECRET_KEY` | JWT signing key |
+| `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` | Initial admin account |
+| `POSTGRES_PASSWORD` | Database password |
+| `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` / `STRIPE_WEBHOOK_SECRET` | Stripe payment integration |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` | Email delivery (SendGrid or other SMTP provider) |
+| `DOMAIN` | Production domain (e.g. `book.star-fleet.tours`) |
+| `FRONTEND_HOST` | Public URL of the frontend |
+| `QR_CODE_BASE_URL` | Base URL encoded in QR code tickets |
 
-- Once you are done, commit the changes:
-
-```bash
-git merge --continue
-```
-
-### Configure
-
-You can then update configs in the `.env` files to customize your configurations.
-
-Before deploying it, make sure you change at least the values for:
-
-- `SECRET_KEY`
-- `FIRST_SUPERUSER_PASSWORD`
-- `POSTGRES_PASSWORD`
-
-You can (and should) pass these as environment variables from secrets.
-
-Read the [deployment.md](./deployment.md) docs for more details.
-
-### Generate Secret Keys
-
-Some environment variables in the `.env` file have a default value of `changethis`.
-
-You have to change them with a secret key, to generate secret keys you can run the following command:
+To generate secret keys:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Copy the content and use that as password / secret key. And run that again to generate another secure key.
-
-## How To Use It - Alternative With Copier
-
-This repository also supports generating a new project using [Copier](https://copier.readthedocs.io).
-
-It will copy all the files, ask you configuration questions, and update the `.env` files with your answers.
-
-### Install Copier
-
-You can install Copier with:
-
-```bash
-pip install copier
-```
-
-Or better, if you have [`pipx`](https://pipx.pypa.io/), you can run it with:
-
-```bash
-pipx install copier
-```
-
-**Note**: If you have `pipx`, installing copier is optional, you could run it directly.
-
-### Generate a Project With Copier
-
-Decide a name for your new project's directory, you will use it below. For example, `my-awesome-project`.
-
-Go to the directory that will be the parent of your project, and run the command with your project's name:
-
-```bash
-copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
-```
-
-If you have `pipx` and you didn't install `copier`, you can run it directly:
-
-```bash
-pipx run copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
-```
-
-**Note** the `--trust` option is necessary to be able to execute a [post-creation script](https://github.com/fastapi/full-stack-fastapi-template/blob/master/.copier/update_dotenv.py) that updates your `.env` files.
-
-### Input Variables
-
-Copier will ask you for some data, you might want to have at hand before generating the project.
-
-But don't worry, you can just update any of that in the `.env` files afterwards.
-
-The input variables, with their default values (some auto generated) are:
-
-- `project_name`: (default: `"FastAPI Project"`) The name of the project, shown to API users (in .env).
-- `stack_name`: (default: `"fastapi-project"`) The name of the stack used for Docker Compose labels and project name (no spaces, no periods) (in .env).
-- `secret_key`: (default: `"changethis"`) The secret key for the project, used for security, stored in .env, you can generate one with the method above.
-- `first_superuser`: (default: `"admin@example.com"`) The email of the first superuser (in .env).
-- `first_superuser_password`: (default: `"changethis"`) The password of the first superuser (in .env).
-- `smtp_host`: (default: "") The SMTP server host to send emails, you can set it later in .env.
-- `smtp_user`: (default: "") The SMTP server user to send emails, you can set it later in .env.
-- `smtp_password`: (default: "") The SMTP server password to send emails, you can set it later in .env.
-- `emails_from_email`: (default: `"info@example.com"`) The email account to send emails from, you can set it later in .env.
-- `postgres_password`: (default: `"changethis"`) The password for the PostgreSQL database, stored in .env, you can generate one with the method above.
-- `sentry_dsn`: (default: "") The DSN for Sentry, if you are using it, you can set it later in .env.
-
-## Backend Development
-
-Backend docs: [backend/README.md](./backend/README.md).
-
-## Frontend Development
-
-Frontend docs: [frontend/README.md](./frontend/README.md).
-
 ## Deployment
 
-Deployment docs: [deployment.md](./deployment.md).
+Deployment uses Docker Compose with Traefik for TLS termination and routing. See [deployment.md](./deployment.md) for step-by-step instructions covering:
 
-## Development
+- Traefik proxy setup with Let's Encrypt
+- Environment variable configuration
+- GitHub Actions self-hosted runner for CD
+- DNS and subdomain configuration
 
-General development docs: [development.md](./development.md).
+### Production URLs
 
-This includes using Docker Compose, custom local domains, `.env` configurations, etc.
+| Service | URL |
+|---|---|
+| Public booking | `https://book.star-fleet.tours` |
+| Admin dashboard | `https://admin.book.star-fleet.tours` |
+| Backend API | `https://api.book.star-fleet.tours` |
+| API documentation | `https://api.book.star-fleet.tours/docs` |
+| Adminer | `https://adminer.book.star-fleet.tours` |
+| Traefik dashboard | `https://traefik.book.star-fleet.tours` |
 
-## Release Notes
+### Staging URLs
 
-Check the file [release-notes.md](./release-notes.md).
+| Service | URL |
+|---|---|
+| Public booking | `https://staging.book.star-fleet.tours` |
+| Admin dashboard | `https://admin.staging.book.star-fleet.tours` |
+| Backend API | `https://api.staging.book.star-fleet.tours` |
+| API documentation | `https://api.staging.book.star-fleet.tours/docs` |
+| Adminer | `https://adminer.staging.book.star-fleet.tours` |
+
+## Further Documentation
+
+- [Backend development](./backend/README.md) -- dependencies, migrations, tests, email templates, QR codes
+- [Frontend development](./frontend/README.md) -- dev server, client generation, e2e tests
+- [Deployment guide](./deployment.md) -- Traefik setup, Docker Compose production, CI/CD
+- [Development workflows](./development.md) -- Docker Compose, local domains, pre-commit, env vars
 
 ## License
 
-The Full Stack FastAPI Template is licensed under the terms of the MIT license.
+Copyright (c) 2025- Star Fleet Tours LLC.
+
+This project is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
+
+Portions of this codebase were adapted from the [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) by Sebastián Ramírez, originally licensed under the MIT License. See [NOTICE](./NOTICE) for details.

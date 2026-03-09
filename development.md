@@ -1,4 +1,4 @@
-# FastAPI Project - Development
+# Quartermaster - Development
 
 ## Docker Compose
 
@@ -114,11 +114,21 @@ docker compose watch
 
 ## The .env file
 
-The `.env` file is the one that contains all your configurations, generated keys and passwords, etc.
+The `.env` file is the one that contains all your configurations, generated keys and passwords, etc. Copy `.env.example` to `.env` to get started. The `.env` file is git-ignored.
 
-Depending on your workflow, you could want to exclude it from Git, for example if your project is public. In that case, you would have to make sure to set up a way for your CI tools to obtain it while building or deploying your project.
+### Stripe (payment processing)
 
-One way to do it could be to add each environment variable to your CI/CD system, and updating the `docker-compose.yml` file to read that specific env var instead of reading the `.env` file.
+For local development with Stripe, set these in your `.env`:
+
+* `STRIPE_PUBLISHABLE_KEY` -- your Stripe test-mode publishable key
+* `STRIPE_SECRET_KEY` -- your Stripe test-mode secret key
+* `STRIPE_WEBHOOK_SECRET` -- webhook signing secret (from `stripe listen --forward-to ...` or the Stripe dashboard)
+
+The dev override passes these to the backend container automatically. Without them, booking payment flows will fail.
+
+### MailCatcher (local email)
+
+The dev override routes all outgoing email to a local [MailCatcher](https://mailcatcher.me/) instance instead of a real SMTP server. View captured emails at http://localhost:1080. No SMTP credentials are needed for local development.
 
 ## Pre-commits and code linting
 
