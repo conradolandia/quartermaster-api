@@ -951,23 +951,15 @@ const EditTrip = ({
                                   }
                                 ).pricing
                               : []
-                          // Seats taken = actual bookings (used_per_ticket_type or from pricing), not remaining_capacity
-                          const used =
-                            "used_per_ticket_type" in tripBoat &&
-                            tripBoat.used_per_ticket_type != null
-                              ? Object.values(
-                                  tripBoat.used_per_ticket_type as Record<
-                                    string,
-                                    number
-                                  >,
-                                ).reduce((a, b) => a + b, 0)
-                              : pricing.length > 0
-                                ? pricing.reduce(
-                                    (sum, p) =>
-                                      sum + Math.max(0, p.capacity - p.remaining),
-                                    0,
-                                  )
-                                : 0
+                          // Seats taken = actual bookings (used_per_ticket_type). API always sends this field.
+                          const u = tripBoat.used_per_ticket_type
+                          const used: number =
+                            u != null && typeof u === "object"
+                              ? (Object.values(u) as number[]).reduce(
+                                  (a, b) => a + b,
+                                  0,
+                                )
+                              : 0
                           const remaining = Math.max(0, maxCap - used)
                           const hasBookings = used > 0
                           return (

@@ -130,21 +130,13 @@ const TRIP_TYPES = [
 
 const filterSelectWidth = "160px"
 
-/** Seats taken = actual bookings (used_per_ticket_type or from pricing), not remaining_capacity. */
+/** Seats taken = actual bookings (used_per_ticket_type). API always sends this field. */
 function seatsTakenFromTripBoat(
   tb: TripBoatPublicWithAvailability,
 ): number {
-  if (tb.used_per_ticket_type != null && typeof tb.used_per_ticket_type === "object") {
-    return Object.values(tb.used_per_ticket_type).reduce((a, b) => a + b, 0)
-  }
-  const pricing = tb.pricing
-  if (Array.isArray(pricing) && pricing.length > 0) {
-    return pricing.reduce(
-      (sum, p) => sum + Math.max(0, (p.capacity ?? 0) - (p.remaining ?? 0)),
-      0,
-    )
-  }
-  return 0
+  const u = tb.used_per_ticket_type
+  if (u == null || typeof u !== "object") return 0
+  return Object.values(u).reduce((a, b) => a + b, 0)
 }
 
 function TripsTable() {
