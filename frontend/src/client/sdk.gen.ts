@@ -851,8 +851,9 @@ export class BookingsService {
    *
    * Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
    * rescheduling are allowed. Merchandise items are left on their current trips.
-   * Target trip must be active, not departed, and have capacity for the moved
-   * quantities.
+   * Target trip must not be archived; its mission and launch must not be archived.
+   * Past (departed) trips are allowed if not archived. Target must have capacity
+   * for the moved quantities.
    * @param data The data for the request.
    * @param data.bookingId
    * @param data.requestBody
@@ -3738,10 +3739,12 @@ export class TripsService {
   /**
    * Read Trips By Mission
    * Retrieve trips for a specific mission.
+   * By default exclude archived trips; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.missionId
    * @param data.skip
    * @param data.limit
+   * @param data.includeArchived
    * @returns TripsPublic Successful Response
    * @throws ApiError
    */
@@ -3757,6 +3760,7 @@ export class TripsService {
       query: {
         skip: data.skip,
         limit: data.limit,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",

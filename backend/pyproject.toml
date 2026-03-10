@@ -50,11 +50,16 @@ branch = true
 omit = [
     "app/tests/*",
     "app/tests_pre_start.py",
+    "app/run_migrations.py",
+    "app/initial_data.py",
+    "app/services/yaml_importer.py",
 ]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 35
+# Raised from 35; next milestone 70%. Current ~60%; remaining gap mainly in
+# booking_admin, booking_export, trips_admin, booking_admin_operations.
+fail_under = 60
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",

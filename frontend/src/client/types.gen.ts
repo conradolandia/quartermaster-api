@@ -1913,6 +1913,7 @@ export type TripsReadTripCapacityData = {
 export type TripsReadTripCapacityResponse = TripCapacityResponse
 
 export type TripsReadTripsByMissionData = {
+  includeArchived?: boolean
   limit?: number
   missionId: string
   skip?: number

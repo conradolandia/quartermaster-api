@@ -263,8 +263,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   // Fetch all bookings to determine which missions have bookings
   const { data: allBookingsData } = useQuery({
-    queryKey: ["all-bookings-for-missions"],
-    queryFn: () => BookingsService.listBookings({ limit: 1000 }),
+    queryKey: ["all-bookings-for-missions", { includeArchived }],
+    queryFn: () =>
+      BookingsService.listBookings({ limit: 1000, includeArchived }),
   })
 
   const rawBookings = bookingsData?.data || []

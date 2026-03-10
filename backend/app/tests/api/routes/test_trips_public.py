@@ -37,6 +37,22 @@ def test_list_public_trips(
     assert str(test_trip.id) in trip_ids
 
 
+def test_list_public_trips_with_type_filter(
+    client: TestClient,
+    db: Session,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/trips/public/",
+        params={"trip_type": "launch_viewing"},
+    )
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert all(t.get("type") == "launch_viewing" for t in data)
+
+
 def test_list_public_trips_excludes_inactive(
     client: TestClient,
     db: Session,

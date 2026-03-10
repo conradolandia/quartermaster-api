@@ -1,34 +1,4 @@
 import {
-  DialogActionTrigger,
-  DialogBody,
-  DialogCloseTrigger,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogRoot,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Switch } from "@/components/ui/switch"
-import {
-  Badge,
-  Box,
-  Button,
-  ButtonGroup,
-  Checkbox,
-  Flex,
-  HStack,
-  Heading,
-  IconButton,
-  Input,
-  Table,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
-import { FiCopy, FiEdit, FiPlus, FiTrash2 } from "react-icons/fi"
-
-import {
   type DiscountCodeCreate,
   type DiscountCodePublic,
   type DiscountCodeUpdate,
@@ -40,32 +10,43 @@ import {
 import useCustomToast from "@/hooks/useCustomToast"
 import { useMissionsByLaunch } from "@/hooks/useMissionsByLaunch"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
-import { NativeSelect } from "@/components/ui/native-select"
-import { formatCents, handleError } from "@/utils"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
+import { FiPlus } from "react-icons/fi"
+
+import { handleError } from "@/utils"
 import { getPublicOrigin } from "@/utils/url"
 
+import DiscountCodeFormDialog from "./DiscountCodeFormDialog"
+import DiscountCodesTable from "./DiscountCodesTable"
+
+import { Button, Heading, HStack, Text, VStack } from "@chakra-ui/react"
+
 type DiscountCodeManagerProps = {}
+
+const initialFormData: Partial<DiscountCodeCreate> = {
+  code: "",
+  description: "",
+  discount_type: "percentage",
+  max_uses: null,
+  is_active: true,
+  valid_from: null,
+  valid_until: null,
+  min_order_amount: null,
+  max_discount_amount: null,
+  is_access_code: false,
+  access_code_mission_id: null,
+  restricted_trip_type: null,
+  restricted_launch_id: null,
+  restricted_mission_id: null,
+  restricted_trip_id: null,
+}
 
 export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<DiscountCodeCreate>>({
-    code: "",
-    description: "",
-    discount_type: "percentage",
-    max_uses: null,
-    is_active: true,
-    valid_from: null,
-    valid_until: null,
-    min_order_amount: null,
-    max_discount_amount: null,
-    is_access_code: false,
-    access_code_mission_id: null,
-    restricted_trip_type: null,
-    restricted_launch_id: null,
-    restricted_mission_id: null,
-    restricted_trip_id: null,
-  })
+  const [formData, setFormData] =
+    useState<Partial<DiscountCodeCreate>>(initialFormData)
 
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -104,13 +85,11 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     (isAdding || !!editingId) && !!formData.restricted_mission_id,
   )
 
-  // Fetch discount codes
   const { data: discountCodes, isLoading } = useQuery({
     queryKey: ["discount-codes"],
     queryFn: () => DiscountCodesService.listDiscountCodes({ limit: 100 }),
   })
 
-  // Fetch lookups for restrictions display in table
   const { data: tableLaunches } = useQuery({
     queryKey: ["launches-table"],
     queryFn: () => LaunchesService.readLaunches(),
@@ -127,31 +106,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     enabled: !!discountCodes?.length,
   })
 
-  const formatRestrictions = (dc: DiscountCodePublic) => {
-    const parts: string[] = []
-    if (dc.restricted_trip_type) {
-      parts.push(
-        dc.restricted_trip_type === "launch_viewing" ? "Launch viewing" : "Pre-launch",
-      )
-    }
-    if (dc.restricted_launch_id && tableLaunches?.data) {
-      const launch = tableLaunches.data.find((l) => l.id === dc.restricted_launch_id)
-      parts.push(launch ? launch.name : "Launch")
-    }
-    if (dc.restricted_mission_id && tableMissions?.data) {
-      const mission = tableMissions.data.find(
-        (m) => m.id === dc.restricted_mission_id,
-      )
-      parts.push(mission ? mission.name : "Mission")
-    }
-    if (dc.restricted_trip_id && tableTrips?.data) {
-      const trip = tableTrips.data.find((t) => t.id === dc.restricted_trip_id)
-      parts.push(trip ? trip.name || trip.type : "Trip")
-    }
-    return parts.length > 0 ? parts.join(", ") : "—"
-  }
-
-  // Create discount code mutation
   const createMutation = useMutation({
     mutationFn: (data: DiscountCodeCreate) =>
       DiscountCodesService.createDiscountCode({ requestBody: data }),
@@ -164,7 +118,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     onError: handleError,
   })
 
-  // Update discount code mutation
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: DiscountCodeUpdate }) =>
       DiscountCodesService.updateDiscountCode({
@@ -180,7 +133,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
     onError: handleError,
   })
 
-  // Delete discount code mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       DiscountCodesService.deleteDiscountCode({ discountCodeId: id }),
@@ -192,23 +144,7 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   })
 
   const resetForm = () => {
-    setFormData({
-      code: "",
-      description: "",
-      discount_type: "percentage",
-      max_uses: null,
-      is_active: true,
-      valid_from: null,
-      valid_until: null,
-      min_order_amount: null,
-      max_discount_amount: null,
-      is_access_code: false,
-      access_code_mission_id: null,
-      restricted_trip_type: null,
-      restricted_launch_id: null,
-      restricted_mission_id: null,
-      restricted_trip_id: null,
-    })
+    setFormData({ ...initialFormData })
   }
 
   const startEdit = (discountCode: DiscountCodePublic) => {
@@ -253,7 +189,6 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const handleSubmit = () => {
     if (!formData.code) return
 
-    // Empty value means 0 (no discount). Backend: percentage 0-1 (e.g. 0.1 = 10%), fixed_amount in cents
     const rawValue = formData.discount_value ?? 0
     const discountValue =
       formData.discount_type === "fixed_amount"
@@ -299,469 +234,30 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
         </Button>
       </HStack>
 
-      {/* Add/Edit Modal */}
-      <DialogRoot
-        size={{ base: "xs", md: "lg" }}
-        placement="center"
+      <DiscountCodeFormDialog
         open={isAdding || !!editingId}
-        onOpenChange={({ open }) => !open && cancelEdit()}
-      >
-        <DialogContent>
-          <DialogCloseTrigger />
-          <DialogHeader>
-            <DialogTitle>
-              {editingId ? "Edit Discount Code" : "Add Discount Code"}
-            </DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <VStack gap={3}>
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Code
-                  </Text>
-                  <Input
-                    value={formData.code || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, code: e.target.value })
-                    }
-                    placeholder="DISCOUNT10"
-                  />
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Description
-                  </Text>
-                  <Input
-                    value={formData.description || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="10% off for early birds"
-                  />
-                </Box>
-              </HStack>
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onCancel={cancelEdit}
+        isEdit={!!editingId}
+        isSubmitting={createMutation.isPending || updateMutation.isPending}
+        launchesData={launchesData}
+        missions={missions}
+        trips={trips}
+      />
 
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Type
-                  </Text>
-                  <select
-                    value={formData.discount_type || "percentage"}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        discount_type: e.target.value as
-                          | "percentage"
-                          | "fixed_amount",
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "0.375rem",
-                      border: "1px solid",
-                      borderColor: "inherit",
-                    }}
-                  >
-                    <option value="percentage">Percentage</option>
-                    <option value="fixed_amount">Fixed Amount</option>
-                  </select>
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Value
-                  </Text>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={
-                      formData.discount_value !== undefined &&
-                      formData.discount_value !== null
-                        ? formData.discount_value
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setFormData({
-                        ...formData,
-                        discount_value:
-                          value === ""
-                            ? undefined
-                            : Number.parseFloat(value) ?? undefined,
-                      })
-                    }}
-                    placeholder={
-                      formData.is_access_code
-                        ? "0 (no discount)"
-                        : "10 or leave empty for 0"
-                    }
-                  />
-                </Box>
-              </HStack>
-
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Max Uses
-                  </Text>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.max_uses || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        max_uses: e.target.value
-                          ? Number.parseInt(e.target.value)
-                          : null,
-                      })
-                    }
-                    placeholder="Unlimited"
-                  />
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Min Order Amount
-                  </Text>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.min_order_amount || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        min_order_amount: e.target.value
-                          ? Number.parseFloat(e.target.value)
-                          : null,
-                      })
-                    }
-                    placeholder="No minimum"
-                  />
-                </Box>
-              </HStack>
-
-              <HStack width="100%" alignItems="center">
-                <Box flex={1}>
-                  <Checkbox.Root
-                    checked={formData.is_access_code || false}
-                    onCheckedChange={(details) =>
-                      setFormData({
-                        ...formData,
-                        is_access_code: !!details.checked,
-                      })
-                    }
-                  >
-                    <Checkbox.HiddenInput />
-                    <Checkbox.Control />
-                    <Checkbox.Label>Early Bird Access Code</Checkbox.Label>
-                  </Checkbox.Root>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    When enabled, this code grants access to missions in "Early
-                    Bird" booking mode
-                  </Text>
-                </Box>
-              </HStack>
-
-              <HStack width="100%" alignItems="center">
-                <Box flex={1}>
-                  <Flex
-                    alignItems="center"
-                    justifyContent="space-between"
-                    width="100%"
-                  >
-                    <Text fontSize="sm">Active</Text>
-                    <Box
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          is_active: !formData.is_active,
-                        })
-                      }}
-                      cursor="pointer"
-                    >
-                      <Switch
-                        checked={formData.is_active ?? true}
-                        inputProps={{ id: "is_active" }}
-                      />
-                    </Box>
-                  </Flex>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    When disabled, this discount code cannot be used
-                  </Text>
-                </Box>
-              </HStack>
-
-              <Text fontSize="sm" fontWeight="medium" mt={2}>
-                Restrictions (optional)
-              </Text>
-              <Text fontSize="xs" color="gray.500" mb={2}>
-                Limit where this code can be used. Leave empty for no restriction.
-              </Text>
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Trip Type
-                  </Text>
-                  <NativeSelect
-                    value={formData.restricted_trip_type || ""}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setFormData({
-                        ...formData,
-                        restricted_trip_type: e.target.value || null,
-                      })
-                    }
-                  >
-                    <option value="">Any</option>
-                    <option value="launch_viewing">Launch Viewing</option>
-                    <option value="pre_launch">Pre-Launch</option>
-                  </NativeSelect>
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Launch
-                  </Text>
-                  <NativeSelect
-                    value={formData.restricted_launch_id || ""}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setFormData({
-                        ...formData,
-                        restricted_launch_id: e.target.value || null,
-                        restricted_mission_id: null,
-                        restricted_trip_id: null,
-                      })
-                    }
-                  >
-                    <option value="">Any</option>
-                    {launchesData?.data?.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Box>
-              </HStack>
-              <HStack width="100%">
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Mission
-                  </Text>
-                  <NativeSelect
-                    value={formData.restricted_mission_id || ""}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setFormData({
-                        ...formData,
-                        restricted_mission_id: e.target.value || null,
-                        restricted_trip_id: null,
-                      })
-                    }
-                  >
-                    <option value="">Any</option>
-                    {missions.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Box>
-                <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>
-                    Trip
-                  </Text>
-                  <NativeSelect
-                    value={formData.restricted_trip_id || ""}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setFormData({
-                        ...formData,
-                        restricted_trip_id: e.target.value || null,
-                      })
-                    }
-                  >
-                    <option value="">Any</option>
-                    {trips.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name || t.type}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Box>
-              </HStack>
-            </VStack>
-          </DialogBody>
-          <DialogFooter gap={2}>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogActionTrigger>
-              <Button
-                colorScheme="blue"
-                onClick={handleSubmit}
-                disabled={
-                  !formData.code ||
-                  createMutation.isPending ||
-                  updateMutation.isPending
-                }
-                loading={createMutation.isPending || updateMutation.isPending}
-              >
-                {editingId ? "Update" : "Create"} Discount Code
-              </Button>
-            </ButtonGroup>
-          </DialogFooter>
-        </DialogContent>
-      </DialogRoot>
-
-      {/* Discount Codes List */}
-      <Box>
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Code</Table.ColumnHeader>
-              <Table.ColumnHeader>Description</Table.ColumnHeader>
-              <Table.ColumnHeader>Type</Table.ColumnHeader>
-              <Table.ColumnHeader>Value</Table.ColumnHeader>
-              <Table.ColumnHeader>Uses</Table.ColumnHeader>
-              <Table.ColumnHeader>Category</Table.ColumnHeader>
-              <Table.ColumnHeader>Restrictions</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Booking URL</Table.ColumnHeader>
-              <Table.ColumnHeader>Actions</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {discountCodes?.map((discountCode) => (
-              <Table.Row key={discountCode.id}>
-                <Table.Cell>
-                  <Text fontWeight="medium">{discountCode.code}</Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text
-                    fontSize="sm"
-                    color="text.muted"
-                    maxW="200px"
-                    truncate
-                    title={discountCode.description || undefined}
-                  >
-                    {discountCode.description || "—"}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge
-                    size="lg"
-                    colorPalette="green"
-                    px={2}
-                    py={0.5}
-                  >
-                    {discountCode.discount_type === "percentage" ? "%" : "$"}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text fontSize="sm">
-                    {discountCode.discount_type === "percentage"
-                      ? `${(discountCode.discount_value <= 1
-                          ? discountCode.discount_value * 100
-                          : discountCode.discount_value
-                        ).toFixed(0)}%`
-                      : `$${formatCents(discountCode.discount_value)}`}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text fontSize="sm">
-                    {discountCode.used_count}
-                    {discountCode.max_uses ? ` / ${discountCode.max_uses}` : ""}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge
-                    size="sm"
-                    colorPalette={
-                      discountCode.is_access_code ? "purple" : "gray"
-                    }
-                  >
-                    {discountCode.is_access_code ? "Access Code" : "Discount"}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text
-                    fontSize="sm"
-                    color="text.muted"
-                    title={formatRestrictions(discountCode)}
-                    maxW="200px"
-                    truncate
-                  >
-                    {formatRestrictions(discountCode)}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <Text
-                    fontSize="sm"
-                    color={discountCode.is_active ? "green.500" : "red.500"}
-                  >
-                    {discountCode.is_active ? "Active" : "Inactive"}
-                  </Text>
-                </Table.Cell>
-                <Table.Cell>
-                  <HStack gap={2} align="center">
-                    <Text
-                      fontSize="xs"
-                      color="text.muted"
-                      title={buildBookingUrl(
-                        discountCode.code,
-                        !!discountCode.is_access_code,
-                      )}
-                    >
-                      /book?
-                      {discountCode.is_access_code ? "access" : "discount"}=
-                      {discountCode.code}
-                    </Text>
-                    <IconButton
-                      aria-label="Copy booking URL to clipboard"
-                      title="Copy booking URL"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        copyBookingUrl(
-                          discountCode.code,
-                          !!discountCode.is_access_code,
-                        )
-                      }
-                    >
-                      <FiCopy />
-                    </IconButton>
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>
-                  <HStack>
-                    <IconButton
-                      aria-label="Edit discount code"
-                      children={<FiEdit />}
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => startEdit(discountCode)}
-                    />
-                    <IconButton
-                      aria-label="Delete discount code"
-                      children={<FiTrash2 />}
-                      size="sm"
-                      variant="ghost"
-                      colorScheme="red"
-                      onClick={() => deleteMutation.mutate(discountCode.id)}
-                      loading={deleteMutation.isPending}
-                    />
-                  </HStack>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-        {(!discountCodes || discountCodes.length === 0) && (
-          <Text color="text.muted" textAlign="center" py={4}>
-            No discount codes configured
-          </Text>
-        )}
-      </Box>
+      <DiscountCodesTable
+        discountCodes={discountCodes}
+        tableLaunches={tableLaunches?.data}
+        tableMissions={tableMissions?.data}
+        tableTrips={tableTrips?.data}
+        onEdit={startEdit}
+        onDelete={(id) => deleteMutation.mutate(id)}
+        buildBookingUrl={buildBookingUrl}
+        copyBookingUrl={copyBookingUrl}
+        isDeleting={deleteMutation.isPending}
+      />
     </VStack>
   )
 }

@@ -116,6 +116,14 @@ export default function BookingsFilterBar({
             Include archived
           </Checkbox.Label>
         </Checkbox.Root>
+        {hasActiveFilters && (
+          <Button size="sm" variant="ghost" onClick={onClearFilters}>
+            <Flex align="center" gap={1}>
+              <FiX />
+              Clear filters
+            </Flex>
+          </Button>
+        )}
       </Flex>
       <Flex gap={3} align="center" flexWrap="wrap">
         <HStack gap={3}>
@@ -299,16 +307,6 @@ export default function BookingsFilterBar({
           </Select.Root>
         </HStack>
       </Flex>
-      {hasActiveFilters && (
-        <Flex>
-          <Button size="sm" variant="ghost" onClick={onClearFilters}>
-            <Flex align="center" gap={1}>
-              <FiX />
-              Clear filters
-            </Flex>
-          </Button>
-        </Flex>
-      )}
     </VStack>
   )
 }

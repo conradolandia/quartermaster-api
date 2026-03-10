@@ -12,6 +12,7 @@ from app.models import (
     BookingItem,
     BookingItemStatus,
     BookingStatus,
+    Mission,
     Trip,
     TripBoat,
 )
@@ -41,6 +42,41 @@ def test_list_bookings_success(
     assert "total" in data
     assert data["total"] >= 1
     assert any(b["id"] == str(test_booking.id) for b in data["data"])
+
+
+def test_list_bookings_filter_confirmation_code(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"search": test_booking.confirmation_code[:8]},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert any(
+        b["confirmation_code"] == test_booking.confirmation_code for b in data["data"]
+    )
+
+
+def test_list_bookings_filter_mission_id(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_mission: Mission,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"mission_id": str(test_mission.id)},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "data" in data
 
 
 def test_get_booking_by_id_success(

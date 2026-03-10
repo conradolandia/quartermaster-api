@@ -18,7 +18,9 @@ from app.models import (
     BookingItemStatus,
     BookingPublic,
     BookingStatus,
+    Launch,
     MerchandiseVariation,
+    Mission,
     Trip,
 )
 
@@ -56,8 +58,9 @@ def reschedule_booking(
 
     Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
     rescheduling are allowed. Merchandise items are left on their current trips.
-    Target trip must be active, not departed, and have capacity for the moved
-    quantities.
+    Target trip must not be archived; its mission and launch must not be archived.
+    Past (departed) trips are allowed if not archived. Target must have capacity
+    for the moved quantities.
     """
     booking = session.get(Booking, booking_id)
     if not booking:
@@ -85,11 +88,24 @@ def reschedule_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip {body.target_trip_id} not found",
         )
-    if not target_trip.active:
+    if target_trip.archived:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Target trip is not active",
+            detail="Cannot reschedule to an archived trip",
         )
+    mission = session.get(Mission, target_trip.mission_id)
+    if mission and mission.archived:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reschedule to a trip on an archived mission",
+        )
+    if mission:
+        launch = session.get(Launch, mission.launch_id)
+        if launch and launch.archived:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot reschedule to a trip on an archived launch",
+            )
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=body.target_trip_id
     )

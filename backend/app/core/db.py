@@ -5,6 +5,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import crud
 from app.core.config import settings
+from app.core.security import get_password_hash, verify_password
 from app.models import (
     Boat,
     BoatCreate,
@@ -49,8 +50,27 @@ def init_db(session: Session) -> None:
     except Exception as e:
         print(f"Error adding qr_code_base64 column: {e}")
 
-    # Only seed initial data when the DB is empty (no users)
+    # When DB already has users, only sync first superuser password to .env (no full seed)
     if session.exec(select(User).limit(1)).first():
+        first_superuser = crud.get_user_by_email(
+            session=session, email=settings.FIRST_SUPERUSER
+        )
+        if first_superuser and not verify_password(
+            settings.FIRST_SUPERUSER_PASSWORD, first_superuser.hashed_password
+        ):
+            first_superuser.hashed_password = get_password_hash(
+                settings.FIRST_SUPERUSER_PASSWORD
+            )
+            session.add(first_superuser)
+            session.commit()
+            print("First superuser password synced to FIRST_SUPERUSER_PASSWORD")
+        elif first_superuser:
+            print("First superuser password already matches FIRST_SUPERUSER_PASSWORD")
+        else:
+            print(
+                f"No user with email {settings.FIRST_SUPERUSER}; "
+                "password sync skipped (create first superuser by seeding empty DB)"
+            )
         print("Database already has users; skipping initial data")
         return
 
@@ -167,7 +187,7 @@ def init_db(session: Session) -> None:
             name=None,
             type="launch_viewing",
             active=True,
-            booking_mode="private",
+            booking_mode="public",
             sales_open_at=sales_open_at,
             check_in_time=check_in_time,
             boarding_time=boarding_time,

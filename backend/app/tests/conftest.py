@@ -16,9 +16,12 @@ from app.models import (
     BookingItem,
     BookingItemStatus,
     BookingStatus,
+    DiscountCode,
     Jurisdiction,
     Launch,
     Location,
+    Merchandise,
+    MerchandiseVariation,
     Mission,
     PaymentStatus,
     Provider,
@@ -28,6 +31,7 @@ from app.models import (
     TripMerchandise,
     User,
 )
+from app.models.enums import DiscountCodeType
 from app.tests.utils.user import authentication_token_from_email
 from app.tests.utils.utils import get_superuser_token_headers
 
@@ -41,7 +45,10 @@ def db() -> Generator[Session, None, None]:
             # Delete in reverse dependency order
             session.exec(delete(BookingItem))  # type: ignore[call-overload]
             session.exec(delete(Booking))  # type: ignore[call-overload]
+            session.exec(delete(DiscountCode))  # type: ignore[call-overload]
             session.exec(delete(TripMerchandise))  # type: ignore[call-overload]
+            session.exec(delete(MerchandiseVariation))  # type: ignore[call-overload]
+            session.exec(delete(Merchandise))  # type: ignore[call-overload]
             session.exec(delete(TripBoatPricing))  # type: ignore[call-overload]
             session.exec(delete(TripBoat))  # type: ignore[call-overload]
             session.exec(delete(BoatPricing))  # type: ignore[call-overload]
@@ -68,7 +75,10 @@ def db() -> Generator[Session, None, None]:
             session.rollback()
             session.exec(delete(BookingItem))  # type: ignore[call-overload]
             session.exec(delete(Booking))  # type: ignore[call-overload]
+            session.exec(delete(DiscountCode))  # type: ignore[call-overload]
             session.exec(delete(TripMerchandise))  # type: ignore[call-overload]
+            session.exec(delete(MerchandiseVariation))  # type: ignore[call-overload]
+            session.exec(delete(Merchandise))  # type: ignore[call-overload]
             session.exec(delete(TripBoatPricing))  # type: ignore[call-overload]
             session.exec(delete(TripBoat))  # type: ignore[call-overload]
             session.exec(delete(BoatPricing))  # type: ignore[call-overload]
@@ -314,3 +324,34 @@ def test_booking_item(
     db.commit()
     db.refresh(item)
     return item
+
+
+@pytest.fixture(scope="function")
+def test_merchandise(db: Session) -> Merchandise:
+    """Create a test merchandise (catalog item)."""
+    merch = Merchandise(
+        name="Test T-Shirt",
+        description="Test merch",
+        price=2000,
+        quantity_available=50,
+    )
+    db.add(merch)
+    db.commit()
+    db.refresh(merch)
+    return merch
+
+
+@pytest.fixture(scope="function")
+def test_discount_code(db: Session) -> DiscountCode:
+    """Create a test discount code (percentage, active, no restrictions)."""
+    code = DiscountCode(
+        code="TEST10",
+        description="10% off",
+        discount_type=DiscountCodeType.percentage,
+        discount_value=0.10,
+        is_active=True,
+    )
+    db.add(code)
+    db.commit()
+    db.refresh(code)
+    return code

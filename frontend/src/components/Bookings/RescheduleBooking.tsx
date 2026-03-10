@@ -32,10 +32,7 @@ import {
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
-import {
-  formatDateTimeInLocationTz,
-  parseApiDate,
-} from "@/utils"
+import { formatDateTimeInLocationTz } from "@/utils"
 
 interface RescheduleBookingProps {
   booking: BookingPublic
@@ -203,12 +200,8 @@ export default function RescheduleBooking({
     return `${readableType} (${time})`
   }
 
-  const now = new Date()
   const tripOptions = trips
-    .filter((t: TripPublic) => {
-      if (!t.departure_time) return true
-      return parseApiDate(t.departure_time) >= now
-    })
+    .filter((t: TripPublic) => !t.archived)
     .map((t: TripPublic) => ({
       value: t.id,
       label: formatTripOptionLabel(t),

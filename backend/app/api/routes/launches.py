@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy import exists, or_
 from sqlmodel import Session, select
 
 from app import crud
@@ -394,6 +395,17 @@ def send_launch_update(
             detail=f"Launch with ID {launch_id} not found",
         )
 
+    # Exclude bookings that have any item on an archived trip or mission
+    booking_has_archived_item = exists(
+        select(1)
+        .select_from(BookingItem)
+        .join(Trip, Trip.id == BookingItem.trip_id)
+        .join(Mission, Mission.id == Trip.mission_id)
+        .where(BookingItem.booking_id == Booking.id)
+        .where(Mission.launch_id == launch_id)
+        .where(or_(Trip.archived == True, Mission.archived == True))  # noqa: E712
+    )
+
     # Find all bookings for this launch (optionally scoped by mission or trip)
     # Path: Launch -> Mission -> Trip -> BookingItem -> Booking
     statement = (
@@ -407,6 +419,7 @@ def send_launch_update(
                 [BookingStatus.confirmed, BookingStatus.checked_in]
             )
         )
+        .where(~booking_has_archived_item)
         .distinct()
     )
     if mission_id is not None:

@@ -806,9 +806,11 @@ def read_trips_by_mission(
     mission_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
+    include_archived: bool = False,
 ) -> Any:
     """
     Retrieve trips for a specific mission.
+    By default exclude archived trips; set include_archived=true to include them.
     """
     # Verify that the mission exists
     mission = crud.get_mission(session=session, mission_id=mission_id)
@@ -833,6 +835,8 @@ def read_trips_by_mission(
         .offset(skip)
         .limit(limit)
     )
+    if not include_archived:
+        statement = statement.where(Trip.archived == False)  # noqa: E712
     trips = session.exec(statement).unique().all()
     count = len(trips)
 
@@ -850,6 +854,7 @@ def read_trips_by_mission(
             "name": trip.name,
             "type": trip.type,
             "active": trip.active,
+            "archived": trip.archived,
             "unlisted": trip.unlisted,
             "booking_mode": trip.booking_mode,
             "sales_open_at": trip.sales_open_at,
