@@ -226,7 +226,13 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
 
   return (
     <VStack align="stretch" gap={6}>
-      <HStack justify="space-between" alignItems="center" py={2}>
+      <HStack
+        justify="space-between"
+        alignItems="center"
+        py={2}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Discount Codes Management</Heading>
         <Button size="sm" onClick={() => setIsAdding(true)}>
           <FiPlus style={{ marginRight: "4px" }} />

@@ -519,7 +519,7 @@ export default function BookingDetails({
                 flex="2"
                 className="print-admin-table-container"
               >
-                <Table.Root size={{ base: "sm", md: "md" }}>
+                <Table.Root size="sm">
                   <Table.Header>
                     <Table.Row>
                       <Table.ColumnHeader>Trip</Table.ColumnHeader>

@@ -49,10 +49,17 @@ function Trips() {
   }
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Trips Management</Heading>
-        <Flex gap={3}>
+        <Flex gap={3} flexWrap="wrap">
           <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />

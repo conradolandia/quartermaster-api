@@ -199,7 +199,7 @@ function ProvidersTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -213,11 +213,7 @@ function ProvidersTable() {
                   <SortIcon column="name" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                display={{ base: "none", lg: "table-cell" }}
-              >
+              <Table.ColumnHeader w="sm" fontWeight="bold">
                 Address
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -225,7 +221,6 @@ function ProvidersTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("jurisdiction_id")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Jurisdiction
@@ -246,18 +241,10 @@ function ProvidersTable() {
                 <Table.Cell truncate maxW="sm">
                   {provider.name}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {provider.address || "—"}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {provider.jurisdiction?.name ||
                     provider.jurisdiction_id ||
                     "—"}
@@ -306,8 +293,15 @@ function Providers() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Providers Management</Heading>
         <Button onClick={() => setIsAddModalOpen(true)} colorScheme="blue">
           <Flex align="center" gap={2}>

@@ -1,8 +1,9 @@
+import React from "react"
 import { Table } from "@chakra-ui/react"
 import { SkeletonText } from "../ui/skeleton"
 
 const PendingItems = () => (
-  <Table.Root size={{ base: "sm", md: "md" }}>
+  <Table.Root size="sm">
     <Table.Header>
       <Table.Row>
         <Table.ColumnHeader w="sm">ID</Table.ColumnHeader>

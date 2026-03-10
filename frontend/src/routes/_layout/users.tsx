@@ -1,4 +1,4 @@
-import { Badge, Container, Flex, Heading, Table } from "@chakra-ui/react"
+import { Badge, Box, Container, Flex, Heading, Table } from "@chakra-ui/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { z } from "zod"
@@ -83,7 +83,8 @@ function UsersTable() {
 
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
+      <Box overflowX="auto">
+      <Table.Root size="sm">
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="sm">Full name</Table.ColumnHeader>
@@ -121,6 +122,7 @@ function UsersTable() {
           ))}
         </Table.Body>
       </Table.Root>
+      </Box>
       {count > 0 && (
         <Flex
           justifyContent="space-between"
@@ -152,12 +154,18 @@ function UsersTable() {
 
 function UsersPage() {
   return (
-    <Container maxW="full">
-      <Heading size="lg" pt={12}>
-        Users Management
-      </Heading>
-
-      <AddUser />
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
+        <Heading size="lg">Users Management</Heading>
+        <AddUser />
+      </Flex>
       <UsersTable />
     </Container>
   )

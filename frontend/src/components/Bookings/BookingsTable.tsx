@@ -666,7 +666,6 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
-                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Mission
@@ -679,18 +678,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("trip_name")}
-                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Trip
                   <SortIcon column="trip_name" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="40"
-                fontWeight="bold"
-                display={{ base: "none", lg: "table-cell" }}
-              >
+              <Table.ColumnHeader w="40" fontWeight="bold">
                 Boat
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -804,27 +798,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </HStack>
                   </VStack>
                 </Table.Cell>
-                <Table.Cell
-                  w="40"
-                  minW="28"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell w="40" minW="28">
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
-                <Table.Cell
-                  w="40"
-                  minW="28"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell w="40" minW="28">
                   {booking.trip_name?.trim() ||
                     (booking.trip_type
                       ? tripTypeToLabel(booking.trip_type)
                       : "N/A")}
                 </Table.Cell>
-                <Table.Cell
-                  w="24"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell w="24">
                   {booking.items?.[0]?.boat_id
                     ? boats.find(
                         (b: { id: string; name: string }) =>

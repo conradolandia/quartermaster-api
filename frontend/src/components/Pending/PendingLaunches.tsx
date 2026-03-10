@@ -2,7 +2,7 @@ import { Skeleton, Table } from "@chakra-ui/react"
 
 const PendingLaunches = () => {
   return (
-    <Table.Root size={{ base: "sm", md: "md" }}>
+    <Table.Root size="sm">
       <Table.Header>
         <Table.Row>
           <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>

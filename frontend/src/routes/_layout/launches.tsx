@@ -254,7 +254,7 @@ function LaunchesTable() {
 
   return (
     <>
-      <Flex align="center" gap={3} mb={4}>
+      <Flex align="center" gap={3} mb={4} flexWrap="wrap">
         <Checkbox.Root
           checked={includeArchived}
           onCheckedChange={(e) =>
@@ -286,7 +286,7 @@ function LaunchesTable() {
       ) : (
       <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -305,7 +305,6 @@ function LaunchesTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("launch_timestamp")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Launch Date
@@ -317,7 +316,6 @@ function LaunchesTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("summary")}
-                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Summary
@@ -329,7 +327,6 @@ function LaunchesTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("location_id")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Location
@@ -354,25 +351,13 @@ function LaunchesTable() {
                 <Table.Cell truncate maxW="sm">
                   {launch.name}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {launch.summary}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {locationsMap.get(launch.location_id)?.name ||
                     launch.location_id}
                 </Table.Cell>
@@ -431,10 +416,17 @@ function Launches() {
   const [isYamlImportOpen, setIsYamlImportOpen] = useState(false)
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Launches Management</Heading>
-        <Flex gap={3}>
+        <Flex gap={3} flexWrap="wrap">
           <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />

@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Checkbox,
   Flex,
@@ -125,20 +126,32 @@ export default function BookingsFilterBar({
           </Button>
         )}
       </Flex>
-      <Flex gap={3} align="center" flexWrap="wrap">
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+      <Flex
+        gap={3}
+        align={{ base: "stretch", lg: "center" }}
+        flexDirection={{ base: "column", lg: "row" }}
+        flexWrap="wrap"
+      >
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Booking:
           </Text>
-          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-            <MenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="xs"
-                width={FILTER_SELECT_WIDTH}
-                borderColor="white"
-                justifyContent="space-between"
-              >
+          <Box flex={1} minW={0}>
+            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+              <MenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  width={{ base: "100%", lg: FILTER_SELECT_WIDTH }}
+                  borderColor="white"
+                  justifyContent="space-between"
+                >
                 {bookingStatusLabel}
                 <Icon as={FiChevronDown} ml={1} />
               </Button>
@@ -156,20 +169,28 @@ export default function BookingsFilterBar({
               ))}
             </MenuContent>
           </MenuRoot>
+        </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Payment:
           </Text>
-          <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
-            <MenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="xs"
-                width={FILTER_SELECT_WIDTH}
-                borderColor="white"
-                justifyContent="space-between"
-              >
+          <Box flex={1} minW={0}>
+            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+              <MenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  width={{ base: "100%", lg: FILTER_SELECT_WIDTH }}
+                  borderColor="white"
+                  justifyContent="space-between"
+                >
                 {paymentStatusLabel}
                 <Icon as={FiChevronDown} ml={1} />
               </Button>
@@ -187,15 +208,22 @@ export default function BookingsFilterBar({
               ))}
             </MenuContent>
           </MenuRoot>
+        </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Mission:
           </Text>
+          <Box flex={1} minW={0}>
           <Select.Root
             collection={missionsCollection as any}
             size="xs"
-            width={FILTER_SELECT_WIDTH}
             borderColor="white"
             value={missionId ? [missionId] : [""]}
             onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
@@ -215,15 +243,22 @@ export default function BookingsFilterBar({
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
+        </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Trip:
           </Text>
+          <Box flex={1} minW={0}>
           <Select.Root
             collection={tripsCollection as any}
             size="xs"
-            width={FILTER_SELECT_WIDTH}
             borderColor="white"
             value={tripId ? [tripId] : [""]}
             onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
@@ -243,15 +278,22 @@ export default function BookingsFilterBar({
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
+        </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Type:
           </Text>
+          <Box flex={1} minW={0}>
           <Select.Root
             collection={tripTypeFilterCollection as any}
             size="xs"
-            width={FILTER_SELECT_WIDTH}
             borderColor="white"
             value={tripType ? [tripType] : [""]}
             onValueChange={(e) =>
@@ -273,15 +315,22 @@ export default function BookingsFilterBar({
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
+        </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Boat:
           </Text>
+          <Box flex={1} minW={0}>
           <Select.Root
             collection={boatsCollection as any}
             size="xs"
-            width={FILTER_SELECT_WIDTH}
             borderColor="white"
             value={
               boatId && filteredBoats.some((b) => b.id === boatId)
@@ -305,6 +354,7 @@ export default function BookingsFilterBar({
               </Select.Content>
             </Select.Positioner>
           </Select.Root>
+        </Box>
         </HStack>
       </Flex>
     </VStack>

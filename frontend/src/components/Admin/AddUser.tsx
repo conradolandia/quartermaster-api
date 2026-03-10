@@ -85,9 +85,11 @@ const AddUser = () => {
       onOpenChange={({ open }) => setIsOpen(open)}
     >
       <DialogTrigger asChild>
-        <Button value="add-user" my={4}>
-          <FaPlus fontSize="16px" />
-          Add User
+        <Button value="add-user" colorPalette="blue">
+          <Flex align="center" gap={2}>
+            <FaPlus fontSize="16px" />
+            <span>Add User</span>
+          </Flex>
         </Button>
       </DialogTrigger>
       <DialogContent>

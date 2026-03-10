@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Flex,
   Grid,
   HStack,
   Heading,
@@ -195,15 +196,21 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
         <Card.Body>
           <VStack gap={4} align="stretch">
             <Heading size="md">Lookup Booking</Heading>
-            <HStack gap={4}>
-              <Input
-                placeholder="Enter confirmation code"
-                value={confirmationCode}
-                onChange={(e) =>
-                  setConfirmationCode(e.target.value.toUpperCase())
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleLookupBooking()}
-              />
+            <Flex
+              gap={4}
+              flexDirection={{ base: "column", sm: "row" }}
+              align={{ base: "stretch", sm: "center" }}
+            >
+              <Box flex={1} minW={0}>
+                <Input
+                  placeholder="Enter confirmation code"
+                  value={confirmationCode}
+                  onChange={(e) =>
+                    setConfirmationCode(e.target.value.toUpperCase())
+                  }
+                  onKeyDown={(e) => e.key === "Enter" && handleLookupBooking()}
+                />
+              </Box>
               <Button
                 colorPalette="blue"
                 onClick={handleLookupBooking}
@@ -212,7 +219,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                 <FiSearch />
                 Lookup
               </Button>
-            </HStack>
+            </Flex>
           </VStack>
         </Card.Body>
       </Card.Root>
@@ -408,7 +415,12 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                     </Box>
 
                     {/* Actions */}
-                    <HStack gap={4} justify="flex-end">
+                    <Flex
+                      gap={4}
+                      justify="flex-end"
+                      flexWrap="wrap"
+                      align="center"
+                    >
                       <Button
                         variant="outline"
                         onClick={handleReset}
@@ -425,7 +437,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                       >
                         Process Refund
                       </Button>
-                    </HStack>
+                    </Flex>
                   </VStack>
                 </VStack>
               </Card.Body>

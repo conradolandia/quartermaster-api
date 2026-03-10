@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Flex,
   Grid,
   HStack,
   Heading,
@@ -187,7 +188,11 @@ const CheckInInterface = ({
               <Text fontWeight="medium" mb={2}>
                 Confirmation Code
               </Text>
-              <HStack gap={2}>
+              <Flex
+                gap={2}
+                flexDirection={{ base: "column", sm: "row" }}
+                align={{ base: "stretch", sm: "center" }}
+              >
                 <Input
                   placeholder="Enter confirmation code"
                   value={confirmationCode}
@@ -202,7 +207,7 @@ const CheckInInterface = ({
                   <FiSearch />
                   Look Up
                 </Button>
-              </HStack>
+              </Flex>
             </Box>
           </VStack>
         </Card.Body>

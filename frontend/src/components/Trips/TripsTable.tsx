@@ -68,8 +68,6 @@ const TRIP_TYPES = [
   { label: "Pre-Launch", value: "pre_launch" },
 ] as const
 
-const filterSelectWidth = "160px"
-
 function getTripsQueryOptions({
   page,
   pageSize,
@@ -328,91 +326,113 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
 
   return (
     <>
-      <Flex gap={3} align="center" flexWrap="wrap" mb={4}>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+      <Flex
+        gap={3}
+        align={{ base: "stretch", lg: "center" }}
+        flexDirection={{ base: "column", lg: "row" }}
+        flexWrap="wrap"
+        mb={4}
+      >
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Mission:
           </Text>
-          <Select.Root
-            collection={missionsCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={missionId ? [missionId] : [""]}
-            onValueChange={(e) =>
-              handleMissionFilter(e.value[0] || undefined)
-            }
-          >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Missions" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
-                {missionsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+          <Box flex={1} minW={0}>
+            <Select.Root
+              collection={missionsCollection}
+              size="xs"
+              borderColor="white"
+              value={missionId ? [missionId] : [""]}
+              onValueChange={(e) =>
+                handleMissionFilter(e.value[0] || undefined)
+              }
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Missions" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
+                  {missionsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
-        <HStack gap={3}>
-          <Text fontSize="sm" fontWeight="medium" color="text.secondary">
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
             Type:
           </Text>
-          <Select.Root
-            collection={tripTypeCollection}
-            size="xs"
-            width={filterSelectWidth}
-            borderColor="white"
-            value={tripType ? [tripType] : [""]}
-            onValueChange={(e) =>
-              handleTripTypeFilter(e.value[0] || undefined)
+          <Box flex={1} minW={0}>
+            <Select.Root
+              collection={tripTypeCollection}
+              size="xs"
+              borderColor="white"
+              value={tripType ? [tripType] : [""]}
+              onValueChange={(e) =>
+                handleTripTypeFilter(e.value[0] || undefined)
+              }
+            >
+              <Select.Control width="100%">
+                <Select.Trigger>
+                  <Select.ValueText placeholder="All Types" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content minWidth="180px">
+                  {tripTypeCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      {item.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
+        </HStack>
+        <HStack gap={3} flexWrap="wrap">
+          <Checkbox.Root
+            checked={includeArchived}
+            onCheckedChange={(e) =>
+              handleIncludeArchivedChange(e.checked === true)
             }
           >
-            <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Types" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content minWidth="180px">
-                {tripTypeCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    {item.label}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label fontSize="sm" color="text.secondary">
+              Include archived
+            </Checkbox.Label>
+          </Checkbox.Root>
+          <Button
+            size="sm"
+            variant="ghost"
+            visibility={hasActiveFilters ? "visible" : "hidden"}
+            disabled={!hasActiveFilters}
+            onClick={handleClearFilters}
+          >
+            <Flex align="center" gap={1}>
+              <FiX />
+              Clear filters
+            </Flex>
+          </Button>
         </HStack>
-        <Checkbox.Root
-          checked={includeArchived}
-          onCheckedChange={(e) =>
-            handleIncludeArchivedChange(e.checked === true)
-          }
-        >
-          <Checkbox.HiddenInput />
-          <Checkbox.Control />
-          <Checkbox.Label fontSize="sm" color="text.secondary">
-            Include archived
-          </Checkbox.Label>
-        </Checkbox.Root>
-        <Button
-          size="sm"
-          variant="ghost"
-          visibility={hasActiveFilters ? "visible" : "hidden"}
-          disabled={!hasActiveFilters}
-          onClick={handleClearFilters}
-        >
-          <Flex align="center" gap={1}>
-            <FiX />
-            Clear filters
-          </Flex>
-        </Button>
       </Flex>
 
       {isEmpty ? (
@@ -451,7 +471,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
         <>
           <Box overflowX="auto">
             <Table.Root
-              size={{ base: "sm", md: "md", lg: "lg" }}
+              size="sm"
               width="100%"
               minW="max-content"
             >
@@ -476,7 +496,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleSort("type")}
-                    display={{ base: "none", md: "table-cell" }}
                   >
                     <Flex align="center">
                       Trip Type
@@ -489,7 +508,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleSort("mission_id")}
-                    display={{ base: "none", lg: "table-cell" }}
                   >
                     <Flex align="center">
                       Mission
@@ -502,7 +520,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleSort("departure_time")}
-                    display={{ base: "none", lg: "table-cell" }}
                   >
                     <Flex align="center">
                       Departure
@@ -515,7 +532,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleSort("total_bookings")}
-                    display={{ base: "none", lg: "table-cell" }}
                     textAlign="center"
                   >
                     <Flex align="center" justify="center">
@@ -529,7 +545,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     fontWeight="bold"
                     cursor="pointer"
                     onClick={() => handleSort("total_sales")}
-                    display={{ base: "none", lg: "table-cell" }}
                   >
                     <Flex align="center">
                       Sales
@@ -543,7 +558,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                     minW="4.5rem"
                     px={1}
                     fontWeight="bold"
-                    display={{ base: "none", lg: "table-cell" }}
                     textAlign="center"
                   >
                     Mode
@@ -603,7 +617,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                       <Table.Cell
                         minW="6rem"
                         px={1}
-                        display={{ base: "none", md: "table-cell" }}
                         verticalAlign="top"
                       >
                         {trip.type === "launch_viewing"
@@ -613,7 +626,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                       <Table.Cell
                         minW="6rem"
                         px={1}
-                        display={{ base: "none", lg: "table-cell" }}
                         verticalAlign="top"
                       >
                         {mission?.name || "Unknown"}
@@ -621,7 +633,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                       <Table.Cell
                         minW="8rem"
                         px={1}
-                        display={{ base: "none", lg: "table-cell" }}
                         verticalAlign="top"
                       >
                         {renderDepartureCell(
@@ -632,7 +643,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                       <Table.Cell
                         minW="3rem"
                         px={1}
-                        display={{ base: "none", lg: "table-cell" }}
                         verticalAlign="top"
                         textAlign="center"
                       >
@@ -646,7 +656,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                       <Table.Cell
                         minW="4rem"
                         px={1}
-                        display={{ base: "none", lg: "table-cell" }}
                         verticalAlign="top"
                       >
                         ${formatCents(
@@ -687,7 +696,6 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                         minW="4.5rem"
                         px={1}
                         py={5}
-                        display={{ base: "none", lg: "table-cell" }}
                         verticalAlign="top"
                         textAlign="center"
                       >

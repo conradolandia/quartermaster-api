@@ -13,14 +13,14 @@ function Refunds() {
 
   if (!user) {
     return (
-      <Container maxW="full" pt={12}>
+      <Container maxW="full" pt={12} px={{ base: 4, md: 6 }}>
         <div>Please log in to access the refund system.</div>
       </Container>
     )
   }
 
   return (
-    <Container maxW="full" pt={12}>
+    <Container maxW="full" pt={12} px={{ base: 4, md: 6 }}>
       <RefundInterface />
     </Container>
   )

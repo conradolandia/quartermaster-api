@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_layout/discount-codes")({
 
 function DiscountCodes() {
   return (
-    <Container maxW="full" pt={12}>
+    <Container maxW="full" pt={12} px={{ base: 4, md: 6 }}>
       <DiscountCodeManager />
     </Container>
   )

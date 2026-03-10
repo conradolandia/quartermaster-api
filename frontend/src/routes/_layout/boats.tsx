@@ -241,7 +241,7 @@ function BoatsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -266,11 +266,7 @@ function BoatsTable() {
                   <SortIcon column="capacity" />
                 </Flex>
               </Table.ColumnHeader>
-              <Table.ColumnHeader
-                minW="200px"
-                fontWeight="bold"
-                display={{ base: "none", lg: "table-cell" }}
-              >
+              <Table.ColumnHeader minW="200px" fontWeight="bold">
                 Ticket types (seats)
               </Table.ColumnHeader>
               <Table.ColumnHeader
@@ -278,7 +274,6 @@ function BoatsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("provider_id")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Provider
@@ -301,20 +296,12 @@ function BoatsTable() {
                   {boat.name}
                 </Table.Cell>
                 <Table.Cell w="12">{boat.capacity}</Table.Cell>
-                <Table.Cell
-                  display={{ base: "none", lg: "table-cell" }}
-                  fontSize="sm"
-                  minW="200px"
-                >
+                <Table.Cell fontSize="sm" minW="200px">
                   {formatTicketTypesWithCapacity(
                     pricingByBoatId[boat.id] ?? [],
                   )}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  minW="120px"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate minW="120px">
                   {boat.provider_name || "—"}
                 </Table.Cell>
                 <Table.Cell minW="140px">
@@ -364,8 +351,15 @@ function Boats() {
   }
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Boats Management</Heading>
         <Button onClick={() => setIsAddBoatOpen(true)} colorScheme="blue">
           <Flex align="center" gap={2}>

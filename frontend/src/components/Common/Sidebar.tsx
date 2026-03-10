@@ -23,27 +23,35 @@ const Sidebar = () => {
   const [open, setOpen] = useState(false)
 
   return (
-    <Box className="no-print" display="contents">
-      {/* Mobile */}
-      <DrawerRoot
-        placement="start"
-        open={open}
-        onOpenChange={(e) => setOpen(e.open)}
+    <Box className="no-print">
+      {/* Mobile: fixed header bar with background so hamburger stays visible when content scrolls */}
+      <Box
+        position="fixed"
+        top={0}
+        left={0}
+        right={0}
+        h={14}
+        bg="dark.bg.secondary"
+        zIndex={100}
+        display={{ base: "flex", nav: "none" } as { base: "flex"; nav: "none" }}
+        alignItems="center"
+        px={4}
       >
-        <DrawerBackdrop />
-        <DrawerTrigger asChild>
-          <IconButton
-            variant="ghost"
-            color="inherit"
-            display={{ base: "flex", nav: "none" } as { base: "flex"; nav: "none" }}
-            aria-label="Open Menu"
-            position="absolute"
-            zIndex="100"
-            m={4}
-          >
-            <FaBars />
-          </IconButton>
-        </DrawerTrigger>
+        <DrawerRoot
+          placement="start"
+          open={open}
+          onOpenChange={(e) => setOpen(e.open)}
+        >
+          <DrawerBackdrop />
+          <DrawerTrigger asChild>
+            <IconButton
+              variant="ghost"
+              color="inherit"
+              aria-label="Open Menu"
+            >
+              <FaBars />
+            </IconButton>
+          </DrawerTrigger>
         <DrawerContent maxW="xs" bg="dark.bg.secondary">
           <DrawerCloseTrigger />
           <DrawerBody>
@@ -89,7 +97,8 @@ const Sidebar = () => {
           </DrawerBody>
           <DrawerCloseTrigger />
         </DrawerContent>
-      </DrawerRoot>
+        </DrawerRoot>
+      </Box>
 
       {/* Desktop */}
       <Box

@@ -5,7 +5,7 @@ import {
   Box,
   Button,
   Card,
-  HStack,
+  Flex,
   Heading,
   Select,
   Text,
@@ -313,7 +313,11 @@ const CSVExportInterface = () => {
             {/* Field Selection */}
             <VStack gap={4} align="stretch">
               <Heading size="sm">Select Fields to Export</Heading>
-              <HStack gap={2} justify="flex-end" flexWrap="wrap">
+              <Flex
+                gap={2}
+                justify={{ base: "flex-start", sm: "flex-end" }}
+                flexWrap="wrap"
+              >
                 <Button variant="ghost" size="sm" onClick={selectAllFields}>
                   Select All
                 </Button>
@@ -330,10 +334,14 @@ const CSVExportInterface = () => {
                 <Button variant="ghost" size="sm" onClick={selectAmountFields}>
                   Select amount columns
                 </Button>
-              </HStack>
+              </Flex>
               <Box
                 display="grid"
-                gridTemplateColumns="repeat(auto-fill, minmax(250px, 1fr))"
+                gridTemplateColumns={{
+                  base: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  lg: "repeat(auto-fill, minmax(250px, 1fr))",
+                }}
                 gap={3}
               >
                 {(boatRequired
@@ -354,8 +362,13 @@ const CSVExportInterface = () => {
             {/* Filters */}
             <VStack gap={4} align="stretch">
               <Heading size="sm">Filters</Heading>
-              <HStack gap={4} align="end">
-                <Box flex={1}>
+              <Flex
+                gap={4}
+                align={{ base: "stretch", lg: "end" }}
+                flexDirection={{ base: "column", lg: "row" }}
+                flexWrap="wrap"
+              >
+                <Box flex={{ base: "1 1 100%", lg: 1 }} minW={0}>
                   <Text fontWeight="medium" mb={2}>
                     Mission{" "}
                     {missionRequired && (
@@ -394,7 +407,7 @@ const CSVExportInterface = () => {
                   </Select.Root>
                 </Box>
 
-                <Box flex={1}>
+                <Box flex={{ base: "1 1 100%", lg: 1 }} minW={0}>
                   <Text fontWeight="medium" mb={2}>
                     Trip{" "}
                     {tripRequired && (
@@ -448,7 +461,7 @@ const CSVExportInterface = () => {
                   </Select.Root>
                 </Box>
 
-                <Box flex={1}>
+                <Box flex={{ base: "1 1 100%", lg: 1 }} minW={0}>
                   <Text fontWeight="medium" mb={2}>
                     Boat{" "}
                     {boatRequired && (
@@ -499,7 +512,7 @@ const CSVExportInterface = () => {
                   </Select.Root>
                 </Box>
 
-                <Box flex={1}>
+                <Box flex={{ base: "1 1 100%", lg: 1 }} minW={0}>
                   <Text fontWeight="medium" mb={2}>
                     Status (Optional)
                   </Text>
@@ -530,7 +543,7 @@ const CSVExportInterface = () => {
                     </Select.Positioner>
                   </Select.Root>
                 </Box>
-              </HStack>
+              </Flex>
             </VStack>
 
             {/* Export Actions */}
@@ -539,7 +552,12 @@ const CSVExportInterface = () => {
                 The table has no data.
               </Text>
             )}
-            <HStack gap={4} justify="flex-end">
+            <Flex
+              gap={4}
+              justify="flex-end"
+              flexDirection={{ base: "column", sm: "row" }}
+              align={{ base: "stretch", sm: "center" }}
+            >
               <Button
                 variant="outline"
                 onClick={handleReset}
@@ -557,7 +575,7 @@ const CSVExportInterface = () => {
                 <FiDownload />
                 {isExporting ? "Exporting..." : "Export CSV"}
               </Button>
-            </HStack>
+            </Flex>
           </VStack>
         </Card.Body>
       </Card.Root>

@@ -3,7 +3,7 @@ import { Skeleton, Table } from "@chakra-ui/react"
 const PendingBookings = () => {
   return (
     <>
-      <Table.Root size={{ base: "sm", md: "md" }}>
+      <Table.Root size="sm">
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader w="sm">

@@ -233,10 +233,17 @@ function Missions() {
   }
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Missions</Heading>
-        <Flex gap={3}>
+        <Flex gap={3} flexWrap="wrap">
           <Button variant="outline" onClick={() => setIsYamlImportOpen(true)}>
             <Flex align="center" gap={2}>
               <FiFileText />
@@ -253,7 +260,7 @@ function Missions() {
       </Flex>
 
       {!isLoading && !isError && (
-        <Flex align="center" gap={3} mb={4}>
+        <Flex align="center" gap={3} mb={4} flexWrap="wrap">
           <Checkbox.Root
             checked={includeArchived}
             onCheckedChange={(e) =>
@@ -274,7 +281,7 @@ function Missions() {
         <Text>Error loading missions</Text>
       ) : (
         <Box overflowX="auto">
-          <Table.Root size={{ base: "sm", md: "md" }}>
+          <Table.Root size="sm">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader
@@ -293,7 +300,6 @@ function Missions() {
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("launch_id")}
-                  display={{ base: "none", md: "table-cell" }}
                 >
                   <Flex align="center">
                     Launch
@@ -305,7 +311,6 @@ function Missions() {
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("trip_count")}
-                  display={{ base: "none", md: "table-cell" }}
                   textAlign="center"
                 >
                   <Flex align="center" justify="center">
@@ -318,7 +323,6 @@ function Missions() {
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("total_bookings")}
-                  display={{ base: "none", lg: "table-cell" }}
                   textAlign="center"
                 >
                   <Flex align="center" justify="center">
@@ -331,7 +335,6 @@ function Missions() {
                   fontWeight="bold"
                   cursor="pointer"
                   onClick={() => handleSort("total_sales")}
-                  display={{ base: "none", lg: "table-cell" }}
                   textAlign="center"
                 >
                   <Flex align="center" justify="center">
@@ -375,31 +378,19 @@ function Missions() {
                       </RouterLink>
                     </Link>
                   </Table.Cell>
-                  <Table.Cell display={{ base: "none", md: "table-cell" }}>
+                  <Table.Cell>
                     {launchesMap.get(mission.launch_id)?.name ||
                       mission.launch_id}
                   </Table.Cell>
-                  <Table.Cell
-                    display={{ base: "none", md: "table-cell" }}
-                    textAlign="center"
-                    w="12"
-                  >
+                  <Table.Cell textAlign="center" w="12">
                     {mission.trip_count ?? 0}
                   </Table.Cell>
-                  <Table.Cell
-                    display={{ base: "none", lg: "table-cell" }}
-                    textAlign="center"
-                    w="12"
-                  >
+                  <Table.Cell textAlign="center" w="12">
                     <Text fontWeight="medium">
                       {mission.total_bookings || 0}
                     </Text>
                   </Table.Cell>
-                  <Table.Cell
-                    display={{ base: "none", lg: "table-cell" }}
-                    textAlign="center"
-                    w="16"
-                  >
+                  <Table.Cell textAlign="center" w="16">
                     <Text fontWeight="medium">
                       ${formatCents(mission.total_sales ?? 0)}
                     </Text>

@@ -172,7 +172,7 @@ function MerchandiseTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }} width="100%">
+        <Table.Root size="sm" width="100%">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader

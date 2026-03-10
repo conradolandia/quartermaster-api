@@ -2,7 +2,7 @@ import { Table } from "@chakra-ui/react"
 import { SkeletonText } from "../ui/skeleton"
 
 const PendingBoats = () => (
-  <Table.Root size={{ base: "sm", md: "md" }}>
+  <Table.Root size="sm">
     <Table.Header>
       <Table.Row>
         <Table.ColumnHeader w="sm">Name</Table.ColumnHeader>

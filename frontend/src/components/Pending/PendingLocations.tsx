@@ -2,7 +2,7 @@ import { Table } from "@chakra-ui/react"
 import { SkeletonText } from "../ui/skeleton"
 
 const PendingLocations = () => (
-  <Table.Root size={{ base: "sm", md: "md" }}>
+  <Table.Root size="sm">
     <Table.Header>
       <Table.Row>
         <Table.ColumnHeader w="sm">State</Table.ColumnHeader>

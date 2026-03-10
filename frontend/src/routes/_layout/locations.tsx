@@ -205,7 +205,7 @@ function LocationsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -224,7 +224,6 @@ function LocationsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("state")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   State
@@ -236,7 +235,6 @@ function LocationsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("timezone")}
-                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Timezone
@@ -257,18 +255,10 @@ function LocationsTable() {
                 <Table.Cell truncate maxW="sm">
                   {location.name}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {formatStateDisplay(location.state, stateNameByCode)}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {formatLocationTimezoneDisplay(location.timezone ?? "UTC")}
                 </Table.Cell>
                 <Table.Cell textAlign="center">
@@ -315,8 +305,15 @@ function Locations() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Locations Management</Heading>
         <Button onClick={() => setIsAddModalOpen(true)} colorScheme="blue">
           <Flex align="center" gap={2}>

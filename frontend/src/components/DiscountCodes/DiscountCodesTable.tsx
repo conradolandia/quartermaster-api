@@ -66,8 +66,8 @@ export default function DiscountCodesTable({
   isDeleting,
 }: DiscountCodesTableProps) {
   return (
-    <Box>
-      <Table.Root>
+    <Box overflowX="auto">
+      <Table.Root size="sm">
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeader>Code</Table.ColumnHeader>

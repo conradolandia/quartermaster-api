@@ -230,7 +230,7 @@ function JurisdictionsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size={{ base: "sm", md: "md" }}>
+        <Table.Root size="sm">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -249,7 +249,6 @@ function JurisdictionsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("location_id")}
-                display={{ base: "none", md: "table-cell" }}
               >
                 <Flex align="center">
                   Location
@@ -261,7 +260,6 @@ function JurisdictionsTable() {
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("sales_tax_rate")}
-                display={{ base: "none", lg: "table-cell" }}
               >
                 <Flex align="center">
                   Sales Tax Rate
@@ -282,11 +280,7 @@ function JurisdictionsTable() {
                 <Table.Cell truncate maxW="sm">
                   {jurisdiction.name}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", md: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {(() => {
                     const location =
                       jurisdiction.location ||
@@ -299,11 +293,7 @@ function JurisdictionsTable() {
                     return state ? `${locationName} (${state})` : locationName
                   })()}
                 </Table.Cell>
-                <Table.Cell
-                  truncate
-                  maxW="sm"
-                  display={{ base: "none", lg: "table-cell" }}
-                >
+                <Table.Cell truncate maxW="sm">
                   {(jurisdiction.sales_tax_rate * 100).toFixed(2)}%
                 </Table.Cell>
                 <Table.Cell textAlign="center">
@@ -350,8 +340,15 @@ function Jurisdictions() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Jurisdictions Management</Heading>
         <Button onClick={() => setIsAddModalOpen(true)} colorScheme="blue">
           <Flex align="center" gap={2}>

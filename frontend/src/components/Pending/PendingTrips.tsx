@@ -2,7 +2,7 @@ import { Table } from "@chakra-ui/react"
 import { SkeletonText } from "../ui/skeleton"
 
 const PendingTrips = () => (
-  <Table.Root size={{ base: "sm", md: "md", lg: "lg" }}>
+  <Table.Root size="sm">
     <Table.Header>
       <Table.Row>
         <Table.ColumnHeader w={{ base: "sm", lg: "300px" }}>Name</Table.ColumnHeader>

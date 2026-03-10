@@ -62,7 +62,7 @@ function Bookings() {
   // If no confirmation code, require authentication for bookings management
   if (!isLoggedIn() || !user) {
     return (
-      <Container maxW="full">
+      <Container maxW="full" px={{ base: 4, md: 6 }}>
         <VStack align="center" justify="center" minH="400px">
           <Text fontSize="lg" fontWeight="bold">
             Authentication Required
@@ -77,8 +77,15 @@ function Bookings() {
 
   // Otherwise, show the normal bookings table for authenticated users
   return (
-    <Container maxW="full">
-      <Flex justify="space-between" align="center" pt={12} pb={4}>
+    <Container maxW="full" px={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        pt={12}
+        pb={4}
+        flexWrap="wrap"
+        gap={3}
+      >
         <Heading size="lg">Bookings Management</Heading>
         <Button onClick={() => setIsAddBookingOpen(true)}>
           <Flex align="center" gap={2}>
