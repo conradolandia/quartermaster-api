@@ -657,8 +657,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
-                w="36"
-                minW="28"
+                w="28"
+                minW="20"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("confirmation_code")}
@@ -681,7 +681,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="24"
+                w="36"
+                minW="28"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("mission_name")}
@@ -692,8 +693,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="40"
-                minW="28"
+                w="32"
+                minW="24"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("trip_name")}
@@ -707,8 +708,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 Boat
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="40"
-                minW="150px"
+                w="52"
+                minW="180px"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("booking_status")}
@@ -774,7 +775,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 opacity={bookingArchived ? 0.6 : 1}
                 bg={bookingArchived ? "bg.muted" : undefined}
               >
-                <Table.Cell w="36" minW="28">
+                <Table.Cell w="28" minW="20">
                   <Flex align="center" gap={2}>
                     <Text
                       fontFamily="mono"
@@ -819,10 +820,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                     </HStack>
                   </VStack>
                 </Table.Cell>
-                <Table.Cell w="40" minW="28">
+                <Table.Cell w="36" minW="28">
                   {booking.mission_name || "N/A"}
                 </Table.Cell>
-                <Table.Cell w="40" minW="28">
+                <Table.Cell w="32" minW="24">
                   {booking.trip_name?.trim() ||
                     (booking.trip_type
                       ? tripTypeToLabel(booking.trip_type)
@@ -836,7 +837,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       )?.name ?? "—"
                     : "—"}
                 </Table.Cell>
-                <Table.Cell w="48" minW="232px">
+                <Table.Cell w="52" minW="180px">
                   <VStack align="start" gap={0}>
                     <Text fontSize="sm" color="text.muted">
                       Booking:{" "}

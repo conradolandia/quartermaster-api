@@ -67,7 +67,6 @@ export const system = createSystem(defaultConfig, {
         xl: { value: "1.25rem" },
       },
       colors: {
-        // Dark theme colors based on your specifications
         dark: {
           // Foreground/Text colors
           text: {
