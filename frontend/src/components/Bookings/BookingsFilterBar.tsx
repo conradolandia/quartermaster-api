@@ -324,6 +324,7 @@ export default function BookingsFilterBar({
             borderColor="white"
             value={missionId ? [missionId] : [""]}
             onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
+            positioning={{ sameWidth: false }}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -334,8 +335,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
-                maxWidth="320px"
+                minWidth="200px"
+                maxWidth="250px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -373,6 +374,7 @@ export default function BookingsFilterBar({
             borderColor="white"
             value={tripId ? [tripId] : [""]}
             onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
+            positioning={{ sameWidth: false }}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -383,8 +385,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
-                maxWidth="360px"
+                minWidth="250px"
+                maxWidth="280px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -424,6 +426,7 @@ export default function BookingsFilterBar({
             onValueChange={(e) =>
               onTripTypeFilter(e.value[0] || undefined)
             }
+            positioning={{ sameWidth: false }}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -434,8 +437,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
-                maxWidth="260px"
+                minWidth="150px"
+                maxWidth="200px"
               >
                 {tripTypeFilterCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
@@ -475,6 +478,7 @@ export default function BookingsFilterBar({
                 : [""]
             }
             onValueChange={(e) => onBoatFilter(e.value[0] || undefined)}
+            positioning={{ sameWidth: false }}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -485,8 +489,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
-                maxWidth="320px"
+                minWidth="150px"
+                maxWidth="200px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
