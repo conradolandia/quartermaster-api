@@ -172,10 +172,12 @@ function MerchandiseTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size="sm" width="100%">
+        <Table.Root size="md" width="100%">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
+                w="10rem"
+                minW="8rem"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("name")}
@@ -186,13 +188,16 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
+                w="18rem"
+                minW="12rem"
                 fontWeight="bold"
                 display={{ base: "none", md: "table-cell" }}
               >
                 Description
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="60px"
+                w="5rem"
+                minW="4rem"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("price")}
@@ -203,7 +208,8 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="60px"
+                w="4rem"
+                minW="3rem"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("quantity_available")}
@@ -215,6 +221,8 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
+                w="14rem"
+                minW="10rem"
                 fontWeight="bold"
                 display={{ base: "none", xl: "table-cell" }}
               >
@@ -222,6 +230,7 @@ function MerchandiseTable() {
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="14"
+                minW="14"
                 fontWeight="bold"
                 textAlign="center"
               >
@@ -241,27 +250,33 @@ function MerchandiseTable() {
                 >
                   <Table.Cell
                     truncate
-                    w="200px"
-                    fontSize="2xl"
-                    fontWeight="300"
+                    w="10rem"
+                    minW="8rem"
+                    fontWeight="medium"
                   >
                     {item.name}
                   </Table.Cell>
                   <Table.Cell
                     truncate
-                    w="300px"
+                    w="18rem"
+                    minW="12rem"
                     display={{ base: "none", md: "table-cell" }}
                   >
                     {item.description ?? "—"}
                   </Table.Cell>
-                  <Table.Cell minW="60px">{formatCents(item.price)}</Table.Cell>
+                  <Table.Cell w="5rem" minW="4rem">
+                    {formatCents(item.price)}
+                  </Table.Cell>
                   <Table.Cell
-                    minW="60px"
+                    w="4rem"
+                    minW="3rem"
                     display={{ base: "none", lg: "table-cell" }}
                   >
                     {item.quantity_available}
                   </Table.Cell>
                   <Table.Cell
+                    w="14rem"
+                    minW="10rem"
                     display={{ base: "none", xl: "table-cell" }}
                     verticalAlign="top"
                   >
@@ -287,7 +302,7 @@ function MerchandiseTable() {
                       "—"
                     )}
                   </Table.Cell>
-                  <Table.Cell textAlign="center" w="14">
+                  <Table.Cell textAlign="center" w="14" minW="14">
                     <Flex justify="center">
                       <MerchandiseActionsMenu merchandise={item} />
                     </Flex>

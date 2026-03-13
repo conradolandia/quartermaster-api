@@ -1,5 +1,5 @@
-import { Flex } from "@chakra-ui/react"
-import { useQueryClient } from "@tanstack/react-query"
+import { Flex, Spinner } from "@chakra-ui/react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Outlet,
   createFileRoute,
@@ -9,6 +9,7 @@ import {
 import { useEffect } from "react"
 
 import type { UserPublic } from "@/client"
+import { UsersService } from "@/client"
 import Navbar from "@/components/Common/Navbar"
 import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
@@ -56,29 +57,13 @@ export const Route = createFileRoute("/_layout")({
 function Layout() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+  const { data: currentUser, status, isError } = useQuery<UserPublic | null>({
+    queryKey: ["currentUser"],
+    queryFn: UsersService.readUserMe,
+    enabled: isLoggedIn(),
+  })
 
-  // Check if this is a public booking confirmation (unauthenticated access)
-  const isPublicBookingConfirmation =
-    router.state.location.pathname === "/bookings" &&
-    router.state.location.search &&
-    "code" in router.state.location.search &&
-    typeof router.state.location.search.code === "string" &&
-    !isLoggedIn()
-
-  // For public booking confirmations, don't show navbar and sidebar
-  if (isPublicBookingConfirmation) {
-    return <Outlet />
-  }
-
-  // Require superuser for dashboard access
-  if (isLoggedIn() && currentUser && !currentUser.is_superuser) {
-    throw redirect({
-      to: "/login",
-    })
-  }
-
-  // Defensive cleanup for stuck modal state (body pointer-events/data-inert)
+  // All hooks must run on every render (no conditional hooks)
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") fixStuckModalState()
@@ -98,13 +83,52 @@ function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  // Minimal periodic DOM state log for sidebar unclickable bug monitoring
   useEffect(() => {
     const id = setInterval(() => {
       debugLog("Layout DOM state")
     }, 15000)
     return () => clearInterval(id)
   }, [])
+
+  // Check if this is a public booking confirmation (unauthenticated access)
+  const isPublicBookingConfirmation =
+    router.state.location.pathname === "/bookings" &&
+    router.state.location.search &&
+    "code" in router.state.location.search &&
+    typeof router.state.location.search.code === "string" &&
+    !isLoggedIn()
+
+  // For public booking confirmations, don't show navbar and sidebar
+  if (isPublicBookingConfirmation) {
+    return <Outlet />
+  }
+
+  // Token present but auth failed or no user: clear and redirect so we never show sidebar + "Authentication Required"
+  if (
+    isLoggedIn() &&
+    status !== "pending" &&
+    (isError || currentUser == null)
+  ) {
+    localStorage.removeItem("access_token")
+    queryClient.removeQueries({ queryKey: ["currentUser"] })
+    throw redirect({ to: "/login" })
+  }
+
+  // While checking auth, show minimal loading (avoids flash of sidebar then redirect)
+  if (isLoggedIn() && status === "pending") {
+    return (
+      <Flex justify="center" align="center" h="100vh">
+        <Spinner />
+      </Flex>
+    )
+  }
+
+  // Require superuser for dashboard access
+  if (isLoggedIn() && currentUser && !currentUser.is_superuser) {
+    throw redirect({
+      to: "/login",
+    })
+  }
 
   // For authenticated superusers or other routes, show the full layout
   return (

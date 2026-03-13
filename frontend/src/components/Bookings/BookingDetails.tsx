@@ -92,10 +92,17 @@ export default function BookingDetails({
     enabled: !!booking?.items?.length,
   })
 
+  const tripTypeToLabel = (type: string | undefined): string => {
+    if (!type) return ""
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
   const getTripName = (tripId: string) => {
     const trip = tripsData?.data?.find((t: { id: string }) => t.id === tripId)
     return trip
-      ? `${trip.type?.replace(/_/g, " ") ?? ""} – ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`
+      ? `${tripTypeToLabel(trip.type)} – ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`
       : tripId
   }
 
@@ -553,7 +560,7 @@ export default function BookingDetails({
                           )}
                         </Table.Cell>
                         <Table.Cell>
-                          <Text fontWeight="medium">
+                          <Text fontWeight="medium" fontSize="sm">
                             {item.item_type
                               .replace("_", " ")
                               .replace(/\b\w/g, (l: string) => l.toUpperCase())}
@@ -562,7 +569,7 @@ export default function BookingDetails({
                               : ""}
                           </Text>
                           {item.trip_merchandise_id && (
-                            <Text fontSize="sm" color="gray.400">
+                            <Text fontSize="xs" color="gray.400">
                               (Merchandise Item)
                             </Text>
                           )}
@@ -572,7 +579,8 @@ export default function BookingDetails({
                             colorPalette={
                               item.status === "active"
                                 ? "green"
-                                : item.status === "refunded"
+                                : item.status === "refunded" ||
+                                  item.status === "cancelled"
                                   ? "red"
                                   : item.status === "fulfilled"
                                     ? "blue"

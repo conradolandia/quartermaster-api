@@ -68,6 +68,8 @@ const TRIP_TYPES = [
   { label: "Pre-Launch", value: "pre_launch" },
 ] as const
 
+const DESKTOP_FILTER_MIN_WIDTH = "200px"
+
 function getTripsQueryOptions({
   page,
   pageSize,
@@ -343,7 +345,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
           >
             Mission:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
             <Select.Root
               collection={missionsCollection}
               size="xs"
@@ -380,7 +382,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
           >
             Type:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
             <Select.Root
               collection={tripTypeCollection}
               size="xs"
@@ -608,7 +610,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                             to="/bookings"
                             search={{ tripId: trip.id }}
                           >
-                            <Text fontSize="lg" fontWeight="500" as="span">
+                            <Text fontSize="sm" fontWeight="500" as="span">
                               {trip.name || "—"}
                             </Text>
                           </RouterLink>
@@ -674,7 +676,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                                 <Box key={tb.boat_id}>
                                   <Text fontSize="sm">{name}</Text>
                                   <Text
-                                    fontSize="xs"
+                                    fontSize="sm"
                                     color="gray.400"
                                     mt={0.5}
                                     lineHeight="1"

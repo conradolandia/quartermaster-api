@@ -79,6 +79,44 @@ def test_list_bookings_filter_mission_id(
     assert "data" in data
 
 
+def test_list_bookings_search_multi_word(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    """Multi-word search ANDs terms: each word must match in at least one searchable field."""
+    # test_booking has first_name="John", last_name="Doe" -> "John Doe" should find it
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"search": "John Doe"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert any(b["id"] == str(test_booking.id) for b in data["data"])
+
+    # First name + part of email: both terms match
+    r2 = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"search": "John example.com"},
+    )
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert any(b["id"] == str(test_booking.id) for b in data2["data"])
+
+    # Second term does not match any field -> booking not in results (AND behavior)
+    r3 = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"search": "John NonexistentWord"},
+    )
+    assert r3.status_code == 200
+    data3 = r3.json()
+    assert not any(b["id"] == str(test_booking.id) for b in data3["data"])
+
+
 def test_get_booking_by_id_success(
     client: TestClient,
     superuser_token_headers: dict[str, str],

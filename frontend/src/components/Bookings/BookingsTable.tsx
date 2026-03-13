@@ -69,6 +69,9 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   const [missionId, setMissionId] = useState<string | undefined>(
     initialSearch.get("missionId") || undefined,
   )
+  const [launchId, setLaunchId] = useState<string | undefined>(
+    initialSearch.get("launchId") || undefined,
+  )
   const [tripId, setTripId] = useState<string | undefined>(
     initialSearch.get("tripId") || undefined,
   )
@@ -152,6 +155,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       const params = new URLSearchParams(window.location.search)
       setSearchParams(params)
       setMissionId(params.get("missionId") || undefined)
+      setLaunchId(params.get("launchId") || undefined)
       setTripId(params.get("tripId") || undefined)
       setBoatId(params.get("boatId") || undefined)
       setTripType(params.get("tripType") || undefined)
@@ -182,6 +186,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       page,
       effectivePageSize,
       missionId,
+      launchId,
       tripId,
       boatId,
       tripType,
@@ -197,6 +202,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         skip: (page - 1) * effectivePageSize,
         limit: effectivePageSize,
         missionId: missionId || undefined,
+        launchId: launchId || undefined,
         tripId: tripId || undefined,
         boatId: boatId || undefined,
         tripType: tripType || undefined,
@@ -345,6 +351,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   const updateFiltersInUrl = (updates: {
     missionId?: string
+    launchId?: string
     tripId?: string
     boatId?: string
     tripType?: string
@@ -356,6 +363,10 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     if (updates.missionId !== undefined) {
       if (updates.missionId) params.set("missionId", updates.missionId)
       else params.delete("missionId")
+    }
+    if (updates.launchId !== undefined) {
+      if (updates.launchId) params.set("launchId", updates.launchId)
+      else params.delete("launchId")
     }
     if (updates.tripId !== undefined) {
       if (updates.tripId) params.set("tripId", updates.tripId)
@@ -402,9 +413,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
 
   const handleMissionFilter = (selectedMissionId?: string) => {
     setMissionId(selectedMissionId)
+    setLaunchId(undefined)
     setTripId(undefined)
     updateFiltersInUrl({
       missionId: selectedMissionId,
+      launchId: undefined,
       tripId: undefined,
     })
   }
@@ -701,9 +714,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
               </Table.ColumnHeader>
               <Table.ColumnHeader
                 w="20"
+                minW="5rem"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("total_amount")}
+                whiteSpace="nowrap"
               >
                 <Flex align="center">
                   Total
@@ -779,20 +794,20 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Table.Cell>
                 <Table.Cell w="52" minW="40">
                   <VStack align="stretch" gap={0}>
-                    <Text fontSize="md">
+                    <Text fontSize="sm">
                       {[booking.first_name, booking.last_name]
                         .filter(Boolean)
                         .join(" ")}
                     </Text>
                     <HStack gap={1}>
                       <Icon as={FiMail} boxSize={3} color="text.muted" />
-                      <Text fontSize="xs" color="text.muted" title={booking.user_email}>
+                      <Text fontSize="sm" color="text.muted" title={booking.user_email}>
                         {booking.user_email}
                       </Text>
                     </HStack>
                     <HStack gap={1}>
                       <Icon as={FiPhone} boxSize={3} color="text.muted" />
-                      <Text fontSize="xs" color="text.muted" title={booking.user_phone}>
+                      <Text fontSize="sm" color="text.muted" title={booking.user_phone}>
                         {booking.user_phone}
                       </Text>
                     </HStack>
@@ -817,7 +832,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                 </Table.Cell>
                 <Table.Cell w="48" minW="232px">
                   <VStack align="start" gap={0}>
-                    <Text fontSize="xs" color="text.muted">
+                    <Text fontSize="sm" color="text.muted">
                       Booking:{" "}
                       <Badge
                         size="xs"
@@ -829,7 +844,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       </Badge>
                     </Text>
                     {booking.payment_status && (
-                      <Text fontSize="xs" color="text.muted" whiteSpace="nowrap">
+                      <Text fontSize="sm" color="text.muted" whiteSpace="nowrap">
                         Payment:{" "}
                         {isPartiallyRefunded(booking) ? (
                           <Badge
@@ -851,13 +866,13 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
                       </Text>
                     )}
                     {isPartiallyRefunded(booking) && (
-                      <Text fontSize="xs" color="text.muted">
+                      <Text fontSize="sm" color="text.muted">
                         Refunded ${formatCents(getRefundedCents(booking))}
                       </Text>
                     )}
                   </VStack>
                 </Table.Cell>
-                <Table.Cell w="20">
+                <Table.Cell w="20" minW="5rem" whiteSpace="nowrap">
                   <Text fontWeight="bold">
                     ${formatCents(booking.total_amount)}
                   </Text>

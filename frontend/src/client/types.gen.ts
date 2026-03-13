@@ -184,7 +184,11 @@ export type BookingItemQuantityUpdate = {
   quantity: number
 }
 
-export type BookingItemStatus = "active" | "refunded" | "fulfilled"
+export type BookingItemStatus =
+  | "active"
+  | "cancelled"
+  | "refunded"
+  | "fulfilled"
 
 export type BookingItemUpdate = {
   status?: BookingItemStatus | null
@@ -669,6 +673,9 @@ export type RefundRequest = {
 export type RescheduleBookingRequest = {
   target_trip_id: string
   boat_id?: string | null
+  type_mapping?: {
+    [key: string]: string
+  } | null
 }
 
 export type Token = {
@@ -859,6 +866,10 @@ export type TripMerchandisePublic = {
   description: string | null
   price: number
   quantity_available: number
+  price_default: number
+  price_override?: number | null
+  quantity_available_default: number
+  quantity_available_override?: number | null
   variant_name?: string | null
   variant_options?: string | null
   variations_availability?: Array<TripMerchandiseVariationAvailability> | null
@@ -1093,6 +1104,7 @@ export type BookingsListBookingsData = {
   boatId?: string | null
   bookingStatus?: Array<string> | null
   includeArchived?: boolean
+  launchId?: string | null
   limit?: number
   missionId?: string | null
   paymentStatus?: Array<string> | null

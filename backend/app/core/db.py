@@ -1,20 +1,27 @@
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import crud
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password
 from app.models import (
     Boat,
     BoatCreate,
+    BoatPricing,
+    BoatPricingCreate,
+    Booking,
+    BookingItem,
+    DiscountCode,
     Jurisdiction,
     JurisdictionCreate,
     Launch,
     LaunchCreate,
     Location,
     LocationCreate,
+    Merchandise,
+    MerchandiseCreate,
     Mission,
     MissionCreate,
     Provider,
@@ -25,6 +32,12 @@ from app.models import (
     TripBoatCreate,
     User,
     UserCreate,
+)
+from app.models.enums import (
+    BookingItemStatus,
+    BookingStatus,
+    DiscountCodeType,
+    PaymentStatus,
 )
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
@@ -50,27 +63,11 @@ def init_db(session: Session) -> None:
     except Exception as e:
         print(f"Error adding qr_code_base64 column: {e}")
 
-    # When DB already has users, only sync first superuser password to .env (no full seed)
+    if not settings.RUN_INITIAL_DATA:
+        print("RUN_INITIAL_DATA is not set; skipping initial data")
+        return
+
     if session.exec(select(User).limit(1)).first():
-        first_superuser = crud.get_user_by_email(
-            session=session, email=settings.FIRST_SUPERUSER
-        )
-        if first_superuser and not verify_password(
-            settings.FIRST_SUPERUSER_PASSWORD, first_superuser.hashed_password
-        ):
-            first_superuser.hashed_password = get_password_hash(
-                settings.FIRST_SUPERUSER_PASSWORD
-            )
-            session.add(first_superuser)
-            session.commit()
-            print("First superuser password synced to FIRST_SUPERUSER_PASSWORD")
-        elif first_superuser:
-            print("First superuser password already matches FIRST_SUPERUSER_PASSWORD")
-        else:
-            print(
-                f"No user with email {settings.FIRST_SUPERUSER}; "
-                "password sync skipped (create first superuser by seeding empty DB)"
-            )
         print("Database already has users; skipping initial data")
         return
 
@@ -84,7 +81,14 @@ def init_db(session: Session) -> None:
             password=settings.FIRST_SUPERUSER_PASSWORD,
             is_superuser=True,
         )
-        user = crud.create_user(session=session, user_create=user_in)
+        try:
+            user = crud.create_user(session=session, user_create=user_in)
+        except IntegrityError:
+            session.rollback()
+            # Another initializer (tests or pre-start) may have created this user
+            user = crud.get_user_by_email(
+                session=session, email=settings.FIRST_SUPERUSER
+            )
     print(f"User created: {user}")
 
     # Create location if it doesn't exist
@@ -208,3 +212,81 @@ def init_db(session: Session) -> None:
         )
         trip_boat = crud.create_trip_boat(session=session, trip_boat_in=trip_boat_in)
     print(f"Trip-Boat association created: {trip_boat}")
+
+    # Default boat pricing (seats per ticket type) if none exist for this boat
+    if not session.exec(
+        select(BoatPricing).where(BoatPricing.boat_id == boat.id).limit(1)
+    ).first():
+        bp_in = BoatPricingCreate(
+            boat_id=boat.id,
+            ticket_type="adult",
+            price=5000,
+            capacity=100,
+        )
+        crud.create_boat_pricing(session=session, boat_pricing_in=bp_in)
+        print("Boat pricing (adult) created for default boat")
+
+    # Default discount code if none exist
+    if not session.exec(
+        select(DiscountCode).where(DiscountCode.code == "WELCOME10").limit(1)
+    ).first():
+        discount = DiscountCode(
+            code="WELCOME10",
+            description="10% off (seed)",
+            discount_type=DiscountCodeType.percentage,
+            discount_value=0.10,
+            is_active=True,
+        )
+        session.add(discount)
+        session.commit()
+        print("Discount code WELCOME10 created")
+
+    # Default merchandise if none exist
+    if not session.exec(select(Merchandise).limit(1)).first():
+        merch_in = MerchandiseCreate(
+            name="Default T-Shirt",
+            description="Seed merchandise item",
+            price=2500,
+            quantity_available=50,
+        )
+        crud.create_merchandise(session=session, merchandise_in=merch_in)
+        print("Merchandise (Default T-Shirt) created")
+
+    # Seed booking if none exist
+    if not session.exec(select(Booking).limit(1)).first():
+        confirmation_code = "SEED0001"
+        price_cents = 5000
+        qty = 2
+        subtotal = price_cents * qty
+        tax = int(subtotal * 0.06)
+        total = subtotal + tax
+        booking = Booking(
+            confirmation_code=confirmation_code,
+            first_name="Jane",
+            last_name="Doe",
+            user_email="jane.doe@example.com",
+            user_phone="+15551234567",
+            billing_address="456 Seed St, Test City, FL 32000",
+            subtotal=subtotal,
+            discount_amount=0,
+            tax_amount=tax,
+            tip_amount=0,
+            total_amount=total,
+            payment_status=PaymentStatus.paid,
+            booking_status=BookingStatus.confirmed,
+        )
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
+        item = BookingItem(
+            booking_id=booking.id,
+            trip_id=trip.id,
+            boat_id=boat.id,
+            item_type="adult",
+            quantity=qty,
+            price_per_unit=price_cents,
+            status=BookingItemStatus.active,
+        )
+        session.add(item)
+        session.commit()
+        print("Seed booking SEED0001 created")

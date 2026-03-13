@@ -241,7 +241,7 @@ function BoatsTable() {
   return (
     <>
       <Box overflowX="auto">
-        <Table.Root size="sm">
+        <Table.Root size="md">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader

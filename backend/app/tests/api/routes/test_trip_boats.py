@@ -246,3 +246,138 @@ def test_remaining_capacity_defaults_to_effective_max_when_no_pricing_exists(
     tb = data[0]
     assert tb["max_capacity"] == 10000
     assert tb["remaining_capacity"] == 10000
+
+
+# -- GET /trip-boats/public/trip/{trip_id} (no auth) --------------------------
+
+
+def test_public_trip_boats_returns_boats_with_sales_enabled_and_remaining_capacity(
+    client: TestClient,
+    db: Session,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    """Public endpoint returns trip boats with sales_enabled and remaining_capacity."""
+    r = client.get(
+        f"{settings.API_V1_STR}/trip-boats/public/trip/{test_trip.id}",
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) == 1
+    tb = data[0]
+    assert tb["boat_id"] == str(test_trip_boat.boat_id)
+    assert tb["trip_id"] == str(test_trip_boat.trip_id)
+    assert "sales_enabled" in tb
+    assert tb["sales_enabled"] is True
+    assert "remaining_capacity" in tb
+    assert tb["remaining_capacity"] == test_boat_pricing.capacity
+    assert "boat" in tb
+    assert tb["boat"]["name"] == test_boat.name
+    assert "pricing" in tb
+
+
+def test_public_trip_boats_includes_paused_boats(
+    client: TestClient,
+    db: Session,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    """When all boats have sales_enabled=False, response still includes them with sales_enabled false."""
+    test_trip_boat.sales_enabled = False
+    db.add(test_trip_boat)
+    db.commit()
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trip-boats/public/trip/{test_trip.id}",
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]["sales_enabled"] is False
+    assert data[0]["boat_id"] == str(test_trip_boat.boat_id)
+
+
+def test_public_trip_boats_403_for_private_trip(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    """Public endpoint returns 403 when trip has booking_mode private."""
+    departure = datetime.now(timezone.utc) + timedelta(days=30, hours=-2)
+    private_trip = Trip(
+        mission_id=test_mission.id,
+        name="Private Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="private",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(private_trip)
+    db.commit()
+    db.refresh(private_trip)
+
+    test_trip_boat.trip_id = private_trip.id
+    db.add(test_trip_boat)
+    db.commit()
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trip-boats/public/trip/{private_trip.id}",
+    )
+    assert r.status_code == 403
+    assert "not yet available" in r.json()["detail"].lower()
+
+
+def test_public_trip_boats_sold_out_remaining_zero(
+    client: TestClient,
+    db: Session,
+    test_trip: Trip,
+    test_provider: Provider,
+) -> None:
+    """When boat has zero capacity, remaining_capacity is 0 (sold-out semantics)."""
+    boat = Boat(
+        name="Full Boat",
+        slug="full-boat",
+        capacity=50,
+        provider_id=test_provider.id,
+    )
+    db.add(boat)
+    db.commit()
+    db.refresh(boat)
+
+    db.add(
+        BoatPricing(
+            boat_id=boat.id,
+            ticket_type="adult",
+            price=5000,
+            capacity=0,
+        )
+    )
+    db.commit()
+
+    trip_boat = TripBoat(
+        trip_id=test_trip.id,
+        boat_id=boat.id,
+        max_capacity=None,
+        use_only_trip_pricing=False,
+    )
+    db.add(trip_boat)
+    db.commit()
+    db.refresh(trip_boat)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trip-boats/public/trip/{test_trip.id}",
+    )
+    assert r.status_code == 200
+    data = r.json()
+    boat_ids = [tb["boat_id"] for tb in data]
+    assert str(boat.id) in boat_ids
+    full_boat = next(tb for tb in data if tb["boat_id"] == str(boat.id))
+    assert full_boat["remaining_capacity"] == 0

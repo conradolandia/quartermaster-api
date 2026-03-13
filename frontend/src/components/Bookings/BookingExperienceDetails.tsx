@@ -116,12 +116,20 @@ export default function BookingExperienceDetails({
 
   if (!tripId || !firstItem) return null
 
-  const Row = ({ label, value }: { label: string; value: ReactNode }) => (
+  const Row = ({
+    label,
+    value,
+    valueSmall,
+  }: {
+    label: string
+    value: ReactNode
+    valueSmall?: boolean
+  }) => (
     <Flex gap={4} alignItems="baseline">
       <Text fontWeight="bold" minW="100px" fontSize="sm">
         {label}:
       </Text>
-      <Text fontSize="sm">{value}</Text>
+      <Text fontSize={valueSmall ? "xs" : "sm"}>{value}</Text>
     </Flex>
   )
 
@@ -157,7 +165,11 @@ export default function BookingExperienceDetails({
                   />
                 )}
                 {exp.launch_summary && (
-                  <Row label="Summary" value={exp.launch_summary} />
+                  <Row
+                    label="Summary"
+                    value={exp.launch_summary}
+                    valueSmall
+                  />
                 )}
               </>
             )}
@@ -268,7 +280,9 @@ export default function BookingExperienceDetails({
                   )}
                 />
               )}
-              {launch.summary && <Row label="Summary" value={launch.summary} />}
+              {launch.summary && (
+                <Row label="Summary" value={launch.summary} valueSmall />
+              )}
             </>
           )}
           {mission && <Row label="Mission" value={mission.name} />}

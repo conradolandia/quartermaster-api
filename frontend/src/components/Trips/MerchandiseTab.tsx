@@ -2,6 +2,7 @@ import { NativeSelect } from "@/components/ui/native-select"
 import {
   Box,
   Button,
+  Flex,
   HStack,
   IconButton,
   Input,
@@ -14,10 +15,24 @@ import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   type ApiError,
+  type TripMerchandisePublic,
   MerchandiseService,
   TripMerchandiseService,
 } from "@/client"
 import { formatCents, handleError } from "@/utils"
+
+function formatMerchandiseQtyLine(item: TripMerchandisePublic): string {
+  const hasVariations = (item.variations_availability?.length ?? 0) > 0
+  const customSuffix =
+    item.quantity_available_override != null
+      ? ` / ${hasVariations ? item.quantity_available : item.quantity_available_override} (custom)`
+      : ""
+  return hasVariations
+    ? `Qty: ${item.variations_availability!.map((v) => `${v.variant_value}: ${v.quantity_available}`).join(", ")} (default)${customSuffix}`
+    : item.variant_options
+      ? `Options: ${item.variant_options}. Qty: ${item.quantity_available_default} (default)${customSuffix}`
+      : `Qty: ${item.quantity_available_default} (default)${customSuffix}`
+}
 
 interface MerchandiseTabProps {
   tripId: string
@@ -125,36 +140,38 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
       <Box>
         <VStack align="stretch" gap={2}>
           {tripMerchandiseList?.map((item) => (
-            <HStack
+            <Flex
               key={item.id}
               justify="space-between"
-              p={3}
+              align="center"
+              p={2}
               borderWidth="1px"
               borderRadius="md"
             >
-              <VStack align="start" flex={1}>
-                <Text fontWeight="medium">{item.name}</Text>
-                <HStack fontSize="sm" color="gray.500" gap={2} flexWrap="wrap">
-                  <Text>${formatCents(item.price)} each</Text>
-                  {item.variations_availability?.length ? (
-                    <Text>
-                      {item.variations_availability
-                        .map(
-                          (v) =>
-                            `${v.variant_value}: ${v.quantity_available}`,
-                        )
-                        .join(", ")}
-                    </Text>
-                  ) : item.variant_options ? (
-                    <Text>
-                      Options: {item.variant_options} (qty{" "}
-                      {item.quantity_available})
-                    </Text>
-                  ) : (
-                    <Text>Qty: {item.quantity_available}</Text>
-                  )}
-                </HStack>
-              </VStack>
+              <Box>
+                <Text color="gray.100" fontWeight="medium">
+                  {item.name}
+                </Text>
+                <Text
+                  fontSize="xs"
+                  color="gray.300"
+                  mt={0.5}
+                  lineHeight="1.2"
+                >
+                  Price: ${formatCents(item.price_default)} (default)
+                  {item.price_override != null &&
+                    ` / $${formatCents(item.price_override)} (custom)`}
+                </Text>
+                <VStack align="start" gap={0}>
+                  <Text
+                    fontSize="xs"
+                    color="gray.500"
+                    lineHeight="1.2"
+                  >
+                    {formatMerchandiseQtyLine(item)}
+                  </Text>
+                </VStack>
+              </Box>
               <IconButton
                 aria-label="Remove merchandise"
                 size="sm"
@@ -165,7 +182,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
               >
                 <FiTrash2 />
               </IconButton>
-            </HStack>
+            </Flex>
           ))}
           {(!tripMerchandiseList ||
             tripMerchandiseList.length === 0) &&

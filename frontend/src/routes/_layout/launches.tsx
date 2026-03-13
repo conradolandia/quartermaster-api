@@ -8,12 +8,17 @@ import {
   Flex,
   Heading,
   Icon,
+  Link,
   Table,
   Text,
   VStack,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link as RouterLink,
+  useNavigate,
+} from "@tanstack/react-router"
 import { useState } from "react"
 import {
   FiArrowDown,
@@ -286,7 +291,7 @@ function LaunchesTable() {
       ) : (
       <>
       <Box overflowX="auto">
-        <Table.Root size="sm">
+        <Table.Root size="md">
           <Table.Header>
             <Table.Row>
               <Table.ColumnHeader
@@ -312,7 +317,8 @@ function LaunchesTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="lg"
+                w="2xl"
+                minW="12rem"
                 fontWeight="bold"
                 cursor="pointer"
                 onClick={() => handleSort("summary")}
@@ -349,12 +355,25 @@ function LaunchesTable() {
                 bg={launch.archived ? "bg.muted" : undefined}
               >
                 <Table.Cell truncate maxW="sm">
-                  {launch.name}
+                  <Link
+                    asChild
+                    color="dark.accent.primary"
+                    _hover={{ textDecoration: "underline" }}
+                  >
+                    <RouterLink
+                      to="/bookings"
+                      search={{ launchId: launch.id }}
+                    >
+                      <Text fontSize="md" fontWeight="500" as="span">
+                        {launch.name}
+                      </Text>
+                    </RouterLink>
+                  </Link>
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">
                   {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
                 </Table.Cell>
-                <Table.Cell truncate maxW="sm">
+                <Table.Cell maxW="2xl" minW="12rem" whiteSpace="normal">
                   {launch.summary}
                 </Table.Cell>
                 <Table.Cell truncate maxW="sm">

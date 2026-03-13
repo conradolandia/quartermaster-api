@@ -388,8 +388,6 @@ def read_public_trip_boats_by_trip(
     )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
-        if not tb.sales_enabled:
-            continue
         effective_max = (
             tb.max_capacity if tb.max_capacity is not None else tb.boat.capacity
         )

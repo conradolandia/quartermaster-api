@@ -167,7 +167,7 @@ export default function DiscountCodesTable({
               <Table.Cell>
                 <HStack gap={2} align="center">
                   <Text
-                    fontSize="xs"
+                    fontSize="sm"
                     color="text.muted"
                     title={buildBookingUrl(
                       discountCode.code,

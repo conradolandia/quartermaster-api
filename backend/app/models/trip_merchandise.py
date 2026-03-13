@@ -63,8 +63,13 @@ class TripMerchandisePublic(SQLModel):
     merchandise_id: uuid.UUID
     name: str
     description: str | None
-    price: int  # cents
-    quantity_available: int
+    price: int  # cents (effective)
+    quantity_available: int  # effective
+    # Catalog defaults and trip overrides for UI (default)/(custom) display
+    price_default: int  # cents, from catalog
+    price_override: int | None = None  # cents, when set for this trip
+    quantity_available_default: int  # from catalog (or sum of variations)
+    quantity_available_override: int | None = None  # when set for this trip
     variant_name: str | None = None
     variant_options: str | None = None  # comma-separated; frontend splits to list
     # Per-variation quantity available (when merchandise has variations)

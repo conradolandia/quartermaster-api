@@ -21,6 +21,7 @@ import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 const bookingsSearchSchema = z.object({
   code: z.string().optional(),
   missionId: z.string().optional(),
+  launchId: z.string().optional(),
   tripId: z.string().optional(),
   boatId: z.string().optional(),
   tripType: z.string().optional(),

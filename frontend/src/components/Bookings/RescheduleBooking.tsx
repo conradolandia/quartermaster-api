@@ -7,7 +7,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
   BookingsService,
@@ -32,7 +32,7 @@ import {
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
-import { formatDateTimeInLocationTz } from "@/utils"
+import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 
 interface RescheduleBookingProps {
   booking: BookingPublic
@@ -53,6 +53,7 @@ export default function RescheduleBooking({
   const [selectedMissionId, setSelectedMissionId] = useState<string>("")
   const [targetTripId, setTargetTripId] = useState<string>("")
   const [targetBoatId, setTargetBoatId] = useState<string | null>(null)
+  const [typeMapping, setTypeMapping] = useState<Record<string, string>>({})
 
   const { data: firstTrip } = useQuery({
     queryKey: ["trip", booking.items?.[0]?.trip_id],
@@ -105,12 +106,43 @@ export default function RescheduleBooking({
     effectiveMissionId &&
     allMissions.find((m) => m.id === effectiveMissionId)?.launch_id
 
+  const effectiveBoatId = needsBoat ? targetBoatId : singleBoatId
+  const currentTripId = booking.items?.find((i) => !i.trip_merchandise_id)
+    ?.trip_id ?? ""
+
+  const originTicketTypes = useMemo(() => {
+    const byType: Record<string, number> = {}
+    for (const i of booking.items ?? []) {
+      if (i.trip_merchandise_id) continue
+      byType[i.item_type] = (byType[i.item_type] ?? 0) + i.quantity
+    }
+    return Object.entries(byType).map(([type, quantity]) => ({ type, quantity }))
+  }, [booking.items])
+
+  const { data: effectivePricing = [], isLoading: pricingLoading } = useQuery({
+    queryKey: ["trip-boats", "pricing", targetTripId, effectiveBoatId],
+    queryFn: () =>
+      TripBoatsService.readEffectivePricing({
+        tripId: targetTripId,
+        boatId: effectiveBoatId ?? "",
+      }),
+    enabled:
+      isOpen && !!targetTripId && !!effectiveBoatId,
+  })
+
+  const ticketTypeOptions = effectivePricing
+  const ticketTypeKeys = useMemo(
+    () => ticketTypeOptions.map((p) => p.ticket_type).join(","),
+    [ticketTypeOptions],
+  )
+
   useEffect(() => {
     if (!isOpen) {
       setSelectedLaunchId("")
       setSelectedMissionId("")
       setTargetTripId("")
       setTargetBoatId(null)
+      setTypeMapping({})
     }
   }, [isOpen])
 
@@ -140,12 +172,60 @@ export default function RescheduleBooking({
   useEffect(() => {
     setTargetTripId("")
     setTargetBoatId(null)
+    setTypeMapping({})
   }, [selectedMissionId])
 
   useEffect(() => {
     if (needsBoat) setTargetBoatId(null)
     else setTargetBoatId(singleBoatId ?? null)
   }, [needsBoat, singleBoatId])
+
+  useEffect(() => {
+    const currentTripInList =
+      trips.filter((t: TripPublic) => !t.archived).some(
+        (t: TripPublic) => t.id === currentTripId,
+      )
+    if (
+      isOpen &&
+      selectedMissionId &&
+      trips.length > 0 &&
+      !targetTripId &&
+      currentTripId &&
+      currentTripInList
+    ) {
+      setTargetTripId(currentTripId)
+    }
+  }, [
+    isOpen,
+    selectedMissionId,
+    trips,
+    targetTripId,
+    currentTripId,
+  ])
+
+  useEffect(() => {
+    if (ticketTypeOptions.length === 0 || originTicketTypes.length === 0) {
+      setTypeMapping((prev) => (Object.keys(prev).length ? {} : prev))
+      return
+    }
+    const destTypes = new Set(ticketTypeOptions.map((p) => p.ticket_type))
+    setTypeMapping((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const { type } of originTicketTypes) {
+        const current = next[type]
+        const inList = current && destTypes.has(current)
+        if (!inList) {
+          const fallback = destTypes.has(type) ? type : ticketTypeOptions[0]?.ticket_type ?? ""
+          if (fallback) {
+            next[type] = fallback
+            changed = true
+          }
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [targetTripId, effectiveBoatId, ticketTypeKeys, originTicketTypes, ticketTypeOptions])
 
   const rescheduleMutation = useMutation({
     mutationFn: () =>
@@ -154,6 +234,15 @@ export default function RescheduleBooking({
         requestBody: {
           target_trip_id: targetTripId,
           boat_id: needsBoat ? targetBoatId ?? undefined : undefined,
+          type_mapping:
+            ticketTypeOptions.length > 0 && typeMappingComplete
+              ? Object.fromEntries(
+                  originTicketTypes.map(({ type }) => [
+                    type,
+                    typeMapping[type]!.trim(),
+                  ]),
+                )
+              : undefined,
         },
       }),
     onSuccess: (updated) => {
@@ -182,14 +271,24 @@ export default function RescheduleBooking({
     rescheduleMutation.mutate()
   }
 
+  const ticketTypeRequired = ticketTypeOptions.length > 0
+  const typeMappingComplete =
+    originTicketTypes.length === 0 ||
+    originTicketTypes.every(({ type }) => !!typeMapping[type]?.trim())
   const canSubmit =
-    !!targetTripId && (!needsBoat || !!targetBoatId) && !rescheduleMutation.isPending
+    !!targetTripId &&
+    (!needsBoat || !!targetBoatId) &&
+    (!ticketTypeRequired || typeMappingComplete) &&
+    !rescheduleMutation.isPending
 
   const tripTypeToLabel = (type: string): string => {
     if (type === "launch_viewing") return "Launch Viewing"
     if (type === "pre_launch") return "Pre-Launch"
     return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   }
+
+  const getItemTypeLabel = (itemType: string): string =>
+    itemType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 
   const formatTripOptionLabel = (trip: TripPublic): string => {
     const readableType = tripTypeToLabel(trip.type)
@@ -393,6 +492,74 @@ export default function RescheduleBooking({
                       </Select.Root>
                     </Field>
                   )}
+                  {ticketTypeOptions.length > 0 &&
+                    originTicketTypes.length > 0 && (
+                      <Field label="Map ticket types to destination">
+                        <VStack align="stretch" gap={3}>
+                          {originTicketTypes.map(({ type, quantity }) => (
+                            <Field
+                              key={type}
+                              label={`${getItemTypeLabel(type)} (${quantity})`}
+                            >
+                              <Select.Root
+                                collection={createListCollection({
+                                  items: ticketTypeOptions.map((p) => ({
+                                    value: p.ticket_type,
+                                    label: `${getItemTypeLabel(p.ticket_type)} (${formatCents(p.price)})`,
+                                  })),
+                                })}
+                                value={
+                                  typeMapping[type]
+                                    ? [typeMapping[type]]
+                                    : []
+                                }
+                                onValueChange={(e: { value: string[] }) =>
+                                  setTypeMapping((prev) => ({
+                                    ...prev,
+                                    [type]: e.value[0] ?? "",
+                                  }))
+                                }
+                                disabled={pricingLoading}
+                              >
+                                <Select.Control width="100%">
+                                  <Select.Trigger>
+                                    <Select.ValueText placeholder="Select type on destination" />
+                                  </Select.Trigger>
+                                  <Select.IndicatorGroup>
+                                    <Select.Indicator />
+                                  </Select.IndicatorGroup>
+                                </Select.Control>
+                                <Select.Positioner>
+                                  <Select.Content>
+                                    {ticketTypeOptions.map((p) => (
+                                      <Select.Item
+                                        key={p.ticket_type}
+                                        item={{
+                                          value: p.ticket_type,
+                                          label: `${getItemTypeLabel(p.ticket_type)} (${formatCents(p.price)})`,
+                                        }}
+                                      >
+                                        {getItemTypeLabel(p.ticket_type)} (
+                                        {formatCents(p.price)})
+                                        <Select.ItemIndicator />
+                                      </Select.Item>
+                                    ))}
+                                  </Select.Content>
+                                </Select.Positioner>
+                              </Select.Root>
+                            </Field>
+                          ))}
+                        </VStack>
+                      </Field>
+                    )}
+                  {targetTripId &&
+                    effectiveBoatId &&
+                    !pricingLoading &&
+                    ticketTypeOptions.length === 0 && (
+                      <Text color="text.muted" fontSize="sm">
+                        No ticket types on the selected boat.
+                      </Text>
+                    )}
                 </>
               )}
             </VStack>

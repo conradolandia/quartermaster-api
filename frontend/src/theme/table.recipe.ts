@@ -60,24 +60,24 @@ export const tableRecipe = defineSlotRecipe({
         columnHeader: {
           py: 2,
           px: 3,
-          fontSize: "xs",
+          fontSize: "sm",
         },
         cell: {
           py: 2,
           px: 3,
-          fontSize: "xs",
+          fontSize: "sm",
         },
       },
       md: {
         columnHeader: {
           py: 4,
           px: 4,
-          fontSize: "sm",
+          fontSize: "md",
         },
         cell: {
           py: 4,
           px: 4,
-          fontSize: "sm",
+          fontSize: "md",
         },
       },
       lg: {

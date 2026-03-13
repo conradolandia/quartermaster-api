@@ -108,6 +108,8 @@ class Settings(BaseSettings):
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
+    # When True, prestart/initial_data will seed the DB if empty. Set to 0 in production to avoid accidental seed.
+    RUN_INITIAL_DATA: bool = False
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":

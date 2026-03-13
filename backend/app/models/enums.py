@@ -11,6 +11,7 @@ class BookingMode(str, enum.Enum):
 # --- BookingItem models ---
 class BookingItemStatus(str, enum.Enum):
     active = "active"
+    cancelled = "cancelled"
     refunded = "refunded"
     fulfilled = "fulfilled"
 

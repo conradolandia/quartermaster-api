@@ -29,11 +29,15 @@ def _trip_merchandise_to_public(
     m: Merchandise,
 ) -> TripMerchandisePublic:
     """Build TripMerchandisePublic from TripMerchandise + Merchandise (effective price and quantity, per-variation when present)."""
-    price = tm.price_override if tm.price_override is not None else m.price
+    price_default = m.price
+    price_override = tm.price_override
+    price = price_override if price_override is not None else price_default
+
     variations = crud.list_merchandise_variations_by_merchandise(
         session=session, merchandise_id=m.id
     )
     variations_availability: list[TripMerchandiseVariationAvailability] | None = None
+    quantity_available_default: int
     if variations:
         variations_availability = []
         total_available = 0
@@ -46,10 +50,12 @@ def _trip_merchandise_to_public(
                 )
             )
             total_available += available
+        quantity_available_default = total_available
         if tm.quantity_available_override is not None:
             total_available = min(total_available, tm.quantity_available_override)
         qty = total_available
     else:
+        quantity_available_default = m.quantity_available
         qty = (
             tm.quantity_available_override
             if tm.quantity_available_override is not None
@@ -69,6 +75,10 @@ def _trip_merchandise_to_public(
         description=m.description,
         price=price,
         quantity_available=qty,
+        price_default=price_default,
+        price_override=price_override,
+        quantity_available_default=quantity_available_default,
+        quantity_available_override=tm.quantity_available_override,
         variant_name=None,
         variant_options=variant_options,
         variations_availability=variations_availability,

@@ -159,8 +159,19 @@ export function useStep1Queries({
     return tripBoats.every((tb) => tb.remaining_capacity <= 0)
   }, [bookingData.selectedTripId, tripBoats])
 
+  const isTripPaused = React.useMemo(() => {
+    if (!bookingData.selectedTripId || !tripBoats || tripBoats.length === 0)
+      return false
+    return tripBoats.every((tb) => tb.sales_enabled === false)
+  }, [bookingData.selectedTripId, tripBoats])
+
   const availableBoats = React.useMemo(() => {
-    return tripBoats?.filter((tb) => tb.remaining_capacity > 0) ?? []
+    return (
+      tripBoats?.filter(
+        (tb) =>
+          tb.sales_enabled !== false && (tb.remaining_capacity ?? 0) > 0,
+      ) ?? []
+    )
   }, [tripBoats])
 
   const launchIdsWithVisibleTrips = React.useMemo(() => {
@@ -194,6 +205,7 @@ export function useStep1Queries({
     bookingData.selectedLaunchId &&
     bookingData.selectedTripId &&
     !isTripSoldOut &&
+    !isTripPaused &&
     (bookingData.selectedBoatId || availableBoats.length === 1)
 
   // --- Effects ---
@@ -453,18 +465,16 @@ export function useStep1Queries({
 
   const boatsCollection = createListCollection({
     items:
-      tripBoats
-        ?.filter((tb) => tb.remaining_capacity > 0)
-        .map((tripBoat: TripBoatPublicWithAvailability) => {
-          const name =
-            tripBoat.boat?.name ||
-            boatNames?.[tripBoat.boat_id] ||
-            "Loading..."
-          return {
-            label: `${name} (${tripBoat.remaining_capacity} spots left)`,
-            value: tripBoat.boat_id,
-          }
-        }) || [],
+      availableBoats.map((tripBoat: TripBoatPublicWithAvailability) => {
+        const name =
+          tripBoat.boat?.name ||
+          boatNames?.[tripBoat.boat_id] ||
+          "Loading..."
+        return {
+          label: `${name} (${tripBoat.remaining_capacity} spots left)`,
+          value: tripBoat.boat_id,
+        }
+      }) || [],
   })
 
   return {
@@ -485,6 +495,7 @@ export function useStep1Queries({
     isLoadingBoatNames,
     // Computed
     isTripSoldOut,
+    isTripPaused,
     canProceed,
     // Handlers
     handleLaunchChange,

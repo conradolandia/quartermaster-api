@@ -281,7 +281,7 @@ function Missions() {
         <Text>Error loading missions</Text>
       ) : (
         <Box overflowX="auto">
-          <Table.Root size="sm">
+          <Table.Root size="md">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader
@@ -372,8 +372,8 @@ function Missions() {
                       _hover={{ textDecoration: "underline" }}
                     >
                       <RouterLink to="/bookings" search={{ missionId: mission.id }}>
-                      <Text fontSize="lg" fontWeight="500" as="span">
-                        {mission.name  || "—"}
+                      <Text fontSize="md" fontWeight="500" as="span">
+                        {mission.name || "—"}
                         </Text>
                       </RouterLink>
                     </Link>

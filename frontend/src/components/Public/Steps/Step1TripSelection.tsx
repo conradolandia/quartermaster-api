@@ -47,6 +47,7 @@ const Step1TripSelection = ({
     isLoadingBoats,
     isLoadingBoatNames,
     isTripSoldOut,
+    isTripPaused,
     canProceed,
     handleLaunchChange,
     handleTripChange,
@@ -203,9 +204,29 @@ const Step1TripSelection = ({
               </Card.Root>
             )}
 
+            {/* Booking Paused */}
+            {bookingData.selectedTripId &&
+              !isLoadingBoats &&
+              isTripPaused && (
+                <Card.Root bg="orange.50" borderColor="orange.200" borderWidth="1px">
+                  <Card.Body>
+                    <VStack gap={2}>
+                      <Heading size="md" color="orange.700">
+                        Booking Is Paused for This Trip
+                      </Heading>
+                      <Text color="orange.600" textAlign="center">
+                        Please check back later or contact Star Fleet directly
+                        to book.
+                      </Text>
+                    </VStack>
+                  </Card.Body>
+                </Card.Root>
+              )}
+
             {/* Boat Selection */}
             {bookingData.selectedTripId &&
               !isTripSoldOut &&
+              !isTripPaused &&
               availableBoats.length > 1 && (
                 <Card.Root bg="bg.panel">
                   <Card.Body>
@@ -256,30 +277,31 @@ const Step1TripSelection = ({
                 </Card.Root>
               )}
 
-            {/* Trip Details (sold-out view) */}
-            {bookingData.selectedTripId && isTripSoldOut && selectedTrip && (
-              <Card.Root bg="bg.panel">
-                <Card.Body>
-                  <Heading size="2xl" mb={3} fontWeight="200">
-                    Trip Details
-                  </Heading>
-                  <Separator mb={3} />
-                  <VStack align="stretch" gap={2}>
-                    {/* Minimal sold-out details */}
-                    <Text>
-                      {tripTypeToLabel(selectedTrip.type)} &mdash;{" "}
-                      {formatTripTime(
-                        selectedTrip.departure_time,
-                        selectedTrip.timezone,
-                      )}
-                    </Text>
-                  </VStack>
-                </Card.Body>
-              </Card.Root>
-            )}
+            {/* Trip Details (sold-out or paused view) */}
+            {bookingData.selectedTripId &&
+              (isTripSoldOut || isTripPaused) &&
+              selectedTrip && (
+                <Card.Root bg="bg.panel">
+                  <Card.Body>
+                    <Heading size="2xl" mb={3} fontWeight="200">
+                      Trip Details
+                    </Heading>
+                    <Separator mb={3} />
+                    <VStack align="stretch" gap={2}>
+                      <Text>
+                        {tripTypeToLabel(selectedTrip.type)} &mdash;{" "}
+                        {formatTripTime(
+                          selectedTrip.departure_time,
+                          selectedTrip.timezone,
+                        )}
+                      </Text>
+                    </VStack>
+                  </Card.Body>
+                </Card.Root>
+              )}
 
             {/* Trip Details, Boat & departure, Ticket types (three columns) */}
-            {bookingData.selectedTripId && !isTripSoldOut && (
+            {bookingData.selectedTripId && !isTripSoldOut && !isTripPaused && (
               <TripDetailsCards
                 selectedTrip={selectedTrip}
                 selectedLaunch={selectedLaunch}

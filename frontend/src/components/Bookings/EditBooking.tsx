@@ -461,6 +461,32 @@ const EditBooking = ({
       (p) => p.ticket_type === newTicketType,
     )
     if (!pricing) return
+
+    // If the same ticket (trip + boat + type) already exists, update its quantity instead of creating a duplicate
+    const existingIndex = booking.items?.findIndex(
+      (i) =>
+        !i.trip_merchandise_id &&
+        i.trip_id === newTicketTripId &&
+        i.boat_id === newTicketBoatId &&
+        i.item_type === newTicketType,
+    )
+    if (existingIndex >= 0) {
+      const item = booking.items[existingIndex]
+      const currentQty = watchedItemQuantities?.[existingIndex]?.quantity ?? item.quantity
+      const newQty = currentQty + newTicketQty
+      setValue(`item_quantity_updates.${existingIndex}.quantity`, newQty, {
+        shouldDirty: true,
+      })
+      showSuccessToast(
+        `Quantity updated to ${newQty}. Save the booking to apply.`,
+      )
+      setNewTicketTripId("")
+      setNewTicketBoatId("")
+      setNewTicketType("")
+      setNewTicketQty(1)
+      return
+    }
+
     addTicketMutation.mutate({
       trip_id: newTicketTripId,
       boat_id: newTicketBoatId,
@@ -470,14 +496,21 @@ const EditBooking = ({
     })
   }
 
+  const tripTypeToLabel = (type: string): string => {
+    if (type === "launch_viewing") return "Launch Viewing"
+    if (type === "pre_launch") return "Pre-Launch"
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
   const getTripName = (tripId: string) => {
     const trip = tripsData?.data.find((t) => t.id === tripId)
-    return trip
-      ? `${trip.type} - ${formatDateTimeInLocationTz(
-          trip.departure_time,
-          trip.timezone,
-        )}`
-      : tripId
+    if (!trip) return tripId
+    const readableType = tripTypeToLabel(trip.type)
+    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+    if (trip.name?.trim()) {
+      return `${trip.name.trim()} - ${readableType} (${time})`
+    }
+    return `${readableType} (${time})`
   }
 
   const getBoatName = (boatId: string) => {
@@ -853,9 +886,12 @@ const EditBooking = ({
                                           colorPalette={
                                             item.status === "active"
                                               ? "green"
-                                              : item.status === "refunded"
-                                              ? "red"
-                                              : "gray"
+                                              : item.status === "refunded" ||
+                                                item.status === "cancelled"
+                                                ? "red"
+                                                : item.status === "fulfilled"
+                                                  ? "blue"
+                                                  : "gray"
                                           }
                                         >
                                           {item.status}
@@ -1062,9 +1098,12 @@ const EditBooking = ({
                                       colorPalette={
                                         item.status === "active"
                                           ? "green"
-                                          : item.status === "refunded"
+                                          : item.status === "refunded" ||
+                                            item.status === "cancelled"
                                             ? "red"
-                                            : "gray"
+                                            : item.status === "fulfilled"
+                                              ? "blue"
+                                              : "gray"
                                       }
                                     >
                                       {item.status}

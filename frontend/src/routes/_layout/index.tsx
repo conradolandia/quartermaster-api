@@ -1,4 +1,5 @@
-import { Box, Container, Text } from "@chakra-ui/react"
+import { Box, Container, Spinner, Text } from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Navigate, createFileRoute } from "@tanstack/react-router"
 
 import DashboardStats from "@/components/Admin/DashboardStats"
@@ -10,21 +11,28 @@ export const Route = createFileRoute("/_layout/")({
 })
 
 function Dashboard() {
-  const { user: currentUser } = useAuth()
+  const queryClient = useQueryClient()
+  const { user: currentUser, isUserLoading, isUserError } = useAuth()
 
   // Redirect to the configured default home page if it's not "/"
   if (DEFAULT_HOME_PATH !== "/") {
     return <Navigate to={DEFAULT_HOME_PATH} />
   }
 
-  if (!currentUser) {
+  if (isUserLoading) {
     return (
       <Container maxW="full">
         <Box pt={12} m={4}>
-          <Text>Please log in to access the dashboard.</Text>
+          <Spinner />
         </Box>
       </Container>
     )
+  }
+
+  if (!currentUser || isUserError) {
+    localStorage.removeItem("access_token")
+    queryClient.removeQueries({ queryKey: ["currentUser"] })
+    return <Navigate to="/login" />
   }
 
   if (!currentUser.is_superuser) {

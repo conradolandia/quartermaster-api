@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import exists, nulls_first, or_
+from sqlalchemy import and_, exists, nulls_first, or_
 from sqlmodel import Session, func, select
 
 from app import crud
@@ -145,6 +145,7 @@ def list_bookings(
     skip: int = 0,
     limit: int = 100,
     mission_id: uuid.UUID | None = None,
+    launch_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
     boat_id: uuid.UUID | None = None,
     trip_type: str | None = None,
@@ -157,9 +158,9 @@ def list_bookings(
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, trip_id, boat_id, trip_type, booking_status, payment_status.
+    Optionally filter by mission_id, launch_id, trip_id, boat_id, trip_type, booking_status, payment_status.
     booking_status and payment_status accept multiple values (include only those statuses).
-    Optional search filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive substring).
+    Optional search: filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive). Multiple words are ANDed: each word must appear in at least one of those fields.
     By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
     """
     try:
@@ -182,17 +183,28 @@ def list_bookings(
             logger.info(f"Limit parameter reduced from {limit} to 500")
             limit = 500  # Cap at 500 to prevent excessive queries
 
-        # Apply text search on confirmation_code, name, email, phone (case-insensitive)
+        # Apply text search on confirmation_code, name, email, phone (case-insensitive).
+        # Multiple words: each word must match in at least one field (AND across words).
+        # e.g. "John Smith" matches first_name="John" + last_name="Smith" or "John Smith" in one field.
         search_term = search.strip() if search else ""
         if search_term:
-            pattern = f"%{search_term}%"
-            search_cond = or_(
-                Booking.confirmation_code.ilike(pattern),
-                Booking.first_name.ilike(pattern),
-                Booking.last_name.ilike(pattern),
-                Booking.user_email.ilike(pattern),
-                Booking.user_phone.ilike(pattern),
-            )
+            terms = [t.strip() for t in search_term.split() if t.strip()]
+            if not terms:
+                search_cond = None
+            else:
+                per_term_conds = []
+                for term in terms:
+                    pattern = f"%{term}%"
+                    per_term_conds.append(
+                        or_(
+                            Booking.confirmation_code.ilike(pattern),
+                            Booking.first_name.ilike(pattern),
+                            Booking.last_name.ilike(pattern),
+                            Booking.user_email.ilike(pattern),
+                            Booking.user_phone.ilike(pattern),
+                        )
+                    )
+                search_cond = and_(*per_term_conds)
         else:
             search_cond = None
 
@@ -209,7 +221,7 @@ def list_bookings(
         # When we have join filters (mission/trip/boat/trip_type) AND sort by trip_name/trip_type,
         # we must avoid SELECT DISTINCT + ORDER BY (expression not in SELECT) - PostgreSQL rejects it.
         # Use a subquery for filtered booking IDs, then select Booking by id.
-        has_join_filters = mission_id or trip_id or boat_id or trip_type
+        has_join_filters = mission_id or launch_id or trip_id or boat_id or trip_type
         sort_by_trip = sort_by in ("trip_name", "trip_type")
         use_id_subquery = has_join_filters and sort_by_trip
 
@@ -218,10 +230,14 @@ def list_bookings(
             id_subq = select(Booking.id).join(
                 BookingItem, BookingItem.booking_id == Booking.id
             )
-            if mission_id or trip_type:
+            if mission_id or launch_id or trip_type:
                 id_subq = id_subq.join(Trip, Trip.id == BookingItem.trip_id)
                 if mission_id:
                     id_subq = id_subq.where(Trip.mission_id == mission_id)
+                if launch_id:
+                    id_subq = id_subq.join(
+                        Mission, Mission.id == Trip.mission_id
+                    ).where(Mission.launch_id == launch_id)
                 if trip_type:
                     id_subq = id_subq.where(Trip.type == trip_type)
             if trip_id:
@@ -244,10 +260,14 @@ def list_bookings(
                 base_query = base_query.join(
                     BookingItem, BookingItem.booking_id == Booking.id
                 )
-                if mission_id or trip_type:
+                if mission_id or launch_id or trip_type:
                     base_query = base_query.join(Trip, Trip.id == BookingItem.trip_id)
                     if mission_id:
                         base_query = base_query.where(Trip.mission_id == mission_id)
+                    if launch_id:
+                        base_query = base_query.join(
+                            Mission, Mission.id == Trip.mission_id
+                        ).where(Mission.launch_id == launch_id)
                     if trip_type:
                         base_query = base_query.where(Trip.type == trip_type)
                 if trip_id:
@@ -270,6 +290,8 @@ def list_bookings(
 
         if mission_id:
             logger.info(f"Filtering bookings by mission_id: {mission_id}")
+        if launch_id:
+            logger.info(f"Filtering bookings by launch_id: {launch_id}")
         if trip_id:
             logger.info(f"Filtering bookings by trip_id: {trip_id}")
         if boat_id:
@@ -287,14 +309,18 @@ def list_bookings(
         total_count = 0
         try:
             count_query = select(func.count(Booking.id.distinct()))
-            if mission_id or trip_id or boat_id or trip_type:
+            if mission_id or launch_id or trip_id or boat_id or trip_type:
                 count_query = count_query.select_from(Booking).join(
                     BookingItem, BookingItem.booking_id == Booking.id
                 )
-                if mission_id or trip_type:
+                if mission_id or launch_id or trip_type:
                     count_query = count_query.join(Trip, Trip.id == BookingItem.trip_id)
                     if mission_id:
                         count_query = count_query.where(Trip.mission_id == mission_id)
+                    if launch_id:
+                        count_query = count_query.join(
+                            Mission, Mission.id == Trip.mission_id
+                        ).where(Mission.launch_id == launch_id)
                     if trip_type:
                         count_query = count_query.where(Trip.type == trip_type)
                 if trip_id:
@@ -302,7 +328,7 @@ def list_bookings(
                 if boat_id:
                     count_query = count_query.where(BookingItem.boat_id == boat_id)
             if booking_status or payment_status:
-                if not (mission_id or trip_id or boat_id or trip_type):
+                if not (mission_id or launch_id or trip_id or boat_id or trip_type):
                     count_query = count_query.select_from(Booking)
             if booking_status:
                 count_query = count_query.where(
@@ -775,10 +801,6 @@ def update_booking(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Cannot transition from '{old_booking_status}' to '{new_booking_status}'",
                     )
-                # Sync payment_status when admin sets cancelled
-                if new_booking_status == BookingStatus.cancelled:
-                    if "payment_status" not in update_data:
-                        update_data["payment_status"] = PaymentStatus.failed
 
         # Tip must be non-negative
         if "tip_amount" in update_data and update_data["tip_amount"] is not None:
@@ -791,7 +813,7 @@ def update_booking(
                     detail="Tip amount cannot be negative",
                 )
 
-        # If booking_status is being updated to cancelled, update BookingItems (refunded vs active)
+        # If booking_status is being updated to cancelled, set all items to refunded or cancelled
         if "booking_status" in update_data:
             new_booking_status = update_data["booking_status"]
             new_payment_status = (
@@ -816,7 +838,7 @@ def update_booking(
                                 PaymentStatus.refunded,
                                 PaymentStatus.partially_refunded,
                             )
-                            else BookingItemStatus.active
+                            else BookingItemStatus.cancelled
                         )
                         session.add(item)
                 except Exception as e:

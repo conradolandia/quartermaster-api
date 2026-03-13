@@ -1,3 +1,8 @@
+import os
+
+# Ensure seed runs in tests (before any app import loads settings)
+os.environ["RUN_INITIAL_DATA"] = "1"
+
 from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 

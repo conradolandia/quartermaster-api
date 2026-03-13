@@ -55,7 +55,8 @@ interface BookingsFilterBarProps {
   onClearFilters: () => void
 }
 
-const FILTER_SELECT_WIDTH = "160px"
+/** Min width so all 6 filters fit on one row at ~1280px content width (label + gap + control ~214px each). */
+const DESKTOP_FILTER_MIN_WIDTH = "150px"
 
 export default function BookingsFilterBar({
   searchQuery,
@@ -101,7 +102,7 @@ export default function BookingsFilterBar({
           <Input
             ref={searchInputRef}
             size="xs"
-            placeholder="Search code, name, email, phone"
+            placeholder="Search code, name, email, phone (multiple words allowed)"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             borderColor="white"
@@ -142,13 +143,13 @@ export default function BookingsFilterBar({
           >
             Booking:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
             <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
               <MenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="xs"
-                  width={{ base: "100%", lg: FILTER_SELECT_WIDTH }}
+                  width={{ base: "100%", lg: DESKTOP_FILTER_MIN_WIDTH }}
                   borderColor="white"
                   justifyContent="space-between"
                 >
@@ -181,13 +182,13 @@ export default function BookingsFilterBar({
           >
             Payment:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
             <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
               <MenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="xs"
-                  width={{ base: "100%", lg: FILTER_SELECT_WIDTH }}
+                  width={{ base: "100%", lg: DESKTOP_FILTER_MIN_WIDTH }}
                   borderColor="white"
                   justifyContent="space-between"
                 >
@@ -220,7 +221,7 @@ export default function BookingsFilterBar({
           >
             Mission:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
           <Select.Root
             collection={missionsCollection as any}
             size="xs"
@@ -255,7 +256,7 @@ export default function BookingsFilterBar({
           >
             Trip:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
           <Select.Root
             collection={tripsCollection as any}
             size="xs"
@@ -290,7 +291,7 @@ export default function BookingsFilterBar({
           >
             Type:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
           <Select.Root
             collection={tripTypeFilterCollection as any}
             size="xs"
@@ -327,7 +328,7 @@ export default function BookingsFilterBar({
           >
             Boat:
           </Text>
-          <Box flex={1} minW={0}>
+          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
           <Select.Root
             collection={boatsCollection as any}
             size="xs"

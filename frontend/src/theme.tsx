@@ -59,9 +59,9 @@ export const system = createSystem(defaultConfig, {
         },
       },
       fontSizes: {
-        "2xs": { value: "0.6rem" },
-        xs: { value: "0.7rem" },
-        sm: { value: "0.875rem" },
+        "2xs": { value: "0.625rem" },
+        xs: { value: "0.775rem" },
+        sm: { value: "0.8125rem" },
         md: { value: "1rem" },
         lg: { value: "1.125rem" },
         xl: { value: "1.25rem" },

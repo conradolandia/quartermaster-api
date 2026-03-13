@@ -1246,53 +1246,77 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       const catalogItem = catalogMerchandise?.data?.find(
                         (m) => m.id === item.merchandise_id,
                       )
-                      const price =
-                        item.price_override ?? catalogItem?.price ?? 0
                       const hasVariations =
                         (catalogItem?.variations?.length ?? 0) > 0
                       return (
-                        <HStack
+                        <Flex
                           key={item.merchandise_id}
                           justify="space-between"
-                          p={3}
+                          align="center"
+                          p={2}
                           borderWidth="1px"
                           borderRadius="md"
                         >
-                          <VStack align="start" flex={1}>
-                            <Text fontWeight="medium">{item.name}</Text>
-                            <HStack
-                              fontSize="sm"
-                              color="gray.500"
-                              gap={2}
-                              flexWrap="wrap"
+                          <Box>
+                            <Text color="gray.100" fontWeight="medium">
+                              {item.name}
+                            </Text>
+                            <Text
+                              fontSize="xs"
+                              color="gray.300"
+                              mt={0.5}
+                              lineHeight="1.2"
                             >
-                              <Text>${formatCents(price)} each</Text>
+                              Price: $
+                              {formatCents(catalogItem?.price ?? 0)} (default)
+                              {item.price_override != null &&
+                                ` · $${formatCents(item.price_override)} (custom)`}
+                            </Text>
+                            <VStack align="start" gap={0}>
                               {hasVariations ? (
-                                <Text>
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  lineHeight="1.2"
+                                >
+                                  Qty:{" "}
                                   {catalogItem!.variations!
                                     .map(
                                       (v) =>
                                         `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
                                     )
-                                    .join(", ")}
+                                    .join(", ")}{" "}
+                                  (default)
                                 </Text>
                               ) : catalogItem?.variant_options ? (
-                                <Text>
-                                  Options: {catalogItem.variant_options} (qty{" "}
-                                  {item.quantity_available_override ??
-                                    catalogItem.quantity_available}
-                                  )
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  lineHeight="1.2"
+                                >
+                                  Options: {catalogItem.variant_options}. Qty:{" "}
+                                  {catalogItem?.quantity_available ?? 0}{" "}
+                                  (default)
+                                  {item.quantity_available_override !=
+                                    null &&
+                                    ` · ${item.quantity_available_override} (custom)`}
                                 </Text>
                               ) : (
-                                <Text>
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  lineHeight="1.2"
+                                >
                                   Qty:{" "}
-                                  {item.quantity_available_override ??
-                                    catalogItem?.quantity_available ??
-                                  0}
+                                  {catalogItem?.quantity_available ?? 0}{" "}
+                                  (default)
+                                  {item.quantity_available_override !=
+                                    null &&
+                                    ` · ${item.quantity_available_override} (custom)`}
                                 </Text>
                               )}
-                            </HStack>
-                          </VStack>
+                            </VStack>
+                          </Box>
                           <IconButton
                             aria-label="Remove merchandise"
                             size="sm"
@@ -1304,7 +1328,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                           >
                             <FiTrash2 />
                           </IconButton>
-                        </HStack>
+                        </Flex>
                       )
                     })}
                     {selectedMerchandise.length === 0 &&
