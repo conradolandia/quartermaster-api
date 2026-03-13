@@ -68,7 +68,7 @@ const TRIP_TYPES = [
   { label: "Pre-Launch", value: "pre_launch" },
 ] as const
 
-const DESKTOP_FILTER_MIN_WIDTH = "200px"
+const DESKTOP_FILTER_MIN_WIDTH = "130px"
 
 function getTripsQueryOptions({
   page,
@@ -226,6 +226,25 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
     items: TRIP_TYPES.map((t) => ({ label: t.label, value: t.value })),
   })
 
+  const getLabelForValue = (
+    collection: { items: Array<{ label: string; value: string }> },
+    value: string | undefined,
+  ): string => {
+    const v = value ?? ""
+    const match = collection.items.find((item) => item.value === v)
+    if (match) return match.label
+    return collection.items[0]?.label ?? ""
+  }
+
+  const missionFilterLabel = getLabelForValue(
+    missionsCollection as unknown as { items: Array<{ label: string; value: string }> },
+    missionId,
+  )
+  const tripTypeFilterLabel = getLabelForValue(
+    tripTypeCollection as unknown as { items: Array<{ label: string; value: string }> },
+    tripType,
+  )
+
   let tripsToShow = [...tripsData]
   const count = data?.count ?? 0
   const effectiveSortBy = sortBy || "check_in_time"
@@ -345,7 +364,12 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
           >
             Mission:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "320px" }}
+          >
             <Select.Root
               collection={missionsCollection}
               size="xs"
@@ -356,8 +380,10 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
               }
             >
               <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Missions" />
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {missionFilterLabel}
+                  </Text>
                 </Select.Trigger>
               </Select.Control>
               <Select.Positioner>
@@ -389,7 +415,12 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
           >
             Type:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "220px" }}
+          >
             <Select.Root
               collection={tripTypeCollection}
               size="xs"
@@ -400,8 +431,10 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
               }
             >
               <Select.Control width="100%">
-                <Select.Trigger>
-                  <Select.ValueText placeholder="All Types" />
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {tripTypeFilterLabel}
+                  </Text>
                 </Select.Trigger>
               </Select.Control>
               <Select.Positioner>

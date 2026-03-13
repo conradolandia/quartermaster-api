@@ -56,8 +56,8 @@ interface BookingsFilterBarProps {
   onClearFilters: () => void
 }
 
-/** Min width so all 6 filters fit on one row at ~1280px content width (label + gap + control ~214px each). */
-const DESKTOP_FILTER_MIN_WIDTH = "150px"
+/** Min width so all 6 filters fit on one row at ~1280px content width, but keep controls compact. */
+const DESKTOP_FILTER_MIN_WIDTH = "100px"
 
 export default function BookingsFilterBar({
   searchQuery,
@@ -98,6 +98,24 @@ export default function BookingsFilterBar({
 
   const bookingSelection = isBookingMenuOpen ? draftBookingStatus : bookingStatusFilter
   const paymentSelection = isPaymentMenuOpen ? draftPaymentStatus : paymentStatusFilter
+
+  const getLabelForValue = (
+    collection: FilterCollection,
+    value: string | undefined,
+  ): string => {
+    const v = value ?? ""
+    const match = collection.items.find((item) => item.value === v)
+    if (match) return match.label
+    return collection.items[0]?.label ?? ""
+  }
+
+  const missionLabel = getLabelForValue(missionsCollection, missionId)
+  const tripLabel = getLabelForValue(tripsCollection, tripId)
+  const tripTypeLabel = getLabelForValue(tripTypeFilterCollection, tripType)
+  const boatLabel = getLabelForValue(
+    boatsCollection,
+    boatId && filteredBoats.some((b) => b.id === boatId) ? boatId : "",
+  )
 
   const handleBookingMenuOpenChange = (details: { open: boolean }) => {
     if (details.open) {
@@ -198,7 +216,12 @@ export default function BookingsFilterBar({
           >
             Booking:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "220px" }}
+          >
             <MenuRoot
               closeOnSelect={false}
               positioning={{ sameWidth: true }}
@@ -208,7 +231,7 @@ export default function BookingsFilterBar({
                 <Button
                   variant="outline"
                   size="xs"
-                  width={{ base: "100%", lg: DESKTOP_FILTER_MIN_WIDTH }}
+                  width={{ base: "100%", lg: "100%" }}
                   borderColor="white"
                   justifyContent="space-between"
                 >
@@ -216,7 +239,7 @@ export default function BookingsFilterBar({
                 <Icon as={FiChevronDown} ml={1} />
               </Button>
             </MenuTrigger>
-            <MenuContent minWidth="180px">
+            <MenuContent minWidth="140px">
               {BOOKING_STATUSES.map((status) => (
                 <MenuCheckboxItem
                   key={status}
@@ -241,7 +264,12 @@ export default function BookingsFilterBar({
           >
             Payment:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "220px" }}
+          >
             <MenuRoot
               closeOnSelect={false}
               positioning={{ sameWidth: true }}
@@ -251,7 +279,7 @@ export default function BookingsFilterBar({
                 <Button
                   variant="outline"
                   size="xs"
-                  width={{ base: "100%", lg: DESKTOP_FILTER_MIN_WIDTH }}
+                  width={{ base: "100%", lg: "100%" }}
                   borderColor="white"
                   justifyContent="space-between"
                 >
@@ -259,7 +287,7 @@ export default function BookingsFilterBar({
                 <Icon as={FiChevronDown} ml={1} />
               </Button>
             </MenuTrigger>
-            <MenuContent minWidth="200px">
+            <MenuContent minWidth="160px">
               {PAYMENT_STATUSES.map((status) => (
                 <MenuCheckboxItem
                   key={status}
@@ -284,7 +312,12 @@ export default function BookingsFilterBar({
           >
             Mission:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "260px" }}
+          >
           <Select.Root
             collection={missionsCollection as any}
             size="xs"
@@ -293,8 +326,10 @@ export default function BookingsFilterBar({
             onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
           >
             <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Missions" />
+              <Select.Trigger justifyContent="space-between" width="100%">
+                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                  {missionLabel}
+                </Text>
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
@@ -326,7 +361,12 @@ export default function BookingsFilterBar({
           >
             Trip:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "320px" }}
+          >
           <Select.Root
             collection={tripsCollection as any}
             size="xs"
@@ -335,8 +375,10 @@ export default function BookingsFilterBar({
             onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
           >
             <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Trips" />
+              <Select.Trigger justifyContent="space-between" width="100%">
+                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                  {tripLabel}
+                </Text>
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
@@ -368,7 +410,12 @@ export default function BookingsFilterBar({
           >
             Type:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "220px" }}
+          >
           <Select.Root
             collection={tripTypeFilterCollection as any}
             size="xs"
@@ -379,8 +426,10 @@ export default function BookingsFilterBar({
             }
           >
             <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Types" />
+              <Select.Trigger justifyContent="space-between" width="100%">
+                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                  {tripTypeLabel}
+                </Text>
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
@@ -410,7 +459,12 @@ export default function BookingsFilterBar({
           >
             Boat:
           </Text>
-          <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "280px" }}
+          >
           <Select.Root
             collection={boatsCollection as any}
             size="xs"
@@ -423,8 +477,10 @@ export default function BookingsFilterBar({
             onValueChange={(e) => onBoatFilter(e.value[0] || undefined)}
           >
             <Select.Control width="100%">
-              <Select.Trigger>
-                <Select.ValueText placeholder="All Boats" />
+              <Select.Trigger justifyContent="space-between" width="100%">
+                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                  {boatLabel}
+                </Text>
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
