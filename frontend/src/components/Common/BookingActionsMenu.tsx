@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@chakra-ui/react"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { getPublicOrigin } from "@/utils/url"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
 import PermanentDeleteBooking from "../Bookings/PermanentDeleteBooking"
@@ -148,7 +149,7 @@ const BookingActionsMenu = ({
   }
 
   const copyLinkToClipboard = () => {
-    const url = `${window.location.origin}/bookings?code=${booking.confirmation_code}`
+    const url = `${getPublicOrigin()}/bookings?code=${booking.confirmation_code}`
     void navigator.clipboard.writeText(url).then(() => {
       showSuccessToast("Booking link copied to clipboard")
     })

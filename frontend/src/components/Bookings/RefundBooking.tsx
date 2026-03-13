@@ -37,6 +37,8 @@ const REFUND_REASONS = [
   "Other",
 ]
 
+const REFUND_REASON_OTHER = "Other"
+
 interface RefundBookingProps {
   booking: BookingPublic
   isOpen: boolean
@@ -96,9 +98,15 @@ export default function RefundBooking({
     },
   })
 
+  const isOtherReason = refundReason.trim() === REFUND_REASON_OTHER
+
   const handleProcessRefund = () => {
     if (!refundReason.trim()) {
       showErrorToast("Please select a refund reason")
+      return
+    }
+    if (isOtherReason && !refundNotes.trim()) {
+      showErrorToast("Please provide notes when selecting Other as the reason")
       return
     }
     const remaining = booking.total_amount - getRefundedCents(booking)
@@ -214,13 +222,15 @@ export default function RefundBooking({
             </Box>
             <Box>
               <Text fontWeight="medium" mb={2}>
-                Notes (optional)
+                Notes {isOtherReason ? "*" : "(optional)"}
               </Text>
               <Textarea
-                placeholder="Additional details..."
+                placeholder={isOtherReason ? "Please describe the reason..." : "Additional details..."}
                 value={refundNotes}
                 onChange={(e) => setRefundNotes(e.target.value)}
                 rows={2}
+                required={isOtherReason}
+                aria-required={isOtherReason}
               />
             </Box>
           </VStack>
@@ -234,7 +244,10 @@ export default function RefundBooking({
               colorPalette="red"
               onClick={handleProcessRefund}
               loading={refundMutation.isPending}
-              disabled={!refundReason.trim()}
+              disabled={
+                !refundReason.trim() ||
+                (isOtherReason && !refundNotes.trim())
+              }
             >
               Process refund
             </Button>
