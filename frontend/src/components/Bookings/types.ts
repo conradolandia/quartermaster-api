@@ -1,4 +1,5 @@
-import type { BookingPublic } from "@/client"
+import type { BookingPublic, TripPublic } from "@/client"
+import { formatDateTimeInLocationTz } from "@/utils"
 import { z } from "zod"
 
 /** Sum of ticket quantities (items without trip_merchandise_id) for a booking. */
@@ -188,6 +189,23 @@ export function parseStatusList(
   const parsed = param.split(",").map((s) => s.trim()).filter(Boolean)
   const valid = parsed.filter((s) => all.includes(s))
   return valid.length > 0 ? valid : [...all]
+}
+
+/** Human-readable label for trip type (e.g. launch_viewing -> "Launch Viewing"). */
+export function tripTypeToLabel(type: string): string {
+  if (type === "launch_viewing") return "Launch Viewing"
+  if (type === "pre_launch") return "Pre-Launch"
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/** Label for trip filter dropdown: name + type + departure time. */
+export function formatTripFilterLabel(trip: TripPublic): string {
+  const readableType = tripTypeToLabel(trip.type)
+  const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+  if (trip.name?.trim()) {
+    return `${trip.name.trim()} - ${readableType} (${time})`
+  }
+  return `${readableType} (${time})`
 }
 
 // Helper function to format dates (delegates to utils for international format support)

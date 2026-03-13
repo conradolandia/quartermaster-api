@@ -15,7 +15,13 @@ export default function SortIcon({
   sortDirection,
 }: SortIconProps) {
   if (sortBy !== column) {
-    return <Icon as={FiArrowUp} opacity={0.3} />
+    return <Icon as={FiArrowUp} opacity={0.3} ml={2} boxSize={4} />
   }
-  return <Icon as={sortDirection === "asc" ? FiArrowUp : FiArrowDown} />
+  return (
+    <Icon
+      as={sortDirection === "asc" ? FiArrowUp : FiArrowDown}
+      ml={2}
+      boxSize={4}
+    />
+  )
 }
