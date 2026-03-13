@@ -298,10 +298,17 @@ export default function BookingsFilterBar({
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content minWidth="300px" maxHeight="60vh" overflowY="auto">
+              <Select.Content
+                minWidth={DESKTOP_FILTER_MIN_WIDTH}
+                maxWidth="320px"
+                maxHeight="60vh"
+                overflowY="auto"
+              >
                 {missionsCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
-                    {item.label}
+                    <Box whiteSpace="normal" textOverflow="unset">
+                      {item.label}
+                    </Box>
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -333,10 +340,17 @@ export default function BookingsFilterBar({
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content minWidth="320px" maxHeight="60vh" overflowY="auto">
+              <Select.Content
+                minWidth={DESKTOP_FILTER_MIN_WIDTH}
+                maxWidth="360px"
+                maxHeight="60vh"
+                overflowY="auto"
+              >
                 {tripsCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
-                    {item.label}
+                    <Box whiteSpace="normal" textOverflow="unset">
+                      {item.label}
+                    </Box>
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -370,10 +384,15 @@ export default function BookingsFilterBar({
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content minWidth="180px">
+              <Select.Content
+                minWidth={DESKTOP_FILTER_MIN_WIDTH}
+                maxWidth="260px"
+              >
                 {tripTypeFilterCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
-                    {item.label}
+                    <Box whiteSpace="normal" textOverflow="unset">
+                      {item.label}
+                    </Box>
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -409,10 +428,17 @@ export default function BookingsFilterBar({
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
-              <Select.Content minWidth="220px" maxHeight="60vh" overflowY="auto">
+              <Select.Content
+                minWidth={DESKTOP_FILTER_MIN_WIDTH}
+                maxWidth="320px"
+                maxHeight="60vh"
+                overflowY="auto"
+              >
                 {boatsCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
-                    {item.label}
+                    <Box whiteSpace="normal" textOverflow="unset">
+                      {item.label}
+                    </Box>
                   </Select.Item>
                 ))}
               </Select.Content>
