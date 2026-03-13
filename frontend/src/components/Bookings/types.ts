@@ -196,21 +196,15 @@ export function tripTypeToLabel(type: string): string {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/** Label for trip filter dropdown.
- * - If the trip has a name, show only the name (shortest, most recognizable identifier).
- * - If there is no name, fall back to "Trip type (date time tz)" without seconds.
+/**
+ * Label for trip filter dropdown.
+ * With name: show only the name (no time, no type).
+ * Without name: show trip type and time, or type only if no time.
  */
 export function formatTripFilterLabel(trip: TripPublic): string {
   const name = trip.name?.trim()
-  if (name) {
-    return name
-  }
-
+  if (name) return name
   const readableType = tripTypeToLabel(trip.type)
-  if (readableType) {
-    return readableType
-  }
-
   const rawTime = formatDateTimeInLocationTz(
     trip.departure_time,
     trip.timezone,
@@ -219,7 +213,8 @@ export function formatTripFilterLabel(trip: TripPublic): string {
     /(\d{2}:\d{2}):\d{2}/,
     "$1",
   )
-  return timeWithoutSeconds
+  if (!timeWithoutSeconds) return readableType
+  return `${readableType} (${timeWithoutSeconds})`
 }
 
 // Helper function to format dates (delegates to utils for international format support)
