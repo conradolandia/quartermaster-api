@@ -186,7 +186,7 @@ const BookingActionsMenu = ({
               w="full"
             >
               <FiLink fontSize="16px" />
-              Copy link
+              Copy Link
             </Button>
           </MenuItem>
         )}
@@ -200,7 +200,7 @@ const BookingActionsMenu = ({
               w="full"
             >
               <FiCode fontSize="16px" />
-              Raw data
+              Raw Data
             </Button>
           </MenuItem>
         )}
@@ -216,20 +216,6 @@ const BookingActionsMenu = ({
             >
               <FiEdit fontSize="16px" />
               Edit Booking
-            </Button>
-          </MenuItem>
-        )}
-        {!onPrint && (
-          <MenuItem value="copy-link" onClick={copyLinkToClipboard} asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
-            >
-              <FiLink fontSize="16px" />
-              Copy link
             </Button>
           </MenuItem>
         )}
@@ -251,6 +237,20 @@ const BookingActionsMenu = ({
             Duplicate
           </Button>
         </MenuItem>
+        {!onPrint && (
+          <MenuItem value="copy-link" onClick={copyLinkToClipboard} asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiLink fontSize="16px" />
+              Copy Link
+            </Button>
+          </MenuItem>
+        )}
         {canCheckIn && !hide("check-in") && (
           <MenuItem
             value="check-in"
