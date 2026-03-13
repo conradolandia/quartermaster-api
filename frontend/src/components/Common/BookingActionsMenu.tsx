@@ -5,6 +5,7 @@ import {
   FiCopy,
   FiDollarSign,
   FiEdit,
+  FiLink,
   FiPrinter,
   FiCalendar,
   FiCornerUpLeft,
@@ -146,6 +147,13 @@ const BookingActionsMenu = ({
     setEditingBooking(null)
   }
 
+  const copyLinkToClipboard = () => {
+    const url = `${window.location.origin}/bookings?code=${booking.confirmation_code}`
+    void navigator.clipboard.writeText(url).then(() => {
+      showSuccessToast("Booking link copied to clipboard")
+    })
+  }
+
   return (
     <>
       <ActionsMenu ariaLabel="Booking actions" disabled={disabled}>
@@ -160,6 +168,24 @@ const BookingActionsMenu = ({
             >
               <FiPrinter fontSize="16px" />
               Print
+            </Button>
+          </MenuItem>
+        )}
+        {onPrint && (
+          <MenuItem
+            value="copy-link"
+            onClick={copyLinkToClipboard}
+            asChild
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiLink fontSize="16px" />
+              Copy link
             </Button>
           </MenuItem>
         )}
@@ -189,6 +215,20 @@ const BookingActionsMenu = ({
             >
               <FiEdit fontSize="16px" />
               Edit Booking
+            </Button>
+          </MenuItem>
+        )}
+        {!onPrint && (
+          <MenuItem value="copy-link" onClick={copyLinkToClipboard} asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="dark.accent.primary"
+              justifyContent="start"
+              w="full"
+            >
+              <FiLink fontSize="16px" />
+              Copy link
             </Button>
           </MenuItem>
         )}

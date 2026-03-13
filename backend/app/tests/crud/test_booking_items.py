@@ -326,3 +326,24 @@ class TestReassignTripBoatPassengers:
         )
 
         assert moved == 0
+
+    def test_reassign_same_boat_remaps_item_type_only(
+        self,
+        db: Session,
+        test_trip: Trip,
+        test_boat: Boat,
+        test_trip_boat: TripBoat,
+        test_booking_item: BookingItem,
+    ) -> None:
+        """Same boat: only item_type is updated; boat_id unchanged."""
+        moved = reassign_trip_boat_passengers(
+            session=db,
+            trip_id=test_trip.id,
+            from_boat_id=test_boat.id,
+            to_boat_id=test_boat.id,
+            type_mapping={"adult": "child"},
+        )
+        assert moved == test_booking_item.quantity
+        db.refresh(test_booking_item)
+        assert test_booking_item.boat_id == test_boat.id
+        assert test_booking_item.item_type == "child"

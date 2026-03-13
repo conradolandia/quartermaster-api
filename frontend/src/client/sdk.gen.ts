@@ -3689,9 +3689,10 @@ export class TripsService {
 
   /**
    * Reassign Trip Boat
-   * Move all passengers from one boat to another on this trip.
-   * Both boats must be on the trip. Per-type capacity on the target boat is enforced;
-   * type_mapping must map each source ticket type to a target boat ticket type.
+   * Move passengers from one boat to another on this trip, or remap ticket types on
+   * the same boat (from_boat_id == to_boat_id). Both boats must be on the trip.
+   * Per-type capacity on the target boat is enforced; type_mapping must map each
+   * source ticket type to a target boat ticket type.
    * @param data The data for the request.
    * @param data.tripId
    * @param data.requestBody

@@ -107,22 +107,23 @@ const ReassignPassengersDialog = ({
                       disabled={isSubmitting}
                     >
                       <option value="">Select a boat</option>
-                      {tripBoats
-                        .filter((tb) => tb.boat_id !== from.boat_id)
-                        .map((tb) => {
-                          const b = boatsMap.get(tb.boat_id)
-                          const rem =
-                            "remaining_capacity" in tb
-                              ? (tb as { remaining_capacity: number })
-                                  .remaining_capacity
-                              : null
-                          return (
-                            <option key={tb.boat_id} value={tb.boat_id}>
-                              {b?.name || "Unknown"}
-                              {rem != null ? ` (${rem} spots left)` : ""}
-                            </option>
-                          )
-                        })}
+                      {tripBoats.map((tb) => {
+                        const b = boatsMap.get(tb.boat_id)
+                        const rem =
+                          "remaining_capacity" in tb
+                            ? (tb as { remaining_capacity: number })
+                                .remaining_capacity
+                            : null
+                        const isSameBoat = tb.boat_id === from.boat_id
+                        const label = isSameBoat
+                          ? `${b?.name || "Unknown"} (same boat – change types only)`
+                          : `${b?.name || "Unknown"}${rem != null ? ` (${rem} spots left)` : ""}`
+                        return (
+                          <option key={tb.boat_id} value={tb.boat_id}>
+                            {label}
+                          </option>
+                        )
+                      })}
                     </NativeSelect>
                   </Field>
                   {reassignToBoatId &&

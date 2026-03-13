@@ -22,10 +22,13 @@ import {
 import {
   type ApiError,
   BoatsService,
+  TripBoatPricingService,
   TripBoatsService,
   TripsService,
 } from "@/client"
-import PricingOverridesPanel from "@/components/Trips/PricingOverridesPanel"
+import PricingOverridesPanel, {
+  type RequestDeletePricingParams,
+} from "@/components/Trips/PricingOverridesPanel"
 import ReassignPassengersDialog from "@/components/Trips/ReassignPassengersDialog"
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
@@ -57,6 +60,8 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     Record<string, string>
   >({})
   const [isReassignSubmitting, setIsReassignSubmitting] = useState(false)
+  const [pendingDeletePricingIdAfterReassign, setPendingDeletePricingIdAfterReassign] =
+    useState<string | null>(null)
   const [selectedTripBoatForPricing, setSelectedTripBoatForPricing] = useState<{
     id: string
     boatId: string
@@ -196,6 +201,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
   const handleReassignConfirm = async () => {
     if (!reassignFrom || !reassignToBoatId) return
     setIsReassignSubmitting(true)
+    const pricingIdToDeleteAfter = pendingDeletePricingIdAfterReassign
     try {
       const res = await TripsService.reassignTripBoat({
         tripId,
@@ -206,6 +212,14 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
         },
       })
       showSuccessToast(`Moved ${res.moved} passenger(s) to the selected boat.`)
+      if (pricingIdToDeleteAfter != null) {
+        await TripBoatPricingService.deleteTripBoatPricing({
+          tripBoatPricingId: pricingIdToDeleteAfter,
+        })
+        showSuccessToast("Pricing override removed.")
+        queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
+        setPendingDeletePricingIdAfterReassign(null)
+      }
       await refetchTripBoats()
       setReassignFrom(null)
       setReassignToBoatId("")
@@ -221,6 +235,25 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     }
   }
 
+  const handleRequestDeletePricing = (params: RequestDeletePricingParams) => {
+    const { ticketType, allTypesOnBoat } = params
+    const firstOtherType = allTypesOnBoat.find((t) => t !== ticketType)
+    const typeMapping: Record<string, string> = Object.fromEntries(
+      allTypesOnBoat.map((t) => [
+        t,
+        t === ticketType ? firstOtherType ?? t : t,
+      ]),
+    )
+    setReassignFrom({
+      boat_id: params.boatId,
+      boatName: params.boatName,
+      used: params.usedCount,
+    })
+    setReassignToBoatId(params.boatId)
+    setReassignTypeMapping(typeMapping)
+    setPendingDeletePricingIdAfterReassign(params.tripBoatPricingId)
+  }
+
   // Effects
   useEffect(() => {
     if (allBoats?.data) setBoatsData(allBoats.data)
@@ -234,6 +267,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
 
   useEffect(() => {
     if (!reassignFrom || !reassignToBoatId) return
+    if (pendingDeletePricingIdAfterReassign != null) return
     const fromBoat = tripBoats.find((tb) => tb.boat_id === reassignFrom.boat_id)
     const toBoat = tripBoats.find((tb) => tb.boat_id === reassignToBoatId)
     const used: Record<string, number> =
@@ -261,7 +295,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
         : targetTypes[0] ?? ""
     }
     setReassignTypeMapping(next)
-  }, [reassignFrom, reassignToBoatId, tripBoats])
+  }, [reassignFrom, reassignToBoatId, tripBoats, pendingDeletePricingIdAfterReassign])
 
   const reassignCanSubmit = useMemo(() => {
     if (!reassignFrom || !reassignToBoatId) return false
@@ -580,6 +614,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       useOnlyTripPricing={
                         tripBoat.use_only_trip_pricing ?? false
                       }
+                      onRequestDeletePricing={handleRequestDeletePricing}
                     />
                   )}
                 </Box>
@@ -664,6 +699,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
           setReassignFrom(null)
           setReassignToBoatId("")
           setReassignTypeMapping({})
+          setPendingDeletePricingIdAfterReassign(null)
         }}
         onTargetBoatChange={setReassignToBoatId}
         onTypeMappingChange={setReassignTypeMapping}

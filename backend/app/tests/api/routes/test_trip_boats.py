@@ -11,13 +11,19 @@ from app.core.config import settings
 from app.models import (
     Boat,
     BoatPricing,
+    Booking,
+    BookingItem,
+    BookingItemStatus,
+    BookingStatus,
     Jurisdiction,
     Launch,
     Location,
     Mission,
+    PaymentStatus,
     Provider,
     Trip,
     TripBoat,
+    TripBoatPricing,
 )
 from app.tests.utils.utils import get_superuser_token_headers
 
@@ -381,3 +387,145 @@ def test_public_trip_boats_sold_out_remaining_zero(
     assert str(boat.id) in boat_ids
     full_boat = next(tb for tb in data if tb["boat_id"] == str(boat.id))
     assert full_boat["remaining_capacity"] == 0
+
+
+def test_put_trip_boat_use_only_trip_pricing_blocks_when_type_would_be_dropped(
+    client: TestClient,
+    db: Session,
+) -> None:
+    """PUT use_only_trip_pricing=True returns 400 when an in-use type would be dropped."""
+    location = Location(
+        name="Orphan Type Site",
+        state="FL",
+        timezone="America/New_York",
+    )
+    db.add(location)
+    db.commit()
+    db.refresh(location)
+
+    jurisdiction = Jurisdiction(
+        name="Orphan County",
+        sales_tax_rate=0.07,
+        location_id=location.id,
+    )
+    db.add(jurisdiction)
+    db.commit()
+    db.refresh(jurisdiction)
+
+    provider = Provider(
+        name="Orphan Tours",
+        location="123 Marina Way",
+        address="123 Marina Way, Port City, FL 32000",
+        jurisdiction_id=jurisdiction.id,
+    )
+    db.add(provider)
+    db.commit()
+    db.refresh(provider)
+
+    future_date = datetime.now(timezone.utc) + timedelta(days=30)
+    launch = Launch(
+        name="Orphan Launch",
+        launch_timestamp=future_date,
+        summary="Test",
+        location_id=location.id,
+    )
+    db.add(launch)
+    db.commit()
+    db.refresh(launch)
+
+    mission = Mission(
+        name="Orphan Mission",
+        launch_id=launch.id,
+        active=True,
+        refund_cutoff_hours=24,
+    )
+    db.add(mission)
+    db.commit()
+    db.refresh(mission)
+
+    departure = datetime.now(timezone.utc) + timedelta(days=30, hours=-2)
+    trip = Trip(
+        mission_id=mission.id,
+        name="Orphan Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="public",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(trip)
+    db.commit()
+    db.refresh(trip)
+
+    boat = Boat(
+        name="Orphan Boat",
+        slug="orphan-boat",
+        capacity=50,
+        provider_id=provider.id,
+    )
+    db.add(boat)
+    db.commit()
+    db.refresh(boat)
+
+    trip_boat = TripBoat(
+        trip_id=trip.id,
+        boat_id=boat.id,
+        max_capacity=None,
+        use_only_trip_pricing=False,
+    )
+    db.add(trip_boat)
+    db.commit()
+    db.refresh(trip_boat)
+
+    db.add(BoatPricing(boat_id=boat.id, ticket_type="adult", price=5000, capacity=40))
+    db.add(
+        TripBoatPricing(
+            trip_boat_id=trip_boat.id,
+            ticket_type="child",
+            price=3000,
+            capacity=20,
+        )
+    )
+    db.commit()
+
+    booking = Booking(
+        confirmation_code="ORPHAN01",
+        first_name="J",
+        last_name="D",
+        user_email="j@example.com",
+        user_phone="+1",
+        billing_address="1 St",
+        subtotal=5000,
+        discount_amount=0,
+        tax_amount=0,
+        tip_amount=0,
+        total_amount=5000,
+        payment_status=PaymentStatus.paid,
+        booking_status=BookingStatus.confirmed,
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    item = BookingItem(
+        booking_id=booking.id,
+        trip_id=trip.id,
+        boat_id=boat.id,
+        item_type="adult",
+        quantity=1,
+        price_per_unit=5000,
+        status=BookingItemStatus.active,
+    )
+    db.add(item)
+    db.commit()
+
+    headers = get_superuser_token_headers(client)
+    r = client.put(
+        f"{settings.API_V1_STR}/trip-boats/{trip_boat.id}",
+        headers=headers,
+        json={"use_only_trip_pricing": True},
+    )
+    assert r.status_code == 400
+    assert "in use" in r.json().get("detail", "").lower()
+    assert "adult" in r.json().get("detail", "")

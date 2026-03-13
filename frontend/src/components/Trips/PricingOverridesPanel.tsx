@@ -23,6 +23,16 @@ import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
 
+export interface RequestDeletePricingParams {
+  tripBoatPricingId: string
+  ticketType: string
+  boatId: string
+  boatName: string
+  tripBoatId: string
+  usedCount: number
+  allTypesOnBoat: string[]
+}
+
 interface PricingOverridesPanelProps {
   tripBoatId: string
   boatId: string
@@ -36,6 +46,7 @@ interface PricingOverridesPanelProps {
   onToggleUseOnlyTripPricing: (checked: boolean) => void
   isUpdatingTripBoat: boolean
   useOnlyTripPricing: boolean
+  onRequestDeletePricing?: (params: RequestDeletePricingParams) => void
 }
 
 const PricingOverridesPanel = ({
@@ -51,6 +62,7 @@ const PricingOverridesPanel = ({
   onToggleUseOnlyTripPricing,
   isUpdatingTripBoat,
   useOnlyTripPricing,
+  onRequestDeletePricing,
 }: PricingOverridesPanelProps) => {
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
@@ -427,7 +439,38 @@ const PricingOverridesPanel = ({
                         size="sm"
                         variant="ghost"
                         colorScheme="red"
-                        onClick={() => deleteMutation.mutate(p.id)}
+                        onClick={() => {
+                          const usedCount =
+                            selectedTripBoat &&
+                            "used_per_ticket_type" in selectedTripBoat
+                              ? (
+                                  selectedTripBoat as {
+                                    used_per_ticket_type?: Record<
+                                      string,
+                                      number
+                                    >
+                                  }
+                                ).used_per_ticket_type?.[p.ticket_type] ?? 0
+                              : 0
+                          if (
+                            usedCount > 0 &&
+                            onRequestDeletePricing != null
+                          ) {
+                            onRequestDeletePricing({
+                              tripBoatPricingId: p.id,
+                              ticketType: p.ticket_type,
+                              boatId,
+                              boatName,
+                              tripBoatId,
+                              usedCount,
+                              allTypesOnBoat: tripBoatPricingList.map(
+                                (x) => x.ticket_type,
+                              ),
+                            })
+                          } else {
+                            deleteMutation.mutate(p.id)
+                          }
+                        }}
                         disabled={deleteMutation.isPending}
                       >
                         <FiTrash2 />

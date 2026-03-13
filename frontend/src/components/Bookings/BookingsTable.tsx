@@ -450,20 +450,26 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     setSearchParams(new URLSearchParams(params.toString()))
   }
 
-  const toggleBookingStatus = (status: string) => {
-    const next = bookingStatusFilter.includes(status)
-      ? bookingStatusFilter.filter((s) => s !== status)
-      : [...bookingStatusFilter, status]
+  const applyBookingStatus = (next: string[]) => {
     if (next.length === 0) return
+    if (
+      next.length === bookingStatusFilter.length &&
+      next.every((s, i) => s === bookingStatusFilter[i])
+    ) {
+      return
+    }
     setBookingStatusFilter(next)
     updateFiltersInUrl({ bookingStatuses: next })
   }
 
-  const togglePaymentStatus = (status: string) => {
-    const next = paymentStatusFilter.includes(status)
-      ? paymentStatusFilter.filter((s) => s !== status)
-      : [...paymentStatusFilter, status]
+  const applyPaymentStatus = (next: string[]) => {
     if (next.length === 0) return
+    if (
+      next.length === paymentStatusFilter.length &&
+      next.every((s, i) => s === paymentStatusFilter[i])
+    ) {
+      return
+    }
     setPaymentStatusFilter(next)
     updateFiltersInUrl({ paymentStatuses: next })
   }
@@ -623,8 +629,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         paymentStatusLabel={paymentStatusLabel}
         bookingStatusFilter={bookingStatusFilter}
         paymentStatusFilter={paymentStatusFilter}
-        onToggleBookingStatus={toggleBookingStatus}
-        onTogglePaymentStatus={togglePaymentStatus}
+        onApplyBookingStatus={applyBookingStatus}
+        onApplyPaymentStatus={applyPaymentStatus}
         missionId={missionId}
         onMissionFilter={handleMissionFilter}
         missionsCollection={missionsCollection}

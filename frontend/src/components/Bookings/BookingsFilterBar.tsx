@@ -11,6 +11,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import type { Ref } from "react"
+import { useState } from "react"
 import { FiChevronDown, FiSearch, FiX } from "react-icons/fi"
 
 import {
@@ -36,8 +37,8 @@ interface BookingsFilterBarProps {
   paymentStatusLabel: string
   bookingStatusFilter: string[]
   paymentStatusFilter: string[]
-  onToggleBookingStatus: (status: string) => void
-  onTogglePaymentStatus: (status: string) => void
+  onApplyBookingStatus: (statuses: string[]) => void
+  onApplyPaymentStatus: (statuses: string[]) => void
   missionId: string | undefined
   onMissionFilter: (missionId: string | undefined) => void
   missionsCollection: FilterCollection
@@ -68,8 +69,8 @@ export default function BookingsFilterBar({
   paymentStatusLabel,
   bookingStatusFilter,
   paymentStatusFilter,
-  onToggleBookingStatus,
-  onTogglePaymentStatus,
+  onApplyBookingStatus,
+  onApplyPaymentStatus,
   missionId,
   onMissionFilter,
   missionsCollection,
@@ -86,6 +87,60 @@ export default function BookingsFilterBar({
   hasActiveFilters,
   onClearFilters,
 }: BookingsFilterBarProps) {
+  const [isBookingMenuOpen, setIsBookingMenuOpen] = useState(false)
+  const [draftBookingStatus, setDraftBookingStatus] = useState<string[]>(
+    () => bookingStatusFilter,
+  )
+  const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false)
+  const [draftPaymentStatus, setDraftPaymentStatus] = useState<string[]>(
+    () => paymentStatusFilter,
+  )
+
+  const bookingSelection = isBookingMenuOpen ? draftBookingStatus : bookingStatusFilter
+  const paymentSelection = isPaymentMenuOpen ? draftPaymentStatus : paymentStatusFilter
+
+  const handleBookingMenuOpenChange = (details: { open: boolean }) => {
+    if (details.open) {
+      setDraftBookingStatus([...bookingStatusFilter])
+      setIsBookingMenuOpen(true)
+    } else {
+      if (draftBookingStatus.length > 0) {
+        onApplyBookingStatus(draftBookingStatus)
+      }
+      setIsBookingMenuOpen(false)
+    }
+  }
+
+  const handlePaymentMenuOpenChange = (details: { open: boolean }) => {
+    if (details.open) {
+      setDraftPaymentStatus([...paymentStatusFilter])
+      setIsPaymentMenuOpen(true)
+    } else {
+      if (draftPaymentStatus.length > 0) {
+        onApplyPaymentStatus(draftPaymentStatus)
+      }
+      setIsPaymentMenuOpen(false)
+    }
+  }
+
+  const toggleDraftBookingStatus = (status: string) => {
+    setDraftBookingStatus((prev) => {
+      const next = prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
+      return next.length === 0 ? prev : next
+    })
+  }
+
+  const toggleDraftPaymentStatus = (status: string) => {
+    setDraftPaymentStatus((prev) => {
+      const next = prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
+      return next.length === 0 ? prev : next
+    })
+  }
+
   return (
     <VStack key="bookings-filter-bar" align="stretch" gap={3} mb={4}>
       <Flex align="center" gap={3} flexWrap="wrap">
@@ -144,7 +199,11 @@ export default function BookingsFilterBar({
             Booking:
           </Text>
           <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
-            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+            <MenuRoot
+              closeOnSelect={false}
+              positioning={{ sameWidth: true }}
+              onOpenChange={handleBookingMenuOpenChange}
+            >
               <MenuTrigger asChild>
                 <Button
                   variant="outline"
@@ -161,8 +220,8 @@ export default function BookingsFilterBar({
               {BOOKING_STATUSES.map((status) => (
                 <MenuCheckboxItem
                   key={status}
-                  checked={bookingStatusFilter.includes(status)}
-                  onCheckedChange={() => onToggleBookingStatus(status)}
+                  checked={bookingSelection.includes(status)}
+                  onCheckedChange={() => toggleDraftBookingStatus(status)}
                   value={status}
                 >
                   {status.replace(/_/g, " ").toUpperCase()}
@@ -183,7 +242,11 @@ export default function BookingsFilterBar({
             Payment:
           </Text>
           <Box flex={1} minW={0} minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}>
-            <MenuRoot closeOnSelect={false} positioning={{ sameWidth: true }}>
+            <MenuRoot
+              closeOnSelect={false}
+              positioning={{ sameWidth: true }}
+              onOpenChange={handlePaymentMenuOpenChange}
+            >
               <MenuTrigger asChild>
                 <Button
                   variant="outline"
@@ -200,8 +263,8 @@ export default function BookingsFilterBar({
               {PAYMENT_STATUSES.map((status) => (
                 <MenuCheckboxItem
                   key={status}
-                  checked={paymentStatusFilter.includes(status)}
-                  onCheckedChange={() => onTogglePaymentStatus(status)}
+                  checked={paymentSelection.includes(status)}
+                  onCheckedChange={() => toggleDraftPaymentStatus(status)}
                   value={status}
                 >
                   {status.replace(/_/g, " ").toUpperCase()}

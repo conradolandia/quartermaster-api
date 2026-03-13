@@ -292,6 +292,24 @@ def update_trip_boat(
             )
         finally:
             trip_boat.use_only_trip_pricing = old_flag
+        # When toggling to trip-only pricing, block if any in-use type would be dropped.
+        if trip_boat_in.use_only_trip_pricing is True:
+            used_per_type = crud.get_ticket_item_count_per_type_for_trip_boat(
+                session=session, trip_id=trip_id, boat_id=boat_id
+            )
+            effective_types_after = set(capacities)
+            dropped = {
+                t for t, c in used_per_type.items() if c > 0
+            } - effective_types_after
+            if dropped:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Ticket type(s) {', '.join(sorted(dropped))} are in use but would "
+                        "no longer be available. Remap them first via Reassign passengers "
+                        "(select this boat as target to change types only), then retry."
+                    ),
+                )
         constrained_sum = sum(v for v in capacities.values() if v is not None)
         if constrained_sum > effective_max:
             raise HTTPException(

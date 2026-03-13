@@ -482,9 +482,10 @@ def reassign_trip_boat(
     body: ReassignBoatBody,
 ) -> Any:
     """
-    Move all passengers from one boat to another on this trip.
-    Both boats must be on the trip. Per-type capacity on the target boat is enforced;
-    type_mapping must map each source ticket type to a target boat ticket type.
+    Move passengers from one boat to another on this trip, or remap ticket types on
+    the same boat (from_boat_id == to_boat_id). Both boats must be on the trip.
+    Per-type capacity on the target boat is enforced; type_mapping must map each
+    source ticket type to a target boat ticket type.
     """
     trip = crud.get_trip(session=session, trip_id=trip_id)
     if not trip:
@@ -495,11 +496,7 @@ def reassign_trip_boat(
     from_boat_id = body.from_boat_id
     to_boat_id = body.to_boat_id
     type_mapping = body.type_mapping or {}
-    if from_boat_id == to_boat_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Source and target boat must be different",
-        )
+    same_boat = from_boat_id == to_boat_id
     trip_boats = crud.get_trip_boats_by_trip(session=session, trip_id=trip_id)
     boat_ids_on_trip = [tb.boat_id for tb in trip_boats]
     if from_boat_id not in boat_ids_on_trip or to_boat_id not in boat_ids_on_trip:
@@ -555,16 +552,28 @@ def reassign_trip_boat(
     for tgt_type, moved_qty in moved_by_target.items():
         cap = target_capacity.get(tgt_type)
         if cap is not None:
-            current = target_current.get(tgt_type, 0)
-            if current + moved_qty > cap:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=(
-                        f"Target boat has capacity for {tgt_type} of {cap} "
-                        f"(currently {current}). Mapping would add {moved_qty}. "
-                        "Adjust type mapping or choose another boat."
-                    ),
-                )
+            if same_boat:
+                # Same boat: we are only relabelling; count after remap must fit.
+                if moved_qty > cap:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"Target boat has capacity for {tgt_type} of {cap}. "
+                            f"Remapping would put {moved_qty} on this type. "
+                            "Adjust type mapping or choose another boat."
+                        ),
+                    )
+            else:
+                current = target_current.get(tgt_type, 0)
+                if current + moved_qty > cap:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"Target boat has capacity for {tgt_type} of {cap} "
+                            f"(currently {current}). Mapping would add {moved_qty}. "
+                            "Adjust type mapping or choose another boat."
+                        ),
+                    )
     try:
         moved = crud.reassign_trip_boat_passengers(
             session=session,

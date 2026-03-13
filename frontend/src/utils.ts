@@ -253,23 +253,36 @@ export const US_TIMEZONES = [
   "Pacific/Honolulu",
 ] as const
 
+function tripTypeToDisplayLabel(type: string): string {
+  if (type === "launch_viewing") return "Launch Viewing"
+  if (type === "pre_launch") return "Pre-Launch"
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 /**
- * Format a trip for display in dropdowns/lists: name and departure time in trip timezone.
- * Accepts trip-like objects with id, name, departure_time, timezone.
+ * Format a trip for display in dropdowns/lists.
+ * Priority: (1) name + date if name present; (2) trip type + date if no name; (3) date only if no type; (4) id.
+ * Accepts trip-like objects with id, name, departure_time, timezone, and optional type.
  */
 export function formatTripLabel(trip: {
   id: string
   name?: string | null
   departure_time: string
   timezone?: string | null
+  type?: string
 }): string {
   const name = trip.name?.trim()
-  const dep = trip.departure_time
   const tz = trip.timezone ?? "UTC"
-  const dateStr = dep ? formatDateTimeInLocationTz(dep, tz) : ""
-  if (name && dateStr) return `${name} – ${dateStr}`
+  const dateStr = trip.departure_time
+    ? formatDateTimeInLocationTz(trip.departure_time, tz)
+    : ""
+  if (name) return dateStr ? `${name} – ${dateStr}` : name
+  if (trip.type) {
+    return dateStr
+      ? `${tripTypeToDisplayLabel(trip.type)} (${dateStr})`
+      : tripTypeToDisplayLabel(trip.type)
+  }
   if (dateStr) return dateStr
-  if (name) return name
   return trip.id
 }
 

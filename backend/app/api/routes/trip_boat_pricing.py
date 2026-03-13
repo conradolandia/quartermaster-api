@@ -256,6 +256,20 @@ def delete_trip_boat_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Trip boat pricing not found",
         )
+    trip_boat = session.get(TripBoat, obj.trip_boat_id)
+    if trip_boat:
+        used = crud.get_ticket_item_count_per_type_for_trip_boat(
+            session=session, trip_id=trip_boat.trip_id, boat_id=trip_boat.boat_id
+        )
+        if used.get(obj.ticket_type, 0) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Cannot delete: ticket type '{obj.ticket_type}' still has passengers. "
+                    "Remap them first via Reassign passengers (you can select this boat as "
+                    "target to change types only)."
+                ),
+            )
     crud.delete_trip_boat_pricing(
         session=session, trip_boat_pricing_id=trip_boat_pricing_id
     )
