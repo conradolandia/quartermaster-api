@@ -20,7 +20,6 @@ export type SortableColumn =
   | "booking_status"
   | "total_amount"
   | "created_at"
-  | "updated_at"
   | "mission_name"
   | "trip_name"
   | "trip_type"
@@ -42,7 +41,6 @@ export const bookingsSearchSchema = z.object({
       "booking_status",
       "total_amount",
       "created_at",
-      "updated_at",
       "mission_name",
       "trip_name",
       "trip_type",

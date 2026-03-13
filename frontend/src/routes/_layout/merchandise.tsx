@@ -188,8 +188,8 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="18rem"
-                minW="12rem"
+                w="14rem"
+                minW="10rem"
                 fontWeight="bold"
                 display={{ base: "none", md: "table-cell" }}
               >
@@ -221,8 +221,8 @@ function MerchandiseTable() {
                 </Flex>
               </Table.ColumnHeader>
               <Table.ColumnHeader
-                w="14rem"
-                minW="10rem"
+                w="22rem"
+                minW="16rem"
                 fontWeight="bold"
                 display={{ base: "none", xl: "table-cell" }}
               >
@@ -257,10 +257,11 @@ function MerchandiseTable() {
                     {item.name}
                   </Table.Cell>
                   <Table.Cell
-                    truncate
-                    w="18rem"
-                    minW="12rem"
+                    w="14rem"
+                    minW="10rem"
                     display={{ base: "none", md: "table-cell" }}
+                    whiteSpace="normal"
+                    wordBreak="break-word"
                   >
                     {item.description ?? "—"}
                   </Table.Cell>
@@ -275,8 +276,8 @@ function MerchandiseTable() {
                     {item.quantity_available}
                   </Table.Cell>
                   <Table.Cell
-                    w="14rem"
-                    minW="10rem"
+                    w="22rem"
+                    minW="16rem"
                     display={{ base: "none", xl: "table-cell" }}
                     verticalAlign="top"
                   >

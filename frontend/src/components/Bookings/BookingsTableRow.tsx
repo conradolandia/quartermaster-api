@@ -154,15 +154,6 @@ export default function BookingsTableRow({
             timeStyle: "short",
           })}
       </Table.Cell>
-      <Table.Cell w="36" minW="28">
-        {booking.updated_at
-          ? formatDateTimeInLocationTz(booking.updated_at, userTz) ||
-            parseApiDate(booking.updated_at).toLocaleString(undefined, {
-              dateStyle: "short",
-              timeStyle: "short",
-            })
-          : "—"}
-      </Table.Cell>
       <Table.Cell w="20" onClick={(e) => e.stopPropagation()}>
         <Flex justify="center">
           <BookingActionsMenu

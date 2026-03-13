@@ -108,18 +108,6 @@ export default function BookingsTableHeader({
             <SortIcon column="created_at" sortBy={sortBy} sortDirection={sortDirection} />
           </Flex>
         </Table.ColumnHeader>
-        <Table.ColumnHeader
-          w="36"
-          minW="28"
-          fontWeight="bold"
-          cursor="pointer"
-          onClick={() => onSort("updated_at")}
-        >
-          <Flex align="center">
-            Updated at
-            <SortIcon column="updated_at" sortBy={sortBy} sortDirection={sortDirection} />
-          </Flex>
-        </Table.ColumnHeader>
         <Table.ColumnHeader w="20" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
           Actions
         </Table.ColumnHeader>

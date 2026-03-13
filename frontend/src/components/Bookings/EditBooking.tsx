@@ -679,10 +679,11 @@ const EditBooking = ({
                                 <Card.Body>
                                   <VStack gap={4} align="stretch">
                                     <SimpleGrid
-                                      columns={{ base: 1, sm: 2, md: 3 }}
+                                      columns={{ base: 1, md: 2 }}
                                       gap={4}
+                                      w="full"
                                     >
-                                      <Field label="Boat">
+                                      <Field label="Boat" w="full">
                                         {(() => {
                                           const boats =
                                             boatsByTripId[item.trip_id]
@@ -765,7 +766,7 @@ const EditBooking = ({
                                           )
                                         })()}
                                       </Field>
-                                      <Field label="Ticket type">
+                                      <Field label="Ticket type" w="full">
                                         {(() => {
                                           const key = `${item.trip_id}/${item.boat_id}`
                                           const options = pricingByKey[key]
