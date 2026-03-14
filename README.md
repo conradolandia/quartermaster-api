@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/assets/images/qm-logo.svg" alt="Quartermaster" width="280" />
+  <img src="frontend/public/assets/images/qm-logo.svg" alt="Quartermaster" width="400" />
 </p>
 
 # Quartermaster
@@ -19,14 +19,25 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
 
 ## Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Local Development](#local-development)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Further Documentation](#further-documentation)
-- [License](#license)
+- [Quartermaster](#quartermaster)
+  - [Contents](#contents)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+    - [Infrastructure](#infrastructure)
+  - [Project Structure](#project-structure)
+  - [Local Development](#local-development)
+    - [Prerequisites](#prerequisites)
+    - [Quick Start](#quick-start)
+    - [Running Tests](#running-tests)
+    - [Regenerating the Frontend API Client](#regenerating-the-frontend-api-client)
+  - [Configuration](#configuration)
+  - [Deployment](#deployment)
+    - [Production URLs](#production-urls)
+    - [Staging URLs](#staging-urls)
+  - [Further Documentation](#further-documentation)
+  - [License](#license)
 
 ---
 
