@@ -10,6 +10,8 @@ import {
 } from "@chakra-ui/react"
 import { FiX } from "react-icons/fi"
 
+import { getDropdownMinWidthFromLabels } from "@/utils"
+
 import { DESKTOP_FILTER_MIN_WIDTH } from "./types"
 
 interface TripsFilterBarProps {
@@ -63,7 +65,7 @@ export default function TripsFilterBar({
           flex={1}
           minW={0}
           minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-          maxW={{ base: "100%", lg: "320px" }}
+          maxW={{ base: "100%", lg: "350px" }}
         >
           <Select.Root
             collection={missionsCollection}
@@ -83,8 +85,8 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
-                maxWidth="320px"
+                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items)}
+                maxWidth="350px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -114,7 +116,7 @@ export default function TripsFilterBar({
           flex={1}
           minW={0}
           minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-          maxW={{ base: "100%", lg: "220px" }}
+          maxW={{ base: "100%", lg: "260px" }}
         >
           <Select.Root
             collection={tripTypeCollection}
@@ -134,8 +136,10 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={DESKTOP_FILTER_MIN_WIDTH}
+                minWidth={getDropdownMinWidthFromLabels(tripTypeCollection.items)}
                 maxWidth="260px"
+                maxHeight="60vh"
+                overflowY="auto"
               >
                 {tripTypeCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>

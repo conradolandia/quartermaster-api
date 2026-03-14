@@ -22,7 +22,8 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu"
 import { InputGroup } from "@/components/ui/input-group"
-import { BOOKING_STATUSES, PAYMENT_STATUSES } from "./types"
+import { getDropdownMinWidthFromLabels } from "@/utils"
+import { BOOKING_STATUSES, PAYMENT_STATUSES, DESKTOP_FILTER_MIN_WIDTH } from "./types"
 
 interface BookingsFilterBarProps {
   searchQuery: string
@@ -51,35 +52,6 @@ interface BookingsFilterBarProps {
   filteredBoats: Array<{ id: string }>
   hasActiveFilters: boolean
   onClearFilters: () => void
-}
-
-/** Min width so all 6 filters fit on one row at ~1280px content width, but keep controls compact. */
-const DESKTOP_FILTER_MIN_WIDTH = "100px"
-
-/**
- * Computes a min width for a dropdown so the widest option label fits.
- * Measures rendered text in a hidden span (14px, normal weight). Safe for SSR (returns baseMin + padding).
- */
-function getDropdownMinWidthFromLabels(
-  items: Array<{ label: string }>,
-  options?: { baseMin?: number; padding?: number },
-): number {
-  const { baseMin = 100, padding = 24 } = options ?? {}
-  if (typeof window === "undefined") return baseMin + padding
-  const maxLabelWidth = items.reduce((max, item) => {
-    const span = document.createElement("span")
-    span.style.visibility = "hidden"
-    span.style.position = "absolute"
-    span.style.fontSize = "14px"
-    span.style.fontWeight = "400"
-    span.style.fontFamily = "inherit"
-    span.innerText = String(item.label)
-    document.body.appendChild(span)
-    const width = span.offsetWidth
-    document.body.removeChild(span)
-    return Math.max(max, width)
-  }, 0)
-  return maxLabelWidth + padding
 }
 
 export default function BookingsFilterBar({

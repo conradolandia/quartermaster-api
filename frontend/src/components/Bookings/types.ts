@@ -10,6 +10,8 @@ export function totalTicketQuantity(booking: BookingPublic | undefined): number 
     .reduce((sum, item) => sum + item.quantity, 0)
 }
 
+export const DESKTOP_FILTER_MIN_WIDTH = "100px"
+
 // Define sortable columns
 export type SortableColumn =
   | "confirmation_code"

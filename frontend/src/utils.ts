@@ -357,3 +357,29 @@ export const handleError = (err: ApiError) => {
   const { showErrorToast } = useCustomToast()
   showErrorToast(getApiErrorMessage(err))
 }
+
+/**
+ * Computes a min width for a dropdown so the widest option label fits.
+ * Measures rendered text in a hidden span (14px, normal weight). Safe for SSR (returns baseMin + padding).
+ */
+export function getDropdownMinWidthFromLabels(
+  items: Array<{ label: string }>,
+  options?: { baseMin?: number; padding?: number },
+): number {
+  const { baseMin = 100, padding = 32 } = options ?? {}
+  if (typeof window === "undefined") return baseMin + padding
+  const maxLabelWidth = items.reduce((max, item) => {
+    const div = document.createElement("div")
+    div.style.visibility = "hidden"
+    div.style.position = "absolute"
+    div.style.fontSize = "12.4px"
+    div.style.fontWeight = "400"
+    div.style.fontFamily = "inherit"
+    div.innerText = String(item.label)
+    document.body.appendChild(div)
+    const width = div.offsetWidth
+    document.body.removeChild(div)
+    return Math.max(max, width)
+  }, 0)
+  return maxLabelWidth + padding
+}

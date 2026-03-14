@@ -20,7 +20,7 @@ export const TRIP_TYPES = [
   { label: "Pre-Launch", value: "pre_launch" },
 ] as const
 
-export const DESKTOP_FILTER_MIN_WIDTH = "130px"
+export const DESKTOP_FILTER_MIN_WIDTH = "100px"
 
 export function getTripsQueryOptions({
   page,
