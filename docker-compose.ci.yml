@@ -1,0 +1,7 @@
+# CI override: create traefik-public network instead of requiring it externally,
+# and limit services to those needed for backend tests.
+# Use: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db prestart backend
+
+networks:
+  traefik-public:
+    external: false

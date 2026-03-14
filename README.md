@@ -1,8 +1,34 @@
+<p align="center">
+  <img src="frontend/public/assets/images/qm-logo.svg" alt="Quartermaster" width="280" />
+</p>
+
 # Quartermaster
 
 Booking and management system for [Star Fleet Tours](https://star-fleet.tours), handling ticket sales for rocket launch viewing trips. Manages the customer journey from trip discovery through payment and check-in, and provides administrative tools for operations.
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](./LICENSE)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.114+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+
 Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) by Sebastián Ramírez.
+
+---
+
+## Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Local Development](#local-development)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Further Documentation](#further-documentation)
+- [License](#license)
+
+---
 
 ## Features
 
@@ -18,6 +44,7 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
 ## Tech Stack
 
 ### Backend
+
 - [FastAPI](https://fastapi.tiangolo.com) (Python 3.12)
 - [SQLModel](https://sqlmodel.tiangolo.com) ORM + [PostgreSQL](https://www.postgresql.org)
 - [Alembic](https://alembic.sqlalchemy.org) for database migrations
@@ -26,7 +53,8 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
 - JWT authentication
 
 ### Frontend
-- [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+
+- [React](https://react.dev) 18 + [TypeScript](https://www.typescriptlang.org)
 - [Chakra UI v3](https://chakra-ui.com) component library
 - [TanStack Router](https://tanstack.com/router) + [TanStack Query](https://tanstack.com/query)
 - [Stripe Elements](https://stripe.com/docs/stripe-js) for payment forms
@@ -34,6 +62,7 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
 - [Playwright](https://playwright.dev) for end-to-end testing
 
 ### Infrastructure
+
 - [Docker Compose](https://docs.docker.com/compose/) for development and production
 - [Traefik](https://traefik.io) as reverse proxy with automatic HTTPS (Let's Encrypt)
 - [MailCatcher](https://mailcatcher.me) for local email testing
@@ -49,7 +78,7 @@ quartermaster-api/
 │   │   ├── alembic/         # Database migrations
 │   │   ├── email-templates/ # MJML email templates (src/) and compiled HTML (build/)
 │   │   ├── tests/           # Pytest test suite
-│   │   ├── models.py        # SQLModel data models
+│   │   ├── models/          # SQLModel data models
 │   │   ├── core/            # Config, security, database setup
 │   │   └── main.py          # Application entry point
 │   └── scripts/             # Maintenance scripts (QR regeneration, audits, etc.)
@@ -81,26 +110,26 @@ quartermaster-api/
 
 2. Start the stack:
 
-```bash
-docker compose up -d backend adminer mailcatcher
-```
+   ```bash
+   docker compose up -d backend adminer mailcatcher
+   ```
 
 3. Start the frontend dev server (with live reload):
 
-```bash
-cd frontend && npm install && npm run dev
-```
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
 
 4. Access the services:
 
-| Service | URL |
-|---|---|
-| Frontend (public booking + admin) | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
-| API documentation (Swagger UI) | http://localhost:8000/docs |
-| API documentation (ReDoc) | http://localhost:8000/redoc |
-| Adminer (database UI) | http://localhost:8080 |
-| MailCatcher (email testing) | http://localhost:1080 |
+   | Service | URL |
+   |---------|-----|
+   | Frontend (public booking + admin) | http://localhost:5173 |
+   | Backend API | http://localhost:8000 |
+   | API documentation (Swagger UI) | http://localhost:8000/docs |
+   | API documentation (ReDoc) | http://localhost:8000/redoc |
+   | Adminer (database UI) | http://localhost:8080 |
+   | MailCatcher (email testing) | http://localhost:1080 |
 
 See [development.md](./development.md) for detailed local development workflows, Docker Compose usage, pre-commit hooks, and subdomain-based local testing with Traefik.
 
@@ -108,13 +137,13 @@ See [development.md](./development.md) for detailed local development workflows,
 
 Backend tests **must not** run against the production database: the test fixture wipes and reseeds data. Use a dedicated test database (e.g. `POSTGRES_DB=quartermaster_test` or set `POSTGRES_DB_TEST`) and do not set `ENVIRONMENT=production` when running tests; see [backend/README.md](./backend/README.md#test-database-and-production-safeguard).
 
-Backend (Pytest):
+**Backend (Pytest):**
 
 ```bash
 docker compose exec backend bash scripts/tests-start.sh
 ```
 
-Frontend (Playwright e2e):
+**Frontend (Playwright e2e):**
 
 ```bash
 docker compose up -d db backend mailcatcher
@@ -139,7 +168,7 @@ Configuration is managed through environment variables, loaded from `.env`. See 
 Key variables to set before deployment:
 
 | Variable | Purpose |
-|---|---|
+|----------|---------|
 | `SECRET_KEY` | JWT signing key |
 | `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` | Initial admin account |
 | `POSTGRES_PASSWORD` | Database password |
@@ -167,7 +196,7 @@ Deployment uses Docker Compose with Traefik for TLS termination and routing. See
 ### Production URLs
 
 | Service | URL |
-|---|---|
+|---------|-----|
 | Public booking | `https://book.star-fleet.tours` |
 | Admin dashboard | `https://admin.book.star-fleet.tours` |
 | Backend API | `https://api.book.star-fleet.tours` |
@@ -178,7 +207,7 @@ Deployment uses Docker Compose with Traefik for TLS termination and routing. See
 ### Staging URLs
 
 | Service | URL |
-|---|---|
+|---------|-----|
 | Public booking | `https://staging.book.star-fleet.tours` |
 | Admin dashboard | `https://admin.staging.book.star-fleet.tours` |
 | Backend API | `https://api.staging.book.star-fleet.tours` |
@@ -187,10 +216,12 @@ Deployment uses Docker Compose with Traefik for TLS termination and routing. See
 
 ## Further Documentation
 
-- [Backend development](./backend/README.md) -- dependencies, migrations, tests, email templates, QR codes
-- [Frontend development](./frontend/README.md) -- dev server, client generation, e2e tests
-- [Deployment guide](./deployment.md) -- Traefik setup, Docker Compose production, CI/CD
-- [Development workflows](./development.md) -- Docker Compose, local domains, pre-commit, env vars
+| Document | Description |
+|----------|--------------|
+| [Backend development](./backend/README.md) | Dependencies, migrations, tests, email templates, QR codes |
+| [Frontend development](./frontend/README.md) | Dev server, client generation, e2e tests |
+| [Deployment guide](./deployment.md) | Traefik setup, Docker Compose production, CI/CD |
+| [Development workflows](./development.md) | Docker Compose, local domains, pre-commit, env vars |
 
 ## License
 
