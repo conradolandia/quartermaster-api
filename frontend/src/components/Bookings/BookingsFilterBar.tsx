@@ -361,7 +361,7 @@ export default function BookingsFilterBar({
             flex={1}
             minW={0}
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "260px" }}
+            maxW={{ base: "100%", lg: "320px" }}
           >
           <Select.Root
             collection={tripsCollection}
@@ -380,8 +380,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 260 })}
-                maxWidth="260px"
+                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 320 })}
+                maxWidth="320px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
