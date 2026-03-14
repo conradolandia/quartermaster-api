@@ -9,6 +9,7 @@ import {
   Select,
   Text,
   VStack,
+  type ListCollection,
 } from "@chakra-ui/react"
 import type { Ref } from "react"
 import { useState } from "react"
@@ -22,10 +23,6 @@ import {
 } from "@/components/ui/menu"
 import { InputGroup } from "@/components/ui/input-group"
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "./types"
-
-export interface FilterCollection {
-  items: Array<{ label: string; value: string }>
-}
 
 interface BookingsFilterBarProps {
   searchQuery: string
@@ -41,16 +38,16 @@ interface BookingsFilterBarProps {
   onApplyPaymentStatus: (statuses: string[]) => void
   missionId: string | undefined
   onMissionFilter: (missionId: string | undefined) => void
-  missionsCollection: FilterCollection
+  missionsCollection: ListCollection<{ label: string; value: string }>
   tripId: string | undefined
   onTripFilter: (tripId: string | undefined) => void
-  tripsCollection: FilterCollection
+  tripsCollection: ListCollection<{ label: string; value: string }>
   tripType: string | undefined
   onTripTypeFilter: (tripType: string | undefined) => void
-  tripTypeFilterCollection: FilterCollection
+  tripTypeFilterCollection: ListCollection<{ label: string; value: string }>
   boatId: string | undefined
   onBoatFilter: (boatId: string | undefined) => void
-  boatsCollection: FilterCollection
+  boatsCollection: ListCollection<{ label: string; value: string }>
   filteredBoats: Array<{ id: string }>
   hasActiveFilters: boolean
   onClearFilters: () => void
@@ -126,7 +123,7 @@ export default function BookingsFilterBar({
   const paymentSelection = isPaymentMenuOpen ? draftPaymentStatus : paymentStatusFilter
 
   const getLabelForValue = (
-    collection: FilterCollection,
+    collection: ListCollection<{ label: string; value: string }>,
     value: string | undefined,
   ): string => {
     const v = value ?? ""
@@ -345,7 +342,7 @@ export default function BookingsFilterBar({
             maxW={{ base: "100%", lg: "350px" }}
           >
           <Select.Root
-            collection={missionsCollection as any}
+            collection={missionsCollection}
             size="xs"
             borderColor="white"
             value={missionId ? [missionId] : [""]}
@@ -395,7 +392,7 @@ export default function BookingsFilterBar({
             maxW={{ base: "100%", lg: "260px" }}
           >
           <Select.Root
-            collection={tripsCollection as any}
+            collection={tripsCollection}
             size="xs"
             borderColor="white"
             value={tripId ? [tripId] : [""]}
@@ -445,7 +442,7 @@ export default function BookingsFilterBar({
             maxW={{ base: "100%", lg: "260px" }}
           >
           <Select.Root
-            collection={tripTypeFilterCollection as any}
+            collection={tripTypeFilterCollection}
             size="xs"
             borderColor="white"
             value={tripType ? [tripType] : [""]}
@@ -497,7 +494,7 @@ export default function BookingsFilterBar({
             maxW={{ base: "100%", lg: "280px" }}
           >
           <Select.Root
-            collection={boatsCollection as any}
+            collection={boatsCollection}
             size="xs"
             borderColor="white"
             value={

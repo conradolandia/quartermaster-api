@@ -1,4 +1,11 @@
-import { Box, Flex, Table, Text, createListCollection } from "@chakra-ui/react"
+import {
+  Box,
+  Flex,
+  Table,
+  Text,
+  createListCollection,
+  type ListCollection,
+} from "@chakra-ui/react"
 import { useEffect, useRef } from "react"
 
 import type { TripPublic } from "@/client"
@@ -205,16 +212,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         onApplyPaymentStatus={applyPaymentStatus}
         missionId={missionId}
         onMissionFilter={handleMissionFilter}
-        missionsCollection={missionsCollection}
+        missionsCollection={missionsCollection as ListCollection<{ label: string; value: string }>}
         tripId={tripId}
         onTripFilter={handleTripFilter}
-        tripsCollection={tripsCollection}
+        tripsCollection={tripsCollection as ListCollection<{ label: string; value: string }>}
         tripType={tripType}
         onTripTypeFilter={handleTripTypeFilter}
-        tripTypeFilterCollection={tripTypeFilterCollection}
+        tripTypeFilterCollection={tripTypeFilterCollection as ListCollection<{ label: string; value: string }>}
         boatId={boatId}
         onBoatFilter={handleBoatFilter}
-        boatsCollection={boatsCollection}
+        boatsCollection={boatsCollection as ListCollection<{ label: string; value: string }>}
         filteredBoats={filteredBoats}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
