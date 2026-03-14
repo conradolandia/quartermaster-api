@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    # Optional separate DB for tests (e.g. quartermaster_test). When set, tests use this instead of POSTGRES_DB.
+    POSTGRES_DB_TEST: str = ""
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -80,6 +82,20 @@ class Settings(BaseSettings):
             host=self.POSTGRES_SERVER,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
+        )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI_TEST(self) -> PostgresDsn:
+        """Database URI for tests. Uses POSTGRES_DB_TEST when set, otherwise same as main URI."""
+        db_name = self.POSTGRES_DB_TEST if self.POSTGRES_DB_TEST else self.POSTGRES_DB
+        return MultiHostUrl.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=db_name,
         )
 
     SMTP_TLS: bool = True

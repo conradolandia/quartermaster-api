@@ -106,6 +106,8 @@ See [development.md](./development.md) for detailed local development workflows,
 
 ### Running Tests
 
+Backend tests **must not** run against the production database: the test fixture wipes and reseeds data. Use a dedicated test database (e.g. `POSTGRES_DB=quartermaster_test` or set `POSTGRES_DB_TEST`) and do not set `ENVIRONMENT=production` when running tests; see [backend/README.md](./backend/README.md#test-database-and-production-safeguard).
+
 Backend (Pytest):
 
 ```bash

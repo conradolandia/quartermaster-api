@@ -8,12 +8,28 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, delete
+from sqlmodel import Session, create_engine, delete
 
 from app.api.deps import get_db
 from app.core.config import settings
+
+# Refuse to run tests against production (fixture deletes and reseeds data)
+if settings.ENVIRONMENT == "production":
+    pytest.exit(
+        "Tests must not run when ENVIRONMENT=production. Use a dedicated test "
+        "database (e.g. POSTGRES_DB=quartermaster_test or set POSTGRES_DB_TEST) "
+        "and set ENVIRONMENT=staging or local.",
+        returncode=2,
+    )
+
 from app.core.db import engine, init_db
 from app.main import app
+
+# Use a separate test DB when POSTGRES_DB_TEST is set (e.g. in CI)
+if settings.POSTGRES_DB_TEST:
+    _test_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI_TEST))
+else:
+    _test_engine = engine
 from app.models import (
     Boat,
     BoatPricing,
@@ -43,7 +59,7 @@ from app.tests.utils.utils import get_superuser_token_headers
 
 @pytest.fixture(scope="function")
 def db() -> Generator[Session, None, None]:
-    with Session(engine) as session:
+    with Session(_test_engine) as session:
         try:
             # Clean up any existing test data first to ensure isolation
             session.rollback()

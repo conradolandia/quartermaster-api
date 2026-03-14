@@ -132,6 +132,14 @@ Tests live under `./backend/app/tests/`:
 
 Add and edit tests under these directories; keep coverage above the project threshold.
 
+### Test database and production safeguard
+
+Tests use a database session that **deletes and reseeds** data for isolation. Running tests against the production database would destroy production data.
+
+- **Use a dedicated test database.** Set `POSTGRES_DB=quartermaster_test` (or another name) for the test run, or set `POSTGRES_DB_TEST` so tests connect to a separate DB while the app can still use `POSTGRES_DB` for other purposes.
+- **Do not run tests when `ENVIRONMENT=production`.** The test runner exits immediately if `ENVIRONMENT=production` to avoid accidental runs against production. Use `ENVIRONMENT=local` or `ENVIRONMENT=staging` when running tests.
+- In CI, configure the test job with a test database (e.g. a separate PostgreSQL service or `POSTGRES_DB_TEST`) and `ENVIRONMENT=staging` (or `local`).
+
 ## Migrations
 
 As during local development your app directory is mounted as a volume inside the container, you can also run the migrations with `alembic` commands inside the container and the migration code will be in your app directory (instead of being only inside the container). So you can add it to your git repository.
@@ -160,11 +168,7 @@ $ alembic revision --autogenerate -m "Add column last_name to User model"
 $ alembic upgrade head
 ```
 
-If you don't want to use migrations at all, uncomment the lines in the file at `./backend/app/core/db.py` that end in:
-
-```python
-SQLModel.metadata.create_all(engine)
-```
+If you don't want to use migrations at all, table creation is done in `./backend/app/core/seed/schema.py` (`bootstrap_schema`). You can adjust or skip that and the migration step in prestart.
 
 and comment the line in the file `scripts/prestart.sh` that contains:
 
