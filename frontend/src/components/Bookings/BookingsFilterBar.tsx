@@ -311,7 +311,7 @@ export default function BookingsFilterBar({
             flex={1}
             minW={0}
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "350px" }}
+            maxW={{ base: "100%", lg: "260px" }}
           >
           <Select.Root
             collection={missionsCollection}
@@ -330,8 +330,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items)}
-                maxWidth="350px"
+                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items, { maxWidth: 260 })}
+                maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -380,7 +380,7 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items)}
+                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 260 })}
                 maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
@@ -432,7 +432,7 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripTypeFilterCollection.items)}
+                minWidth={getDropdownMinWidthFromLabels(tripTypeFilterCollection.items, { maxWidth: 260 })}
                 maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
@@ -486,7 +486,7 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(boatsCollection.items)}
+                minWidth={getDropdownMinWidthFromLabels(boatsCollection.items, { maxWidth: 200 })}
                 maxWidth="200px"
                 maxHeight="60vh"
                 overflowY="auto"

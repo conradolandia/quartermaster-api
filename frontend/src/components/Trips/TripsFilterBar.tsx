@@ -65,7 +65,7 @@ export default function TripsFilterBar({
           flex={1}
           minW={0}
           minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-          maxW={{ base: "100%", lg: "350px" }}
+          maxW={{ base: "100%", lg: "260px" }}
         >
           <Select.Root
             collection={missionsCollection}
@@ -85,8 +85,8 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items)}
-                maxWidth="350px"
+                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items, { maxWidth: 260 })}
+                maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -136,7 +136,7 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripTypeCollection.items)}
+                minWidth={getDropdownMinWidthFromLabels(tripTypeCollection.items, { maxWidth: 260 })}
                 maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
