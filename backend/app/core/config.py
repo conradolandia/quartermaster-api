@@ -98,6 +98,19 @@ class Settings(BaseSettings):
             path=db_name,
         )
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI_MAINTENANCE(self) -> PostgresDsn:
+        """URI to PostgreSQL's built-in 'postgres' database (same server as app). Used only to run CREATE DATABASE for POSTGRES_DB_TEST when missing; does not touch the app database."""
+        return MultiHostUrl.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path="postgres",
+        )
+
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587
