@@ -385,8 +385,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="250px"
-                maxWidth="280px"
+                minWidth="200px"
+                maxWidth="250px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -437,8 +437,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="150px"
-                maxWidth="200px"
+                minWidth="120px"
+                maxWidth="150px"
               >
                 {tripTypeFilterCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
