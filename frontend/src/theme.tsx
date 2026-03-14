@@ -6,12 +6,20 @@ import { selectRecipe } from "./theme/select.recipe"
 import { tableRecipe } from "./theme/table.recipe"
 import { textareaRecipe } from "./theme/textarea.recipe"
 
+const mainFont = "Inter"
+const monoFont = "IBM Plex Mono"
+const logoFont = "Bitsumishi"
+
+const fontStackSystem = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+const fontStackMono = `${monoFont}, JetBrains Mono, Fira Code, Courier New, monospace, ${fontStackSystem}`
+const fontStackBody = `${mainFont}, ${fontStackSystem}`
+const fontStackLogo = `${logoFont}, ${fontStackSystem}`
+
 export const system = createSystem(defaultConfig, {
   globalCss: {
     html: {
       fontSize: "16px",
-      fontFamily:
-        "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+      fontFamily: fontStackBody,
     },
     body: {
       fontSize: "0.875rem",
@@ -19,8 +27,7 @@ export const system = createSystem(defaultConfig, {
       padding: 0,
       bg: "dark.bg.primary",
       color: "dark.text.primary",
-      fontFamily:
-        "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+      fontFamily: fontStackBody,
     },
     ".main-link": {
       color: "dark.accent.primary",
@@ -41,22 +48,10 @@ export const system = createSystem(defaultConfig, {
     },
     tokens: {
       fonts: {
-        heading: {
-          value:
-            "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-        },
-        body: {
-          value:
-            "Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-        },
-        mono: {
-          value:
-            "'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
-        },
-        logo: {
-          value:
-            "Bitsumishi, Raleway, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-        },
+        heading: { value: fontStackBody },
+        body: { value: fontStackBody },
+        mono: { value: fontStackMono },
+        logo: { value: fontStackLogo },
       },
       fontSizes: {
         "2xs": { value: "0.625rem" },

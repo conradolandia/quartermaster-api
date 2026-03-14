@@ -1,0 +1,191 @@
+/* Bitsumishi */
+@font-face {
+  font-display: swap;
+  font-family: "Bitsumishi";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/Bitsumishi.woff2") format("woff2");
+}
+
+/* inter-200 */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 200;
+  src: url("/assets/fonts/inter-v20-latin-200.woff2") format("woff2");
+}
+
+/* inter-200italic */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: italic;
+  font-weight: 200;
+  src: url("/assets/fonts/inter-v20-latin-200italic.woff2") format("woff2");
+}
+
+/* inter-regular */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/inter-v20-latin-regular.woff2") format("woff2");
+}
+
+/* inter-italic */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: italic;
+  font-weight: 400;
+  src: url("/assets/fonts/inter-v20-latin-italic.woff2") format("woff2");
+}
+
+/* inter-600 */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/assets/fonts/inter-v20-latin-600.woff2") format("woff2");
+}
+
+/* inter-600italic */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: italic;
+  font-weight: 600;
+  src: url("/assets/fonts/inter-v20-latin-600italic.woff2") format("woff2");
+}
+
+/* inter-800 */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  src: url("/assets/fonts/inter-v20-latin-800.woff2") format("woff2");
+}
+
+/* inter-800italic */
+@font-face {
+  font-display: swap;
+  font-family: "Inter";
+  font-style: italic;
+  font-weight: 800;
+  src: url("/assets/fonts/inter-v20-latin-800italic.woff2") format("woff2");
+}
+
+/* ibm-plex-mono-200 */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 200;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-200.woff2") format("woff2");
+}
+
+/* ibm-plex-mono-200italic */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: italic;
+  font-weight: 200;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-200italic.woff2")
+    format("woff2");
+}
+
+/* ibm-plex-mono-regular */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-regular.woff2")
+    format("woff2");
+}
+
+/* ibm-plex-mono-italic */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: italic;
+  font-weight: 400;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-italic.woff2") format("woff2");
+}
+
+/* ibm-plex-mono-600 */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-600.woff2") format("woff2");
+}
+
+/* ibm-plex-mono-600italic */
+@font-face {
+  font-display: swap;
+  font-family: "IBM Plex Mono";
+  font-style: italic;
+  font-weight: 600;
+  src: url("/assets/fonts/ibm-plex-mono-v20-latin-600italic.woff2")
+    format("woff2");
+}
+
+/* raleway-200 */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: normal;
+  font-weight: 200;
+  src: url("/assets/fonts/raleway-v37-latin-200.woff2") format("woff2");
+}
+
+/* raleway-200italic */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: italic;
+  font-weight: 200;
+  src: url("/assets/fonts/raleway-v37-latin-200italic.woff2") format("woff2");
+}
+
+/* raleway-regular */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/fonts/raleway-v37-latin-regular.woff2") format("woff2");
+}
+
+/* raleway-italic */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: italic;
+  font-weight: 400;
+  src: url("/assets/fonts/raleway-v37-latin-italic.woff2") format("woff2");
+}
+
+/* raleway-600 */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/assets/fonts/raleway-v37-latin-600.woff2") format("woff2");
+}
+
+/* raleway-600italic */
+@font-face {
+  font-display: swap;
+  font-family: "Raleway";
+  font-style: italic;
+  font-weight: 600;
+  src: url("/assets/fonts/raleway-v37-latin-600italic.woff2") format("woff2");
+}

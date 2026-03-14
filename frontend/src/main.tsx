@@ -10,6 +10,7 @@ import ReactDOM from "react-dom/client"
 import { routeTree } from "./routeTree.gen"
 
 import { ApiError, OpenAPI } from "./client"
+import "./styles/fonts.css"
 import "./styles/print.css"
 import { CustomProvider } from "./components/ui/provider"
 
