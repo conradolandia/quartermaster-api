@@ -59,6 +59,32 @@ interface BookingsFilterBarProps {
 /** Min width so all 6 filters fit on one row at ~1280px content width, but keep controls compact. */
 const DESKTOP_FILTER_MIN_WIDTH = "100px"
 
+/**
+ * Computes a min width for a dropdown so the widest option label fits.
+ * Measures rendered text in a hidden span (14px, normal weight). Safe for SSR (returns baseMin + padding).
+ */
+function getDropdownMinWidthFromLabels(
+  items: Array<{ label: string }>,
+  options?: { baseMin?: number; padding?: number },
+): number {
+  const { baseMin = 100, padding = 24 } = options ?? {}
+  if (typeof window === "undefined") return baseMin + padding
+  const maxLabelWidth = items.reduce((max, item) => {
+    const span = document.createElement("span")
+    span.style.visibility = "hidden"
+    span.style.position = "absolute"
+    span.style.fontSize = "14px"
+    span.style.fontWeight = "400"
+    span.style.fontFamily = "inherit"
+    span.innerText = String(item.label)
+    document.body.appendChild(span)
+    const width = span.offsetWidth
+    document.body.removeChild(span)
+    return Math.max(max, width)
+  }, 0)
+  return maxLabelWidth + padding
+}
+
 export default function BookingsFilterBar({
   searchQuery,
   onSearchChange,
@@ -316,7 +342,7 @@ export default function BookingsFilterBar({
             flex={1}
             minW={0}
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "260px" }}
+            maxW={{ base: "100%", lg: "350px" }}
           >
           <Select.Root
             collection={missionsCollection as any}
@@ -335,8 +361,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="200px"
-                maxWidth="250px"
+                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items)}
+                maxWidth="350px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -366,7 +392,7 @@ export default function BookingsFilterBar({
             flex={1}
             minW={0}
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "320px" }}
+            maxW={{ base: "100%", lg: "260px" }}
           >
           <Select.Root
             collection={tripsCollection as any}
@@ -385,8 +411,8 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="200px"
-                maxWidth="250px"
+                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items)}
+                maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
               >
@@ -416,7 +442,7 @@ export default function BookingsFilterBar({
             flex={1}
             minW={0}
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "220px" }}
+            maxW={{ base: "100%", lg: "260px" }}
           >
           <Select.Root
             collection={tripTypeFilterCollection as any}
@@ -437,8 +463,10 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="120px"
-                maxWidth="150px"
+                minWidth={getDropdownMinWidthFromLabels(tripTypeFilterCollection.items)}
+                maxWidth="260px"
+                maxHeight="60vh"
+                overflowY="auto"
               >
                 {tripTypeFilterCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
@@ -489,7 +517,7 @@ export default function BookingsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth="150px"
+                minWidth={getDropdownMinWidthFromLabels(boatsCollection.items)}
                 maxWidth="200px"
                 maxHeight="60vh"
                 overflowY="auto"
