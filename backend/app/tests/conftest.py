@@ -13,19 +13,24 @@ from sqlmodel import Session, create_engine, delete
 from app.api.deps import get_db
 from app.core.config import settings
 
-# Refuse to run tests against production (fixture deletes and reseeds data)
+# Refuse to run when fixture would wipe a non-local DB (fixture deletes and reseeds)
 if settings.ENVIRONMENT == "production":
     pytest.exit(
         "Tests must not run when ENVIRONMENT=production. Use a dedicated test "
-        "database (e.g. POSTGRES_DB=quartermaster_test or set POSTGRES_DB_TEST) "
-        "and set ENVIRONMENT=staging or local.",
+        "database and set ENVIRONMENT=staging or local.",
+        returncode=2,
+    )
+if settings.ENVIRONMENT == "staging" and not settings.POSTGRES_DB_TEST:
+    pytest.exit(
+        "Tests must not run against the staging database without a dedicated test DB. "
+        "Set POSTGRES_DB_TEST (e.g. quartermaster_staging_test) so tests use that instead.",
         returncode=2,
     )
 
 from app.core.db import engine, init_db
 from app.main import app
 
-# Use a separate test DB when POSTGRES_DB_TEST is set (e.g. in CI)
+# Use a separate test DB when POSTGRES_DB_TEST is set (e.g. in CI or on staging)
 if settings.POSTGRES_DB_TEST:
     _test_engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI_TEST))
 else:

@@ -137,8 +137,9 @@ Add and edit tests under these directories; keep coverage above the project thre
 Tests use a database session that **deletes and reseeds** data for isolation. Running tests against the production database would destroy production data.
 
 - **Use a dedicated test database.** Set `POSTGRES_DB=quartermaster_test` (or another name) for the test run, or set `POSTGRES_DB_TEST` so tests connect to a separate DB while the app can still use `POSTGRES_DB` for other purposes.
-- **Do not run tests when `ENVIRONMENT=production`.** The test runner exits immediately if `ENVIRONMENT=production` to avoid accidental runs against production. Use `ENVIRONMENT=local` or `ENVIRONMENT=staging` when running tests.
-- In CI, configure the test job with a test database (e.g. a separate PostgreSQL service or `POSTGRES_DB_TEST`) and `ENVIRONMENT=staging` (or `local`).
+- **Do not run tests when `ENVIRONMENT=production`.** The test runner exits immediately if `ENVIRONMENT=production`.
+- **On staging, set `POSTGRES_DB_TEST`.** If `ENVIRONMENT=staging` and `POSTGRES_DB_TEST` is not set, the test runner exits so the staging DB is never wiped. Set `POSTGRES_DB_TEST` (e.g. `quartermaster_staging_test`) when running tests on staging.
+- In CI, configure the test job with a test database (e.g. `POSTGRES_DB_TEST`) and `ENVIRONMENT=staging` (or `local`).
 
 ## Migrations
 
