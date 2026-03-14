@@ -218,8 +218,19 @@ export default function BookingDetails({
 
   return (
     <Container maxW="full" className="print-admin-booking">
-      <Flex align="center" justify="space-between" gap={4} pt={12} mb={12}>
-        <Heading size="4xl">
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={4}
+        pt={12}
+        mb={12}
+        flexWrap="wrap"
+      >
+        <Heading
+          size={{ base: "xl", md: "2xl", lg: "4xl" }}
+          flex="1 1 0%"
+          minW={0}
+        >
           Booking Details for:{" "}
           <Text
             as="span"
@@ -230,7 +241,13 @@ export default function BookingDetails({
             {booking.confirmation_code}
           </Text>
         </Heading>
-        <Flex align="center" gap={4} className="no-print">
+        <Flex
+          align="center"
+          gap={4}
+          flexWrap="wrap"
+          flex="0 1 auto"
+          className="no-print"
+        >
           <Button size="sm" variant="ghost" onClick={handleBack}>
             <Flex align="center" gap={2}>
               <FiArrowLeft />
