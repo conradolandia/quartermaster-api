@@ -68,7 +68,7 @@ Check the file `package.json` to see other available options.
 
 * Start the Docker Compose stack.
 
-* Download the OpenAPI JSON file from `http://localhost/api/v1/openapi.json` and copy it to a new file `openapi.json` at the root of the `frontend` directory.
+* Download the OpenAPI JSON file from the backend (e.g. `http://localhost:8000/api/v1/openapi.json` when using the default Docker Compose override) and save it as `openapi.json` at the root of the `frontend` directory.
 
 * To generate the frontend client, run:
 
@@ -95,12 +95,12 @@ Then, when you run the frontend, it will use that URL as the base URL for the AP
 The frontend code is structured as follows:
 
 * `frontend/src` - The main frontend code.
-* `frontend/src/assets` - Static assets.
+* `frontend/public/assets` - Static assets (e.g. images).
 * `frontend/src/client` - The generated OpenAPI client.
-* `frontend/src/components` -  The different components of the frontend.
+* `frontend/src/components` - The different components of the frontend.
 * `frontend/src/hooks` - Custom hooks.
 * `frontend/src/routes` - The different routes of the frontend which include the pages.
-* `theme.tsx` - The Chakra UI custom theme.
+* `frontend/src/theme.tsx` - The Chakra UI custom theme.
 
 ## End-to-End Testing with Playwright
 

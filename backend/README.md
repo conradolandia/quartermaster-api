@@ -153,7 +153,7 @@ Make sure you create a "revision" of your models and that you "upgrade" your dat
 $ docker compose exec backend bash
 ```
 
-* Alembic is already configured to import your SQLModel models from `./backend/app/models.py`.
+* Alembic is already configured to import your SQLModel models from `./backend/app/models/`.
 
 * After changing a model (for example, adding a column), inside the container, create a revision, e.g.:
 
@@ -169,13 +169,7 @@ $ alembic revision --autogenerate -m "Add column last_name to User model"
 $ alembic upgrade head
 ```
 
-If you don't want to use migrations at all, table creation is done in `./backend/app/core/seed/schema.py` (`bootstrap_schema`). You can adjust or skip that and the migration step in prestart.
-
-and comment the line in the file `scripts/prestart.sh` that contains:
-
-```console
-$ alembic upgrade head
-```
+If you don't want to use migrations at all, table creation is done in `./backend/app/core/seed/schema.py` (`bootstrap_schema`). You can adjust or skip that and the migration step in prestart by commenting the line in `scripts/prestart.sh` that runs migrations (`python app/run_migrations.py`).
 
 If you don't want to start with the default models and want to remove them / modify them, from the beginning, without having any previous revision, you can remove the revision files (`.py` Python files) under `./backend/app/alembic/versions/`. And then create a first migration as described above.
 
