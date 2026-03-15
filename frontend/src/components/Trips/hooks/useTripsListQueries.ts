@@ -87,6 +87,7 @@ export function useTripsListQueries(params: UseTripsListQueriesParams) {
     tripsData as TripWithStats[],
     sortBy || "check_in_time",
     sortDirection || "desc",
+    tripBoatsByTrip,
   )
 
   return {

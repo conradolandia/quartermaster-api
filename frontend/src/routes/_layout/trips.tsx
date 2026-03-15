@@ -23,6 +23,7 @@ const tripsSearchSchema = z.object({
       "active",
       "total_bookings",
       "total_sales",
+      "boat_names",
     ])
     .catch("check_in_time"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),

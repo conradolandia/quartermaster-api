@@ -11,6 +11,7 @@ export type SortableColumn =
   | "active"
   | "total_bookings"
   | "total_sales"
+  | "boat_names"
 
 export type SortDirection = "asc" | "desc"
 
@@ -56,10 +57,22 @@ export function seatsTakenFromTripBoat(
   return Object.values(u).reduce((a, b) => a + b, 0)
 }
 
+function boatNamesSortKey(
+  boats: TripBoatPublicWithAvailability[] | undefined,
+): string {
+  if (!boats?.length) return ""
+  const names = boats
+    .map((tb) => tb.boat?.name ?? "Boat")
+    .filter(Boolean)
+    .sort()
+  return names.join(", ")
+}
+
 export function sortTripsWithStats(
   trips: TripWithStats[],
   sortBy: SortableColumn,
   sortDirection: SortDirection,
+  tripBoatsByTrip?: Record<string, TripBoatPublicWithAvailability[]>,
 ): TripWithStats[] {
   const effectiveSortBy = sortBy || "check_in_time"
   const effectiveSortDirection = sortDirection || "desc"
@@ -67,6 +80,11 @@ export function sortTripsWithStats(
     if (a.archived !== b.archived) return a.archived ? 1 : -1
     let aValue: unknown = a[effectiveSortBy as keyof TripWithStats]
     let bValue: unknown = b[effectiveSortBy as keyof TripWithStats]
+
+    if (effectiveSortBy === "boat_names" && tripBoatsByTrip) {
+      aValue = boatNamesSortKey(tripBoatsByTrip[a.id])
+      bValue = boatNamesSortKey(tripBoatsByTrip[b.id])
+    }
 
     if (
       effectiveSortBy === "check_in_time" ||

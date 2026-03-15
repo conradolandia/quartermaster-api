@@ -91,8 +91,17 @@ export default function TripsTableHeader({
             <SortIcon column="total_sales" sortBy={sortBy} sortDirection={sortDirection} />
           </Flex>
         </Table.ColumnHeader>
-        <Table.ColumnHeader minW="6rem" px={1} fontWeight="bold">
-          Boats
+        <Table.ColumnHeader
+          minW="6rem"
+          px={1}
+          fontWeight="bold"
+          cursor="pointer"
+          onClick={() => onSort("boat_names")}
+        >
+          <Flex align="center">
+            Boats
+            <SortIcon column="boat_names" sortBy={sortBy} sortDirection={sortDirection} />
+          </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
           minW="4.5rem"
