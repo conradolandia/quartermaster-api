@@ -31,6 +31,7 @@ interface UseBookingDraftArgs {
   urlCode?: string
   createBookingStartedRef: MutableRefObject<boolean>
   accessCodeDiscountCodeId?: string | null
+  onCreateError?: () => void
 }
 
 export function useBookingDraft({
@@ -42,6 +43,7 @@ export function useBookingDraft({
   urlCode,
   createBookingStartedRef,
   accessCodeDiscountCodeId,
+  onCreateError,
 }: UseBookingDraftArgs) {
   const navigate = useNavigate()
   const search = useSearch({ from: "/book" })
@@ -207,6 +209,7 @@ export function useBookingDraft({
     onError: () => {
       createStartedRef.current = false
       createBookingStartedRef.current = false
+      onCreateError?.()
     },
   })
 
@@ -287,7 +290,8 @@ export function useBookingDraft({
     if (
       createStartedRef.current ||
       createBookingStartedRef.current ||
-      createBookingMutation.isPending
+      createBookingMutation.isPending ||
+      createBookingMutation.isError
     )
       return
     const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)

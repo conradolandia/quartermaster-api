@@ -223,5 +223,32 @@ export function formatTripFilterLabel(trip: TripPublic): string {
   return `${readableType} (${timeWithoutSeconds})`
 }
 
+/** Full label for trip in dropdowns: name + type + time, or type + time. */
+export function formatTripOptionLabel(trip: TripPublic): string {
+  const readableType = tripTypeToLabel(trip.type)
+  const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+  if (trip.name?.trim()) {
+    return `${trip.name.trim()} - ${readableType} (${time})`
+  }
+  return `${readableType} (${time})`
+}
+
+/** Resolve trip id to display label (for Edit/Details). Returns tripId if not found. */
+export function getTripName(
+  tripId: string,
+  trips: TripPublic[] | undefined,
+): string {
+  const trip = trips?.find((t) => t.id === tripId)
+  return trip ? formatTripOptionLabel(trip) : tripId
+}
+
+/** Human-readable label for item type (e.g. swag -> "Merchandise"). */
+export function getItemTypeLabel(itemType: string): string {
+  const merchandiseMap: Record<string, string> = {
+    swag: "Merchandise",
+  }
+  return merchandiseMap[itemType] ?? itemType
+}
+
 // Helper function to format dates (delegates to utils for international format support)
 export { formatDateTimeInLocationTz as formatDate } from "@/utils"

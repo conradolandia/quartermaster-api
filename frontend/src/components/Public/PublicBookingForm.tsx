@@ -40,6 +40,7 @@ const PublicBookingForm = ({
 }: PublicBookingFormProps) => {
   const [currentStep, setCurrentStep] = useState(1)
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
+  const [createError, setCreateError] = useState(false)
   /** Survives Step4Review remounts (e.g. Strict Mode); prevents double booking create. */
   const createBookingStartedRef = useRef(false)
   /** When true, don't auto-jump to step 4 when URL has code (user clicked Back from step 4). */
@@ -82,6 +83,7 @@ const PublicBookingForm = ({
   const onBackFromStep4 = () => {
     didGoBackFromStep4Ref.current = true
     setBookingResult(null)
+    setCreateError(false)
     createBookingStartedRef.current = false
     prevStep()
   }
@@ -122,6 +124,8 @@ const PublicBookingForm = ({
             bookingData={bookingData}
             onBack={onBackFromStep4}
             bookingResult={bookingResult}
+            createError={createError}
+            onCreateError={() => setCreateError(true)}
             onBookingReady={(result) => {
               setBookingResult(result)
               if (result?.booking?.confirmation_code) {

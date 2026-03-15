@@ -29,6 +29,8 @@ interface Step4ReviewProps {
   urlCode?: string
   createBookingStartedRef: MutableRefObject<boolean>
   accessCodeDiscountCodeId?: string | null
+  createError?: boolean
+  onCreateError?: () => void
 }
 
 const Step4Review = ({
@@ -41,6 +43,8 @@ const Step4Review = ({
   urlCode,
   createBookingStartedRef,
   accessCodeDiscountCodeId,
+  createError: createErrorProp,
+  onCreateError,
 }: Step4ReviewProps) => {
   const {
     isBookingSuccessful,
@@ -63,6 +67,7 @@ const Step4Review = ({
     urlCode,
     createBookingStartedRef,
     accessCodeDiscountCodeId,
+    onCreateError,
   })
 
   if (customerInfoInvalid && !bookingResult) {
@@ -90,6 +95,51 @@ const Step4Review = ({
     )
   }
 
+  if (createErrorProp || isCreateError || isCompleteError) {
+    const isCreateErr = createErrorProp || isCreateError
+    const errorMessage = isCreateErr
+      ? (createErrorProp
+          ? "Something went wrong. Please try again."
+          : getApiErrorMessage(createError as ApiError))
+      : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
+
+    return (
+      <VStack gap={6} align="stretch">
+        <Box
+          p={4}
+          bg="red.50"
+          border="1px"
+          borderColor="red.200"
+          borderRadius="md"
+        >
+          <Text color="red.800" fontWeight="medium">
+            {isCreateErr
+              ? "Booking Creation Failed"
+              : "Payment Verification Failed"}
+          </Text>
+          <Text color="red.700" fontSize="sm" mt={2}>
+            {errorMessage}
+          </Text>
+        </Box>
+        <HStack gap={2}>
+          {canRetryVerification && (
+            <Button
+              onClick={handleRetryVerification}
+              colorScheme="blue"
+              loading={isCompletePending}
+              loadingText="Verifying..."
+            >
+              Retry Verification
+            </Button>
+          )}
+          <Button onClick={onBack} variant="outline">
+            Back to Review
+          </Button>
+        </HStack>
+      </VStack>
+    )
+  }
+
   if (isPending && !bookingResult) {
     const isFree = bookingData.total < 50
     return (
@@ -113,48 +163,6 @@ const Step4Review = ({
               : "Please wait while we set up your payment."}
           </Text>
         </Box>
-      </VStack>
-    )
-  }
-
-  if (isCreateError || isCompleteError) {
-    const errorMessage = isCreateError
-      ? getApiErrorMessage(createError as ApiError)
-      : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
-
-    return (
-      <VStack gap={6} align="stretch">
-        <Box
-          p={4}
-          bg="red.50"
-          border="1px"
-          borderColor="red.200"
-          borderRadius="md"
-        >
-          <Text color="red.800" fontWeight="medium">
-            {isCreateError
-              ? "Booking Creation Failed"
-              : "Payment Verification Failed"}
-          </Text>
-          <Text color="red.700" fontSize="sm" mt={2}>
-            {errorMessage}
-          </Text>
-        </Box>
-        <HStack gap={2}>
-          {canRetryVerification && (
-            <Button
-              onClick={handleRetryVerification}
-              colorScheme="blue"
-              loading={isCompletePending}
-              loadingText="Verifying..."
-            >
-              Retry Verification
-            </Button>
-          )}
-          <Button onClick={onBack} variant="outline">
-            Back to Review
-          </Button>
-        </HStack>
       </VStack>
     )
   }

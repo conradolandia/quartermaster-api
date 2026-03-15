@@ -1,18 +1,7 @@
-import {
-  Button,
-  HStack,
-  IconButton,
-  Input,
-  Select,
-  Text,
-  Textarea,
-  VStack,
-  createListCollection,
-} from "@chakra-ui/react"
+import { Button, Text, Textarea, VStack } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
-import { FiPlus, FiTrash2 } from "react-icons/fi"
 import { Checkbox } from "../ui/checkbox"
 
 import {
@@ -29,11 +18,8 @@ import {
   type TripBoatPublicWithAvailability,
   TripBoatsService,
   TripMerchandiseService,
-  type TripPublic,
   TripsService,
 } from "@/client"
-import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
-import { formatCents } from "@/utils"
 
 // Custom type for form with optional items
 type BookingFormData = Omit<BookingCreate, "items"> & {
@@ -48,10 +34,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import { NativeSelect } from "@/components/ui/native-select"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatDateTimeInLocationTz, parseApiDate } from "@/utils"
+import { handleError } from "@/utils"
+import { AddBookingItemsSection } from "./AddBookingItemsSection"
+import { AddBookingTripSection } from "./AddBookingTripSection"
+import { BookingCustomerFields } from "./shared/BookingCustomerFields"
+import { BookingPricingSummary } from "./shared/BookingPricingSummary"
+import { BookingStatusFields } from "./shared/BookingStatusFields"
 
 // In-memory cache to avoid re-fetching boat names we already resolved
 const boatNameCache: Map<string, string> = new Map()
@@ -238,21 +228,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   useEffect(() => {
     setTripPricing(selectedBoatId && pricingData ? pricingData : [])
   }, [pricingData, selectedBoatId])
-
-  const tripTypeToLabel = (type: string): string => {
-    if (type === "launch_viewing") return "Launch Viewing"
-    if (type === "pre_launch") return "Pre-Launch"
-    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  const formatTripOptionLabel = (trip: TripPublic): string => {
-    const readableType = tripTypeToLabel(trip.type)
-    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
-    if (trip.name?.trim()) {
-      return `${trip.name.trim()} - ${readableType} (${time})`
-    }
-    return `${readableType} (${time})`
-  }
 
   useEffect(() => {
     if (merchandiseData) {
@@ -639,10 +614,6 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
     }
   }, [isOpen, reset])
 
-  const handleError = (error: ApiError) => {
-    console.error("Booking creation error:", error)
-  }
-
   return (
     <DialogRoot
       size={{ base: "lg", md: "xl" }}
@@ -661,521 +632,76 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
               code will be auto-generated.
             </Text>
             <VStack gap={4}>
-              {/* Trip Selection */}
-              <Field label="Select Trip" required>
-                <NativeSelect
-                  value={selectedTripId}
-                  onChange={(e) => {
-                    handleTripSelection(e.target.value)
-                  }}
-                >
-                  <option value="">Select a trip...</option>
-                  {tripsData?.data
-                    ?.filter((trip: TripPublic) => {
-                      if (!trip.departure_time) return false
-                      const departureTime = parseApiDate(trip.departure_time)
-                      return departureTime >= new Date()
-                    })
-                    .map((trip: TripPublic) => (
-                      <option key={trip.id} value={trip.id}>
-                        {formatTripOptionLabel(trip)}
-                      </option>
-                    ))}
-                </NativeSelect>
-              </Field>
+              <AddBookingTripSection
+                selectedTripId={selectedTripId}
+                trips={tripsData?.data}
+                tripBoats={tripBoats}
+                boatNames={boatNames}
+                selectedBoatId={selectedBoatId}
+                onTripChange={handleTripSelection}
+                onBoatChange={setSelectedBoatId}
+              />
 
-              {selectedTripId && tripBoats.length > 0 && (
-                <Field label="Assign Boat" required>
-                  <NativeSelect
-                    value={selectedBoatId}
-                    onChange={(e) => setSelectedBoatId(e.target.value)}
-                  >
-                    {tripBoats.map((tb, idx) => (
-                      <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
-                        {boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id} (
-                        {tb.remaining_capacity} spots left)
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </Field>
-              )}
-
-              {/* Customer Information */}
-              <Field
-                invalid={!!errors.first_name}
-                errorText={errors.first_name?.message}
-                label="First Name"
+              <BookingCustomerFields
+                register={register}
+                errors={errors}
                 required
-              >
-                <Input
-                  id="first_name"
-                  {...register("first_name", {
-                    required: "First name is required",
-                    maxLength: {
-                      value: 128,
-                      message: "First name cannot exceed 128 characters",
-                    },
-                  })}
-                  placeholder="First Name"
-                  type="text"
-                />
-              </Field>
-              <Field
-                invalid={!!errors.last_name}
-                errorText={errors.last_name?.message}
-                label="Last Name"
-                required
-              >
-                <Input
-                  id="last_name"
-                  {...register("last_name", {
-                    required: "Last name is required",
-                    maxLength: {
-                      value: 128,
-                      message: "Last name cannot exceed 128 characters",
-                    },
-                  })}
-                  placeholder="Last Name"
-                  type="text"
-                />
-              </Field>
+              />
 
-              <Field
-                invalid={!!errors.user_email}
-                errorText={errors.user_email?.message}
-                label="Customer Email"
-                required
-              >
-                <Input
-                  id="user_email"
-                  {...register("user_email", {
-                    required: "Customer email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                    maxLength: {
-                      value: 255,
-                      message: "Customer email cannot exceed 255 characters",
-                    },
-                  })}
-                  placeholder="customer@example.com"
-                  type="email"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.user_phone}
-                errorText={errors.user_phone?.message}
-                label="Customer Phone"
-                required
-              >
-                <Input
-                  id="user_phone"
-                  {...register("user_phone", {
-                    required: "Customer phone is required",
-                    maxLength: {
-                      value: 40,
-                      message: "Customer phone cannot exceed 40 characters",
-                    },
-                  })}
-                  placeholder="Customer Phone"
-                  type="tel"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.billing_address}
-                errorText={errors.billing_address?.message}
-                label="Billing Address"
-                required
-              >
-                <Textarea
-                  id="billing_address"
-                  {...register("billing_address", {
-                    required: "Billing address is required",
-                    maxLength: {
-                      value: 1000,
-                      message: "Billing address cannot exceed 1000 characters",
-                    },
-                  })}
-                  placeholder="Billing Address"
-                  rows={3}
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.admin_notes}
-                errorText={errors.admin_notes?.message}
-                label="Admin Notes"
-                helperText="Admin only. Not visible to customers."
-              >
-                <Textarea
-                  id="admin_notes"
-                  {...register("admin_notes", {
-                    maxLength: {
-                      value: 2000,
-                      message: "Admin notes cannot exceed 2000 characters",
-                    },
-                  })}
-                  placeholder="Internal notes about this booking"
-                  rows={3}
-                />
-              </Field>
-
-              {/* Item Selection - Only show if trip is selected */}
               {selectedTripId && (
-                <VStack gap={4} width="100%">
-                  <Text fontWeight="bold">Select Items</Text>
-
-                  {/* Tickets */}
-                  {tripPricing.length > 0 && (
-                    <VStack
-                      gap={2}
-                      width="100%"
-                      p={3}
-                      border="1px solid"
-                      borderColor="gray.200"
-                      borderRadius="md"
-                    >
-                      <Text fontWeight="medium">Tickets</Text>
-                      <HStack gap={2} flexWrap="wrap">
-                        {tripPricing.map((pricing: EffectivePricingItem) => (
-                          <Button
-                            key={pricing.ticket_type}
-                            size="sm"
-                            variant="outline"
-                            disabled={ticketCapacityReachedForType(
-                              pricing.ticket_type,
-                            )}
-                            onClick={() => addTicketItem(pricing.ticket_type)}
-                          >
-                            <FiPlus style={{ marginRight: "4px" }} />
-                            {pricing.ticket_type
-                              .replace("_", " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
-                            - ${formatCents(pricing.price)}
-                            {pricing.remaining >= 0 && (
-                              <> ({pricing.remaining} left)</>
-                            )}
-                          </Button>
-                        ))}
-                      </HStack>
-                    </VStack>
-                  )}
-
-                  {/* Merchandise */}
-                  {tripMerchandise.length > 0 && (
-                    <VStack
-                      gap={2}
-                      width="100%"
-                      p={3}
-                      border="1px solid"
-                      borderColor="gray.200"
-                      borderRadius="md"
-                    >
-                      <Text fontWeight="medium">Merchandise</Text>
-                      <VStack gap={2} align="stretch">
-                        {tripMerchandise.map((merchandise) => {
-                          const options = variantOptionsList(
-                            merchandise.variant_options,
-                          )
-                          const hasVariants = options.length > 0
-                          const selectedVariant =
-                            merchandiseVariantByKey[merchandise.id] ??
-                            options[0]
-                          return (
-                            <HStack
-                              key={merchandise.id}
-                              gap={2}
-                              align="center"
-                              flexWrap="wrap"
-                            >
-                              <Text fontSize="sm">
-                                {merchandise.name} - $
-                                {formatCents(merchandise.price)} (
-                                {merchandise.quantity_available} available)
-                              </Text>
-                              {hasVariants && (
-                                <Select.Root
-                                  size="sm"
-                                  width="min(100px, 20vw)"
-                                  value={[selectedVariant]}
-                                  onValueChange={(e) =>
-                                    setMerchandiseVariantByKey((prev) => ({
-                                      ...prev,
-                                      [merchandise.id]: e.value[0] ?? "",
-                                    }))
-                                  }
-                                  collection={createListCollection({
-                                    items: options.map((o) => ({
-                                      label: o,
-                                      value: o,
-                                    })),
-                                  })}
-                                >
-                                  <Select.Control>
-                                    <Select.Trigger>
-                                      <Select.ValueText placeholder="Variant" />
-                                    </Select.Trigger>
-                                  </Select.Control>
-                                  <Select.Positioner>
-                                    <Select.Content>
-                                      {options.map((o) => (
-                                        <Select.Item
-                                          key={o}
-                                          item={{ label: o, value: o }}
-                                        >
-                                          {o}
-                                        </Select.Item>
-                                      ))}
-                                    </Select.Content>
-                                  </Select.Positioner>
-                                </Select.Root>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  addMerchandiseItem(
-                                    merchandise.id,
-                                    hasVariants ? selectedVariant : undefined,
-                                  )
-                                }
-                                disabled={
-                                  merchandise.quantity_available <= 0 ||
-                                  (hasVariants && !selectedVariant)
-                                }
-                              >
-                                <FiPlus style={{ marginRight: "4px" }} />
-                                Add
-                              </Button>
-                            </HStack>
-                          )
-                        })}
-                      </VStack>
-                    </VStack>
-                  )}
-
-                  {/* Selected Items */}
-                  {selectedItems.length > 0 && (
-                    <VStack
-                      gap={2}
-                      width="100%"
-                      p={3}
-                      border="1px solid"
-                      borderColor="gray.200"
-                      borderRadius="md"
-                    >
-                      <Text fontWeight="medium">Selected Items</Text>
-                      {selectedItems.map((item, index) => (
-                        <HStack
-                          key={index}
-                          width="100%"
-                          justify="space-between"
-                        >
-                          <VStack align="start" gap={0}>
-                            <Text fontSize="sm" fontWeight="medium">
-                              {getItemDisplayName(item)}
-                            </Text>
-                            <Text fontSize="xs" color="gray.500">
-                              ${formatCents(item.price_per_unit)} each
-                            </Text>
-                          </VStack>
-                          <HStack gap={2}>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={
-                                item.merchandise_id
-                                  ? tripMerchandise.find(
-                                      (m) => m.id === item.merchandise_id,
-                                    )?.quantity_available ?? 999
-                                  : (() => {
-                                      const pricing = tripPricing.find(
-                                        (p) => p.ticket_type === item.item_type,
-                                      )
-                                      if (!pricing) return 999
-                                      const otherSameType = selectedItems
-                                        .filter(
-                                          (x, i) =>
-                                            i !== index &&
-                                            !x.merchandise_id &&
-                                            x.item_type === item.item_type,
-                                        )
-                                        .reduce((sum, x) => sum + x.quantity, 0)
-                                      return Math.max(
-                                        0,
-                                        pricing.remaining - otherSameType,
-                                      )
-                                    })()
-                              }
-                              value={item.quantity}
-                              onChange={(e) =>
-                                updateItemQuantity(
-                                  index,
-                                  Number.parseInt(e.target.value) || 0,
-                                )
-                              }
-                              style={{ width: "60px" }}
-                            />
-                            <Text fontSize="sm" fontWeight="medium">
-                              $
-                              {formatCents(item.quantity * item.price_per_unit)}
-                            </Text>
-                            <IconButton
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="red"
-                              onClick={() => removeItem(index)}
-                              children={<FiTrash2 />}
-                            />
-                          </HStack>
-                        </HStack>
-                      ))}
-                    </VStack>
-                  )}
-                </VStack>
+                <AddBookingItemsSection
+                  tripPricing={tripPricing}
+                  tripMerchandise={tripMerchandise}
+                  selectedItems={selectedItems}
+                  merchandiseVariantByKey={merchandiseVariantByKey}
+                  addTicketItem={addTicketItem}
+                  addMerchandiseItem={addMerchandiseItem}
+                  variantOptionsList={variantOptionsList}
+                  ticketCapacityReachedForType={ticketCapacityReachedForType}
+                  getItemDisplayName={getItemDisplayName}
+                  updateItemQuantity={updateItemQuantity}
+                  removeItem={removeItem}
+                  setMerchandiseVariantByKey={setMerchandiseVariantByKey}
+                />
               )}
 
-              {/* Pricing Summary */}
-              <VStack
-                gap={3}
-                width="100%"
-                p={4}
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="md"
-              >
-                <Text fontWeight="bold">Pricing Summary</Text>
-                <HStack justify="space-between" width="100%">
-                  <Text>Subtotal:</Text>
-                  <Text>${formatCents(watch("subtotal"))}</Text>
-                </HStack>
-                <VStack align="stretch" gap={2} width="100%">
-                  <HStack justify="space-between">
-                    <Text>Discount Code:</Text>
-                    <HStack gap={2}>
-                      <Input
-                        placeholder="Enter code"
-                        value={discountCode}
-                        onChange={(e) => setDiscountCode(e.target.value)}
-                        onBlur={() => validateDiscountCode(discountCode)}
-                        style={{ width: "120px" }}
-                        borderColor={discountCodeError ? "red.500" : undefined}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => validateDiscountCode(discountCode)}
-                        disabled={!discountCode.trim()}
-                      >
-                        Apply
-                      </Button>
-                    </HStack>
-                  </HStack>
-                  {discountCodeError && (
-                    <Text fontSize="sm" color="red.500">
-                      {discountCodeError}
-                    </Text>
-                  )}
-                  {appliedDiscountCode && (
-                    <HStack justify="space-between">
-                      <Text fontSize="sm" color="green.500">
-                        {appliedDiscountCode.code} applied
-                      </Text>
-                      <Text fontSize="sm" color="green.500">
-                        -${formatCents(discountInput)}
-                      </Text>
-                    </HStack>
-                  )}
-                </VStack>
-                <HStack justify="space-between" width="100%">
-                  <Text>Discount override (optional, $):</Text>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={watch("discount_amount") / 100}
-                    onChange={(e) => {
-                      const dollars = Number.parseFloat(e.target.value) || 0
-                      const cents = Math.round(dollars * 100)
-                      setValue("discount_amount", cents)
-                      setDiscountInput(cents)
-                      if (appliedDiscountCode && cents !== discountInput) {
-                        setAppliedDiscountCode(null)
-                        setDiscountCode("")
-                      }
-                    }}
-                    style={{ width: "100px" }}
-                  />
-                </HStack>
-                <HStack justify="space-between" width="100%">
-                  <Text>Tax Rate:</Text>
-                  <Text>
-                    {taxRatePercent > 0
-                      ? `${taxRatePercent.toFixed(2)}%`
-                      : "N/A - No jurisdiction set"}
-                  </Text>
-                </HStack>
-                <HStack justify="space-between" width="100%">
-                  <Text>Tax Amount:</Text>
-                  <Text>${formatCents(watch("tax_amount"))}</Text>
-                </HStack>
-                <HStack justify="space-between" width="100%">
-                  <HStack gap={1}>
-                    <StarFleetTipLabel showColon showTooltip={false} />
-                    <Text as="span">($)</Text>
-                  </HStack>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={watch("tip_amount") / 100}
-                    onChange={(e) =>
-                      setValue(
-                        "tip_amount",
-                        Math.round(
-                          (Number.parseFloat(e.target.value) || 0) * 100,
-                        ),
-                      )
-                    }
-                    style={{ width: "100px" }}
-                  />
-                </HStack>
-                <HStack justify="space-between" width="100%" fontWeight="bold">
-                  <Text>Total:</Text>
-                  <Text>${formatCents(watch("total_amount"))}</Text>
-                </HStack>
-              </VStack>
+              <BookingPricingSummary
+                mode="create"
+                subtotalCents={watch("subtotal")}
+                discountAmountCents={watch("discount_amount")}
+                taxAmountCents={watch("tax_amount")}
+                tipAmountCents={watch("tip_amount")}
+                totalAmountCents={watch("total_amount")}
+                discountCode={discountCode}
+                discountCodeError={discountCodeError}
+                appliedDiscountCode={appliedDiscountCode}
+                discountInputCents={discountInput}
+                taxRatePercent={taxRatePercent}
+                onDiscountCodeChange={setDiscountCode}
+                onDiscountCodeBlur={() => validateDiscountCode(discountCode)}
+                onDiscountCodeApply={() => validateDiscountCode(discountCode)}
+                onDiscountOverrideChange={(cents) => {
+                  setValue("discount_amount", cents)
+                  setDiscountInput(cents)
+                  if (appliedDiscountCode && cents !== discountInput) {
+                    setAppliedDiscountCode(null)
+                    setDiscountCode("")
+                  }
+                }}
+                onTipChange={(cents) => setValue("tip_amount", cents)}
+              />
 
-              {/* Booking Status and Payment Status - separate fields, aligned with Edit form */}
-              <Field label="Booking Status">
-                <NativeSelect
-                  value={bookingStatus}
-                  onChange={(e) =>
-                    setBookingStatus(
-                      e.target.value as "draft" | "confirmed",
-                    )
-                  }
-                >
-                  <option value="draft">Draft</option>
-                  <option value="confirmed">Confirmed</option>
-                </NativeSelect>
-              </Field>
-              <Field label="Payment Status">
-                <NativeSelect
-                  value={paymentStatus}
-                  onChange={(e) =>
-                    setPaymentStatus(
-                      e.target.value as "pending_payment" | "paid" | "free",
-                    )
-                  }
-                >
-                  <option value="pending_payment">Pending Payment</option>
-                  <option value="paid">Paid</option>
-                  <option value="free">Free</option>
-                </NativeSelect>
-              </Field>
+              <BookingStatusFields
+                mode="create"
+                bookingStatus={bookingStatus}
+                paymentStatus={paymentStatus}
+                onBookingStatusChange={(v) =>
+                  setBookingStatus(v as "draft" | "confirmed")
+                }
+                onPaymentStatusChange={(v) =>
+                  setPaymentStatus(v as "pending_payment" | "paid" | "free")
+                }
+              />
 
               <Field
                 invalid={!!errors.special_requests}

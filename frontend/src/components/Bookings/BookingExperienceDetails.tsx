@@ -21,6 +21,7 @@ import {
 import type { BookingPublic } from "@/client"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { formatDateTimeInLocationTz } from "@/utils"
+import { tripTypeToLabel } from "./types"
 
 interface BookingExperienceDetailsProps {
   booking: BookingPublic
@@ -34,12 +35,6 @@ interface BookingExperienceDetailsProps {
   narrowLayout?: boolean
   /** Styling: border, bg, etc. Passed to outer Box. */
   boxProps?: Record<string, unknown>
-}
-
-const tripTypeToLabel = (type: string): string => {
-  if (type === "launch_viewing") return "Launch Viewing"
-  if (type === "pre_launch") return "Pre-Launch"
-  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export default function BookingExperienceDetails({

@@ -33,6 +33,7 @@ import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import { formatTripOptionLabel, getItemTypeLabel } from "./types"
 
 interface RescheduleBookingProps {
   booking: BookingPublic
@@ -280,24 +281,6 @@ export default function RescheduleBooking({
     (!needsBoat || !!targetBoatId) &&
     (!ticketTypeRequired || typeMappingComplete) &&
     !rescheduleMutation.isPending
-
-  const tripTypeToLabel = (type: string): string => {
-    if (type === "launch_viewing") return "Launch Viewing"
-    if (type === "pre_launch") return "Pre-Launch"
-    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  const getItemTypeLabel = (itemType: string): string =>
-    itemType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-
-  const formatTripOptionLabel = (trip: TripPublic): string => {
-    const readableType = tripTypeToLabel(trip.type)
-    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
-    if (trip.name?.trim()) {
-      return `${trip.name.trim()} – ${readableType} (${time})`
-    }
-    return `${readableType} (${time})`
-  }
 
   const tripOptions = trips
     .filter((t: TripPublic) => !t.archived)

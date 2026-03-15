@@ -44,6 +44,37 @@ setup("authenticate", async ({ page, request }) => {
         `Auth setup failed: create test superuser returned ${createRes.status()}: ${body}`,
       )
     }
+    // User exists from a previous run (e.g. password was changed). Reset password.
+    const usersRes = await request.get(`${apiBaseUrl}/api/v1/users/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!usersRes.ok()) {
+      throw new Error(
+        `Auth setup failed: list users returned ${usersRes.status()}`,
+      )
+    }
+    const { data: users } = (await usersRes.json()) as {
+      data: Array<{ id: string; email: string }>
+    }
+    const existing = users.find((u) => u.email === testSuperuserEmail)
+    if (!existing) {
+      throw new Error("Auth setup failed: test superuser not found after create conflict")
+    }
+    const resetRes = await request.patch(
+      `${apiBaseUrl}/api/v1/users/${existing.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        data: { password: testSuperuserPassword },
+      },
+    )
+    if (!resetRes.ok()) {
+      throw new Error(
+        `Auth setup failed: reset test superuser password returned ${resetRes.status()}`,
+      )
+    }
   }
 
   await page.goto("/login")

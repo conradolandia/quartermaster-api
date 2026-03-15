@@ -8,11 +8,9 @@ import {
   TripsService,
   TripBoatsService,
 } from "@/client"
-import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
-  DialogCloseTrigger,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -20,23 +18,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
-import { NativeSelect } from "@/components/ui/native-select"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents } from "@/utils"
-import { formatDateTimeInLocationTz, handleError } from "@/utils"
+import { handleError } from "@/utils"
+import { BookingCustomerFields } from "./shared/BookingCustomerFields"
+import { BookingPricingSummary } from "./shared/BookingPricingSummary"
+import { BookingStatusFields } from "./shared/BookingStatusFields"
+import { BoatChangeTypeDialog } from "./BoatChangeTypeDialog"
+import { EditBookingMerchandiseSection } from "./EditBookingMerchandiseSection"
+import { EditBookingTicketsSection } from "./EditBookingTicketsSection"
+import { getTripName } from "./types"
 import {
-  Badge,
   Box,
   Button,
   ButtonGroup,
-  Card,
   DialogActionTrigger,
   Heading,
-  HStack,
   Input,
-  SimpleGrid,
-  Table,
   Text,
   Textarea,
   VStack,
@@ -409,31 +407,6 @@ const EditBooking = ({
     mutation.mutate(payload)
   }
 
-  const bookingStatusOptions = [
-    { value: "draft", label: "Draft" },
-    { value: "confirmed", label: "Confirmed" },
-    { value: "checked_in", label: "Checked In" },
-    { value: "completed", label: "Completed" },
-    { value: "cancelled", label: "Cancelled" },
-  ]
-  const paymentStatusOptions = [
-    { value: "", label: "(none)" },
-    { value: "pending_payment", label: "Pending Payment" },
-    { value: "paid", label: "Paid" },
-    { value: "free", label: "Free" },
-    { value: "failed", label: "Failed" },
-    { value: "refunded", label: "Refunded" },
-    { value: "partially_refunded", label: "Partially Refunded" },
-  ]
-
-  const getItemTypeLabel = (itemType: string) => {
-    // Map merchandise item types to display names
-    const merchandiseMap: Record<string, string> = {
-      swag: "Merchandise",
-    }
-    return merchandiseMap[itemType] || itemType
-  }
-
   const tripsForAddTicket = useMemo(() => {
     const trips = tripsData?.data ?? []
     const futureTrips = trips.filter((t) => {
@@ -496,23 +469,6 @@ const EditBooking = ({
     })
   }
 
-  const tripTypeToLabel = (type: string): string => {
-    if (type === "launch_viewing") return "Launch Viewing"
-    if (type === "pre_launch") return "Pre-Launch"
-    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  const getTripName = (tripId: string) => {
-    const trip = tripsData?.data.find((t) => t.id === tripId)
-    if (!trip) return tripId
-    const readableType = tripTypeToLabel(trip.type)
-    const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
-    if (trip.name?.trim()) {
-      return `${trip.name.trim()} - ${readableType} (${time})`
-    }
-    return `${readableType} (${time})`
-  }
-
   const getBoatName = (boatId: string) => {
     const boat = boatsData?.data.find((b) => b.id === boatId)
     return boat ? `${boat.name} (Capacity: ${boat.capacity})` : boatId
@@ -539,110 +495,10 @@ const EditBooking = ({
           <DialogBody>
             <Text mb={4}>Update booking information.</Text>
             <VStack gap={4}>
-              <Field
-                invalid={!!errors.first_name}
-                errorText={errors.first_name?.message}
-                label="First Name"
-              >
-                <Input
-                  id="first_name"
-                  {...register("first_name", {
-                    maxLength: {
-                      value: 128,
-                      message: "First name cannot exceed 128 characters",
-                    },
-                  })}
-                  placeholder="First name"
-                />
-              </Field>
-              <Field
-                invalid={!!errors.last_name}
-                errorText={errors.last_name?.message}
-                label="Last Name"
-              >
-                <Input
-                  id="last_name"
-                  {...register("last_name", {
-                    maxLength: {
-                      value: 128,
-                      message: "Last name cannot exceed 128 characters",
-                    },
-                  })}
-                  placeholder="Last name"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.user_email}
-                errorText={errors.user_email?.message}
-                label="Customer Email"
-              >
-                <Input
-                  id="user_email"
-                  type="email"
-                  {...register("user_email", {
-                    maxLength: {
-                      value: 255,
-                      message: "Email cannot exceed 255 characters",
-                    },
-                  })}
-                  placeholder="customer@example.com"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.user_phone}
-                errorText={errors.user_phone?.message}
-                label="Customer Phone"
-              >
-                <Input
-                  id="user_phone"
-                  {...register("user_phone", {
-                    maxLength: {
-                      value: 40,
-                      message: "Phone cannot exceed 40 characters",
-                    },
-                  })}
-                  placeholder="Phone number"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.billing_address}
-                errorText={errors.billing_address?.message}
-                label="Billing Address"
-              >
-                <Textarea
-                  id="billing_address"
-                  {...register("billing_address", {
-                    maxLength: {
-                      value: 1000,
-                      message: "Billing address cannot exceed 1000 characters",
-                    },
-                  })}
-                  placeholder="Billing address"
-                  rows={3}
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.admin_notes}
-                errorText={errors.admin_notes?.message}
-                label="Admin Notes"
-                helperText="Admin only. Not visible to customers."
-              >
-                <Textarea
-                  id="admin_notes"
-                  {...register("admin_notes", {
-                    maxLength: {
-                      value: 2000,
-                      message: "Admin notes cannot exceed 2000 characters",
-                    },
-                  })}
-                  placeholder="Internal notes about this booking"
-                  rows={3}
-                />
-              </Field>
+              <BookingCustomerFields
+                register={register}
+                errors={errors}
+              />
 
               <Field
                 label="Payment Intent ID"
@@ -661,513 +517,64 @@ const EditBooking = ({
               {/* Tickets and Merchandise (item_quantity_updates index matches booking.items index) */}
               {booking.items && booking.items.length > 0 && (
                 <>
-                  <Box w="full">
-                    <Text fontWeight="semibold" mb={3}>
-                      Tickets
-                    </Text>
-                    {booking.items.some((i) => !i.trip_merchandise_id) ? (
-                      <VStack gap={4} align="stretch">
-                        {booking.items.map(
-                          (item, index) =>
-                            !item.trip_merchandise_id && (
-                              <Card.Root key={item.id} bg="bg.panel">
-                                <Card.Header>
-                                  <Card.Title>
-                                    {getTripName(item.trip_id)}
-                                  </Card.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                  <VStack gap={4} align="stretch">
-                                    <SimpleGrid
-                                      columns={{ base: 1, md: 2 }}
-                                      gap={4}
-                                      w="full"
-                                    >
-                                      <Field label="Boat" w="full">
-                                        {(() => {
-                                          const boats =
-                                            boatsByTripId[item.trip_id]
-                                          const canChangeBoat =
-                                            booking.booking_status !==
-                                            "checked_in"
-                                          if (!boats?.length) {
-                                            return (
-                                              <Text>
-                                                {getBoatName(item.boat_id)}
-                                              </Text>
-                                            )
-                                          }
-                                          const updatingBoat =
-                                            updateItemBoatMutation.isPending &&
-                                            updateItemBoatMutation.variables
-                                              ?.itemId === item.id
-                                          return (
-                                            <NativeSelect
-                                              value={item.boat_id ?? ""}
-                                              disabled={
-                                                !canChangeBoat || updatingBoat
-                                              }
-                                              onChange={(e) => {
-                                                const v = e.target.value
-                                                if (!v || v === item.boat_id)
-                                                  return
-                                                const newBoatName =
-                                                  boats.find(
-                                                    (b) => b.boat_id === v,
-                                                  )?.name ?? v
-                                                const ticketTypesForNewBoat =
-                                                  pricingByKey[
-                                                    `${item.trip_id}/${v}`
-                                                  ]
-                                                const hasCurrentType =
-                                                  ticketTypesForNewBoat?.some(
-                                                    (p) =>
-                                                      p.ticket_type ===
-                                                      item.item_type,
-                                                  )
-                                                if (hasCurrentType) {
-                                                  updateItemBoatMutation.mutate(
-                                                    {
-                                                      itemId: item.id,
-                                                      boatId: v,
-                                                    },
-                                                  )
-                                                } else if (
-                                                  ticketTypesForNewBoat?.length
-                                                ) {
-                                                  setPendingBoatChange({
-                                                    itemId: item.id,
-                                                    item,
-                                                    newBoatId: v,
-                                                    newBoatName,
-                                                    ticketTypeOptions:
-                                                      ticketTypesForNewBoat,
-                                                  })
-                                                  setSelectedTicketTypeForBoatChange(
-                                                    ticketTypesForNewBoat[0]
-                                                      .ticket_type,
-                                                  )
-                                                } else {
-                                                  showErrorToast(
-                                                    `Ticket types for boat "${newBoatName}" are not loaded yet. Try again.`,
-                                                  )
-                                                }
-                                              }}
-                                            >
-                                              {boats.map((b) => (
-                                                <option
-                                                  key={b.boat_id}
-                                                  value={b.boat_id}
-                                                >
-                                                  {b.name}
-                                                </option>
-                                              ))}
-                                            </NativeSelect>
-                                          )
-                                        })()}
-                                      </Field>
-                                      <Field label="Ticket type" w="full">
-                                        {(() => {
-                                          const key = `${item.trip_id}/${item.boat_id}`
-                                          const options = pricingByKey[key]
-                                          const canChangeType =
-                                            booking.booking_status !==
-                                            "checked_in"
-                                          if (!options?.length) {
-                                            return (
-                                              <Text>
-                                                {getItemTypeLabel(
-                                                  item.item_type,
-                                                )}
-                                                {item.variant_option
-                                                  ? ` – ${item.variant_option}`
-                                                  : ""}
-                                              </Text>
-                                            )
-                                          }
-                                          const updating =
-                                            updateItemTypeMutation.isPending &&
-                                            updateItemTypeMutation.variables
-                                              ?.itemId === item.id
-                                          return (
-                                            <NativeSelect
-                                              value={item.item_type ?? ""}
-                                              disabled={
-                                                !canChangeType || updating
-                                              }
-                                              onChange={(e) => {
-                                                const v = e.target.value
-                                                if (v && v !== item.item_type)
-                                                  updateItemTypeMutation.mutate(
-                                                    {
-                                                      itemId: item.id,
-                                                      itemType: v,
-                                                    },
-                                                  )
-                                              }}
-                                            >
-                                              {options.map((p) => (
-                                                <option
-                                                  key={p.ticket_type}
-                                                  value={p.ticket_type}
-                                                >
-                                                  {getItemTypeLabel(
-                                                    p.ticket_type,
-                                                  )}{" "}
-                                                  (${formatCents(p.price)})
-                                                </option>
-                                              ))}
-                                            </NativeSelect>
-                                          )
-                                        })()}
-                                      </Field>
-                                    </SimpleGrid>
-                                    <SimpleGrid
-                                      columns={{ base: 1, sm: 2, md: 4 }}
-                                      gap={4}
-                                      alignItems="end"
-                                    >
-                                      <Field label="Quantity">
-                                        <Controller
-                                          name={
-                                            `item_quantity_updates.${index}.quantity` as const
-                                          }
-                                          control={control}
-                                          rules={{
-                                            min: {
-                                              value: 0,
-                                              message: "0 = remove",
-                                            },
-                                          }}
-                                          render={({ field }) => (
-                                            <Input
-                                              {...field}
-                                              type="number"
-                                              min={0}
-                                              w="20"
-                                              value={
-                                                field.value === undefined ||
-                                                field.value === null
-                                                  ? item.quantity
-                                                  : field.value
-                                              }
-                                              onChange={(e) =>
-                                                field.onChange(
-                                                  Math.max(
-                                                    0,
-                                                    Number.parseInt(
-                                                      e.target.value,
-                                                      10,
-                                                    ) ?? 0,
-                                                  ),
-                                                )
-                                              }
-                                            />
-                                          )}
-                                        />
-                                      </Field>
-                                      <Field label="Price">
-                                        <Text>
-                                          ${formatCents(item.price_per_unit)}
-                                        </Text>
-                                      </Field>
-                                      <Field label="Total">
-                                        <Text fontWeight="medium">
-                                          $
-                                          {formatCents(
-                                            (watchedItemQuantities?.[index]
-                                              ?.quantity ?? item.quantity) *
-                                              item.price_per_unit,
-                                          )}
-                                        </Text>
-                                      </Field>
-                                      <Field label="Status">
-                                        <Badge
-                                          size="sm"
-                                          colorPalette={
-                                            item.status === "active"
-                                              ? "green"
-                                              : item.status === "refunded" ||
-                                                item.status === "cancelled"
-                                                ? "red"
-                                                : item.status === "fulfilled"
-                                                  ? "blue"
-                                                  : "gray"
-                                          }
-                                        >
-                                          {item.status}
-                                        </Badge>
-                                      </Field>
-                                    </SimpleGrid>
-                                  </VStack>
-                                </Card.Body>
-                              </Card.Root>
-                            ),
-                        )}
-                      </VStack>
-                    ) : (
-                      <Text color="text.muted" textAlign="center" py={2}>
-                        No tickets.
-                      </Text>
-                    )}
-                    {booking.booking_status !== "checked_in" && (
-                      <Card.Root mt={4} bg="bg.muted" borderStyle="dashed">
-                        <Card.Header>
-                          <Card.Title>Add ticket</Card.Title>
-                        </Card.Header>
-                        <Card.Body>
-                          <SimpleGrid
-                            columns={{ base: 1, sm: 2, md: 4 }}
-                            gap={4}
-                            alignItems="end"
-                          >
-                            <Field label="Trip" required>
-                              <NativeSelect
-                                value={newTicketTripId}
-                                onChange={(e) => {
-                                  setNewTicketTripId(e.target.value)
-                                  setNewTicketBoatId("")
-                                  setNewTicketType("")
-                                }}
-                              >
-                                <option value="">Select trip...</option>
-                                {tripsForAddTicket.map((t) => (
-                                  <option key={t.id} value={t.id}>
-                                    {getTripName(t.id)}
-                                  </option>
-                                ))}
-                              </NativeSelect>
-                            </Field>
-                            <Field label="Boat" required>
-                              <NativeSelect
-                                value={newTicketBoatId}
-                                onChange={(e) => {
-                                  setNewTicketBoatId(e.target.value)
-                                  setNewTicketType("")
-                                }}
-                                disabled={!newTicketTripId}
-                              >
-                                <option value="">Select boat...</option>
-                                {boatsForNewTicket.map((b) => (
-                                  <option key={b.boat_id} value={b.boat_id}>
-                                    {b.name}
-                                  </option>
-                                ))}
-                              </NativeSelect>
-                            </Field>
-                            <Field label="Ticket type" required>
-                              <NativeSelect
-                                value={newTicketType}
-                                onChange={(e) => setNewTicketType(e.target.value)}
-                                disabled={!newTicketBoatId}
-                              >
-                                <option value="">Select type...</option>
-                                {(newTicketPricing as { ticket_type: string; price: number }[] | undefined)?.map(
-                                  (p) => (
-                                    <option key={p.ticket_type} value={p.ticket_type}>
-                                      {getItemTypeLabel(p.ticket_type)} (
-                                      ${formatCents(p.price)})
-                                    </option>
-                                  ),
-                                ) ?? []}
-                              </NativeSelect>
-                            </Field>
-                            <Field label="Quantity" required>
-                              <Input
-                                type="number"
-                                min={1}
-                                value={newTicketQty}
-                                onChange={(e) =>
-                                  setNewTicketQty(
-                                    Math.max(
-                                      1,
-                                      Number.parseInt(e.target.value, 10) || 1,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                          </SimpleGrid>
-                          <Button
-                            mt={4}
-                            onClick={handleAddTicket}
-                            disabled={
-                              !newTicketTripId ||
-                              !newTicketBoatId ||
-                              !newTicketType ||
-                              newTicketQty < 1 ||
-                              addTicketMutation.isPending
-                            }
-                            loading={addTicketMutation.isPending}
-                          >
-                            Add ticket
-                          </Button>
-                        </Card.Body>
-                      </Card.Root>
-                    )}
-                  </Box>
+                  <EditBookingTicketsSection
+                    booking={booking}
+                    boatsByTripId={boatsByTripId}
+                    pricingByKey={pricingByKey}
+                    getTripNameForId={(tripId) =>
+                      getTripName(tripId, tripsData?.data)
+                    }
+                    getBoatName={getBoatName}
+                    control={control}
+                    watchedItemQuantities={watchedItemQuantities}
+                    updateItemBoatMutation={updateItemBoatMutation}
+                    updateItemTypeMutation={updateItemTypeMutation}
+                    setPendingBoatChange={setPendingBoatChange}
+                    setSelectedTicketTypeForBoatChange={
+                      setSelectedTicketTypeForBoatChange
+                    }
+                    showErrorToast={showErrorToast}
+                    newTicketTripId={newTicketTripId}
+                    newTicketBoatId={newTicketBoatId}
+                    newTicketType={newTicketType}
+                    newTicketQty={newTicketQty}
+                    tripsForAddTicket={tripsForAddTicket}
+                    boatsForNewTicket={boatsForNewTicket}
+                    newTicketPricing={newTicketPricing as { ticket_type: string; price: number }[] | undefined}
+                    onNewTicketTripIdChange={setNewTicketTripId}
+                    onNewTicketBoatIdChange={setNewTicketBoatId}
+                    onNewTicketTypeChange={setNewTicketType}
+                    onNewTicketQtyChange={setNewTicketQty}
+                    onAddTicket={handleAddTicket}
+                    addTicketMutation={{
+                      isPending: addTicketMutation.isPending,
+                    }}
+                    getTripNameForAddTicket={(tripId) =>
+                      getTripName(tripId, tripsData?.data)
+                    }
+                  />
 
                   <Box w="full" mt={4}>
                     <Text fontWeight="semibold" mb={3}>
                       Merchandise
                     </Text>
-                    {booking.items.some((i) => i.trip_merchandise_id) ? (
-                      <Table.Root size={"xs" as any} variant="outline">
-                        <Table.Header>
-                          <Table.Row>
-                            <Table.ColumnHeader>Trip</Table.ColumnHeader>
-                            <Table.ColumnHeader>Type</Table.ColumnHeader>
-                            <Table.ColumnHeader>Qty</Table.ColumnHeader>
-                            <Table.ColumnHeader>Price</Table.ColumnHeader>
-                            <Table.ColumnHeader>Total</Table.ColumnHeader>
-                            <Table.ColumnHeader>Status</Table.ColumnHeader>
-                          </Table.Row>
-                        </Table.Header>
-                        <Table.Body>
-                          {booking.items.map(
-                            (item, index) =>
-                              item.trip_merchandise_id && (
-                                <Table.Row key={item.id}>
-                                  <Table.Cell>
-                                    <Text>{getTripName(item.trip_id)}</Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Text>
-                                      {getItemTypeLabel(item.item_type)}
-                                      {item.variant_option
-                                        ? ` – ${item.variant_option}`
-                                        : ""}
-                                    </Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Controller
-                                      name={
-                                        `item_quantity_updates.${index}.quantity` as const
-                                      }
-                                      control={control}
-                                      rules={{
-                                        min: {
-                                          value: 0,
-                                          message: "0 = remove",
-                                        },
-                                      }}
-                                      render={({ field }) => (
-                                        <Input
-                                          {...field}
-                                          type="number"
-                                          min={0}
-                                          w="16"
-                                          value={
-                                            field.value === undefined ||
-                                            field.value === null
-                                              ? item.quantity
-                                              : field.value
-                                          }
-                                          onChange={(e) =>
-                                            field.onChange(
-                                              Math.max(
-                                                0,
-                                                Number.parseInt(
-                                                  e.target.value,
-                                                  10,
-                                                ) ?? 0,
-                                              ),
-                                            )
-                                          }
-                                        />
-                                      )}
-                                    />
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Text>
-                                      ${formatCents(item.price_per_unit)}
-                                    </Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Text fontWeight="medium">
-                                      $
-                                      {formatCents(
-                                        (watchedItemQuantities?.[index]
-                                          ?.quantity ?? item.quantity) *
-                                          item.price_per_unit,
-                                      )}
-                                    </Text>
-                                  </Table.Cell>
-                                  <Table.Cell>
-                                    <Badge
-                                      size="sm"
-                                      colorPalette={
-                                        item.status === "active"
-                                          ? "green"
-                                          : item.status === "refunded" ||
-                                            item.status === "cancelled"
-                                            ? "red"
-                                            : item.status === "fulfilled"
-                                              ? "blue"
-                                              : "gray"
-                                      }
-                                    >
-                                      {item.status}
-                                    </Badge>
-                                  </Table.Cell>
-                                </Table.Row>
-                              ),
-                          )}
-                        </Table.Body>
-                      </Table.Root>
-                    ) : (
-                      <Text color="text.muted" textAlign="center" py={2}>
-                        No merchandise.
-                      </Text>
-                    )}
+                    <EditBookingMerchandiseSection
+                      items={booking.items}
+                      control={control}
+                      watchedItemQuantities={watchedItemQuantities}
+                      getTripNameForId={(tripId) =>
+                        getTripName(tripId, tripsData?.data)
+                      }
+                    />
                   </Box>
                 </>
               )}
 
-              <Field
-                invalid={!!errors.booking_status}
-                errorText={errors.booking_status?.message}
-                label="Booking Status"
-              >
-                <Controller
-                  name="booking_status"
-                  control={control}
-                  render={({ field }) => (
-                    <NativeSelect
-                      {...field}
-                      value={field.value || ""}
-                    >
-                      {bookingStatusOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  )}
-                />
-              </Field>
-              <Field
-                invalid={!!errors.payment_status}
-                errorText={errors.payment_status?.message}
-                label="Payment Status"
-              >
-                <Controller
-                  name="payment_status"
-                  control={control}
-                  render={({ field }) => (
-                    <NativeSelect
-                      {...field}
-                      value={field.value ?? ""}
-                    >
-                      {paymentStatusOptions.map((option) => (
-                        <option key={option.value || "none"} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  )}
-                />
-              </Field>
+              <BookingStatusFields
+                mode="edit"
+                control={control}
+                errors={errors}
+              />
               {/* Show refund information (booking-level reason/notes only) */}
               {(booking.refund_reason?.trim() || booking.refund_notes?.trim()) && (
                 <Box
@@ -1216,146 +623,12 @@ const EditBooking = ({
                 />
               </Field>
 
-              {/* Financial Fields */}
-              <Field
-                label="Subtotal"
-                helperText="Recalculated from item quantities and prices"
-              >
-                <Input
-                  value={`$${formatCents(effectiveSubtotal)}`}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
-                />
-              </Field>
-
-              <HStack w="full" gap={3}>
-                <Field
-                  invalid={!!errors.discount_amount}
-                  errorText={errors.discount_amount?.message}
-                  label="Discount Amount"
-                >
-                  <Controller
-                    name="discount_amount"
-                    control={control}
-                    rules={{
-                      min: {
-                        value: 0,
-                        message: "Discount amount must be at least 0",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <Input
-                        id="discount_amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={field.value != null ? field.value / 100 : ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            Math.round(
-                              (Number.parseFloat(e.target.value) || 0) * 100,
-                            ),
-                          )
-                        }
-                        placeholder="0.00"
-                      />
-                    )}
-                  />
-                </Field>
-
-                <Field
-                  invalid={!!errors.tax_amount}
-                  errorText={errors.tax_amount?.message}
-                  label="Tax Amount"
-                >
-                  <Controller
-                    name="tax_amount"
-                    control={control}
-                    rules={{
-                      min: {
-                        value: 0,
-                        message: "Tax amount must be at least 0",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <Input
-                        id="tax_amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={field.value != null ? field.value / 100 : ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            Math.round(
-                              (Number.parseFloat(e.target.value) || 0) * 100,
-                            ),
-                          )
-                        }
-                        placeholder="0.00"
-                      />
-                    )}
-                  />
-                </Field>
-              </HStack>
-
-              <HStack w="full" gap={3}>
-                <Field
-                  invalid={!!errors.tip_amount}
-                  errorText={errors.tip_amount?.message}
-                  label={<StarFleetTipLabel showTooltip={false} />}
-                >
-                  <Controller
-                    name="tip_amount"
-                    control={control}
-                    rules={{
-                      min: {
-                        value: 0,
-                        message: "Tip amount must be at least 0",
-                      },
-                    }}
-                    render={({ field }) => (
-                      <Input
-                        id="tip_amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={field.value != null ? field.value / 100 : ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            Math.round(
-                              (Number.parseFloat(e.target.value) || 0) * 100,
-                            ),
-                          )
-                        }
-                        placeholder="0.00"
-                      />
-                    )}
-                  />
-                </Field>
-
-                <Field
-                  label="Total Amount"
-                  helperText="Auto-calculated: (subtotal - discount) + tax + tip"
-                >
-                  <Controller
-                    name="total_amount"
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        value={`$${formatCents(field.value ?? 0)}`}
-                        readOnly
-                        bg="dark.bg.accent"
-                        color="text.muted"
-                        _focus={{ boxShadow: "none" }}
-                        cursor="default"
-                      />
-                    )}
-                  />
-                </Field>
-              </HStack>
+              <BookingPricingSummary
+                mode="edit"
+                effectiveSubtotalCents={effectiveSubtotal}
+                control={control}
+                errors={errors}
+              />
 
               <Field>
                 <Controller
@@ -1394,75 +667,26 @@ const EditBooking = ({
       </DialogContent>
     </DialogRoot>
 
-    <DialogRoot
+    <BoatChangeTypeDialog
       open={!!pendingBoatChange}
-      onOpenChange={({ open }) => {
-        if (!open) {
-          setPendingBoatChange(null)
-          setSelectedTicketTypeForBoatChange("")
-        }
+      pendingBoatChange={pendingBoatChange}
+      selectedTicketType={selectedTicketTypeForBoatChange}
+      onSelectedTicketTypeChange={setSelectedTicketTypeForBoatChange}
+      onConfirm={() => {
+        if (!pendingBoatChange) return
+        updateItemBoatMutation.mutate({
+          itemId: pendingBoatChange.itemId,
+          boatId: pendingBoatChange.newBoatId,
+          itemType: selectedTicketTypeForBoatChange,
+        })
+        setPendingBoatChange(null)
+        setSelectedTicketTypeForBoatChange("")
       }}
-    >
-      <DialogContent>
-        <DialogCloseTrigger />
-        <DialogHeader>
-          <DialogTitle>Choose ticket type for new boat</DialogTitle>
-        </DialogHeader>
-        <DialogBody>
-          {pendingBoatChange && (
-            <VStack gap={4} align="stretch">
-              <Text>
-                Ticket type &quot;{getItemTypeLabel(pendingBoatChange.item.item_type)}
-                &quot; is not available on boat &quot;{pendingBoatChange.newBoatName}
-                &quot;. Select a ticket type for the new boat:
-              </Text>
-              <Field label="Ticket type">
-                <NativeSelect
-                  value={selectedTicketTypeForBoatChange}
-                  onChange={(e) =>
-                    setSelectedTicketTypeForBoatChange(e.target.value)
-                  }
-                >
-                  {pendingBoatChange.ticketTypeOptions.map((p) => (
-                    <option key={p.ticket_type} value={p.ticket_type}>
-                      {getItemTypeLabel(p.ticket_type)} (
-                      ${formatCents(p.price)})
-                    </option>
-                  ))}
-                </NativeSelect>
-              </Field>
-            </VStack>
-          )}
-        </DialogBody>
-        <DialogFooter gap={2}>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPendingBoatChange(null)
-              setSelectedTicketTypeForBoatChange("")
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="solid"
-            disabled={!selectedTicketTypeForBoatChange}
-            onClick={() => {
-              if (!pendingBoatChange) return
-              updateItemBoatMutation.mutate({
-                itemId: pendingBoatChange.itemId,
-                boatId: pendingBoatChange.newBoatId,
-                itemType: selectedTicketTypeForBoatChange,
-              })
-              setPendingBoatChange(null)
-              setSelectedTicketTypeForBoatChange("")
-            }}
-          >
-            Change boat
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </DialogRoot>
+      onClose={() => {
+        setPendingBoatChange(null)
+        setSelectedTicketTypeForBoatChange("")
+      }}
+    />
     </>
   )
 }

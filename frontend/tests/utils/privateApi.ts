@@ -5,8 +5,7 @@ import { OpenAPI, PrivateService } from "../../src/client"
 import {
   apiBaseUrl,
   firstSuperuser,
-  testSuperuserEmail,
-  testSuperuserPassword,
+  firstSuperuserPassword,
 } from "../config"
 
 OpenAPI.BASE = `${process.env.VITE_API_URL}`
@@ -29,19 +28,22 @@ export const createUser = async ({
 }
 
 /**
- * Delete a user by id using the test superuser (for test cleanup).
+ * Delete a user by id using the first superuser (for test cleanup).
  * Never deletes the first superuser: we skip when the target user's email matches
- * FIRST_SUPERUSER, or when the target is the logged-in test superuser.
+ * FIRST_SUPERUSER.
  */
 export async function deleteUserAsSuperuser(
   request: APIRequestContext,
   userId: string,
 ): Promise<void> {
   const loginRes = await request.post(`${apiBaseUrl}/api/v1/login/access-token`, {
-    form: { username: testSuperuserEmail, password: testSuperuserPassword },
+    form: { username: firstSuperuser, password: firstSuperuserPassword },
   })
   if (!loginRes.ok()) {
-    throw new Error(`Test superuser login failed: ${loginRes.status()}`)
+    const body = await loginRes.text()
+    throw new Error(
+      `First superuser login failed: ${loginRes.status()}. ${body || "No response body."} Ensure backend is running and FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD match.`,
+    )
   }
   const body = (await loginRes.json()) as { access_token: string }
   const headers = { Authorization: `Bearer ${body.access_token}` }

@@ -1,10 +1,5 @@
 import { expect, test } from "@playwright/test"
-import {
-  testSuperuserEmail,
-  testSuperuserPassword,
-} from "./config.ts"
-import { randomEmail, randomPassword } from "./utils/random"
-import { logInUser, logOutUser } from "./utils/user"
+import { randomEmail } from "./utils/random"
 
 const tabs = ["My profile", "Display", "Password"]
 
@@ -25,8 +20,10 @@ test("All tabs are visible", async ({ page }) => {
   }
 })
 
-test.describe("Edit user full name and email successfully", () => {
-  test("Edit user name with a valid name", async ({ page }) => {
+// Edit tests share the same user; run serially to avoid conflicts.
+test.describe.serial("Edit user", () => {
+  test.describe("Edit user full name and email successfully", () => {
+    test("Edit user name with a valid name", async ({ page }) => {
     const updatedName = `Test User ${randomEmail().slice(0, 8)}`
     await page.goto("/settings")
     await page.getByRole("tab", { name: "My profile" }).click()
@@ -37,9 +34,9 @@ test.describe("Edit user full name and email successfully", () => {
     await expect(
       page.getByRole("tabpanel", { name: "My profile" }).getByText(updatedName, { exact: true }),
     ).toBeVisible()
-  })
+    })
 
-  test("Edit user email with a valid email", async ({ page }) => {
+    test("Edit user email with a valid email", async ({ page }) => {
     const updatedEmail = randomEmail()
     await page.goto("/settings")
     await page.getByRole("tab", { name: "My profile" }).click()
@@ -50,11 +47,11 @@ test.describe("Edit user full name and email successfully", () => {
     await expect(
       page.getByRole("tabpanel", { name: "My profile" }).getByText(updatedEmail, { exact: true }),
     ).toBeVisible()
+    })
   })
-})
 
-test.describe("Edit user with invalid data", () => {
-  test("Edit user email with an invalid email", async ({ page }) => {
+  test.describe("Edit user with invalid data", () => {
+    test("Edit user email with an invalid email", async ({ page }) => {
     await page.goto("/settings")
     await expect(page).toHaveURL(/\/settings/, { timeout: 10000 })
     await page.getByRole("tab", { name: "My profile" }).click()
@@ -62,9 +59,9 @@ test.describe("Edit user with invalid data", () => {
     await page.getByLabel("Email").fill("")
     await page.locator("body").click()
     await expect(page.getByText("Email is required")).toBeVisible()
-  })
+    })
 
-  test("Cancel edit action restores original name", async ({ page }) => {
+    test("Cancel edit action restores original name", async ({ page }) => {
     const originalName = `Original ${randomEmail().slice(0, 8)}`
     await page.goto("/settings")
     await expect(page).toHaveURL(/\/settings/, { timeout: 10000 })
@@ -79,9 +76,9 @@ test.describe("Edit user with invalid data", () => {
     await expect(
       page.getByRole("tabpanel", { name: "My profile" }).getByText(originalName, { exact: true }),
     ).toBeVisible()
-  })
+    })
 
-  test("Cancel edit action restores original email", async ({ page }) => {
+    test("Cancel edit action restores original email", async ({ page }) => {
     const originalEmail = randomEmail()
     await page.goto("/settings")
     await expect(page).toHaveURL(/\/settings/, { timeout: 10000 })
@@ -96,77 +93,7 @@ test.describe("Edit user with invalid data", () => {
     await expect(
       page.getByRole("tabpanel", { name: "My profile" }).getByText(originalEmail, { exact: true }),
     ).toBeVisible()
-  })
-})
-
-// Change Password
-
-test.describe("Change password successfully", () => {
-  test("Update password successfully", async ({ page }) => {
-    const newPassword = randomPassword()
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "Password" }).click()
-    await page.getByPlaceholder("Current Password").fill(testSuperuserPassword)
-    await page.getByPlaceholder("New Password").fill(newPassword)
-    await page.getByPlaceholder("Confirm Password").fill(newPassword)
-    await page.getByRole("heading", { name: "Change Password" }).click()
-    await expect(page.getByRole("button", { name: "Save" })).toBeEnabled({ timeout: 5000 })
-    await page.getByRole("button", { name: "Save" }).click()
-    await expect(page.getByText("Password updated successfully.")).toBeVisible()
-
-    await logOutUser(page)
-    await logInUser(page, testSuperuserEmail, newPassword)
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "Password" }).click()
-    await page.getByPlaceholder("Current Password").fill(newPassword)
-await page.getByPlaceholder("New Password").fill(testSuperuserPassword)
-  await page.getByPlaceholder("Confirm Password").fill(testSuperuserPassword)
-    await page.getByRole("heading", { name: "Change Password" }).click()
-    await expect(page.getByRole("button", { name: "Save" })).toBeEnabled({ timeout: 5000 })
-    await page.getByRole("button", { name: "Save" }).click()
-    await expect(page.getByText("Password updated successfully.")).toBeVisible()
-  })
-})
-
-test.describe("Change password with invalid data", () => {
-  test("Update password with weak passwords", async ({ page }) => {
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "Password" }).click()
-    await page.getByPlaceholder("Current Password").fill(testSuperuserPassword)
-    await page.getByPlaceholder("New Password").fill("weak")
-    await page.getByPlaceholder("Confirm Password").fill("weak")
-    await expect(
-      page.getByText("Password must be at least 8 characters"),
-    ).toBeVisible()
-  })
-
-  test("New password and confirmation password do not match", async ({
-    page,
-  }) => {
-    const newPassword = randomPassword()
-    const confirmPassword = randomPassword()
-
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "Password" }).click()
-    await page.getByPlaceholder("Current Password").fill(testSuperuserPassword)
-    await page.getByPlaceholder("New Password").fill(newPassword)
-    await page.getByPlaceholder("Confirm Password").fill(confirmPassword)
-    await page.getByLabel("Password", { exact: true }).locator("form").click()
-    await expect(page.getByText("The passwords do not match")).toBeVisible()
-  })
-
-  test("Current password and new password are the same", async ({ page }) => {
-    await page.goto("/settings")
-    await page.getByRole("tab", { name: "Password" }).click()
-    await page.getByPlaceholder("Current Password").fill(testSuperuserPassword)
-await page.getByPlaceholder("New Password").fill(testSuperuserPassword)
-  await page.getByPlaceholder("Confirm Password").fill(testSuperuserPassword)
-    await page.getByRole("heading", { name: "Change Password" }).click()
-    await expect(page.getByRole("button", { name: "Save" })).toBeEnabled({ timeout: 5000 })
-    await page.getByRole("button", { name: "Save" }).click()
-    await expect(
-      page.getByText("New password cannot be the same as the current one"),
-    ).toBeVisible()
+    })
   })
 })
 

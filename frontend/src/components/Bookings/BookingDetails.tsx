@@ -41,6 +41,7 @@ import {
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import { getTripName as getTripNameFromTrips } from "./types"
 import {
   formatPaymentStatusLabel,
   getRefundedCents,
@@ -92,19 +93,8 @@ export default function BookingDetails({
     enabled: !!booking?.items?.length,
   })
 
-  const tripTypeToLabel = (type: string | undefined): string => {
-    if (!type) return ""
-    if (type === "launch_viewing") return "Launch Viewing"
-    if (type === "pre_launch") return "Pre-Launch"
-    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  const getTripName = (tripId: string) => {
-    const trip = tripsData?.data?.find((t: { id: string }) => t.id === tripId)
-    return trip
-      ? `${tripTypeToLabel(trip.type)} – ${formatDateTimeInLocationTz(trip.departure_time, trip.timezone)}`
-      : tripId
-  }
+  const getTripName = (tripId: string) =>
+    getTripNameFromTrips(tripId, tripsData?.data)
 
   const getBoatName = (boatId: string) => {
     const boat = boatsData?.data?.find((b: { id: string }) => b.id === boatId)

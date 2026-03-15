@@ -4,7 +4,10 @@ export const randomEmail = () =>
 export const randomTeamName = () =>
   `Team ${Math.random().toString(36).substring(7)}`
 
-export const randomPassword = () => `${Math.random().toString(36).substring(2)}`
+export const randomPassword = () => {
+  const base = Math.random().toString(36).substring(2)
+  return base.length >= 8 ? base : base + "x".repeat(8 - base.length)
+}
 
 export const slugify = (text: string) =>
   text
