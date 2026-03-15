@@ -218,12 +218,18 @@ def list_bookings(
         )
 
         # Build base query
-        # When we have join filters (mission/trip/boat/trip_type) AND sort by trip_name/trip_type,
-        # we must avoid SELECT DISTINCT + ORDER BY (expression not in SELECT) - PostgreSQL rejects it.
+        # When we have join filters (mission/trip/boat/trip_type) AND sort by derived columns
+        # (trip_name, trip_type, boat_name, total_quantity), we must avoid SELECT DISTINCT +
+        # ORDER BY (expression not in SELECT) - PostgreSQL rejects it.
         # Use a subquery for filtered booking IDs, then select Booking by id.
         has_join_filters = mission_id or launch_id or trip_id or boat_id or trip_type
-        sort_by_trip = sort_by in ("trip_name", "trip_type")
-        use_id_subquery = has_join_filters and sort_by_trip
+        sort_by_derived = sort_by in (
+            "trip_name",
+            "trip_type",
+            "boat_name",
+            "total_quantity",
+        )
+        use_id_subquery = has_join_filters and sort_by_derived
 
         if use_id_subquery:
             # Subquery: distinct booking IDs matching all filters
@@ -351,8 +357,8 @@ def list_bookings(
                 detail="Error counting bookings",
             )
 
-        # Apply sorting (trip_name/trip_type use first item's trip by display order)
-        if sort_by_trip:
+        # Apply sorting for derived columns (trip, boat, total quantity)
+        if sort_by == "trip_name" or sort_by == "trip_type":
             # Correlated subquery: trip name/type of first booking item (display order)
             first_item_trip = (
                 select(Trip.name if sort_by == "trip_name" else Trip.type)
@@ -372,6 +378,40 @@ def list_bookings(
                 order_clause = first_item_trip.asc().nulls_last()
             else:
                 order_clause = first_item_trip.desc().nulls_first()
+        elif sort_by == "boat_name":
+            # Correlated subquery: boat name of first booking item (display order)
+            first_item_boat = (
+                select(Boat.name)
+                .select_from(BookingItem)
+                .join(Boat, Boat.id == BookingItem.boat_id)
+                .where(BookingItem.booking_id == Booking.id)
+                .order_by(
+                    nulls_first(BookingItem.trip_merchandise_id.asc()),
+                    BookingItem.item_type,
+                    BookingItem.id,
+                )
+                .limit(1)
+                .correlate(Booking)
+                .scalar_subquery()
+            )
+            if sort_direction.lower() == "asc":
+                order_clause = first_item_boat.asc().nulls_last()
+            else:
+                order_clause = first_item_boat.desc().nulls_first()
+        elif sort_by == "total_quantity":
+            # Correlated subquery: sum of ticket quantities (exclude merchandise)
+            total_qty_subq = (
+                select(func.coalesce(func.sum(BookingItem.quantity), 0))
+                .select_from(BookingItem)
+                .where(BookingItem.booking_id == Booking.id)
+                .where(BookingItem.trip_merchandise_id.is_(None))
+                .correlate(Booking)
+                .scalar_subquery()
+            )
+            if sort_direction.lower() == "asc":
+                order_clause = total_qty_subq.asc()
+            else:
+                order_clause = total_qty_subq.desc()
         else:
             sort_column = getattr(Booking, sort_by, Booking.created_at)
             if sort_direction.lower() == "asc":

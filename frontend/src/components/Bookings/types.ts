@@ -25,6 +25,8 @@ export type SortableColumn =
   | "mission_name"
   | "trip_name"
   | "trip_type"
+  | "boat_name"
+  | "total_quantity"
 
 export type SortDirection = "asc" | "desc"
 
@@ -46,6 +48,8 @@ export const bookingsSearchSchema = z.object({
       "mission_name",
       "trip_name",
       "trip_type",
+      "boat_name",
+      "total_quantity",
     ])
     .catch("created_at"),
   sortDirection: z.enum(["asc", "desc"]).catch("desc"),

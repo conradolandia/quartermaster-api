@@ -65,8 +65,16 @@ export default function BookingsTableHeader({
             <SortIcon column="trip_name" sortBy={sortBy} sortDirection={sortDirection} />
           </Flex>
         </Table.ColumnHeader>
-        <Table.ColumnHeader w="40" fontWeight="bold">
-          Boat
+        <Table.ColumnHeader
+          w="40"
+          fontWeight="bold"
+          cursor="pointer"
+          onClick={() => onSort("boat_name")}
+        >
+          <Flex align="center">
+            Boat
+            <SortIcon column="boat_name" sortBy={sortBy} sortDirection={sortDirection} />
+          </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
           w="52"
@@ -93,8 +101,17 @@ export default function BookingsTableHeader({
             <SortIcon column="total_amount" sortBy={sortBy} sortDirection={sortDirection} />
           </Flex>
         </Table.ColumnHeader>
-        <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
-          Qty
+        <Table.ColumnHeader
+          w="16"
+          fontWeight="bold"
+          cursor="pointer"
+          textAlign="center"
+          onClick={() => onSort("total_quantity")}
+        >
+          <Flex align="center" justify="center">
+            Qty
+            <SortIcon column="total_quantity" sortBy={sortBy} sortDirection={sortDirection} />
+          </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
           w="36"
