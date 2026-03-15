@@ -32,7 +32,7 @@ import {
 import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
-import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import { formatCents } from "@/utils"
 import { formatTripOptionLabel, getItemTypeLabel } from "./types"
 
 interface RescheduleBookingProps {

@@ -11,12 +11,12 @@ import {
 import { Controller, type Control } from "react-hook-form"
 
 import type { UseMutationResult } from "@tanstack/react-query"
-import type { BookingItemPublic, BookingPublic, BookingUpdate } from "@/client"
+import type { BookingPublic, BookingUpdate } from "@/client"
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatCents } from "@/utils"
 import type { PendingBoatChange } from "./BoatChangeTypeDialog"
-import { getItemTypeLabel, getTripName } from "./types"
+import { getItemTypeLabel } from "./types"
 
 interface BoatOption {
   boat_id: string

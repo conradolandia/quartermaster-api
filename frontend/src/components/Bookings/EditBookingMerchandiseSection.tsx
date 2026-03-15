@@ -2,7 +2,6 @@ import { Badge, Input, Table, Text } from "@chakra-ui/react"
 import { Controller, type Control } from "react-hook-form"
 
 import type { BookingItemPublic, BookingUpdate } from "@/client"
-import { Field } from "@/components/ui/field"
 import { formatCents } from "@/utils"
 import { getItemTypeLabel } from "./types"
 
@@ -31,7 +30,7 @@ export function EditBookingMerchandiseSection({
   }
 
   return (
-    <Table.Root size="xs" variant="outline">
+    <Table.Root size="sm" variant="outline">
       <Table.Header>
         <Table.Row>
           <Table.ColumnHeader>Trip</Table.ColumnHeader>
