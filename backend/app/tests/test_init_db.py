@@ -22,6 +22,7 @@ def test_init_db_creates_launch_viewing_trip_one_hour_before_launch(
         select(Trip).where(
             Trip.mission_id == mission.id,
             Trip.type == "launch_viewing",
+            Trip.name.is_(None),
         )
     ).first()
 
