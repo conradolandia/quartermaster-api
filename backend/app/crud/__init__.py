@@ -31,6 +31,7 @@ from .booking_items import (
     get_paid_ticket_count_per_boat_per_item_type_for_trip,
     get_ticket_item_count_for_trip_boat,
     get_ticket_item_count_per_type_for_trip_boat,
+    paid_ticket_counts_by_type_for_boat,
     reassign_trip_boat_passengers,
     update_booking_item,
 )
@@ -288,6 +289,7 @@ __all__ = [
     "get_booking_items_by_trip",
     "get_paid_ticket_count_per_boat_for_trip",
     "get_paid_ticket_count_per_boat_per_item_type_for_trip",
+    "paid_ticket_counts_by_type_for_boat",
     "get_ticket_item_count_for_trip_boat",
     "get_ticket_item_count_per_type_for_trip_boat",
     "reassign_trip_boat_passengers",

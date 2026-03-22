@@ -199,6 +199,24 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
     return {(boat_id, item_type): int(total) for boat_id, item_type, total in rows}
 
 
+def paid_ticket_counts_by_type_for_boat(
+    *,
+    paid_by_type: dict[tuple[uuid.UUID, str], int],
+    boat_id: uuid.UUID,
+) -> dict[str, int]:
+    """
+    Slice get_paid_ticket_count_per_boat_per_item_type_for_trip() for one boat.
+
+    Used for trip-boat API responses so used_per_ticket_type matches the same
+    paid-seat rules as pricing.remaining / capacity enforcement.
+    """
+    out: dict[str, int] = {}
+    for (bid, item_type), cnt in paid_by_type.items():
+        if bid == boat_id:
+            out[item_type] = cnt
+    return out
+
+
 def create_booking_item(
     *, session: Session, booking_item_in: BookingItemCreate
 ) -> BookingItem:
