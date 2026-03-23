@@ -334,17 +334,6 @@ export type DiscountCodeUpdate = {
   restricted_trip_id?: string | null
 }
 
-/**
- * Client-side DOM state for sidebar unclickable bug monitoring.
- */
-export type DomStateLog = {
-  message?: string
-  data?: {
-    [key: string]: unknown
-  }
-  timestamp?: number
-}
-
 export type EffectivePricingItem = {
   ticket_type: string
   price: number
@@ -1246,12 +1235,6 @@ export type BookingsProcessRefundData = {
 }
 
 export type BookingsProcessRefundResponse = BookingPublic
-
-export type DebugLogDomStateData = {
-  requestBody: DomStateLog
-}
-
-export type DebugLogDomStateResponse = void
 
 export type DiscountCodesCreateDiscountCodeData = {
   requestBody: DiscountCodeCreate

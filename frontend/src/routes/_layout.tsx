@@ -13,7 +13,6 @@ import { UsersService } from "@/client"
 import Navbar from "@/components/Common/Navbar"
 import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
-import { debugLog } from "@/utils/debugLog"
 
 /**
  * Clears stuck body pointer-events/data-inert when no modal/drawer is mounted.
@@ -80,13 +79,6 @@ function Layout() {
     const id = setInterval(() => {
       if (document.visibilityState === "visible") fixStuckModalState()
     }, 3000)
-    return () => clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      debugLog("Layout DOM state")
-    }, 15000)
     return () => clearInterval(id)
   }, [])
 

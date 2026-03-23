@@ -70,8 +70,6 @@ import type {
   BookingsExportBookingsCsvResponse,
   BookingsProcessRefundData,
   BookingsProcessRefundResponse,
-  DebugLogDomStateData,
-  DebugLogDomStateResponse,
   DiscountCodesCreateDiscountCodeData,
   DiscountCodesCreateDiscountCodeResponse,
   DiscountCodesListDiscountCodesData,
@@ -1178,31 +1176,6 @@ export class BookingsService {
       path: {
         confirmation_code: data.confirmationCode,
       },
-      body: data.requestBody,
-      mediaType: "application/json",
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-}
-
-export class DebugService {
-  /**
-   * Log Dom State
-   * Receive and log client DOM state for debugging sidebar unclickable issue.
-   * Called periodically from the frontend when VITE_DEBUG_LOG_ENABLED is set.
-   * @param data The data for the request.
-   * @param data.requestBody
-   * @returns void Successful Response
-   * @throws ApiError
-   */
-  public static logDomState(
-    data: DebugLogDomStateData,
-  ): CancelablePromise<DebugLogDomStateResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/debug/dom-state",
       body: data.requestBody,
       mediaType: "application/json",
       errors: {
