@@ -110,7 +110,7 @@ function Layout() {
   if (isLoggedIn() && status === "pending") {
     return (
       <Flex justify="center" align="center" h="100vh">
-        <Spinner />
+        <Spinner size="xl" color="white" />
       </Flex>
     )
   }
