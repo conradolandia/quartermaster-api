@@ -281,6 +281,11 @@ class Booking(BookingBase, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
+    # Active payment hold: set when PaymentIntent is created; counts against capacity until expiry.
+    capacity_hold_expires_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     qr_code_base64: str | None = Field(default=None)
     items: list["BookingItem"] = Relationship(
         back_populates="booking",

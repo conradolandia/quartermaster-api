@@ -622,7 +622,13 @@ def read_trip_capacity(
     paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
         session=session, trip_id=trip_id
     )
-    used_capacity = sum(paid_counts.values())
+    held_counts = crud.get_held_ticket_count_per_boat_for_trip(
+        session=session, trip_id=trip_id
+    )
+    boat_ids = set(paid_counts) | set(held_counts)
+    used_capacity = sum(
+        paid_counts.get(bid, 0) + held_counts.get(bid, 0) for bid in boat_ids
+    )
     return TripCapacityResponse(
         total_capacity=total_capacity,
         used_capacity=used_capacity,

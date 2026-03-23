@@ -18,6 +18,21 @@ from app.models import (
 )
 
 
+def _paid_plus_held_by_type_for_trip(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+) -> dict[tuple[uuid.UUID, str], int]:
+    """Ticket counts for pricing and remaining capacity: confirmed paid plus active payment holds."""
+    paid = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
+    held = crud.get_held_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
+    return crud.merge_paid_and_held_per_boat_item_type(paid, held)
+
+
 def _remaining_capacity_from_pricing(
     *,
     pricing: list[EffectivePricingItem],
@@ -76,7 +91,12 @@ def create_trip_boat(
         paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
             session=session, trip_id=trip_boat_in.trip_id
         )
-        booked = paid_counts.get(trip_boat_in.boat_id, 0)
+        held_counts = crud.get_held_ticket_count_per_boat_for_trip(
+            session=session, trip_id=trip_boat_in.trip_id
+        )
+        booked = paid_counts.get(trip_boat_in.boat_id, 0) + held_counts.get(
+            trip_boat_in.boat_id, 0
+        )
         if trip_boat_in.max_capacity < booked:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -143,9 +163,7 @@ def read_trip_boats_by_trip(
     trip_boats = crud.get_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
-        session=session, trip_id=trip_id
-    )
+    paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -263,7 +281,10 @@ def update_trip_boat(
         paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
             session=session, trip_id=trip_id
         )
-        booked = paid_counts.get(boat_id, 0)
+        held_counts = crud.get_held_ticket_count_per_boat_for_trip(
+            session=session, trip_id=trip_id
+        )
+        booked = paid_counts.get(boat_id, 0) + held_counts.get(boat_id, 0)
         if trip_boat_in.max_capacity < booked:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -402,9 +423,7 @@ def read_public_trip_boats_by_trip(
     trip_boats = crud.get_trip_boats_by_trip_with_boat_provider(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
-    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
-        session=session, trip_id=trip_id
-    )
+    paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -477,9 +496,7 @@ def read_public_effective_pricing(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tickets are not yet available for this trip",
         )
-    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
-        session=session, trip_id=trip_id
-    )
+    paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
     return crud.get_effective_pricing(
         session=session,
         trip_id=trip_id,
@@ -510,9 +527,7 @@ def read_effective_pricing(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    paid_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
-        session=session, trip_id=trip_id
-    )
+    paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
     return crud.get_effective_pricing(
         session=session,
         trip_id=trip_id,

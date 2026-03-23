@@ -3,10 +3,12 @@ import { useNavigate, useSearch } from "@tanstack/react-router"
 import { type MutableRefObject, useEffect, useRef, useState } from "react"
 
 import {
+  ApiError,
   type BookingCreate,
   BookingsService,
   PaymentsService,
 } from "@/client"
+import { handleError } from "@/utils"
 
 import type { BookingResult, BookingStepData } from "../bookingTypes"
 import { customerInfoSchema } from "./Step3CustomerInfo"
@@ -59,15 +61,76 @@ export function useBookingDraft({
       const booking = await BookingsService.getBookingByConfirmationCode({
         confirmationCode: code,
       })
-      return { booking }
-    },
-    onSuccess: async ({ booking }, code) => {
       const bookingStatus = (booking.booking_status ?? "") as string
       if (CONFIRMED_STATUSES.includes(bookingStatus)) {
-        navigate({ to: "/bookings", search: { code } })
-        return
+        return { outcome: "confirmed" as const, code }
       }
       if (bookingStatus === "cancelled") {
+        return { outcome: "cancelled" as const }
+      }
+      let bookingToUse = booking
+      if (!skipHydrateForm) {
+        onResumeBookingLoaded?.(booking)
+      } else {
+        const parsed = customerInfoSchema.safeParse(
+          bookingData.customerInfo,
+        )
+        if (!parsed.success) {
+          return { outcome: "invalid_customer" as const }
+        }
+        setCustomerInfoInvalid(false)
+        const updated =
+          await BookingsService.bookingPublicUpdateDraftBooking({
+            confirmationCode: code,
+            requestBody: {
+              first_name:
+                bookingData.customerInfo.first_name || undefined,
+              last_name:
+                bookingData.customerInfo.last_name || undefined,
+              user_email: bookingData.customerInfo.email || undefined,
+              user_phone: bookingData.customerInfo.phone || undefined,
+              billing_address:
+                bookingData.customerInfo.billing_address || undefined,
+              special_requests:
+                bookingData.customerInfo.special_requests || undefined,
+              launch_updates_pref:
+                bookingData.customerInfo.launch_updates_pref ?? undefined,
+              tip_amount: bookingData.tip ?? undefined,
+              subtotal: bookingData.subtotal,
+              discount_amount: bookingData.discount_amount,
+              tax_amount: bookingData.tax_amount,
+              total_amount: bookingData.total,
+            },
+          })
+        bookingToUse = updated
+      }
+      const totalCents = bookingToUse.total_amount ?? 0
+      if (bookingStatus === "draft" && totalCents < 50) {
+        await BookingsService.confirmFreeBooking({
+          confirmationCode: code,
+        })
+        return { outcome: "free_confirmed" as const, code }
+      }
+      const paymentData =
+        bookingStatus === "draft"
+          ? await BookingsService.initializePayment({
+              confirmationCode: code,
+            })
+          : await BookingsService.resumePayment({
+              confirmationCode: code,
+            })
+      return {
+        outcome: "payment_ready" as const,
+        booking: bookingToUse,
+        paymentData,
+      }
+    },
+    onSuccess: (result) => {
+      if (result.outcome === "confirmed") {
+        navigate({ to: "/bookings", search: { code: result.code } })
+        return
+      }
+      if (result.outcome === "cancelled") {
         navigate({
           to: "/book",
           search: { discount: search.discount, access: search.access },
@@ -75,70 +138,29 @@ export function useBookingDraft({
         })
         return
       }
-      try {
-        let bookingToUse = booking
-        if (!skipHydrateForm) {
-          onResumeBookingLoaded?.(booking)
-        } else {
-          const parsed = customerInfoSchema.safeParse(
-            bookingData.customerInfo,
-          )
-          if (!parsed.success) {
-            setCustomerInfoInvalid(true)
-            return
-          }
-          setCustomerInfoInvalid(false)
-          const updated =
-            await BookingsService.bookingPublicUpdateDraftBooking({
-              confirmationCode: code,
-              requestBody: {
-                first_name:
-                  bookingData.customerInfo.first_name || undefined,
-                last_name:
-                  bookingData.customerInfo.last_name || undefined,
-                user_email: bookingData.customerInfo.email || undefined,
-                user_phone: bookingData.customerInfo.phone || undefined,
-                billing_address:
-                  bookingData.customerInfo.billing_address || undefined,
-                special_requests:
-                  bookingData.customerInfo.special_requests || undefined,
-                launch_updates_pref:
-                  bookingData.customerInfo.launch_updates_pref ?? undefined,
-                tip_amount: bookingData.tip ?? undefined,
-                subtotal: bookingData.subtotal,
-                discount_amount: bookingData.discount_amount,
-                tax_amount: bookingData.tax_amount,
-                total_amount: bookingData.total,
-              },
-            })
-          bookingToUse = updated
-        }
-        const totalCents = bookingToUse.total_amount ?? 0
-        if (bookingStatus === "draft" && totalCents < 50) {
-          await BookingsService.confirmFreeBooking({
-            confirmationCode: code,
-          })
-          navigate({ to: "/bookings", search: { code } })
-          return
-        }
-        const paymentData =
-          bookingStatus === "draft"
-            ? await BookingsService.initializePayment({
-                confirmationCode: code,
-              })
-            : await BookingsService.resumePayment({
-                confirmationCode: code,
-              })
-        onBookingReady({ booking: bookingToUse, paymentData })
-      } catch {
+      if (result.outcome === "invalid_customer") {
+        setCustomerInfoInvalid(true)
+        return
+      }
+      if (result.outcome === "free_confirmed") {
+        navigate({ to: "/bookings", search: { code: result.code } })
+        return
+      }
+      onBookingReady({
+        booking: result.booking,
+        paymentData: result.paymentData,
+      })
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.status === 400) {
+        handleError(err)
         navigate({
           to: "/book",
           search: { discount: search.discount, access: search.access },
           replace: true,
         })
+        return
       }
-    },
-    onError: () => {
       navigate({
         to: "/book",
         search: { discount: search.discount, access: search.access },
@@ -188,10 +210,17 @@ export function useBookingDraft({
         })
         return { booking, free: true as const }
       }
-      const paymentData = await BookingsService.initializePayment({
-        confirmationCode: booking.confirmation_code,
-      })
-      return { booking, paymentData }
+      try {
+        const paymentData = await BookingsService.initializePayment({
+          confirmationCode: booking.confirmation_code,
+        })
+        return { booking, paymentData }
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 400) {
+          handleError(e)
+        }
+        throw e
+      }
     },
     onSuccess: (data) => {
       if ("free" in data && data.free) {
@@ -206,9 +235,12 @@ export function useBookingDraft({
         paymentData: data.paymentData!,
       })
     },
-    onError: () => {
+    onError: (err) => {
       createStartedRef.current = false
       createBookingStartedRef.current = false
+      if (err instanceof ApiError && err.status === 400) {
+        return
+      }
       onCreateError?.()
     },
   })
@@ -233,6 +265,11 @@ export function useBookingDraft({
           search: { code: data.confirmationCode },
         })
       }, 3000)
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.status === 409) {
+        handleError(err)
+      }
     },
   })
 

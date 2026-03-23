@@ -1,4 +1,4 @@
-"""Trip capacity vs paid counts; payment confirmation without capacity re-check (documented)."""
+"""Trip capacity vs paid+held counts; webhook confirms only when capacity allows."""
 
 import uuid
 from types import SimpleNamespace
@@ -31,7 +31,7 @@ def test_read_trip_capacity_used_matches_sum_of_paid_per_boat(
     test_mission: Mission,
     test_provider: Provider,
 ) -> None:
-    """GET /trips/{id}/capacity used_capacity equals sum of paid seats across boats."""
+    """GET /trips/{id}/capacity used_capacity equals paid+held seats across boats."""
     boat = Boat(
         name="Small Boat",
         slug="small-boat",
@@ -112,20 +112,33 @@ def test_read_trip_capacity_used_matches_sum_of_paid_per_boat(
     assert data["used_capacity"] == 3
     assert data["total_capacity"] == 20
 
+    r2 = client.get(
+        f"{settings.API_V1_STR}/trip-boats/trip/{trip.id}",
+        params={"skip": 0, "limit": 500},
+        headers=superuser_token_headers,
+    )
+    assert r2.status_code == 200
+    boats = r2.json()
+    assert len(boats) == 1
+    sum_by_type = sum(boats[0]["used_per_ticket_type"].values())
+    assert sum_by_type == data["used_capacity"]
 
+
+@patch("app.api.routes.payments.release_payment_intent_after_capacity_failure")
 @patch("app.api.routes.payments.send_booking_confirmation_email")
 @patch("stripe.Webhook.construct_event")
-def test_two_successful_payments_can_exceed_boat_capacity_without_second_check(
+def test_webhook_second_booking_rejected_when_boat_would_overbook(
     mock_construct: MagicMock,
     mock_send_email: MagicMock,
+    mock_release: MagicMock,
     client: TestClient,
     db: Session,
     test_mission: Mission,
     test_provider: Provider,
 ) -> None:
     """
-    Documents current behavior: two draft bookings can each pass create-time capacity
-    (paid count is 0), then both confirm via webhook without re-validation — total can exceed max.
+    First payment_intent.succeeded confirms; second fails capacity re-check and is
+    cancelled with payment failed (Stripe release mocked).
     """
     boat = Boat(
         name="Ten Seater",
@@ -197,8 +210,8 @@ def test_two_successful_payments_can_exceed_boat_capacity_without_second_check(
         db.commit()
         return b
 
-    make_draft("pi_over_a", f"OB{uuid.uuid4().hex[:6].upper()}")
-    make_draft("pi_over_b", f"OB{uuid.uuid4().hex[:6].upper()}")
+    b1 = make_draft("pi_over_a", f"OB{uuid.uuid4().hex[:6].upper()}")
+    b2 = make_draft("pi_over_b", f"OB{uuid.uuid4().hex[:6].upper()}")
 
     def run_webhook(pi_id: str) -> None:
         mock_construct.return_value = SimpleNamespace(
@@ -216,8 +229,16 @@ def test_two_successful_payments_can_exceed_boat_capacity_without_second_check(
         assert r.status_code == 200
 
     run_webhook("pi_over_a")
+    db.refresh(b1)
+    assert b1.booking_status == BookingStatus.confirmed
+    assert b1.payment_status == PaymentStatus.paid
+
     run_webhook("pi_over_b")
+    db.refresh(b2)
+    assert b2.booking_status == BookingStatus.cancelled
+    assert b2.payment_status == PaymentStatus.failed
+    mock_release.assert_called_once_with("pi_over_b")
 
     paid = crud.get_paid_ticket_count_per_boat_for_trip(session=db, trip_id=trip.id)
-    assert paid.get(boat.id, 0) == 12
-    assert paid[boat.id] > 10
+    assert paid.get(boat.id, 0) == 6
+    mock_send_email.assert_called_once()

@@ -1,9 +1,14 @@
 import logging
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 from sqlalchemy import Engine
 from sqlmodel import Session, select
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
+from app.core.config import settings
 from app.core.db import engine
 
 logging.basicConfig(level=logging.INFO)
@@ -31,8 +36,37 @@ def init(db_engine: Engine) -> None:
         raise e
 
 
+def migrate_test_database_if_configured() -> None:
+    """
+    When POSTGRES_DB_TEST is set, pytest uses that database (not POSTGRES_DB).
+    Prestart only migrates the main DB, so apply the same migration entrypoint here.
+    """
+    test_db = settings.POSTGRES_DB_TEST
+    if not test_db:
+        return
+    if test_db == settings.POSTGRES_DB:
+        return
+    logger.info("Applying migrations to test database %s", test_db)
+    env = os.environ.copy()
+    env["POSTGRES_DB"] = test_db
+    script = Path(__file__).resolve().parent / "run_migrations.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        env=env,
+        check=False,
+    )
+    if result.returncode != 0:
+        logger.error(
+            "Migrations failed for test database %s (exit %s)",
+            test_db,
+            result.returncode,
+        )
+        raise SystemExit(result.returncode)
+
+
 def main() -> None:
     logger.info("Initializing service")
+    migrate_test_database_if_configured()
     init(engine)
     logger.info("Service finished initializing")
 
