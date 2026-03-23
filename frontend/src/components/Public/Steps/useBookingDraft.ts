@@ -111,14 +111,18 @@ export function useBookingDraft({
         })
         return { outcome: "free_confirmed" as const, code }
       }
-      const paymentData =
-        bookingStatus === "draft"
-          ? await BookingsService.initializePayment({
-              confirmationCode: code,
-            })
-          : await BookingsService.resumePayment({
-              confirmationCode: code,
-            })
+      // After first init, booking stays draft with pending_payment + payment_intent_id; resume only then.
+      const shouldResumePayment =
+        bookingStatus === "draft" &&
+        bookingToUse.payment_status === "pending_payment" &&
+        Boolean(bookingToUse.payment_intent_id?.trim())
+      const paymentData = shouldResumePayment
+        ? await BookingsService.resumePayment({
+            confirmationCode: code,
+          })
+        : await BookingsService.initializePayment({
+            confirmationCode: code,
+          })
       return {
         outcome: "payment_ready" as const,
         booking: bookingToUse,
