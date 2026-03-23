@@ -81,7 +81,10 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
     pricing: list["EffectivePricingItem"] = Field(default_factory=list)  # noqa: F821
     used_per_ticket_type: dict[str, int] = Field(
         default_factory=dict,
-        description="Total ticket count per item_type on this boat (all booking statuses).",
+        description=(
+            "Paid ticket count per item_type on this boat (same rules as capacity: "
+            "confirmed/checked_in/completed bookings with active or fulfilled items)."
+        ),
     )
 
 

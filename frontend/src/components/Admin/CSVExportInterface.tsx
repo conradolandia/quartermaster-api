@@ -1,6 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
-import { formatDateTimeInLocationTz } from "@/utils"
 import {
   Box,
   Button,
@@ -13,7 +12,7 @@ import {
   createListCollection,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { FiDownload, FiFilter } from "react-icons/fi"
 
 import {
@@ -22,10 +21,12 @@ import {
   BoatsService,
   type MissionPublic,
   MissionsService,
+  TripBoatsService,
   type TripPublic,
   TripsService,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
+import { formatTripFilterLabel } from "@/components/Bookings/types"
 
 const BOOKING_STATUSES = [
   "confirmed",
@@ -95,15 +96,48 @@ const CSVExportInterface = () => {
     queryFn: () => TripsService.readTrips({ limit: 100 }),
   })
 
-  // Fetch boats for filtering
+  // Fetch boats for filtering when no trip is selected (mission-only or all trips)
   const { data: boatsData } = useQuery({
     queryKey: ["boats"],
     queryFn: () => BoatsService.readBoats({ limit: 200 }),
   })
 
+  const { data: tripBoatsData, isLoading: isLoadingTripBoats } = useQuery({
+    queryKey: ["trip-boats", "export", selectedTripId],
+    queryFn: () =>
+      TripBoatsService.readTripBoatsByTrip({
+        tripId: selectedTripId!,
+        limit: 200,
+      }),
+    enabled: !!selectedTripId,
+  })
+
   const missions = missionsData?.data || []
   const trips = tripsData?.data || []
   const boats = boatsData?.data || []
+
+  const boatSelectItems = useMemo(() => {
+    if (selectedTripId) {
+      const rows = Array.isArray(tripBoatsData) ? tripBoatsData : []
+      return rows.map((tb) => ({
+        label: tb.boat?.name ?? "Boat",
+        value: tb.boat_id,
+      }))
+    }
+    return boats.map((boat: BoatPublic) => ({
+      label: boat.name,
+      value: boat.id,
+    }))
+  }, [selectedTripId, tripBoatsData, boats])
+
+  useEffect(() => {
+    if (!selectedTripId || isLoadingTripBoats) return
+    const rows = Array.isArray(tripBoatsData) ? tripBoatsData : []
+    const ids = new Set(rows.map((tb) => tb.boat_id))
+    if (selectedBoatId && !ids.has(selectedBoatId)) {
+      setSelectedBoatId("")
+    }
+  }, [selectedTripId, isLoadingTripBoats, tripBoatsData, selectedBoatId])
 
   // Filter trips by selected mission
   const filteredTrips = selectedMissionId
@@ -119,19 +153,13 @@ const CSVExportInterface = () => {
 
   const tripsCollection = createListCollection({
     items: filteredTrips.map((trip: TripPublic) => ({
-      label: `${trip.type} - ${formatDateTimeInLocationTz(
-        trip.departure_time,
-        trip.timezone,
-      )}`,
+      label: formatTripFilterLabel(trip),
       value: trip.id,
     })),
   })
 
   const boatsCollection = createListCollection({
-    items: boats.map((boat: BoatPublic) => ({
-      label: boat.name,
-      value: boat.id,
-    })),
+    items: boatSelectItems,
   })
 
   const statusCollection = createListCollection({
@@ -176,7 +204,11 @@ const CSVExportInterface = () => {
       }
       if (selectedTripId) {
         const trip = trips.find((t: TripPublic) => t.id === selectedTripId)
-        filename += `_${trip?.type?.replace(/\s+/g, "_") || "trip"}`
+        const tripSlug =
+          trip?.name?.trim().replace(/\s+/g, "_") ||
+          trip?.type?.replace(/\s+/g, "_") ||
+          "trip"
+        filename += `_${tripSlug}`
       }
       if (selectedBoatId) {
         const boat = boats.find((b: BoatPublic) => b.id === selectedBoatId)
@@ -283,8 +315,7 @@ const CSVExportInterface = () => {
     })
 
   const exportTotal = exportPreviewData?.total ?? 0
-  const hasNoData =
-    canExport && !isLoadingExportPreview && exportTotal === 0
+  const hasNoData = canExport && !isLoadingExportPreview && exportTotal === 0
   const exportDisabled = !canExport || isExporting || hasNoData
 
   return (
@@ -302,12 +333,12 @@ const CSVExportInterface = () => {
                 ((missionRequired && !selectedMissionId) ||
                   (tripRequired && !selectedTripId) ||
                   (boatRequired && !selectedBoatId)) && (
-                <Text as="span" display="block" mt={1} color="orange.600">
-                  Note: Mission, trip, and boat selection are required when
-                  exporting ticket-type columns to ensure accurate column
-                  headers.
-                </Text>
-              )}
+                  <Text as="span" display="block" mt={1} color="orange.600">
+                    Note: Mission, trip, and boat selection are required when
+                    exporting ticket-type columns to ensure accurate column
+                    headers.
+                  </Text>
+                )}
             </Text>
 
             {/* Field Selection */}
@@ -384,6 +415,7 @@ const CSVExportInterface = () => {
                     onValueChange={(details) => {
                       setSelectedMissionId(details.value[0] || "")
                       setSelectedTripId("") // Reset trip when mission changes
+                      setSelectedBoatId("")
                     }}
                   >
                     <Select.Control width="100%">
@@ -483,7 +515,10 @@ const CSVExportInterface = () => {
                     onValueChange={(details) =>
                       setSelectedBoatId(details.value[0] || "")
                     }
-                    disabled={boatRequired && !selectedTripId}
+                    disabled={
+                      (boatRequired && !selectedTripId) ||
+                      (!!selectedTripId && isLoadingTripBoats)
+                    }
                   >
                     <Select.Control width="100%">
                       <Select.Trigger>
@@ -491,7 +526,11 @@ const CSVExportInterface = () => {
                           placeholder={
                             boatRequired && !selectedTripId
                               ? "Select trip first"
-                              : "All boats"
+                              : selectedTripId && isLoadingTripBoats
+                                ? "Loading boats…"
+                                : selectedTripId && boatSelectItems.length === 0
+                                  ? "No boats on this trip"
+                                  : "All boats"
                           }
                         />
                       </Select.Trigger>

@@ -307,6 +307,12 @@ def create_booking_impl(
         )
         for tid in trip_ids
     }
+    held_by_trip: dict[uuid.UUID, dict[tuple[uuid.UUID, str], int]] = {
+        tid: crud.get_held_ticket_count_per_boat_per_item_type_for_trip(
+            session=session, trip_id=tid, exclude_booking_id=None
+        )
+        for tid in trip_ids
+    }
     for (
         trip_id,
         boat_id,
@@ -327,12 +333,18 @@ def create_booking_impl(
             )
         if capacity is not None:
             paid_by_type = paid_by_trip.get(trip_id, {})
+            held_by_type = held_by_trip.get(trip_id, {})
             paid = sum(
                 v
                 for (bid, k), v in paid_by_type.items()
                 if bid == boat_id and (k or "").lower() == (item_type or "").lower()
             )
-            total_after = paid + new_quantity
+            held = sum(
+                v
+                for (bid, k), v in held_by_type.items()
+                if bid == boat_id and (k or "").lower() == (item_type or "").lower()
+            )
+            total_after = paid + held + new_quantity
             if total_after > capacity:
                 boat = session.get(Boat, boat_id)
                 boat_name = boat.name if boat else str(boat_id)
@@ -340,7 +352,8 @@ def create_booking_impl(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"Boat '{boat_name}' has {capacity} seat(s) for '{item_type}' "
-                        f"with {paid} already booked; requested {new_quantity} would exceed capacity"
+                        f"with {paid} booked and {held} temporarily held; "
+                        f"requested {new_quantity} would exceed capacity"
                     ),
                 )
 
@@ -355,6 +368,12 @@ def create_booking_impl(
     # Get total paid counts per boat (across all ticket types)
     paid_total_by_trip: dict[uuid.UUID, dict[uuid.UUID, int]] = {
         tid: crud.get_paid_ticket_count_per_boat_for_trip(session=session, trip_id=tid)
+        for tid in trip_ids
+    }
+    held_total_by_trip: dict[uuid.UUID, dict[uuid.UUID, int]] = {
+        tid: crud.get_held_ticket_count_per_boat_for_trip(
+            session=session, trip_id=tid, exclude_booking_id=None
+        )
         for tid in trip_ids
     }
 
@@ -374,16 +393,18 @@ def create_booking_impl(
             else (boat.capacity if boat else 0)
         )
         paid_total = paid_total_by_trip.get(trip_id, {}).get(boat_id, 0)
-        total_after = paid_total + new_total
+        held_total = held_total_by_trip.get(trip_id, {}).get(boat_id, 0)
+        total_after = paid_total + held_total + new_total
         if total_after > effective_max:
             boat_name = boat.name if boat else str(boat_id)
-            remaining = max(0, effective_max - paid_total)
+            remaining = max(0, effective_max - paid_total - held_total)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
                     f"Boat '{boat_name}' has {effective_max} total seat(s) "
-                    f"with {paid_total} already booked; requested {new_total} ticket(s) "
-                    f"would exceed capacity (only {remaining} remaining)"
+                    f"with {paid_total} booked and {held_total} temporarily held; "
+                    f"requested {new_total} ticket(s) would exceed capacity "
+                    f"(only {remaining} remaining)"
                 ),
             )
 

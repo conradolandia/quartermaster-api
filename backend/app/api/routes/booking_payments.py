@@ -8,11 +8,18 @@ such as initializing payments for draft bookings.
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.api import deps
 from app.api.routes.booking_utils import get_booking_with_items
 from app.core.stripe import create_payment_intent, retrieve_payment_intent
+from app.crud.capacity_holds import (
+    hold_expiry_utc,
+    lock_trip_boats_for_ticket_items,
+    trip_boat_pairs_from_booking,
+    validate_capacity_for_booking_lines,
+)
 from app.models import Booking, BookingStatus, PaymentStatus
 
 # Set up logging
@@ -32,9 +39,11 @@ def initialize_payment(
     Creates a PaymentIntent and updates booking status to pending_payment.
     """
     try:
-        # Get booking
         booking = session.exec(
-            select(Booking).where(Booking.confirmation_code == confirmation_code)
+            select(Booking)
+            .where(Booking.confirmation_code == confirmation_code)
+            .options(selectinload(Booking.items))
+            .with_for_update()
         ).first()
 
         if not booking:
@@ -43,36 +52,38 @@ def initialize_payment(
                 detail="Booking not found",
             )
 
-        # Check if booking is in draft status
         if booking.booking_status != BookingStatus.draft:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot initialize payment for booking with booking status '{booking.booking_status}'",
             )
 
-        # Check if PaymentIntent already exists
         if booking.payment_intent_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Payment already initialized for this booking",
             )
 
-        # Free and sub-minimum must use confirm-free-booking; Stripe requires amount >= 50 cents
         if booking.total_amount < 50:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Use confirm-free-booking for free or sub-minimum (under 50 cents) orders",
             )
 
-        # Booking total_amount is already in cents
-        total_amount_cents = booking.total_amount
+        pairs = trip_boat_pairs_from_booking(booking)
+        lock_trip_boats_for_ticket_items(session=session, trip_boat_pairs=pairs)
+        validate_capacity_for_booking_lines(
+            session=session,
+            booking=booking,
+            exclude_booking_id=None,
+        )
 
-        # Create PaymentIntent
+        total_amount_cents = booking.total_amount
         payment_intent = create_payment_intent(total_amount_cents)
 
-        # Update booking with PaymentIntent ID and payment status (booking_status stays draft)
         booking.payment_intent_id = payment_intent.id
         booking.payment_status = PaymentStatus.pending_payment
+        booking.capacity_hold_expires_at = hold_expiry_utc()
 
         session.add(booking)
         session.commit()
@@ -108,7 +119,10 @@ def resume_payment(
     """
     try:
         booking = session.exec(
-            select(Booking).where(Booking.confirmation_code == confirmation_code)
+            select(Booking)
+            .where(Booking.confirmation_code == confirmation_code)
+            .options(selectinload(Booking.items))
+            .with_for_update()
         ).first()
 
         if not booking:
@@ -131,6 +145,18 @@ def resume_payment(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No payment intent for this booking",
             )
+
+        pairs = trip_boat_pairs_from_booking(booking)
+        lock_trip_boats_for_ticket_items(session=session, trip_boat_pairs=pairs)
+        validate_capacity_for_booking_lines(
+            session=session,
+            booking=booking,
+            exclude_booking_id=booking.id,
+        )
+        booking.capacity_hold_expires_at = hold_expiry_utc()
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
 
         payment_intent = retrieve_payment_intent(booking.payment_intent_id)
         return {
@@ -162,6 +188,11 @@ def confirm_free_booking(
     Sets booking to confirmed, sends confirmation email, returns success.
     """
     from app.api.routes.payments import send_booking_confirmation_email
+    from app.crud.capacity_holds import (
+        lock_trip_boats_for_ticket_items,
+        trip_boat_pairs_from_booking,
+        validate_capacity_for_booking_lines,
+    )
 
     try:
         booking = get_booking_with_items(session, confirmation_code)
@@ -178,8 +209,17 @@ def confirm_free_booking(
                 detail="Confirm-free-booking is only for zero-total or sub-minimum (under 50 cents) bookings",
             )
 
+        pairs = trip_boat_pairs_from_booking(booking)
+        lock_trip_boats_for_ticket_items(session=session, trip_boat_pairs=pairs)
+        validate_capacity_for_booking_lines(
+            session=session,
+            booking=booking,
+            exclude_booking_id=None,
+        )
+
         booking.booking_status = BookingStatus.confirmed
         booking.payment_status = PaymentStatus.free
+        booking.capacity_hold_expires_at = None
         session.add(booking)
         session.commit()
         session.refresh(booking)

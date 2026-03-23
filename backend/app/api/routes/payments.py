@@ -2,13 +2,20 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.config import settings
 from app.core.stripe import (
     create_payment_intent,
+    release_payment_intent_after_capacity_failure,
     retrieve_payment_intent,
+)
+from app.crud.capacity_holds import (
+    lock_trip_boats_for_ticket_items,
+    trip_boat_pairs_from_booking,
+    validate_capacity_for_booking_lines,
 )
 from app.models import (
     Booking,
@@ -129,6 +136,61 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
         )
 
 
+def _apply_capacity_failure_after_payment(
+    *, session: Session, booking: Booking
+) -> None:
+    if booking.payment_intent_id:
+        try:
+            release_payment_intent_after_capacity_failure(booking.payment_intent_id)
+        except Exception as e:
+            logger.exception(
+                "Stripe release/cancel after capacity failure: booking=%s err=%s",
+                booking.confirmation_code,
+                e,
+            )
+    booking.booking_status = BookingStatus.cancelled
+    booking.payment_status = PaymentStatus.failed
+    booking.capacity_hold_expires_at = None
+    session.add(booking)
+    session.commit()
+
+
+def _confirm_booking_if_capacity_allows(*, session: Session, booking: Booking) -> bool:
+    """
+    Confirm a paid booking after capacity re-check. booking.items must be loaded.
+    Returns True if confirmed (and confirmation email sent unless duplicate).
+    Returns False if capacity failed (booking set to cancelled/failed).
+    """
+    if booking.booking_status == BookingStatus.confirmed:
+        return True
+
+    pairs = trip_boat_pairs_from_booking(booking)
+    lock_trip_boats_for_ticket_items(session=session, trip_boat_pairs=pairs)
+    try:
+        validate_capacity_for_booking_lines(
+            session=session,
+            booking=booking,
+            exclude_booking_id=booking.id,
+        )
+    except HTTPException as exc:
+        logger.warning(
+            "Capacity check failed at payment confirm: booking=%s detail=%s",
+            booking.confirmation_code,
+            exc.detail,
+        )
+        _apply_capacity_failure_after_payment(session=session, booking=booking)
+        return False
+
+    booking.booking_status = BookingStatus.confirmed
+    booking.payment_status = PaymentStatus.paid
+    booking.capacity_hold_expires_at = None
+    session.add(booking)
+    session.commit()
+    session.refresh(booking)
+    send_booking_confirmation_email(session, booking)
+    return True
+
+
 @router.post("/create-payment-intent")
 def create_payment_intent_endpoint(
     amount: int,
@@ -173,6 +235,7 @@ def verify_payment(
     stmt = (
         select(Booking)
         .where(Booking.payment_intent_id == payment_intent_id)
+        .options(selectinload(Booking.items))
         .with_for_update()
     )
     booking = session.exec(stmt).first()
@@ -192,22 +255,29 @@ def verify_payment(
         booking.booking_status,
     )
     if payment_intent.status == "succeeded":
-        # Check if booking is already confirmed to prevent duplicate processing
         if booking.booking_status == BookingStatus.confirmed:
             logger.info(
                 f"Booking {booking.confirmation_code} already confirmed, skipping duplicate processing"
             )
             return {"status": "succeeded", "booking_status": "confirmed"}
-
-        booking.booking_status = BookingStatus.confirmed
-        booking.payment_status = PaymentStatus.paid
-        session.add(booking)
-        session.commit()
-        session.refresh(booking)
-
-        # Send booking confirmation email
-        send_booking_confirmation_email(session, booking)
-
+        if (
+            booking.booking_status == BookingStatus.cancelled
+            and booking.payment_status == PaymentStatus.failed
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "This booking was cancelled because capacity was no longer available."
+                ),
+            )
+        if not _confirm_booking_if_capacity_allows(session=session, booking=booking):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Capacity is no longer available for this booking. "
+                    "Payment has been refunded or cancelled."
+                ),
+            )
         return {"status": "succeeded", "booking_status": "confirmed"}
     elif payment_intent.status == "requires_payment_method":
         return {"status": "requires_payment_method"}
@@ -287,34 +357,33 @@ async def stripe_webhook(
             "payment_intent.succeeded: pi_id=%s",
             payment_intent.id,
         )
-        # Use FOR UPDATE lock to prevent race conditions with verify_payment
         stmt = (
             select(Booking)
             .where(Booking.payment_intent_id == payment_intent.id)
+            .options(selectinload(Booking.items))
             .with_for_update()
         )
         booking = session.exec(stmt).first()
 
         if booking:
-            # Check if booking is already confirmed to prevent duplicate processing
             if booking.booking_status == BookingStatus.confirmed:
                 logger.info(
                     "Webhook: Booking %s already confirmed, skipping duplicate processing",
                     booking.confirmation_code,
                 )
                 return {"status": "success"}
-
-            booking.booking_status = BookingStatus.confirmed
-            booking.payment_status = PaymentStatus.paid
-            session.add(booking)
-            session.commit()
-            session.refresh(booking)
-            logger.info(
-                "Webhook: booking %s confirmed, sending confirmation email",
-                booking.confirmation_code,
-            )
-            # Send booking confirmation email
-            send_booking_confirmation_email(session, booking)
+            if (
+                booking.booking_status == BookingStatus.cancelled
+                and booking.payment_status == PaymentStatus.failed
+            ):
+                return {"status": "success"}
+            if not _confirm_booking_if_capacity_allows(
+                session=session, booking=booking
+            ):
+                logger.info(
+                    "Webhook: capacity failure for booking %s",
+                    booking.confirmation_code,
+                )
         else:
             logger.warning(
                 "Webhook: payment_intent.succeeded for pi_id=%s but no booking found",

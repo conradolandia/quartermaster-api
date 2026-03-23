@@ -76,6 +76,25 @@ def update_payment_intent_amount(
         return None
 
 
+def release_payment_intent_after_capacity_failure(payment_intent_id: str) -> None:
+    """
+    Prefer canceling an uncaptured PaymentIntent; if already succeeded, full refund.
+    Idempotent for canceled intents.
+    """
+    pi = retrieve_payment_intent(payment_intent_id)
+    if pi.status == "canceled":
+        return
+    if pi.status == "succeeded":
+        refund_payment(payment_intent_id)
+        return
+    try:
+        stripe.PaymentIntent.cancel(payment_intent_id)
+    except stripe.error.StripeError:
+        pi2 = retrieve_payment_intent(payment_intent_id)
+        if pi2.status == "succeeded":
+            refund_payment(payment_intent_id)
+
+
 def refund_payment(payment_intent_id: str, amount: int | None = None) -> stripe.Refund:
     """
     Refund a payment through Stripe.

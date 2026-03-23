@@ -13,6 +13,7 @@ from app.models import (
     BookingItemStatus,
     BookingItemUpdate,
     BookingStatus,
+    PaymentStatus,
 )
 
 
@@ -131,6 +132,82 @@ def get_ticket_item_count_per_type_for_trip_boat(
     return {item_type: int(total) for item_type, total in rows}
 
 
+def get_held_ticket_count_per_boat_for_trip(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    exclude_booking_id: uuid.UUID | None = None,
+) -> dict[uuid.UUID, int]:
+    """
+    Sum ticket quantities per boat_id for active payment holds on this trip.
+    Holds: pending_payment, capacity_hold_expires_at in the future, draft booking
+    (checkout in progress), ticket items active or fulfilled.
+    """
+    from datetime import datetime, timezone
+
+    from sqlalchemy import func
+
+    now = datetime.now(timezone.utc)
+    item_statuses_counted = (
+        BookingItemStatus.active,
+        BookingItemStatus.fulfilled,
+    )
+    stmt = (
+        select(BookingItem.boat_id, func.sum(BookingItem.quantity).label("total"))
+        .join(Booking, Booking.id == BookingItem.booking_id)
+        .where(BookingItem.trip_id == trip_id)
+        .where(BookingItem.trip_merchandise_id.is_(None))
+        .where(BookingItem.status.in_(item_statuses_counted))
+        .where(Booking.payment_status == PaymentStatus.pending_payment)
+        .where(Booking.capacity_hold_expires_at.is_not(None))
+        .where(Booking.capacity_hold_expires_at > now)
+        .where(Booking.booking_status == BookingStatus.draft)
+    )
+    if exclude_booking_id is not None:
+        stmt = stmt.where(Booking.id != exclude_booking_id)
+    stmt = stmt.group_by(BookingItem.boat_id)
+    rows = session.exec(stmt).all()
+    return {boat_id: int(total) for boat_id, total in rows}
+
+
+def get_held_ticket_count_per_boat_per_item_type_for_trip(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    exclude_booking_id: uuid.UUID | None = None,
+) -> dict[tuple[uuid.UUID, str], int]:
+    """Held counts per (boat_id, item_type) for active payment holds."""
+    from datetime import datetime, timezone
+
+    from sqlalchemy import func
+
+    now = datetime.now(timezone.utc)
+    item_statuses_counted = (
+        BookingItemStatus.active,
+        BookingItemStatus.fulfilled,
+    )
+    stmt = (
+        select(
+            BookingItem.boat_id,
+            BookingItem.item_type,
+            func.sum(BookingItem.quantity).label("total"),
+        )
+        .join(Booking, Booking.id == BookingItem.booking_id)
+        .where(BookingItem.trip_id == trip_id)
+        .where(BookingItem.trip_merchandise_id.is_(None))
+        .where(BookingItem.status.in_(item_statuses_counted))
+        .where(Booking.payment_status == PaymentStatus.pending_payment)
+        .where(Booking.capacity_hold_expires_at.is_not(None))
+        .where(Booking.capacity_hold_expires_at > now)
+        .where(Booking.booking_status == BookingStatus.draft)
+    )
+    if exclude_booking_id is not None:
+        stmt = stmt.where(Booking.id != exclude_booking_id)
+    stmt = stmt.group_by(BookingItem.boat_id, BookingItem.item_type)
+    rows = session.exec(stmt).all()
+    return {(boat_id, item_type): int(total) for boat_id, item_type, total in rows}
+
+
 def get_paid_ticket_count_per_boat_for_trip(
     *, session: Session, trip_id: uuid.UUID
 ) -> dict[uuid.UUID, int]:
@@ -197,6 +274,35 @@ def get_paid_ticket_count_per_boat_per_item_type_for_trip(
         .group_by(BookingItem.boat_id, BookingItem.item_type)
     ).all()
     return {(boat_id, item_type): int(total) for boat_id, item_type, total in rows}
+
+
+def merge_paid_and_held_per_boat_item_type(
+    paid: dict[tuple[uuid.UUID, str], int],
+    held: dict[tuple[uuid.UUID, str], int],
+) -> dict[tuple[uuid.UUID, str], int]:
+    """Combine paid and active-hold ticket counts for pricing / remaining capacity."""
+    out = dict(paid)
+    for k, v in held.items():
+        out[k] = out.get(k, 0) + v
+    return out
+
+
+def paid_ticket_counts_by_type_for_boat(
+    *,
+    paid_by_type: dict[tuple[uuid.UUID, str], int],
+    boat_id: uuid.UUID,
+) -> dict[str, int]:
+    """
+    Slice get_paid_ticket_count_per_boat_per_item_type_for_trip() for one boat.
+
+    Used for trip-boat API responses so used_per_ticket_type matches the same
+    paid-seat rules as pricing.remaining / capacity enforcement.
+    """
+    out: dict[str, int] = {}
+    for (bid, item_type), cnt in paid_by_type.items():
+        if bid == boat_id:
+            out[item_type] = cnt
+    return out
 
 
 def create_booking_item(

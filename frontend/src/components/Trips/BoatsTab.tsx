@@ -35,6 +35,25 @@ import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
 
+/**
+ * Sold tickets for a pricing row from API `used_per_ticket_type` (same source as boat totals).
+ * Prefers exact `ticket_type` key; if missing, uses the sole case-insensitive match when unique.
+ */
+function soldForTicketTypeFromUsedMap(
+  usedByType: Record<string, number>,
+  ticketType: string,
+): number {
+  if (Object.prototype.hasOwnProperty.call(usedByType, ticketType)) {
+    return usedByType[ticketType] ?? 0
+  }
+  const lower = ticketType.toLowerCase()
+  const matching = Object.entries(usedByType).filter(
+    ([k]) => k.toLowerCase() === lower,
+  )
+  if (matching.length === 1) return matching[0][1]
+  return 0
+}
+
 interface BoatsTabProps {
   tripId: string
   isOpen: boolean
@@ -60,8 +79,10 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     Record<string, string>
   >({})
   const [isReassignSubmitting, setIsReassignSubmitting] = useState(false)
-  const [pendingDeletePricingIdAfterReassign, setPendingDeletePricingIdAfterReassign] =
-    useState<string | null>(null)
+  const [
+    pendingDeletePricingIdAfterReassign,
+    setPendingDeletePricingIdAfterReassign,
+  ] = useState<string | null>(null)
   const [selectedTripBoatForPricing, setSelectedTripBoatForPricing] = useState<{
     id: string
     boatId: string
@@ -71,7 +92,8 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     string | null
   >(null)
   const [capacityInputValue, setCapacityInputValue] = useState("")
-  const [hasPendingPricingChanges, setHasPendingPricingChanges] = useState(false)
+  const [hasPendingPricingChanges, setHasPendingPricingChanges] =
+    useState(false)
 
   const hasPendingBoatsChanges =
     editingCapacityTripBoatId !== null || hasPendingPricingChanges
@@ -138,7 +160,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       }
       await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", tripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-boats-for-edit", tripId],
+      })
       queryClient.invalidateQueries({ queryKey: ["trips"] })
     },
     onError: (err: ApiError) => handleError(err),
@@ -178,7 +202,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       setIsAddingBoat(false)
       await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", tripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-boats-for-edit", tripId],
+      })
     } catch (error) {
       console.error("Error adding boat to trip:", error)
       handleError(error as ApiError)
@@ -191,7 +217,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       showSuccessToast("The boat has been removed from this trip")
       await refetchTripBoats()
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", tripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-boats-for-edit", tripId],
+      })
     } catch (error) {
       console.error("Error removing boat from trip:", error)
       handleError(error as ApiError)
@@ -225,7 +253,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       setReassignToBoatId("")
       setReassignTypeMapping({})
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", tripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-boats-for-edit", tripId],
+      })
       queryClient.invalidateQueries({ queryKey: ["trips"] })
     } catch (error) {
       console.error("Error reassigning passengers:", error)
@@ -295,7 +325,12 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
         : targetTypes[0] ?? ""
     }
     setReassignTypeMapping(next)
-  }, [reassignFrom, reassignToBoatId, tripBoats, pendingDeletePricingIdAfterReassign])
+  }, [
+    reassignFrom,
+    reassignToBoatId,
+    tripBoats,
+    pendingDeletePricingIdAfterReassign,
+  ])
 
   const reassignCanSubmit = useMemo(() => {
     if (!reassignFrom || !reassignToBoatId) return false
@@ -328,9 +363,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                 selectedTripBoatForPricing?.id === tripBoat.id
               const pricing =
                 "pricing" in tripBoat &&
-                Array.isArray(
-                  (tripBoat as { pricing?: unknown[] }).pricing,
-                )
+                Array.isArray((tripBoat as { pricing?: unknown[] }).pricing)
                   ? (
                       tripBoat as {
                         pricing: Array<{
@@ -343,15 +376,16 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                     ).pricing
                   : []
               const u = tripBoat.used_per_ticket_type
-              const used: number =
+              const usedByType: Record<string, number> =
                 u != null && typeof u === "object"
-                  ? (Object.values(u) as number[]).reduce(
-                      (a, b) => a + b,
-                      0,
-                    )
-                  : 0
-              const remaining = Math.max(0, maxCap - used)
-              const hasBookings = used > 0
+                  ? (u as Record<string, number>)
+                  : {}
+              const totalUsed = Object.values(usedByType).reduce(
+                (a, b) => a + b,
+                0,
+              )
+              const remaining = Math.max(0, maxCap - totalUsed)
+              const hasBookings = totalUsed > 0
               return (
                 <Box key={tripBoat.id}>
                   <Flex
@@ -371,9 +405,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                         mt={0.5}
                         lineHeight="1.2"
                       >
-                        {used} of {maxCap} seats taken ({remaining}{" "}
+                        {totalUsed} of {maxCap} seats taken ({remaining}{" "}
                         remaining)
-                        {(tripBoat.sales_enabled === false) && (
+                        {tripBoat.sales_enabled === false && (
                           <Text as="span" color="orange.400" ml={1}>
                             — sales paused
                           </Text>
@@ -381,19 +415,23 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       </Text>
                       {pricing.length > 0 && (
                         <VStack align="start" gap={0}>
-                          {pricing.map((p) => (
-                            <Text
-                              key={p.ticket_type}
-                              fontSize="xs"
-                              color="gray.500"
-                              lineHeight="1.2"
-                            >
-                              {p.ticket_type}: $
-                              {formatCents(p.price)} (
-                              {Math.max(0, p.capacity - p.remaining)}
-                              /{p.capacity} taken)
-                            </Text>
-                          ))}
+                          {pricing.map((p) => {
+                            const sold = soldForTicketTypeFromUsedMap(
+                              usedByType,
+                              p.ticket_type,
+                            )
+                            return (
+                              <Text
+                                key={p.ticket_type}
+                                fontSize="xs"
+                                color="gray.500"
+                                lineHeight="1.2"
+                              >
+                                {p.ticket_type}: ${formatCents(p.price)} ({sold}
+                                /{p.capacity} taken)
+                              </Text>
+                            )
+                          })}
                         </VStack>
                       )}
                     </Box>
@@ -408,7 +446,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                             setReassignFrom({
                               boat_id: tripBoat.boat_id,
                               boatName: boat?.name || "Unknown",
-                              used,
+                              used: totalUsed,
                             })
                           }
                         >
@@ -520,9 +558,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                               ? "not-allowed"
                               : "pointer"
                           }
-                          opacity={
-                            updateTripBoatMutation.isPending ? 0.5 : 1
-                          }
+                          opacity={updateTripBoatMutation.isPending ? 0.5 : 1}
                         >
                           <Switch
                             checked={tripBoat.sales_enabled ?? true}
@@ -535,13 +571,12 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       </Text>
                       <Text fontSize="xs" color="gray.500" mb={2}>
                         Boat default: {boat?.capacity ?? "—"} seats. Set a
-                        custom limit for this trip or leave as the boat
-                        default.
+                        custom limit for this trip or leave as the boat default.
                       </Text>
                       <HStack gap={2} align="center" flexWrap="wrap">
                         <Input
                           type="number"
-                          min={used}
+                          min={totalUsed}
                           size="sm"
                           width="24"
                           placeholder={String(boat?.capacity ?? "")}
@@ -574,7 +609,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                                 capacityInputValue.trim(),
                                 10,
                               )
-                              return Number.isNaN(n) || n < 1 || n < used
+                              return Number.isNaN(n) || n < 1 || n < totalUsed
                             })()
                           }
                         >

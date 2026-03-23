@@ -83,6 +83,10 @@ def export_bookings_csv(
         if conditions:
             query = query.where(*conditions)
 
+        # One row per booking: join with BookingItem can duplicate bookings
+        # (multiple items per booking).
+        query = query.distinct()
+
         # Execute query
         bookings = session.exec(query).all()
 
@@ -170,7 +174,7 @@ def export_bookings_csv(
             "email": "Email",
             "phone": "Phone",
             "billing_address": "Billing Address",
-            "status": "Status",
+            "booking_status": "Booking Status",
             "total_amount": "Total Amount",
             "subtotal": "Subtotal",
             "discount_amount": "Discount Amount",
@@ -185,12 +189,17 @@ def export_bookings_csv(
         selected_fields: list[str] = []
         if fields:
             selected_fields = [f.strip() for f in fields.split(",") if f.strip()]
+            # Legacy alias: "status" in fields matched no row data (field_data uses booking_status).
+            selected_fields = [
+                "booking_status" if f == "status" else f for f in selected_fields
+            ]
         else:
             # If no fields specified, include all fields
             selected_fields = list(base_fields.keys()) + ["ticket_types", "swag"]
 
         # Validate selected fields; support granular ticket_types and swag
         valid_fields = set(base_fields.keys()) | {
+            "status",  # accepted alias; normalized to booking_status above
             "ticket_types",
             "ticket_types_quantity",
             "ticket_types_price",

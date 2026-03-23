@@ -115,7 +115,10 @@ def update_boat(
                 paid_counts = crud.get_paid_ticket_count_per_boat_for_trip(
                     session=session, trip_id=tb.trip_id
                 )
-                booked = paid_counts.get(boat_id, 0)
+                held_counts = crud.get_held_ticket_count_per_boat_for_trip(
+                    session=session, trip_id=tb.trip_id
+                )
+                booked = paid_counts.get(boat_id, 0) + held_counts.get(boat_id, 0)
                 if booked > boat_in.capacity:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,

@@ -334,17 +334,6 @@ export type DiscountCodeUpdate = {
   restricted_trip_id?: string | null
 }
 
-/**
- * Client-side DOM state for sidebar unclickable bug monitoring.
- */
-export type DomStateLog = {
-  message?: string
-  data?: {
-    [key: string]: unknown
-  }
-  timestamp?: number
-}
-
 export type EffectivePricingItem = {
   ticket_type: string
   price: number
@@ -780,7 +769,7 @@ export type TripBoatPublicWithAvailability = {
   remaining_capacity: number
   pricing?: Array<EffectivePricingItem>
   /**
-   * Total ticket count per item_type on this boat (all booking statuses).
+   * Paid ticket count per item_type on this boat (same rules as capacity: confirmed/checked_in/completed bookings with active or fulfilled items).
    */
   used_per_ticket_type?: {
     [key: string]: number
@@ -1246,12 +1235,6 @@ export type BookingsProcessRefundData = {
 }
 
 export type BookingsProcessRefundResponse = BookingPublic
-
-export type DebugLogDomStateData = {
-  requestBody: DomStateLog
-}
-
-export type DebugLogDomStateResponse = void
 
 export type DiscountCodesCreateDiscountCodeData = {
   requestBody: DiscountCodeCreate

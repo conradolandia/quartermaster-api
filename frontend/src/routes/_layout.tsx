@@ -13,7 +13,6 @@ import { UsersService } from "@/client"
 import Navbar from "@/components/Common/Navbar"
 import Sidebar from "@/components/Common/Sidebar"
 import { isLoggedIn } from "@/hooks/useAuth"
-import { debugLog } from "@/utils/debugLog"
 
 /**
  * Clears stuck body pointer-events/data-inert when no modal/drawer is mounted.
@@ -83,13 +82,6 @@ function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      debugLog("Layout DOM state")
-    }, 15000)
-    return () => clearInterval(id)
-  }, [])
-
   // Check if this is a public booking confirmation (unauthenticated access)
   const isPublicBookingConfirmation =
     router.state.location.pathname === "/bookings" &&
@@ -118,7 +110,7 @@ function Layout() {
   if (isLoggedIn() && status === "pending") {
     return (
       <Flex justify="center" align="center" h="100vh">
-        <Spinner />
+        <Spinner size="xl" color="white" />
       </Flex>
     )
   }
