@@ -298,7 +298,10 @@ const PricingOverridesPanel = ({
                   >
                     <Text fontSize="sm">{bp.ticket_type}</Text>
                     <Text fontSize="sm" color="gray.400">
-                      ${formatCents(bp.price)} ({bp.capacity} seats)
+                      ${formatCents(bp.price)}
+                      {bp.capacity != null
+                        ? ` (${bp.capacity} seats)`
+                        : " (shared boat)"}
                     </Text>
                   </HStack>
                 ))}

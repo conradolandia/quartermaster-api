@@ -75,3 +75,64 @@ def test_get_boat_pricing_not_found(
         headers=superuser_token_headers,
     )
     assert r.status_code == 404
+
+
+def test_create_boat_pricing_null_capacity_ok(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    """Shared boat capacity: null does not add to constrained sum."""
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(test_boat.id),
+            "ticket_type": "child",
+            "price": 2500,
+            "capacity": None,
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["ticket_type"] == "child"
+    assert r.json()["capacity"] is None
+
+
+def test_create_boat_pricing_constrained_sum_exceeds_boat_400(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    """Existing adult 40 + new fixed 15 would exceed boat 50."""
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(test_boat.id),
+            "ticket_type": "child",
+            "price": 2500,
+            "capacity": 15,
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_update_boat_pricing_clear_capacity_to_null(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat_pricing: BoatPricing,
+) -> None:
+    assert test_boat_pricing.capacity is not None
+    r = client.put(
+        f"{BOAT_PRICING_URL}/{test_boat_pricing.id}",
+        headers=superuser_token_headers,
+        json={
+            "ticket_type": test_boat_pricing.ticket_type,
+            "price": test_boat_pricing.price,
+            "capacity": None,
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["capacity"] is None

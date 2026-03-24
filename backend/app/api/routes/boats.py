@@ -133,7 +133,9 @@ def update_boat(
     # Reject if new capacity would be below sum of BoatPricing capacities
     if boat_in.capacity is not None:
         boat_pricing = crud.get_boat_pricing_by_boat(session=session, boat_id=boat_id)
-        pricing_sum = sum(bp.capacity for bp in boat_pricing)
+        pricing_sum = sum(
+            c for c in (bp.capacity for bp in boat_pricing) if c is not None
+        )
         if boat_in.capacity < pricing_sum:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

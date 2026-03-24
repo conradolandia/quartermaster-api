@@ -24,6 +24,15 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 
+function sumConstrainedBoatCapacities(
+  rows: Array<{ capacity?: number | null }>,
+): number {
+  return rows.reduce(
+    (sum, p) => sum + (p.capacity != null ? p.capacity : 0),
+    0,
+  )
+}
+
 interface BoatPricingSectionProps {
   boat: Boat
   effectiveCapacity: number
@@ -56,7 +65,7 @@ export default function BoatPricingSection({
       boatPricingId: string
       ticket_type?: string
       price: number
-      capacity: number
+      capacity: number | null
     } | null>(null)
 
   const { data: boatPricingList = [], refetch: refetchBoatPricing } = useQuery({
@@ -69,14 +78,14 @@ export default function BoatPricingSection({
     mutationFn: (body: {
       ticket_type: string
       price: number
-      capacity: number
+      capacity: number | null
     }) =>
       BoatPricingService.createBoatPricing({
         requestBody: {
           boat_id: boat.id,
           ticket_type: body.ticket_type,
           price: body.price,
-          capacity: body.capacity,
+          ...(body.capacity != null ? { capacity: body.capacity } : {}),
         },
       }),
     onSuccess: () => {
@@ -93,15 +102,15 @@ export default function BoatPricingSection({
     mutationFn: (body: {
       boatPricingId: string
       ticket_type?: string
-      price?: number
-      capacity?: number
+      price: number
+      capacity: number | null
     }) =>
       BoatPricingService.updateBoatPricing({
         boatPricingId: body.boatPricingId,
         requestBody: {
           ticket_type: body.ticket_type,
           price: body.price,
-          ...(body.capacity !== undefined ? { capacity: body.capacity } : {}),
+          capacity: body.capacity,
         },
       }),
     onSuccess: () => {
@@ -130,16 +139,16 @@ export default function BoatPricingSection({
 
   const handleAddPricing = () => {
     const priceDollars = Number.parseFloat(pricingForm.price)
-    const cap = Number.parseInt(pricingForm.capacity, 10)
+    const capTrim = pricingForm.capacity.trim()
+    const cap = capTrim === "" ? null : Number.parseInt(capTrim, 10)
     if (
       !pricingForm.ticket_type.trim() ||
       Number.isNaN(priceDollars) ||
-      Number.isNaN(cap) ||
-      cap < 0
+      (cap !== null && (Number.isNaN(cap) || cap < 0))
     )
       return
     const totalAllocated =
-      boatPricingList.reduce((sum, p) => sum + p.capacity, 0) + cap
+      sumConstrainedBoatCapacities(boatPricingList) + (cap ?? 0)
     if (totalAllocated > effectiveCapacity) {
       handleError({
         body: {
@@ -167,8 +176,8 @@ export default function BoatPricingSection({
         </Text>
         {boatPricingList.length > 0 && (
           <Text fontSize="xs" color="gray.500" mb={2}>
-            {boatPricingList.reduce((sum, bp) => sum + bp.capacity, 0)} of{" "}
-            {effectiveCapacity} capacity used
+            {sumConstrainedBoatCapacities(boatPricingList)} of{" "}
+            {effectiveCapacity} fixed seats allocated
           </Text>
         )}
         {isAddingPricing ? (
@@ -216,7 +225,7 @@ export default function BoatPricingSection({
               </Box>
               <Box flex={1} minW="80px">
                 <Text fontSize="sm" mb={1}>
-                  Capacity
+                  Capacity (optional)
                 </Text>
                 <Input
                   type="number"
@@ -228,13 +237,13 @@ export default function BoatPricingSection({
                       capacity: e.target.value,
                     })
                   }
-                  placeholder="0"
+                  placeholder="Shared boat"
                 />
               </Box>
             </HStack>
             <Text fontSize="xs" color="gray.500">
-              Sum of ticket-type capacities must not exceed boat capacity (
-              {effectiveCapacity}).
+              Leave empty so this type shares the boat limit. Sum of fixed
+              slices must not exceed {effectiveCapacity}.
             </Text>
             <HStack width="100%" justify="flex-end">
               <Button
@@ -251,12 +260,12 @@ export default function BoatPricingSection({
                 disabled={
                   !pricingForm.ticket_type.trim() ||
                   !pricingForm.price ||
-                  !pricingForm.capacity ||
                   Number.isNaN(Number.parseFloat(pricingForm.price)) ||
-                  Number.isNaN(
-                    Number.parseInt(pricingForm.capacity, 10),
-                  ) ||
-                  Number.parseInt(pricingForm.capacity, 10) < 0
+                  (pricingForm.capacity.trim() !== "" &&
+                    (Number.isNaN(
+                      Number.parseInt(pricingForm.capacity, 10),
+                    ) ||
+                      Number.parseInt(pricingForm.capacity, 10) < 0))
                 }
               >
                 Add
@@ -324,7 +333,7 @@ export default function BoatPricingSection({
                   </Box>
                   <Box flex={1} minW="80px">
                     <Text fontSize="sm" mb={1}>
-                      Capacity
+                      Capacity (optional)
                     </Text>
                     <Input
                       type="number"
@@ -336,7 +345,7 @@ export default function BoatPricingSection({
                           capacity: e.target.value,
                         }))
                       }
-                      placeholder="0"
+                      placeholder="Shared boat"
                     />
                   </Box>
                 </HStack>
@@ -363,41 +372,42 @@ export default function BoatPricingSection({
                       const priceDollars = Number.parseFloat(
                         editPricingForm.price,
                       )
-                      const cap = Number.parseInt(
-                        editPricingForm.capacity,
-                        10,
-                      )
+                      const capTrim = editPricingForm.capacity.trim()
+                      const cap =
+                        capTrim === ""
+                          ? null
+                          : Number.parseInt(capTrim, 10)
                       if (
-                        ticketType &&
-                        !Number.isNaN(priceDollars) &&
-                        !Number.isNaN(cap) &&
-                        cap >= 0
+                        !ticketType ||
+                        Number.isNaN(priceDollars) ||
+                        (cap !== null && (Number.isNaN(cap) || cap < 0))
                       ) {
-                        const otherSum = boatPricingList
-                          .filter((bp) => bp.id !== p.id)
-                          .reduce((sum, bp) => sum + bp.capacity, 0)
-                        const totalAllocated = otherSum + cap
-                        if (totalAllocated > effectiveCapacity) {
-                          handleError({
-                            body: {
-                              detail: `Sum of ticket-type capacities (${totalAllocated}) would exceed boat capacity (${effectiveCapacity})`,
-                            },
-                          } as ApiError)
-                          return
-                        }
-                        const payload = {
-                          boatPricingId: p.id,
-                          ticket_type: ticketType,
-                          price: Math.round(priceDollars * 100),
-                          capacity: cap,
-                        }
-                        const isRename = ticketType !== p.ticket_type
-                        if (isRename) {
-                          setPendingRenamePricingPayload(payload)
-                          setRenamePricingConfirmOpen(true)
-                        } else {
-                          updatePricingMutation.mutate(payload)
-                        }
+                        return
+                      }
+                      const otherSum = sumConstrainedBoatCapacities(
+                        boatPricingList.filter((bp) => bp.id !== p.id),
+                      )
+                      const totalAllocated = otherSum + (cap ?? 0)
+                      if (totalAllocated > effectiveCapacity) {
+                        handleError({
+                          body: {
+                            detail: `Sum of ticket-type capacities (${totalAllocated}) would exceed boat capacity (${effectiveCapacity})`,
+                          },
+                        } as ApiError)
+                        return
+                      }
+                      const payload = {
+                        boatPricingId: p.id,
+                        ticket_type: ticketType,
+                        price: Math.round(priceDollars * 100),
+                        capacity: cap,
+                      }
+                      const isRename = ticketType !== p.ticket_type
+                      if (isRename) {
+                        setPendingRenamePricingPayload(payload)
+                        setRenamePricingConfirmOpen(true)
+                      } else {
+                        updatePricingMutation.mutate(payload)
                       }
                     }}
                     loading={updatePricingMutation.isPending}
@@ -417,7 +427,10 @@ export default function BoatPricingSection({
                 <HStack>
                   <Text fontWeight="medium">{p.ticket_type}</Text>
                   <Text fontSize="sm" color="gray.400">
-                    ${formatCents(p.price)} ({p.capacity} seats)
+                    ${formatCents(p.price)}
+                    {p.capacity != null
+                      ? ` (${p.capacity} seats)`
+                      : " (shared boat)"}
                   </Text>
                 </HStack>
                 <HStack>
@@ -431,7 +444,8 @@ export default function BoatPricingSection({
                       setEditPricingForm({
                         ticket_type: p.ticket_type,
                         price: (p.price / 100).toFixed(2),
-                        capacity: String(p.capacity),
+                        capacity:
+                          p.capacity != null ? String(p.capacity) : "",
                       })
                     }}
                     disabled={

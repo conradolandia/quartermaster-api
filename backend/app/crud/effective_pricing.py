@@ -49,7 +49,7 @@ def get_effective_capacity_per_ticket_type(
     boat_pricing = session.exec(
         select(BoatPricing).where(BoatPricing.boat_id == boat_id)
     ).all()
-    by_type_boat_cap: dict[str, int] = {
+    by_type_boat_cap: dict[str, int | None] = {
         bp.ticket_type: bp.capacity for bp in boat_pricing
     }
     by_type_trip_cap: dict[str, int | None] = {}
@@ -60,10 +60,8 @@ def get_effective_capacity_per_ticket_type(
     for ticket_type in all_types:
         if ticket_type in by_type_trip_cap:
             result[ticket_type] = by_type_trip_cap[ticket_type]
-        else:
-            cap = by_type_boat_cap.get(ticket_type)
-            if cap is not None:
-                result[ticket_type] = cap
+        elif ticket_type in by_type_boat_cap:
+            result[ticket_type] = by_type_boat_cap[ticket_type]
     return result
 
 

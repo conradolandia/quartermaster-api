@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/boat-pricing", tags=["boat-pricing"])
 
 
+def _sum_constrained_boat_pricing_capacities(rows: list[BoatPricing]) -> int:
+    """Sum per-type caps only; None means shared boat (no slice) and does not add."""
+    return sum(c for c in (bp.capacity for bp in rows) if c is not None)
+
+
 @router.post(
     "/",
     response_model=BoatPricingPublic,
@@ -59,12 +64,15 @@ def create_boat_pricing(
     existing_rows = crud.get_boat_pricing_by_boat(
         session=session, boat_id=boat_pricing_in.boat_id
     )
-    total_capacity = sum(bp.capacity for bp in existing_rows) + boat_pricing_in.capacity
-    if total_capacity > boat.capacity:
+    constrained_sum = _sum_constrained_boat_pricing_capacities(existing_rows)
+    new_cap = boat_pricing_in.capacity
+    if new_cap is not None:
+        constrained_sum += new_cap
+    if constrained_sum > boat.capacity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Sum of ticket-type capacities ({total_capacity}) would exceed "
+                f"Sum of ticket-type capacities ({constrained_sum}) would exceed "
                 f"boat capacity ({boat.capacity})"
             ),
         )
@@ -146,23 +154,24 @@ def update_boat_pricing(
                     "already exists for this boat"
                 ),
             )
-    new_capacity = (
-        boat_pricing_in.capacity
-        if boat_pricing_in.capacity is not None
-        else obj.capacity
-    )
+    if "capacity" in boat_pricing_in.model_fields_set:
+        new_capacity = boat_pricing_in.capacity
+    else:
+        new_capacity = obj.capacity
     other_rows = [
         bp
         for bp in crud.get_boat_pricing_by_boat(session=session, boat_id=obj.boat_id)
         if bp.id != boat_pricing_id
     ]
-    total_capacity = sum(bp.capacity for bp in other_rows) + new_capacity
+    constrained_sum = _sum_constrained_boat_pricing_capacities(other_rows)
+    if new_capacity is not None:
+        constrained_sum += new_capacity
     boat = session.get(Boat, obj.boat_id)
-    if boat and total_capacity > boat.capacity:
+    if boat and constrained_sum > boat.capacity:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Sum of ticket-type capacities ({total_capacity}) would exceed "
+                f"Sum of ticket-type capacities ({constrained_sum}) would exceed "
                 f"boat capacity ({boat.capacity})"
             ),
         )

@@ -57,7 +57,7 @@ def update_trip_boat_pricing(
 ) -> TripBoatPricing:
     """Update a trip boat pricing."""
     obj_data = obj_in.model_dump(exclude_unset=True)
-    # Ensure capacity=0 is applied when explicitly provided (0 is valid for unrestricted)
+    # Explicit capacity updates (including null = share boat; 0 = zero seats for this type)
     if "capacity" in obj_in.model_fields_set:
         obj_data["capacity"] = obj_in.capacity
     db_obj.sqlmodel_update(obj_data)

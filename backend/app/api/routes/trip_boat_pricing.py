@@ -177,7 +177,7 @@ def update_trip_boat_pricing(
         session=session, trip_boat_id=obj.trip_boat_id
     )
     use_only_trip = getattr(trip_boat, "use_only_trip_pricing", False)
-    by_boat: dict[str, int] = {}
+    by_boat: dict[str, int | None] = {}
     if not use_only_trip:
         boat_pricing = crud.get_boat_pricing_by_boat(
             session=session, boat_id=trip_boat.boat_id
@@ -187,11 +187,14 @@ def update_trip_boat_pricing(
     for tbp in tbp_list:
         if tbp.id == trip_boat_pricing_id:
             key = trip_boat_pricing_in.ticket_type or tbp.ticket_type
-            val = (
-                trip_boat_pricing_in.capacity
-                if trip_boat_pricing_in.capacity is not None
-                else tbp.capacity
-            )
+            if "capacity" in trip_boat_pricing_in.model_fields_set:
+                val = trip_boat_pricing_in.capacity
+            else:
+                val = (
+                    tbp.capacity
+                    if tbp.capacity is not None
+                    else by_boat.get(tbp.ticket_type)
+                )
         else:
             key = tbp.ticket_type
             val = (

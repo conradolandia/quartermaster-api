@@ -93,6 +93,35 @@ class TestGetEffectiveCapacityPerTicketType:
         assert "child" in result
         assert result["child"] == 10
 
+    def test_boat_pricing_null_capacity_is_shared_pool(
+        self,
+        db: Session,
+        test_trip: Trip,
+        test_boat: Boat,
+        test_trip_boat: TripBoat,
+        test_boat_pricing: BoatPricing,
+    ) -> None:
+        test_boat_pricing.capacity = None
+        db.add(test_boat_pricing)
+        db.commit()
+
+        result = get_effective_capacity_per_ticket_type(
+            session=db,
+            trip_id=test_trip.id,
+            boat_id=test_boat.id,
+        )
+        assert result["adult"] is None
+
+        ep = get_effective_pricing(
+            session=db,
+            trip_id=test_trip.id,
+            boat_id=test_boat.id,
+        )
+        assert len(ep) == 1
+        assert ep[0].ticket_type == "adult"
+        assert ep[0].capacity == test_boat.capacity
+        assert ep[0].remaining == test_boat.capacity
+
 
 class TestGetEffectivePricing:
     """Tests for get_effective_pricing function."""

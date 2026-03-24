@@ -73,7 +73,10 @@ class BoatPricingBase(SQLModel):
     boat_id: uuid.UUID = Field(foreign_key="boat.id")
     ticket_type: str = Field(max_length=32)
     price: int = Field(ge=0)  # cents
-    capacity: int = Field(ge=0)  # max seats for this ticket type on this boat
+    capacity: int | None = Field(
+        default=None,
+        ge=0,
+    )  # max seats for this type; None = share boat capacity (no per-type cap)
 
 
 class BoatPricingCreate(BoatPricingBase):

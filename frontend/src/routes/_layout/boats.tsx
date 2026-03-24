@@ -43,14 +43,20 @@ const boatsSearchSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).default("asc"),
 })
 
-/** Format boat pricing as "type (n), type (n)" or "—" if none */
+/** Format boat pricing as "Type (n), Type (shared)" or "—" if none */
 function formatTicketTypesWithCapacity(
-  items: { ticket_type: string; capacity: number }[],
+  items: { ticket_type: string; capacity?: number | null }[],
 ): string {
   if (!items?.length) return "—"
   const label = (t: string) =>
     t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  return items.map((p) => `${label(p.ticket_type)} (${p.capacity})`).join(", ")
+  return items
+    .map((p) =>
+      p.capacity != null
+        ? `${label(p.ticket_type)} (${p.capacity})`
+        : `${label(p.ticket_type)} (shared)`,
+    )
+    .join(", ")
 }
 
 // Helper function to convert BoatPublic to Boat
@@ -197,7 +203,10 @@ function BoatsTable() {
     })),
   })
   const pricingByBoatId = useMemo(() => {
-    const map: Record<string, { ticket_type: string; capacity: number }[]> = {}
+    const map: Record<
+      string,
+      { ticket_type: string; capacity?: number | null }[]
+    > = {}
     boats.forEach((boat, i) => {
       const result = pricingQueries[i]?.data
       map[boat.id] = result ?? []

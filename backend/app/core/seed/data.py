@@ -297,7 +297,7 @@ def run_seed_data(session: Session) -> None:
                 boat_id=boat_voyager.id,
                 ticket_type="adult",
                 price=4500,
-                capacity=60,
+                capacity=None,
             ),
             BoatPricingCreate(
                 boat_id=boat_voyager.id,

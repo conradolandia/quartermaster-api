@@ -100,15 +100,15 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
       provider_id: data.provider_id,
     }
     const totalPendingCapacity = pendingPricing.reduce((sum, row) => {
-      const cap = Number.parseInt(row.capacity, 10)
+      const capTrim = row.capacity.trim()
+      const cap = capTrim === "" ? null : Number.parseInt(capTrim, 10)
       if (
         !row.ticket_type.trim() ||
         Number.isNaN(Number.parseFloat(row.price)) ||
-        Number.isNaN(cap) ||
-        cap < 0
+        (cap !== null && (Number.isNaN(cap) || cap < 0))
       )
         return sum
-      return sum + cap
+      return sum + (cap ?? 0)
     }, 0)
     if (totalPendingCapacity > boatPayload.capacity) {
       handleError({
@@ -123,12 +123,12 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
         let pricingFailed = false
         for (const row of pendingPricing) {
           const priceCents = Math.round(Number.parseFloat(row.price) * 100)
-          const cap = Number.parseInt(row.capacity, 10)
+          const capTrim = row.capacity.trim()
+          const cap = capTrim === "" ? null : Number.parseInt(capTrim, 10)
           if (
             !row.ticket_type.trim() ||
             Number.isNaN(priceCents) ||
-            Number.isNaN(cap) ||
-            cap < 0
+            (cap !== null && (Number.isNaN(cap) || cap < 0))
           )
             continue
           try {
@@ -137,7 +137,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                 boat_id: boat.id,
                 ticket_type: row.ticket_type.trim(),
                 price: priceCents,
-                capacity: cap,
+                ...(cap != null ? { capacity: cap } : {}),
               },
             })
           } catch (err) {
@@ -162,12 +162,12 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
 
   const addPendingPricing = () => {
     const priceDollars = Number.parseFloat(pricingForm.price)
-    const cap = Number.parseInt(pricingForm.capacity, 10)
+    const capTrim = pricingForm.capacity.trim()
+    const cap = capTrim === "" ? null : Number.parseInt(capTrim, 10)
     if (
       !pricingForm.ticket_type.trim() ||
       Number.isNaN(priceDollars) ||
-      Number.isNaN(cap) ||
-      cap < 0
+      (cap !== null && (Number.isNaN(cap) || cap < 0))
     )
       return
     setPendingPricing((prev) => [
@@ -338,7 +338,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                       </Box>
                       <Box flex={1} minW="80px">
                         <Text fontSize="sm" mb={1}>
-                          Capacity
+                          Capacity (optional)
                         </Text>
                         <Input
                           type="number"
@@ -350,7 +350,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                               capacity: e.target.value,
                             })
                           }
-                          placeholder="0"
+                          placeholder="Shared boat"
                         />
                       </Box>
                     </HStack>
@@ -368,12 +368,12 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                         disabled={
                           !pricingForm.ticket_type.trim() ||
                           !pricingForm.price ||
-                          !pricingForm.capacity ||
                           Number.isNaN(Number.parseFloat(pricingForm.price)) ||
-                          Number.isNaN(
-                            Number.parseInt(pricingForm.capacity, 10),
-                          ) ||
-                          Number.parseInt(pricingForm.capacity, 10) < 0
+                          (pricingForm.capacity.trim() !== "" &&
+                            (Number.isNaN(
+                              Number.parseInt(pricingForm.capacity, 10),
+                            ) ||
+                              Number.parseInt(pricingForm.capacity, 10) < 0))
                         }
                       >
                         Add
@@ -403,8 +403,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                       <HStack>
                         <Text fontWeight="medium">{p.ticket_type}</Text>
                         <Text fontSize="sm" color="gray.400">
-                          ${formatCents(Math.round(Number.parseFloat(p.price) * 100))} (
-                          {p.capacity} seats)
+                          ${formatCents(Math.round(Number.parseFloat(p.price) * 100))}
+                          {p.capacity.trim() === ""
+                            ? " (shared boat)"
+                            : ` (${p.capacity} seats)`}
                         </Text>
                       </HStack>
                       <IconButton

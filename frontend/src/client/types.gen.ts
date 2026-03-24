@@ -20,14 +20,14 @@ export type BoatPricingCreate = {
   boat_id: string
   ticket_type: string
   price: number
-  capacity: number
+  capacity?: number | null
 }
 
 export type BoatPricingPublic = {
   boat_id: string
   ticket_type: string
   price: number
-  capacity: number
+  capacity?: number | null
   id: string
   created_at: string
   updated_at: string
