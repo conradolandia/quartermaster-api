@@ -1,8 +1,8 @@
 """
 Payment-related booking endpoints.
 
-This module contains booking endpoints that handle payment operations,
-such as initializing payments for draft bookings.
+This module contains booking endpoints that handle payment operations
+(resume payment, confirm free booking).
 """
 
 import logging
@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 
 from app.api import deps
 from app.api.routes.booking_utils import get_booking_with_items
-from app.core.stripe import create_payment_intent, retrieve_payment_intent
+from app.core.stripe import retrieve_payment_intent
 from app.crud.capacity_holds import (
     hold_expiry_utc,
     lock_trip_boats_for_ticket_items,
@@ -28,15 +28,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-@router.post("/{confirmation_code}/initialize-payment")
-def initialize_payment(
+@router.get("/{confirmation_code}/resume-payment")
+def resume_payment(
     *,
     session: Session = Depends(deps.get_db),
     confirmation_code: str,
 ) -> dict:
     """
-    Initialize payment for a draft booking.
-    Creates a PaymentIntent and updates booking status to pending_payment.
+    Return existing PaymentIntent client_secret for a draft checkout (pending_payment
+    or failed payment attempt). Allows resuming without creating a new PaymentIntent.
     """
     try:
         booking = session.exec(
@@ -55,89 +55,15 @@ def initialize_payment(
         if booking.booking_status != BookingStatus.draft:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot initialize payment for booking with booking status '{booking.booking_status}'",
+                detail=f"Cannot resume payment for booking with booking_status '{booking.booking_status}'",
             )
-
-        if booking.payment_intent_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Payment already initialized for this booking",
-            )
-
-        if booking.total_amount < 50:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Use confirm-free-booking for free or sub-minimum (under 50 cents) orders",
-            )
-
-        pairs = trip_boat_pairs_from_booking(booking)
-        lock_trip_boats_for_ticket_items(session=session, trip_boat_pairs=pairs)
-        validate_capacity_for_booking_lines(
-            session=session,
-            booking=booking,
-            exclude_booking_id=None,
-        )
-
-        total_amount_cents = booking.total_amount
-        payment_intent = create_payment_intent(total_amount_cents)
-
-        booking.payment_intent_id = payment_intent.id
-        booking.payment_status = PaymentStatus.pending_payment
-        booking.capacity_hold_expires_at = hold_expiry_utc()
-
-        session.add(booking)
-        session.commit()
-        session.refresh(booking)
-
-        return {
-            "payment_intent_id": payment_intent.id,
-            "client_secret": payment_intent.client_secret,
-            "status": "pending_payment",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(
-            f"Error initializing payment for booking {confirmation_code}: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initialize payment",
-        )
-
-
-@router.get("/{confirmation_code}/resume-payment")
-def resume_payment(
-    *,
-    session: Session = Depends(deps.get_db),
-    confirmation_code: str,
-) -> dict:
-    """
-    Return existing PaymentIntent client_secret for a pending_payment booking.
-    Allows resuming payment without creating a new booking or PaymentIntent.
-    """
-    try:
-        booking = session.exec(
-            select(Booking)
-            .where(Booking.confirmation_code == confirmation_code)
-            .options(selectinload(Booking.items))
-            .with_for_update()
-        ).first()
-
-        if not booking:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Booking not found",
-            )
-
-        if (
-            booking.booking_status != BookingStatus.draft
-            or booking.payment_status != PaymentStatus.pending_payment
+        if booking.payment_status not in (
+            PaymentStatus.pending_payment,
+            PaymentStatus.failed,
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot resume payment for booking with booking_status '{booking.booking_status}' and payment_status '{booking.payment_status}'",
+                detail=f"Cannot resume payment for booking with payment_status '{booking.payment_status}'",
             )
 
         if not booking.payment_intent_id:

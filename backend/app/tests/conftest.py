@@ -71,6 +71,7 @@ from app.models import (
     BookingItem,
     BookingItemStatus,
     BookingStatus,
+    CheckoutIdempotency,
     DiscountCode,
     Jurisdiction,
     Launch,
@@ -99,6 +100,7 @@ def db() -> Generator[Session, None, None]:
             session.rollback()
             # Delete in reverse dependency order
             session.exec(delete(BookingItem))  # type: ignore[call-overload]
+            session.exec(delete(CheckoutIdempotency))  # type: ignore[call-overload]
             session.exec(delete(Booking))  # type: ignore[call-overload]
             session.exec(delete(DiscountCode))  # type: ignore[call-overload]
             session.exec(delete(TripMerchandise))  # type: ignore[call-overload]
@@ -129,6 +131,7 @@ def db() -> Generator[Session, None, None]:
         try:
             session.rollback()
             session.exec(delete(BookingItem))  # type: ignore[call-overload]
+            session.exec(delete(CheckoutIdempotency))  # type: ignore[call-overload]
             session.exec(delete(Booking))  # type: ignore[call-overload]
             session.exec(delete(DiscountCode))  # type: ignore[call-overload]
             session.exec(delete(TripMerchandise))  # type: ignore[call-overload]

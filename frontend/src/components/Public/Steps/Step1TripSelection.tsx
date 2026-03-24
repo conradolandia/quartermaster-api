@@ -10,6 +10,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { useEffect } from "react"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 
 import type { TripPublic } from "@/client"
@@ -23,6 +24,8 @@ interface Step1TripSelectionProps {
   updateBookingData: (updates: Partial<BookingStepData>) => void
   onNext: () => void
   accessCode?: string | null
+  /** While trips/missions for the selected mission are loading; drives header spinner + disabled trip select. */
+  onTripOptionsLoadingChange?: (loading: boolean) => void
 }
 
 const Step1TripSelection = ({
@@ -30,6 +33,7 @@ const Step1TripSelection = ({
   updateBookingData,
   onNext,
   accessCode,
+  onTripOptionsLoadingChange,
 }: Step1TripSelectionProps) => {
   useDateFormatPreference()
 
@@ -42,13 +46,12 @@ const Step1TripSelection = ({
     visibleLaunches,
     availableBoats,
     isLoadingLaunches,
-    isLoadingTrips,
-    isLoadingMissions,
     isLoadingBoats,
     isLoadingBoatNames,
     isTripSoldOut,
     isTripPaused,
     canProceed,
+    tripOptionsPending,
     handleLaunchChange,
     handleTripChange,
     handleBoatChange,
@@ -59,6 +62,13 @@ const Step1TripSelection = ({
     tripTypeToLabel,
     formatLaunchOptionLabel,
   } = useStep1Queries({ bookingData, updateBookingData, accessCode })
+
+  useEffect(() => {
+    onTripOptionsLoadingChange?.(tripOptionsPending)
+    return () => {
+      onTripOptionsLoadingChange?.(false)
+    }
+  }, [tripOptionsPending, onTripOptionsLoadingChange])
 
   const selectedTrip =
     (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id
@@ -142,11 +152,16 @@ const Step1TripSelection = ({
                 <Text color="text.muted" fontSize="sm">
                   Select a mission to see available launch and pre-launch trips.
                 </Text>
-              ) : isLoadingTrips || isLoadingMissions ? (
-                <Spinner size="sm" />
+              ) : !tripOptionsPending && activeTrips.length === 0 ? (
+                <Text color="text.muted" fontSize="sm">
+                  No active trips for this mission right now. Try another mission
+                  or check back later.
+                </Text>
               ) : (
                 <Select.Root
+                  key={`trip-${bookingData.selectedLaunchId}-${tripOptionsPending ? "pending" : "ready"}-${activeTrips.length}`}
                   collection={tripsCollection}
+                  disabled={tripOptionsPending}
                   value={
                     bookingData.selectedTripId
                       ? [bookingData.selectedTripId]
@@ -156,10 +171,20 @@ const Step1TripSelection = ({
                 >
                   <Select.Control width="100%">
                     <Select.Trigger>
-                      <Select.ValueText placeholder="Select your rocket viewing experience" />
+                      <Select.ValueText
+                        placeholder={
+                          tripOptionsPending
+                            ? "Loading available trips…"
+                            : "Select your rocket viewing experience"
+                        }
+                      />
                     </Select.Trigger>
                     <Select.IndicatorGroup>
-                      <Select.Indicator />
+                      {tripOptionsPending ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <Select.Indicator />
+                      )}
                     </Select.IndicatorGroup>
                   </Select.Control>
                   <Select.Positioner>

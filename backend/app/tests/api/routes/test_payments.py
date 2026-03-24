@@ -212,7 +212,7 @@ def test_verify_payment_canceled_updates_booking(
     assert r.status_code == 200
     data = r.json()
     assert data["status"] == "canceled"
-    assert data["booking_status"] == "cancelled"
+    assert data["booking_status"] == "draft"
 
 
 # -- POST /payments/webhook (more cases) --------------------------------------
@@ -255,7 +255,7 @@ def test_webhook_payment_failed(
     client: TestClient,
     db: Session,
 ) -> None:
-    _create_draft_booking(db, payment_intent_id="pi_failed")
+    booking = _create_draft_booking(db, payment_intent_id="pi_failed")
     mock_construct.return_value = SimpleNamespace(
         type="payment_intent.payment_failed",
         data=SimpleNamespace(
@@ -270,3 +270,6 @@ def test_webhook_payment_failed(
         )
     assert r.status_code == 200
     assert r.json()["status"] == "success"
+    db.refresh(booking)
+    assert booking.booking_status == BookingStatus.draft
+    assert booking.payment_status == PaymentStatus.failed

@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import select
 
 from app.api import deps
+from app.core.stripe import release_payment_intent_after_capacity_failure
 from app.models import Booking, BookingStatus, PaymentStatus
 
 ALLOWED_CLEANUP_STATUSES = {
@@ -68,6 +69,16 @@ def cleanup_bookings(
                 stmt = stmt.where(Booking.created_at < cutoff)
             for booking in session.exec(stmt).all():
                 old_status = booking.booking_status
+                if booking.payment_intent_id:
+                    try:
+                        release_payment_intent_after_capacity_failure(
+                            booking.payment_intent_id
+                        )
+                    except Exception as e:
+                        print(
+                            f"Warning: could not cancel Stripe PI "
+                            f"{booking.payment_intent_id}: {e}"
+                        )
                 booking.booking_status = BookingStatus.cancelled
                 booking.payment_status = PaymentStatus.failed
                 session.add(booking)

@@ -290,13 +290,22 @@ def verify_payment(
     elif payment_intent.status == "requires_capture":
         return {"status": "requires_capture"}
     elif payment_intent.status == "canceled":
-        # Check if booking is already cancelled to prevent duplicate processing
+        # Capacity / other flows may have cancelled the booking already; keep idempotent.
         if booking.booking_status == BookingStatus.cancelled:
             logger.info(
                 f"Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
             )
             return {"status": "canceled", "booking_status": "cancelled"}
 
+        # Checkout: PI canceled (e.g. abandoned) — booking was never confirmed; stay draft for retry.
+        if booking.booking_status == BookingStatus.draft:
+            if booking.payment_status == PaymentStatus.failed:
+                return {"status": "canceled", "booking_status": "draft"}
+            booking.booking_status = BookingStatus.draft
+            booking.payment_status = PaymentStatus.failed
+            session.add(booking)
+            session.commit()
+            return {"status": "canceled", "booking_status": "draft"}
         booking.booking_status = BookingStatus.cancelled
         booking.payment_status = PaymentStatus.failed
         session.add(booking)
@@ -401,14 +410,27 @@ async def stripe_webhook(
         booking = session.exec(stmt).first()
 
         if booking:
-            # Check if booking is already cancelled to prevent duplicate processing
             if booking.booking_status == BookingStatus.cancelled:
                 logger.info(
-                    f"Webhook: Booking {booking.confirmation_code} already cancelled, skipping duplicate processing"
+                    "Webhook: Booking %s already cancelled (e.g. capacity), skip payment_failed",
+                    booking.confirmation_code,
+                )
+                return {"status": "success"}
+            if booking.booking_status != BookingStatus.draft:
+                logger.info(
+                    "Webhook: payment_failed for booking %s status=%s, skip",
+                    booking.confirmation_code,
+                    booking.booking_status,
+                )
+                return {"status": "success"}
+            if booking.payment_status == PaymentStatus.failed:
+                logger.info(
+                    "Webhook: payment_failed already applied for %s",
+                    booking.confirmation_code,
                 )
                 return {"status": "success"}
 
-            booking.booking_status = BookingStatus.cancelled
+            booking.booking_status = BookingStatus.draft
             booking.payment_status = PaymentStatus.failed
             session.add(booking)
             session.commit()

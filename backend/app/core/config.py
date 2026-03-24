@@ -129,7 +129,7 @@ class Settings(BaseSettings):
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
 
-    # Seat hold TTL after initialize-payment / resume-payment (minutes).
+    # Seat hold TTL after checkout (POST /bookings/checkout) or resume-payment (minutes).
     CAPACITY_HOLD_TTL_MINUTES: int = 5
 
     @computed_field  # type: ignore[prop-decorator]

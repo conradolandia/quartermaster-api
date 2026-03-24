@@ -111,23 +111,32 @@ export function useBookingDraft({
         })
         return { outcome: "free_confirmed" as const, code }
       }
-      // After first init, booking stays draft with pending_payment + payment_intent_id; resume only then.
+      // Paid flow: resume when a PaymentIntent already exists (checkout or retry after decline).
       const shouldResumePayment =
         bookingStatus === "draft" &&
-        bookingToUse.payment_status === "pending_payment" &&
-        Boolean(bookingToUse.payment_intent_id?.trim())
-      const paymentData = shouldResumePayment
-        ? await BookingsService.resumePayment({
-            confirmationCode: code,
-          })
-        : await BookingsService.initializePayment({
-            confirmationCode: code,
-          })
-      return {
-        outcome: "payment_ready" as const,
-        booking: bookingToUse,
-        paymentData,
+        Boolean(bookingToUse.payment_intent_id?.trim()) &&
+        (bookingToUse.payment_status === "pending_payment" ||
+          bookingToUse.payment_status === "failed")
+      if (shouldResumePayment) {
+        const paymentData = await BookingsService.resumePayment({
+          confirmationCode: code,
+        })
+        return {
+          outcome: "payment_ready" as const,
+          booking: bookingToUse,
+          paymentData,
+        }
       }
+      // Legacy: draft with chargeable total but no PI (old two-step flow). Start over.
+      if (bookingStatus === "draft" && totalCents >= 50) {
+        navigate({
+          to: "/book",
+          search: { discount: search.discount, access: search.access },
+          replace: true,
+        })
+        return { outcome: "legacy_draft_no_payment" as const }
+      }
+      throw new Error("Unexpected booking state for payment")
     },
     onSuccess: (result) => {
       if (result.outcome === "confirmed") {
@@ -148,6 +157,9 @@ export function useBookingDraft({
       }
       if (result.outcome === "free_confirmed") {
         navigate({ to: "/bookings", search: { code: result.code } })
+        return
+      }
+      if (result.outcome === "legacy_draft_no_payment") {
         return
       }
       onBookingReady({
@@ -205,25 +217,25 @@ export function useBookingDraft({
           accessCodeDiscountCodeId ?? bookingData.discount_code_id,
       }
 
-      const booking = await BookingsService.createBooking({
-        requestBody: bookingCreate,
-      })
       if (bookingData.total < 50) {
+        const booking = await BookingsService.createBooking({
+          requestBody: bookingCreate,
+        })
         await BookingsService.confirmFreeBooking({
           confirmationCode: booking.confirmation_code,
         })
         return { booking, free: true as const }
       }
-      try {
-        const paymentData = await BookingsService.initializePayment({
-          confirmationCode: booking.confirmation_code,
-        })
-        return { booking, paymentData }
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 400) {
-          handleError(e)
-        }
-        throw e
+      const checkout = await BookingsService.bookingPublicCheckoutBooking({
+        requestBody: bookingCreate,
+      })
+      return {
+        booking: checkout.booking,
+        paymentData: {
+          payment_intent_id: checkout.payment_intent_id,
+          client_secret: checkout.client_secret,
+          status: checkout.status,
+        },
       }
     },
     onSuccess: (data) => {

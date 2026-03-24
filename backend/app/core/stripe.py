@@ -1,3 +1,5 @@
+from typing import Any
+
 import stripe
 from fastapi import HTTPException, status
 
@@ -7,7 +9,11 @@ from app.core.config import settings
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-def create_payment_intent(amount: int, currency: str = "usd") -> stripe.PaymentIntent:
+def create_payment_intent(
+    amount: int,
+    currency: str = "usd",
+    idempotency_key: str | None = None,
+) -> stripe.PaymentIntent:
     """
     Create a Stripe PaymentIntent for the specified amount.
 
@@ -22,11 +28,14 @@ def create_payment_intent(amount: int, currency: str = "usd") -> stripe.PaymentI
         HTTPException: If there's an error creating the payment intent
     """
     try:
-        return stripe.PaymentIntent.create(
-            amount=amount,
-            currency=currency,
-            automatic_payment_methods={"enabled": True},
-        )
+        create_kwargs: dict[str, Any] = {
+            "amount": amount,
+            "currency": currency,
+            "automatic_payment_methods": {"enabled": True},
+        }
+        if idempotency_key:
+            create_kwargs["idempotency_key"] = idempotency_key
+        return stripe.PaymentIntent.create(**create_kwargs)
     except stripe.error.StripeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

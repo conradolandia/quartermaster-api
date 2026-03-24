@@ -40,7 +40,11 @@ export function useStep1Queries({
     queryFn: () => LaunchesService.readPublicLaunches({ limit: 100 }),
   })
 
-  const { data: missionsResponse, isLoading: isLoadingMissions } = useQuery({
+  const {
+    data: missionsResponse,
+    isLoading: isLoadingMissions,
+    isFetching: isFetchingMissions,
+  } = useQuery({
     queryKey: ["public-missions"],
     queryFn: () => MissionsService.readPublicMissions({ limit: 500 }),
   })
@@ -48,7 +52,11 @@ export function useStep1Queries({
   const launches = launchesResponse?.data ?? []
   const missions = missionsResponse?.data ?? []
 
-  const { data: allTrips, isLoading: isLoadingTrips } = useQuery({
+  const {
+    data: allTrips,
+    isLoading: isLoadingTrips,
+    isFetching: isFetchingTrips,
+  } = useQuery({
     queryKey: ["public-trips", accessCode, bookingData.selectedTripId],
     queryFn: () =>
       TripsService.readPublicTrips({
@@ -207,6 +215,30 @@ export function useStep1Queries({
     !isTripSoldOut &&
     !isTripPaused &&
     (bookingData.selectedBoatId || availableBoats.length === 1)
+
+  /**
+   * Trip Select must not go "ready" with an empty collection: Ark Select will not open
+   * when items.length === 0 (looks broken). Wait while queries are in flight or while we
+   * still have zero filtered trips but a fetch is in progress (missions/trips race).
+   */
+  const tripOptionsPending = React.useMemo(() => {
+    if (!bookingData.selectedLaunchId) return false
+    if (isLoadingTrips || isLoadingMissions) return true
+    if (
+      activeTrips.length === 0 &&
+      (isFetchingTrips || isFetchingMissions)
+    ) {
+      return true
+    }
+    return false
+  }, [
+    bookingData.selectedLaunchId,
+    isLoadingTrips,
+    isLoadingMissions,
+    isFetchingTrips,
+    isFetchingMissions,
+    activeTrips.length,
+  ])
 
   // --- Effects ---
 
@@ -448,20 +480,27 @@ export function useStep1Queries({
 
   // --- Collections ---
 
-  const launchesCollection = createListCollection({
-    items: visibleLaunches.map((launch) => ({
-      label: formatLaunchOptionLabel(launch),
-      value: launch.id,
-    })),
-  })
+  const launchesCollection = React.useMemo(
+    () =>
+      createListCollection({
+        items: visibleLaunches.map((launch) => ({
+          label: formatLaunchOptionLabel(launch),
+          value: launch.id,
+        })),
+      }),
+    [visibleLaunches],
+  )
 
-  const tripsCollection = createListCollection({
-    items:
-      activeTrips.map((trip: TripPublic) => ({
-        label: formatTripOptionLabel(trip),
-        value: trip.id,
-      })) || [],
-  })
+  const tripsCollection = React.useMemo(
+    () =>
+      createListCollection({
+        items: activeTrips.map((trip: TripPublic) => ({
+          label: formatTripOptionLabel(trip),
+          value: trip.id,
+        })),
+      }),
+    [activeTrips],
+  )
 
   const boatsCollection = createListCollection({
     items:
@@ -497,6 +536,7 @@ export function useStep1Queries({
     isTripSoldOut,
     isTripPaused,
     canProceed,
+    tripOptionsPending,
     // Handlers
     handleLaunchChange,
     handleTripChange,

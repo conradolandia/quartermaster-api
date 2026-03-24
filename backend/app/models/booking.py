@@ -340,3 +340,12 @@ class BookingPublic(BookingBase):
     trip_type: str | None = None
     discount_code: DiscountCodePublic | None = None
     experience_display: BookingExperienceDisplay | None = None
+
+
+class BookingCheckoutResponse(SQLModel):
+    """Public paid checkout: booking row plus Stripe client secret for Elements."""
+
+    booking: BookingPublic
+    payment_intent_id: str
+    client_secret: str
+    status: str = "pending_payment"

@@ -86,6 +86,16 @@ export type Body_trips_import_trip_from_yaml = {
   file: Blob | File
 }
 
+/**
+ * Public paid checkout: booking row plus Stripe client secret for Elements.
+ */
+export type BookingCheckoutResponse = {
+  booking: BookingPublic
+  payment_intent_id: string
+  client_secret: string
+  status?: string
+}
+
 export type BookingCreate = {
   confirmation_code: string
   first_name: string
@@ -1168,6 +1178,12 @@ export type BookingsRevertCheckInData = {
 
 export type BookingsRevertCheckInResponse = BookingPublic
 
+export type BookingPublicCheckoutBookingData = {
+  requestBody: BookingCreate
+}
+
+export type BookingPublicCheckoutBookingResponse = BookingCheckoutResponse
+
 export type BookingsGetBookingQrCodeData = {
   confirmationCode: string
 }
@@ -1192,14 +1208,6 @@ export type BookingPublicResendBookingConfirmationEmailData = {
 }
 
 export type BookingPublicResendBookingConfirmationEmailResponse = {
-  [key: string]: unknown
-}
-
-export type BookingsInitializePaymentData = {
-  confirmationCode: string
-}
-
-export type BookingsInitializePaymentResponse = {
   [key: string]: unknown
 }
 

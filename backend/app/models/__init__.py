@@ -23,6 +23,7 @@ from app.models.boat import (
 from app.models.booking import (
     Booking,
     BookingBase,
+    BookingCheckoutResponse,
     BookingCreate,
     BookingDraftUpdate,
     BookingExperienceDisplay,
@@ -36,6 +37,7 @@ from app.models.booking import (
     BookingUpdate,
     _validate_name_part,
 )
+from app.models.checkout_idempotency import CheckoutIdempotency
 
 # Discount and booking (booking references discount via string)
 from app.models.discount import (
@@ -171,7 +173,9 @@ from app.models.user import (
 __all__ = [
     "Booking",
     "BookingBase",
+    "BookingCheckoutResponse",
     "BookingCreate",
+    "CheckoutIdempotency",
     "BookingDraftUpdate",
     "BookingExperienceDisplay",
     "BookingItem",

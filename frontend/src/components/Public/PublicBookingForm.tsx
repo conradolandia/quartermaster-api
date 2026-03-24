@@ -4,6 +4,7 @@ import {
   Flex,
   Heading,
   Image,
+  Spinner,
   Span,
   Text,
   VStack,
@@ -49,6 +50,8 @@ const PublicBookingForm = ({
   const hydratedForCodeRef = useRef<string | null>(null)
   const [bookingData, setBookingData] =
     useState<BookingStepData>(INITIAL_BOOKING_DATA)
+  /** Step 1: trips for selected mission are still loading (header + trip dropdown UX). */
+  const [step1TripOptionsLoading, setStep1TripOptionsLoading] = useState(false)
 
   const updateBookingData = useCallback((updates: Partial<BookingStepData>) => {
     setBookingData((prev) => ({
@@ -97,6 +100,7 @@ const PublicBookingForm = ({
             updateBookingData={updateBookingData}
             onNext={nextStep}
             accessCode={accessCode}
+            onTripOptionsLoadingChange={setStep1TripOptionsLoading}
           />
         )
       case 2:
@@ -199,9 +203,23 @@ const PublicBookingForm = ({
                   align={{ base: "stretch", md: "flex-end" }}
                   textAlign={{ base: "left", md: "right" }}
                 >
-                  <Heading size={{ base: "lg", md: "2xl" }}>
-                    Book Your Star Fleet Experience
-                  </Heading>
+                  <Flex
+                    align="center"
+                    justify={{ base: "flex-start", md: "flex-end" }}
+                    gap={3}
+                    flexWrap="wrap"
+                  >
+                    {currentStep === 1 && step1TripOptionsLoading && (
+                      <Spinner
+                        size="sm"
+                        color="dark.accent.primary"
+                        aria-label="Loading trip options"
+                      />
+                    )}
+                    <Heading size={{ base: "lg", md: "2xl" }}>
+                      Book Your Star Fleet Experience
+                    </Heading>
+                  </Flex>
                   <Text
                     fontSize={{ base: "sm", md: "md" }}
                     color="whiteAlpha.800"

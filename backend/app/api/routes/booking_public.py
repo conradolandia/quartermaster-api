@@ -11,20 +11,23 @@ import logging
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
 from app.core.config import settings
-from app.core.stripe import update_payment_intent_amount
+from app.core.stripe import retrieve_payment_intent, update_payment_intent_amount
 from app.models import (
     Booking,
+    BookingCheckoutResponse,
     BookingCreate,
     BookingDraftUpdate,
     BookingExperienceDisplay,
     BookingItemPublic,
     BookingPublic,
     BookingStatus,
+    CheckoutIdempotency,
     PaymentStatus,
     User,
 )
@@ -44,6 +47,90 @@ from .booking_utils import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
+
+
+def _booking_checkout_response(
+    session: Session, booking: Booking
+) -> BookingCheckoutResponse:
+    items = get_booking_items_in_display_order(session, booking.id)
+    booking_public = BookingPublic.model_validate(booking)
+    booking_public.items = [BookingItemPublic.model_validate(item) for item in items]
+    if not booking.payment_intent_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Checkout booking has no payment intent",
+        )
+    pi = retrieve_payment_intent(booking.payment_intent_id)
+    return BookingCheckoutResponse(
+        booking=booking_public,
+        payment_intent_id=pi.id,
+        client_secret=pi.client_secret or "",
+        status="pending_payment",
+    )
+
+
+@router.post(
+    "/checkout",
+    response_model=BookingCheckoutResponse,
+    status_code=201,
+    operation_id="booking_public_checkout_booking",
+)
+def checkout_booking(
+    *,
+    request: Request,
+    session: Session = Depends(deps.get_db),
+    booking_in: BookingCreate,
+    current_user: User | None = Depends(deps.get_optional_current_user),
+) -> BookingCheckoutResponse:
+    """
+    Create a paid online booking with PaymentIntent and capacity hold in one transaction.
+    Optional ``Idempotency-Key`` header replays the same response and passes the key to Stripe.
+    """
+    raw_key = request.headers.get("Idempotency-Key") or request.headers.get(
+        "idempotency-key"
+    )
+    idem_key = (raw_key or "").strip()[:255] or None
+    if idem_key:
+        row = session.exec(
+            select(CheckoutIdempotency).where(
+                CheckoutIdempotency.idempotency_key == idem_key
+            )
+        ).first()
+        if row:
+            existing = session.get(Booking, row.booking_id)
+            if not existing:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Idempotency record refers to a missing booking",
+                )
+            return _booking_checkout_response(session, existing)
+
+    booking = crud.create_booking_checkout_impl(
+        session=session,
+        booking_in=booking_in,
+        current_user=current_user,
+        stripe_idempotency_key=idem_key,
+    )
+    out = _booking_checkout_response(session, booking)
+    if idem_key:
+        session.add(
+            CheckoutIdempotency(idempotency_key=idem_key, booking_id=booking.id)
+        )
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            row = session.exec(
+                select(CheckoutIdempotency).where(
+                    CheckoutIdempotency.idempotency_key == idem_key
+                )
+            ).first()
+            if row:
+                existing = session.get(Booking, row.booking_id)
+                if existing:
+                    return _booking_checkout_response(session, existing)
+            raise
+    return out
 
 
 @router.post("/", response_model=BookingPublic, status_code=201)

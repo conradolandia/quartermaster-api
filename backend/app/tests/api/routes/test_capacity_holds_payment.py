@@ -1,11 +1,11 @@
-"""Capacity holds on initialize/resume payment."""
+"""Capacity holds on checkout and resume payment."""
 
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.models import (
@@ -73,133 +73,91 @@ def _trip_and_boat(
     return trip, boat
 
 
-def _draft_with_tickets(
-    db: Session,
-    *,
+def _checkout_payload(
     trip_id: uuid.UUID,
     boat_id: uuid.UUID,
     qty: int,
-    code: str,
-    total_cents: int | None = None,
-) -> Booking:
-    total = total_cents if total_cents is not None else qty * 1000
-    b = Booking(
-        confirmation_code=code,
-        first_name="X",
-        last_name="Y",
-        user_email=f"{code.lower()}@example.com",
-        user_phone="+1",
-        billing_address="z",
-        subtotal=total,
-        discount_amount=0,
-        tax_amount=0,
-        tip_amount=0,
-        total_amount=total,
-        payment_status=None,
-        booking_status=BookingStatus.draft,
-    )
-    db.add(b)
-    db.commit()
-    db.refresh(b)
-    db.add(
-        BookingItem(
-            booking_id=b.id,
-            trip_id=trip_id,
-            boat_id=boat_id,
-            item_type="adult",
-            quantity=qty,
-            price_per_unit=1000,
-            status=BookingItemStatus.active,
-        )
-    )
-    db.commit()
-    db.refresh(b)
-    return b
+    confirmation_code: str,
+) -> dict:
+    total = qty * 1000
+    return {
+        "confirmation_code": confirmation_code,
+        "first_name": "X",
+        "last_name": "Y",
+        "user_email": f"{confirmation_code.lower()}@example.com",
+        "user_phone": "+1",
+        "billing_address": "z",
+        "subtotal": total,
+        "discount_amount": 0,
+        "tax_amount": 0,
+        "tip_amount": 0,
+        "total_amount": total,
+        "items": [
+            {
+                "trip_id": str(trip_id),
+                "boat_id": str(boat_id),
+                "item_type": "adult",
+                "quantity": qty,
+                "price_per_unit": 1000,
+                "status": "active",
+            }
+        ],
+    }
 
 
-@patch("app.api.routes.booking_payments.create_payment_intent")
-def test_second_initialize_fails_when_first_booking_holds_seats(
+@patch("app.api.routes.booking_public.retrieve_payment_intent")
+@patch("app.core.stripe.create_payment_intent")
+def test_second_checkout_fails_when_first_booking_holds_seats(
     mock_pi: MagicMock,
+    mock_retrieve: MagicMock,
     client: TestClient,
     db: Session,
     test_mission: Mission,
     test_provider: Provider,
 ) -> None:
     trip, boat = _trip_and_boat(db, test_mission, test_provider)
+    mock_retrieve.return_value = _mock_payment_intent()
     mock_pi.return_value = _mock_payment_intent("pi_first")
-    b1 = _draft_with_tickets(
-        db,
-        trip_id=trip.id,
-        boat_id=boat.id,
-        qty=6,
-        code=f"H1{uuid.uuid4().hex[:6].upper()}",
-    )
-    r1 = client.post(f"{API_BOOKINGS}/{b1.confirmation_code}/initialize-payment")
-    assert r1.status_code == 200
+    p1 = _checkout_payload(trip.id, boat.id, 6, f"H1{uuid.uuid4().hex[:6].upper()}")
+    assert client.post(f"{API_BOOKINGS}/checkout", json=p1).status_code == 201
 
     mock_pi.return_value = _mock_payment_intent("pi_second")
-    b2 = _draft_with_tickets(
-        db,
-        trip_id=trip.id,
-        boat_id=boat.id,
-        qty=6,
-        code=f"H2{uuid.uuid4().hex[:6].upper()}",
-    )
-    r2 = client.post(f"{API_BOOKINGS}/{b2.confirmation_code}/initialize-payment")
-    assert r2.status_code == 400
+    p2 = _checkout_payload(trip.id, boat.id, 6, f"H2{uuid.uuid4().hex[:6].upper()}")
+    assert client.post(f"{API_BOOKINGS}/checkout", json=p2).status_code == 400
 
 
-@patch("app.api.routes.booking_payments.create_payment_intent")
-def test_initialize_succeeds_after_first_hold_expires(
+@patch("app.api.routes.booking_public.retrieve_payment_intent")
+@patch("app.core.stripe.create_payment_intent")
+def test_checkout_succeeds_after_first_hold_expires(
     mock_pi: MagicMock,
+    mock_retrieve: MagicMock,
     client: TestClient,
     db: Session,
     test_mission: Mission,
     test_provider: Provider,
 ) -> None:
     trip, boat = _trip_and_boat(db, test_mission, test_provider)
+    code1 = f"E1{uuid.uuid4().hex[:6].upper()}"
+    code2 = f"E2{uuid.uuid4().hex[:6].upper()}"
+    p1 = _checkout_payload(trip.id, boat.id, 6, code1)
     mock_pi.return_value = _mock_payment_intent("pi_a")
-    b1 = _draft_with_tickets(
-        db,
-        trip_id=trip.id,
-        boat_id=boat.id,
-        qty=6,
-        code=f"E1{uuid.uuid4().hex[:6].upper()}",
-    )
-    assert (
-        client.post(
-            f"{API_BOOKINGS}/{b1.confirmation_code}/initialize-payment"
-        ).status_code
-        == 200
-    )
+    mock_retrieve.return_value = _mock_payment_intent("pi_a")
+    assert client.post(f"{API_BOOKINGS}/checkout", json=p1).status_code == 201
 
+    p2 = _checkout_payload(trip.id, boat.id, 6, code2)
     mock_pi.return_value = _mock_payment_intent("pi_b")
-    b2 = _draft_with_tickets(
-        db,
-        trip_id=trip.id,
-        boat_id=boat.id,
-        qty=6,
-        code=f"E2{uuid.uuid4().hex[:6].upper()}",
-    )
-    assert (
-        client.post(
-            f"{API_BOOKINGS}/{b2.confirmation_code}/initialize-payment"
-        ).status_code
-        == 400
-    )
+    mock_retrieve.return_value = _mock_payment_intent("pi_b")
+    assert client.post(f"{API_BOOKINGS}/checkout", json=p2).status_code == 400
 
-    db.refresh(b1)
+    b1 = db.exec(select(Booking).where(Booking.confirmation_code == code1)).first()
+    assert b1 is not None
     b1.capacity_hold_expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
     db.add(b1)
     db.commit()
 
     mock_pi.return_value = _mock_payment_intent("pi_b2")
-    assert (
-        client.post(
-            f"{API_BOOKINGS}/{b2.confirmation_code}/initialize-payment"
-        ).status_code
-        == 200
-    )
+    mock_retrieve.return_value = _mock_payment_intent("pi_b2")
+    assert client.post(f"{API_BOOKINGS}/checkout", json=p2).status_code == 201
 
 
 @patch("app.api.routes.booking_payments.retrieve_payment_intent")

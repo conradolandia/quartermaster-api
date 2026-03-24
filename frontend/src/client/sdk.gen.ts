@@ -52,6 +52,8 @@ import type {
   BookingsCheckInBookingResponse,
   BookingsRevertCheckInData,
   BookingsRevertCheckInResponse,
+  BookingPublicCheckoutBookingData,
+  BookingPublicCheckoutBookingResponse,
   BookingsGetBookingQrCodeData,
   BookingsGetBookingQrCodeResponse,
   BookingPublicUpdateDraftBookingData,
@@ -60,8 +62,6 @@ import type {
   BookingsGetBookingByConfirmationCodeResponse,
   BookingPublicResendBookingConfirmationEmailData,
   BookingPublicResendBookingConfirmationEmailResponse,
-  BookingsInitializePaymentData,
-  BookingsInitializePaymentResponse,
   BookingsResumePaymentData,
   BookingsResumePaymentResponse,
   BookingsConfirmFreeBookingData,
@@ -936,6 +936,29 @@ export class BookingsService {
   }
 
   /**
+   * Checkout Booking
+   * Create a paid online booking with PaymentIntent and capacity hold in one transaction.
+   * Optional ``Idempotency-Key`` header replays the same response and passes the key to Stripe.
+   * @param data The data for the request.
+   * @param data.requestBody
+   * @returns BookingCheckoutResponse Successful Response
+   * @throws ApiError
+   */
+  public static bookingPublicCheckoutBooking(
+    data: BookingPublicCheckoutBookingData,
+  ): CancelablePromise<BookingPublicCheckoutBookingResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/bookings/checkout",
+      body: data.requestBody,
+      mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
    * Get Booking Qr Code
    * Get QR code image for a booking confirmation code.
    * @param data The data for the request.
@@ -1039,33 +1062,9 @@ export class BookingsService {
   }
 
   /**
-   * Initialize Payment
-   * Initialize payment for a draft booking.
-   * Creates a PaymentIntent and updates booking status to pending_payment.
-   * @param data The data for the request.
-   * @param data.confirmationCode
-   * @returns unknown Successful Response
-   * @throws ApiError
-   */
-  public static initializePayment(
-    data: BookingsInitializePaymentData,
-  ): CancelablePromise<BookingsInitializePaymentResponse> {
-    return __request(OpenAPI, {
-      method: "POST",
-      url: "/api/v1/bookings/{confirmation_code}/initialize-payment",
-      path: {
-        confirmation_code: data.confirmationCode,
-      },
-      errors: {
-        422: "Validation Error",
-      },
-    })
-  }
-
-  /**
    * Resume Payment
-   * Return existing PaymentIntent client_secret for a pending_payment booking.
-   * Allows resuming payment without creating a new booking or PaymentIntent.
+   * Return existing PaymentIntent client_secret for a draft checkout (pending_payment
+   * or failed payment attempt). Allows resuming without creating a new PaymentIntent.
    * @param data The data for the request.
    * @param data.confirmationCode
    * @returns unknown Successful Response
