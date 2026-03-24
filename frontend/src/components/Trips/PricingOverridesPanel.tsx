@@ -79,7 +79,7 @@ const PricingOverridesPanel = ({
       tripBoatPricingId: string
       ticket_type?: string
       price: number
-      capacity?: number | null
+      capacity: number | null
     } | null>(null)
   const [renamePricingAffectedCount, setRenamePricingAffectedCount] = useState(0)
   const [renamePricingOldType, setRenamePricingOldType] = useState("")
@@ -149,14 +149,14 @@ const PricingOverridesPanel = ({
       tripBoatPricingId: string
       ticket_type?: string
       price: number
-      capacity?: number | null
+      capacity: number | null
     }) =>
       TripBoatPricingService.updateTripBoatPricing({
         tripBoatPricingId: body.tripBoatPricingId,
         requestBody: {
           ticket_type: body.ticket_type,
           price: body.price,
-          ...(body.capacity !== undefined ? { capacity: body.capacity } : {}),
+          capacity: body.capacity,
         },
       }),
     onSuccess: () => {
@@ -202,7 +202,7 @@ const PricingOverridesPanel = ({
       tripBoatPricingId: pricingId,
       ticket_type: ticketType,
       price: cents,
-      capacity: cap ?? undefined,
+      capacity: cap,
     }
     const isRename = ticketType !== originalTicketType
     const usedCount =
