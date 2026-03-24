@@ -293,10 +293,11 @@ def paid_ticket_counts_by_type_for_boat(
     boat_id: uuid.UUID,
 ) -> dict[str, int]:
     """
-    Slice get_paid_ticket_count_per_boat_per_item_type_for_trip() for one boat.
+    Slice per-boat ticket counts from a (boat_id, item_type) -> count map.
 
-    Used for trip-boat API responses so used_per_ticket_type matches the same
-    paid-seat rules as pricing.remaining / capacity enforcement.
+    `paid_by_type` may be paid-only from get_paid_ticket_count_per_boat_per_item_type_for_trip,
+    or merged paid+held from merge_paid_and_held_per_boat_item_type. Used for trip-boat API
+    responses and committed_per_ticket_type (paid-only slice).
     """
     out: dict[str, int] = {}
     for (bid, item_type), cnt in paid_by_type.items():

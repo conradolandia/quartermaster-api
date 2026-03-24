@@ -786,9 +786,15 @@ export type TripBoatPublicWithAvailability = {
   remaining_capacity: number
   pricing?: Array<EffectivePricingItem>
   /**
-   * Paid ticket count per item_type on this boat (same rules as capacity: confirmed/checked_in/completed bookings with active or fulfilled items).
+   * Capacity usage per item_type: paid bookings (confirmed/checked_in/completed) plus active payment holds. Same basis as remaining_capacity and pricing.remaining.
    */
   used_per_ticket_type?: {
+    [key: string]: number
+  }
+  /**
+   * Paid bookings only per item_type: confirmed, checked_in, or completed with active or fulfilled ticket items (excludes checkout holds).
+   */
+  committed_per_ticket_type?: {
     [key: string]: number
   }
 }

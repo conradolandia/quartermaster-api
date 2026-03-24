@@ -164,6 +164,9 @@ def read_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
     paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
+    paid_only_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -182,6 +185,10 @@ def read_trip_boats_by_trip(
             paid_by_type=paid_by_type,
             boat_id=tb.boat_id,
         )
+        committed_per_ticket_type = crud.paid_ticket_counts_by_type_for_boat(
+            paid_by_type=paid_only_by_type,
+            boat_id=tb.boat_id,
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -196,6 +203,7 @@ def read_trip_boats_by_trip(
                 remaining_capacity=remaining,
                 pricing=pricing,
                 used_per_ticket_type=used_per_ticket_type,
+                committed_per_ticket_type=committed_per_ticket_type,
             )
         )
     return result
@@ -424,6 +432,9 @@ def read_public_trip_boats_by_trip(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
     paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
+    paid_only_by_type = crud.get_paid_ticket_count_per_boat_per_item_type_for_trip(
+        session=session, trip_id=trip_id
+    )
     result: list[TripBoatPublicWithAvailability] = []
     for tb in trip_boats:
         effective_max = (
@@ -442,6 +453,10 @@ def read_public_trip_boats_by_trip(
             paid_by_type=paid_by_type,
             boat_id=tb.boat_id,
         )
+        committed_per_ticket_type = crud.paid_ticket_counts_by_type_for_boat(
+            paid_by_type=paid_only_by_type,
+            boat_id=tb.boat_id,
+        )
         result.append(
             TripBoatPublicWithAvailability(
                 trip_id=tb.trip_id,
@@ -456,6 +471,7 @@ def read_public_trip_boats_by_trip(
                 remaining_capacity=remaining,
                 pricing=pricing,
                 used_per_ticket_type=used_per_ticket_type,
+                committed_per_ticket_type=committed_per_ticket_type,
             )
         )
     return result

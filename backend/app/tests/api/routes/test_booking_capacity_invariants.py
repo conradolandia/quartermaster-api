@@ -122,6 +122,8 @@ def test_read_trip_capacity_used_matches_sum_of_paid_per_boat(
     assert len(boats) == 1
     sum_by_type = sum(boats[0]["used_per_ticket_type"].values())
     assert sum_by_type == data["used_capacity"]
+    committed = sum(boats[0]["committed_per_ticket_type"].values())
+    assert committed == 3
 
 
 @patch("app.api.routes.payments.release_payment_intent_after_capacity_failure")

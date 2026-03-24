@@ -23,6 +23,7 @@ import {
   type ApiError,
   BoatsService,
   TripBoatPricingService,
+  type TripBoatPublicWithAvailability,
   TripBoatsService,
   TripsService,
 } from "@/client"
@@ -30,24 +31,28 @@ import PricingOverridesPanel, {
   type RequestDeletePricingParams,
 } from "@/components/Trips/PricingOverridesPanel"
 import ReassignPassengersDialog from "@/components/Trips/ReassignPassengersDialog"
+import {
+  capacityUsedFromTripBoat,
+  committedSeatsFromTripBoat,
+} from "@/components/Trips/types"
 import { Field } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, handleError } from "@/utils"
 
 /**
- * Sold tickets for a pricing row from API `used_per_ticket_type` (same source as boat totals).
+ * Count for a pricing row from a per-type map (e.g. committed_per_ticket_type).
  * Prefers exact `ticket_type` key; if missing, uses the sole case-insensitive match when unique.
  */
-function soldForTicketTypeFromUsedMap(
-  usedByType: Record<string, number>,
+function countForTicketTypeFromMap(
+  countsByType: Record<string, number>,
   ticketType: string,
 ): number {
-  if (Object.prototype.hasOwnProperty.call(usedByType, ticketType)) {
-    return usedByType[ticketType] ?? 0
+  if (Object.prototype.hasOwnProperty.call(countsByType, ticketType)) {
+    return countsByType[ticketType] ?? 0
   }
   const lower = ticketType.toLowerCase()
-  const matching = Object.entries(usedByType).filter(
+  const matching = Object.entries(countsByType).filter(
     ([k]) => k.toLowerCase() === lower,
   )
   if (matching.length === 1) return matching[0][1]
@@ -104,7 +109,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
 
   const boatsMap = useMemo(() => {
     const map = new Map<string, any>()
-    boatsData.forEach((boat) => map.set(boat.id, boat))
+    for (const boat of boatsData) {
+      map.set(boat.id, boat)
+    }
     return map
   }, [boatsData])
 
@@ -375,17 +382,20 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       }
                     ).pricing
                   : []
-              const u = tripBoat.used_per_ticket_type
-              const usedByType: Record<string, number> =
-                u != null && typeof u === "object"
-                  ? (u as Record<string, number>)
+              const tb = tripBoat as TripBoatPublicWithAvailability
+              const totalCommitted = committedSeatsFromTripBoat(tb)
+              const totalCapacityUsed = capacityUsedFromTripBoat(tb)
+              const committedByType: Record<string, number> =
+                tb.committed_per_ticket_type != null &&
+                typeof tb.committed_per_ticket_type === "object"
+                  ? (tb.committed_per_ticket_type as Record<string, number>)
                   : {}
-              const totalUsed = Object.values(usedByType).reduce(
-                (a, b) => a + b,
+              // Match committed counts; API remaining_capacity can be full boat when pricing is empty.
+              const remainingCommittedBoat = Math.max(
                 0,
+                maxCap - totalCommitted,
               )
-              const remaining = Math.max(0, maxCap - totalUsed)
-              const hasBookings = totalUsed > 0
+              const hasBookings = totalCapacityUsed > 0
               return (
                 <Box key={tripBoat.id}>
                   <Flex
@@ -405,8 +415,8 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                         mt={0.5}
                         lineHeight="1.2"
                       >
-                        {totalUsed} of {maxCap} seats taken ({remaining}{" "}
-                        remaining)
+                        {totalCommitted} of {maxCap} seats taken (
+                        {remainingCommittedBoat} remaining)
                         {tripBoat.sales_enabled === false && (
                           <Text as="span" color="orange.400" ml={1}>
                             — sales paused
@@ -416,9 +426,14 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       {pricing.length > 0 && (
                         <VStack align="start" gap={0}>
                           {pricing.map((p) => {
-                            const sold = soldForTicketTypeFromUsedMap(
-                              usedByType,
+                            const committedForType = countForTicketTypeFromMap(
+                              committedByType,
                               p.ticket_type,
+                            )
+                            // Must match committed counts; p.remaining subtracts holds too.
+                            const remainingCommittedForType = Math.max(
+                              0,
+                              p.capacity - committedForType,
                             )
                             return (
                               <Text
@@ -427,8 +442,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                                 color="gray.500"
                                 lineHeight="1.2"
                               >
-                                {p.ticket_type}: ${formatCents(p.price)} ({sold}
-                                /{p.capacity} taken)
+                                {p.ticket_type}: ${formatCents(p.price)}
+                                <br />({committedForType} of {p.capacity} taken,{" "}
+                                {remainingCommittedForType} remaining)
                               </Text>
                             )
                           })}
@@ -446,7 +462,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                             setReassignFrom({
                               boat_id: tripBoat.boat_id,
                               boatName: boat?.name || "Unknown",
-                              used: totalUsed,
+                              used: totalCapacityUsed,
                             })
                           }
                         >
@@ -576,7 +592,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                       <HStack gap={2} align="center" flexWrap="wrap">
                         <Input
                           type="number"
-                          min={totalUsed}
+                          min={totalCapacityUsed}
                           size="sm"
                           width="24"
                           placeholder={String(boat?.capacity ?? "")}
@@ -609,7 +625,11 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                                 capacityInputValue.trim(),
                                 10,
                               )
-                              return Number.isNaN(n) || n < 1 || n < totalUsed
+                              return (
+                                Number.isNaN(n) ||
+                                n < 1 ||
+                                n < totalCapacityUsed
+                              )
                             })()
                           }
                         >

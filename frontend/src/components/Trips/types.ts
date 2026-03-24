@@ -45,11 +45,24 @@ export function getTripsQueryOptions({
         tripType: tripType || undefined,
         includeArchived: includeArchived ?? false,
       }),
-    queryKey: ["trips", { page, pageSize, missionId, tripType, includeArchived }],
+    queryKey: [
+      "trips",
+      { page, pageSize, missionId, tripType, includeArchived },
+    ],
   }
 }
 
-export function seatsTakenFromTripBoat(
+/** Paid bookings only (excludes checkout holds). */
+export function committedSeatsFromTripBoat(
+  tb: TripBoatPublicWithAvailability,
+): number {
+  const c = tb.committed_per_ticket_type
+  if (c == null || typeof c !== "object") return 0
+  return Object.values(c).reduce((a, b) => a + b, 0)
+}
+
+/** Paid plus active holds — same basis as remaining_capacity. */
+export function capacityUsedFromTripBoat(
   tb: TripBoatPublicWithAvailability,
 ): number {
   const u = tb.used_per_ticket_type

@@ -27,7 +27,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Name
-            <SortIcon column="name" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="name"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -39,7 +43,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Trip Type
-            <SortIcon column="type" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="type"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -51,7 +59,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Mission
-            <SortIcon column="mission_id" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="mission_id"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -63,7 +75,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Departure
-            <SortIcon column="departure_time" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="departure_time"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -75,8 +91,12 @@ export default function TripsTableHeader({
           textAlign="center"
         >
           <Flex align="center" justify="center">
-            Seats
-            <SortIcon column="total_bookings" sortBy={sortBy} sortDirection={sortDirection} />
+            Committed
+            <SortIcon
+              column="total_bookings"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -88,7 +108,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Sales
-            <SortIcon column="total_sales" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="total_sales"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -100,7 +124,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center">
             Boats
-            <SortIcon column="boat_names" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="boat_names"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -121,7 +149,11 @@ export default function TripsTableHeader({
         >
           <Flex align="center" justify="center">
             Status
-            <SortIcon column="active" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="active"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader minW="5rem" px={1} fontWeight="bold">

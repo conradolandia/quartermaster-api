@@ -77,13 +77,20 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
     """Trip boat with effective max capacity, remaining slots, and per-ticket-type pricing/availability."""
 
     max_capacity: int  # Effective capacity (TripBoat.max_capacity or Boat.capacity)
-    remaining_capacity: int  # max_capacity minus paid ticket count for this trip/boat
+    remaining_capacity: int  # Seats left for sale (pricing aggregates; includes hold deduction)
     pricing: list["EffectivePricingItem"] = Field(default_factory=list)  # noqa: F821
     used_per_ticket_type: dict[str, int] = Field(
         default_factory=dict,
         description=(
-            "Paid ticket count per item_type on this boat (same rules as capacity: "
-            "confirmed/checked_in/completed bookings with active or fulfilled items)."
+            "Capacity usage per item_type: paid bookings (confirmed/checked_in/completed) plus "
+            "active payment holds. Same basis as remaining_capacity and pricing.remaining."
+        ),
+    )
+    committed_per_ticket_type: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Paid bookings only per item_type: confirmed, checked_in, or completed with active "
+            "or fulfilled ticket items (excludes checkout holds)."
         ),
     )
 

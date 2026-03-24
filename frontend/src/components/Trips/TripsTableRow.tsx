@@ -1,21 +1,14 @@
-import {
-  Badge,
-  Box,
-  Flex,
-  Link,
-  Table,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
+import { Badge, Box, Flex, Link, Table, Text, VStack } from "@chakra-ui/react"
 import { Link as RouterLink } from "@tanstack/react-router"
 
-import type {
-  TripBoatPublicWithAvailability,
-  TripWithStats,
-} from "@/client"
+import type { TripBoatPublicWithAvailability, TripWithStats } from "@/client"
 import TripActionsMenu from "@/components/Common/TripActionsMenu"
-import { formatCents, formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
-import { seatsTakenFromTripBoat } from "./types"
+import {
+  formatCents,
+  formatInLocationTimezoneWithAbbr,
+  parseApiDate,
+} from "@/utils"
+import { committedSeatsFromTripBoat } from "./types"
 
 interface TripsTableRowProps {
   trip: TripWithStats
@@ -24,15 +17,10 @@ interface TripsTableRowProps {
   isPlaceholderData: boolean
 }
 
-function renderDepartureCell(
-  departureTime: string,
-  timezone?: string | null,
-) {
+function renderDepartureCell(departureTime: string, timezone?: string | null) {
   const d = parseApiDate(departureTime)
   if (Number.isNaN(d.getTime())) return <Text fontSize="sm">—</Text>
-  const parts = timezone
-    ? formatInLocationTimezoneWithAbbr(d, timezone)
-    : null
+  const parts = timezone ? formatInLocationTimezoneWithAbbr(d, timezone) : null
   if (parts) {
     return (
       <Text fontSize="sm">
@@ -78,9 +66,7 @@ export default function TripsTableRow({
         </Link>
       </Table.Cell>
       <Table.Cell minW="6rem" px={1} verticalAlign="top">
-        {trip.type === "launch_viewing"
-          ? "Launch Viewing"
-          : "Pre-Launch"}
+        {trip.type === "launch_viewing" ? "Launch Viewing" : "Pre-Launch"}
       </Table.Cell>
       <Table.Cell minW="6rem" px={1} verticalAlign="top">
         {missionName || "Unknown"}
@@ -88,16 +74,10 @@ export default function TripsTableRow({
       <Table.Cell minW="8rem" px={1} verticalAlign="top">
         {renderDepartureCell(trip.departure_time, trip.timezone)}
       </Table.Cell>
-      <Table.Cell
-        minW="3rem"
-        px={1}
-        verticalAlign="top"
-        textAlign="center"
-      >
+      <Table.Cell minW="3rem" px={1} verticalAlign="top" textAlign="center">
         {boats != null && boats.length > 0
           ? boats.reduce((sum, tb) => {
-              const used = seatsTakenFromTripBoat(tb)
-              return sum + used
+              return sum + committedSeatsFromTripBoat(tb)
             }, 0)
           : 0}
       </Table.Cell>
@@ -108,21 +88,16 @@ export default function TripsTableRow({
         {boats != null && boats.length > 0 ? (
           <VStack align="stretch" gap={2}>
             {boats.map((tb) => {
-              const used = seatsTakenFromTripBoat(tb)
+              const committed = committedSeatsFromTripBoat(tb)
               const maxCap = tb.max_capacity
-              const remaining = Math.max(0, maxCap - used)
+              const remainingCommitted = Math.max(0, maxCap - committed)
               const name = tb.boat?.name ?? "Boat"
               return (
                 <Box key={tb.boat_id}>
                   <Text fontSize="sm">{name}</Text>
-                  <Text
-                    fontSize="sm"
-                    color="gray.400"
-                    mt={0.5}
-                    lineHeight="1"
-                  >
-                    {used} of {maxCap} seats taken (
-                    {remaining} remaining)
+                  <Text fontSize="sm" color="gray.400" mt={0.5} lineHeight="1">
+                    {committed} of {maxCap} seats taken (
+                    {remainingCommitted} remaining)
                   </Text>
                 </Box>
               )
@@ -141,12 +116,7 @@ export default function TripsTableRow({
         verticalAlign="top"
         textAlign="center"
       >
-        <Flex
-          justify="center"
-          align="center"
-          gap={1}
-          flexWrap="wrap"
-        >
+        <Flex justify="center" align="center" gap={1} flexWrap="wrap">
           <Badge
             colorPalette={
               (trip.booking_mode ?? "private") === "public"
@@ -162,10 +132,7 @@ export default function TripsTableRow({
                 ? "Early Bird"
                 : "Private"}
           </Badge>
-          <Badge
-            colorPalette={trip.unlisted ? "orange" : "green"}
-            size="sm"
-          >
+          <Badge colorPalette={trip.unlisted ? "orange" : "green"} size="sm">
             {trip.unlisted ? "Unlisted" : "Listed"}
           </Badge>
         </Flex>

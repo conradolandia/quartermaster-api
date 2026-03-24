@@ -16,7 +16,7 @@ const PendingTrips = () => (
           Schedule
         </Table.ColumnHeader>
         <Table.ColumnHeader w="sm" display={{ base: "none", lg: "table-cell" }}>
-          Seats
+          Committed
         </Table.ColumnHeader>
         <Table.ColumnHeader w="sm" display={{ base: "none", lg: "table-cell" }}>
           Sales
