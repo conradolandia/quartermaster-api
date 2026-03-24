@@ -36,6 +36,8 @@ import type {
   BookingsListBookingsResponse,
   BookingsCreateBookingData,
   BookingsCreateBookingResponse,
+  BookingsListBookingTicketItemTypesData,
+  BookingsListBookingTicketItemTypesResponse,
   BookingsGetBookingByIdData,
   BookingsGetBookingByIdResponse,
   BookingsDeleteBookingData,
@@ -639,7 +641,8 @@ export class BookingsService {
   /**
    * List Bookings
    * List/search bookings (admin only).
-   * Optionally filter by mission_id, launch_id, trip_id, boat_id, trip_type, booking_status, payment_status.
+   * Optionally filter by mission_id, launch_id, trip_id, boat_id, trip_type,
+   * ticket_item_type (ticket line `item_type`, merchandise excluded), booking_status, payment_status.
    * booking_status and payment_status accept multiple values (include only those statuses).
    * Optional search: filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive). Multiple words are ANDed: each word must appear in at least one of those fields.
    * By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
@@ -651,6 +654,7 @@ export class BookingsService {
    * @param data.tripId
    * @param data.boatId
    * @param data.tripType
+   * @param data.ticketItemType
    * @param data.bookingStatus
    * @param data.paymentStatus
    * @param data.search
@@ -674,6 +678,7 @@ export class BookingsService {
         trip_id: data.tripId,
         boat_id: data.boatId,
         trip_type: data.tripType,
+        ticket_item_type: data.ticketItemType,
         booking_status: data.bookingStatus,
         payment_status: data.paymentStatus,
         search: data.search,
@@ -703,6 +708,30 @@ export class BookingsService {
       url: "/api/v1/bookings/",
       body: data.requestBody,
       mediaType: "application/json",
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * List Booking Ticket Item Types
+   * Distinct ticket line `item_type` values from booking items (merchandise rows excluded).
+   * When `trip_id` is set, only types used on that trip are returned.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TicketItemTypesResponse Successful Response
+   * @throws ApiError
+   */
+  public static listBookingTicketItemTypes(
+    data: BookingsListBookingTicketItemTypesData = {},
+  ): CancelablePromise<BookingsListBookingTicketItemTypesResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/bookings/ticket-item-types",
+      query: {
+        trip_id: data.tripId,
+      },
       errors: {
         422: "Validation Error",
       },
@@ -1125,12 +1154,14 @@ export class BookingsService {
    * effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
    * Booking items will be matched to the trip's ticket types (with backward compatibility
    * for legacy naming variants like "adult" vs "adult_ticket").
+   * By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
    * @param data The data for the request.
    * @param data.missionId
    * @param data.tripId
    * @param data.boatId
    * @param data.bookingStatus
    * @param data.fields
+   * @param data.includeArchived
    * @returns unknown Successful Response
    * @throws ApiError
    */
@@ -1146,6 +1177,7 @@ export class BookingsService {
         boat_id: data.boatId,
         booking_status: data.bookingStatus,
         fields: data.fields,
+        include_archived: data.includeArchived,
       },
       errors: {
         422: "Validation Error",

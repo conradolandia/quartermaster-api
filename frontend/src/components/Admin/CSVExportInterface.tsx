@@ -81,19 +81,21 @@ const CSVExportInterface = () => {
     new Set(CSV_FIELDS.map((f) => f.key)), // All fields selected by default
   )
   const [isExporting, setIsExporting] = useState(false)
+  const [includeArchived, setIncludeArchived] = useState(false)
 
   const { showSuccessToast, showErrorToast } = useCustomToast()
 
   // Fetch missions for filtering
   const { data: missionsData } = useQuery({
-    queryKey: ["missions"],
-    queryFn: () => MissionsService.readMissions({ limit: 100 }),
+    queryKey: ["missions", "export", includeArchived],
+    queryFn: () =>
+      MissionsService.readMissions({ limit: 100, includeArchived }),
   })
 
   // Fetch trips for filtering
   const { data: tripsData } = useQuery({
-    queryKey: ["trips"],
-    queryFn: () => TripsService.readTrips({ limit: 100 }),
+    queryKey: ["trips", "export", includeArchived],
+    queryFn: () => TripsService.readTrips({ limit: 100, includeArchived }),
   })
 
   // Fetch boats for filtering when no trip is selected (mission-only or all trips)
@@ -139,10 +141,27 @@ const CSVExportInterface = () => {
     }
   }, [selectedTripId, isLoadingTripBoats, tripBoatsData, selectedBoatId])
 
+  useEffect(() => {
+    if (!selectedMissionId) return
+    if (!missions.some((m: MissionPublic) => m.id === selectedMissionId)) {
+      setSelectedMissionId("")
+      setSelectedTripId("")
+      setSelectedBoatId("")
+    }
+  }, [missions, selectedMissionId])
+
   // Filter trips by selected mission
   const filteredTrips = selectedMissionId
     ? trips.filter((trip: TripPublic) => trip.mission_id === selectedMissionId)
     : trips
+
+  useEffect(() => {
+    if (!selectedTripId) return
+    if (!filteredTrips.some((t: TripPublic) => t.id === selectedTripId)) {
+      setSelectedTripId("")
+      setSelectedBoatId("")
+    }
+  }, [filteredTrips, selectedTripId])
 
   const missionsCollection = createListCollection({
     items: missions.map((mission: MissionPublic) => ({
@@ -186,6 +205,7 @@ const CSVExportInterface = () => {
         boatId: selectedBoatId || undefined,
         bookingStatus: selectedStatus || undefined,
         fields: fieldsParam,
+        includeArchived,
       })
 
       // Create download link
@@ -240,6 +260,7 @@ const CSVExportInterface = () => {
     setSelectedTripId("")
     setSelectedBoatId("")
     setSelectedStatus("")
+    setIncludeArchived(false)
     setSelectedFields(new Set(CSV_FIELDS.map((f) => f.key))) // Reset to all fields
   }
 
@@ -301,6 +322,7 @@ const CSVExportInterface = () => {
         selectedTripId,
         selectedBoatId,
         selectedStatus,
+        includeArchived,
       ],
       queryFn: () =>
         BookingsService.listBookings({
@@ -310,6 +332,7 @@ const CSVExportInterface = () => {
           tripId: selectedTripId || undefined,
           boatId: selectedBoatId || undefined,
           bookingStatus: selectedStatus ? [selectedStatus] : undefined,
+          includeArchived,
         }),
       enabled: canExport,
     })
@@ -328,7 +351,8 @@ const CSVExportInterface = () => {
             <Heading size="md">Export Passenger Manifest</Heading>
             <Text color="text.muted">
               Export booking data to CSV format with optional filtering by
-              mission, trip, or status.
+              mission, trip, or status. Use Include archived to list archived
+              missions and trips and to include bookings tied to archived trips.
               {hasTicketTypeFields &&
                 ((missionRequired && !selectedMissionId) ||
                   (tripRequired && !selectedTripId) ||
@@ -393,6 +417,14 @@ const CSVExportInterface = () => {
             {/* Filters */}
             <VStack gap={4} align="stretch">
               <Heading size="sm">Filters</Heading>
+              <Checkbox
+                checked={includeArchived}
+                onCheckedChange={({ checked }) =>
+                  setIncludeArchived(checked === true)
+                }
+              >
+                Include archived
+              </Checkbox>
               <Flex
                 gap={4}
                 align={{ base: "stretch", lg: "end" }}

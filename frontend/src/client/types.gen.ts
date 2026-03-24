@@ -677,6 +677,13 @@ export type RescheduleBookingRequest = {
   } | null
 }
 
+/**
+ * Distinct ticket line `item_type` values (excludes merchandise rows).
+ */
+export type TicketItemTypesResponse = {
+  data: Array<string>
+}
+
 export type Token = {
   access_token: string
   token_type?: string
@@ -1111,6 +1118,7 @@ export type BookingsListBookingsData = {
   skip?: number
   sortBy?: string
   sortDirection?: string
+  ticketItemType?: string | null
   tripId?: string | null
   tripType?: string | null
 }
@@ -1122,6 +1130,12 @@ export type BookingsCreateBookingData = {
 }
 
 export type BookingsCreateBookingResponse = BookingPublic
+
+export type BookingsListBookingTicketItemTypesData = {
+  tripId?: string | null
+}
+
+export type BookingsListBookingTicketItemTypesResponse = TicketItemTypesResponse
 
 export type BookingsGetBookingByIdData = {
   bookingId: string
@@ -1231,6 +1245,7 @@ export type BookingsExportBookingsCsvData = {
   boatId?: string | null
   bookingStatus?: string | null
   fields?: string | null
+  includeArchived?: boolean
   missionId?: string | null
   tripId?: string | null
 }

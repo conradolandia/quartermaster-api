@@ -77,8 +77,21 @@ export default function BookingsTableHeader({
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
-          w="52"
-          minW="180px"
+          w="36"
+          minW="28"
+          fontWeight="bold"
+          cursor="pointer"
+          onClick={() => onSort("ticket_item_type")}
+        >
+          <Flex align="center">
+            Ticket type
+            <SortIcon column="ticket_item_type" sortBy={sortBy} sortDirection={sortDirection} />
+          </Flex>
+        </Table.ColumnHeader>
+        <Table.ColumnHeader
+          w="180px"
+          maxW="180px"
+          minW="0"
           fontWeight="bold"
           cursor="pointer"
           onClick={() => onSort("booking_status")}

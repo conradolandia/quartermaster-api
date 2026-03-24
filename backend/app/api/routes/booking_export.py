@@ -5,6 +5,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
+from sqlalchemy import exists
 from sqlmodel import Session, select
 
 from app import crud
@@ -33,6 +34,7 @@ def export_bookings_csv(
     boat_id: str | None = None,
     booking_status: str | None = None,
     fields: str | None = None,  # Comma-separated list of field names
+    include_archived: bool = False,
 ) -> Response:
     """
     Export bookings data to CSV format.
@@ -49,12 +51,22 @@ def export_bookings_csv(
     effective pricing (BoatPricing + TripBoatPricing across boats on the trip).
     Booking items will be matched to the trip's ticket types (with backward compatibility
     for legacy naming variants like "adult" vs "adult_ticket").
+    By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
     """
     try:
         import csv
         import io
 
         from fastapi.responses import Response
+
+        # Exclude bookings that have any item on an archived trip (when include_archived=False)
+        booking_has_archived_item = exists(
+            select(1)
+            .select_from(BookingItem)
+            .join(Trip, Trip.id == BookingItem.trip_id)
+            .where(BookingItem.booking_id == Booking.id)
+            .where(Trip.archived == True)  # noqa: E712
+        )
 
         # Build query
         query = select(Booking)
@@ -82,6 +94,9 @@ def export_bookings_csv(
         # Apply all conditions
         if conditions:
             query = query.where(*conditions)
+
+        if not include_archived:
+            query = query.where(~booking_has_archived_item)
 
         # One row per booking: join with BookingItem can duplicate bookings
         # (multiple items per booking).

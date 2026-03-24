@@ -62,6 +62,46 @@ def test_list_bookings_filter_confirmation_code(
     )
 
 
+def test_list_bookings_filter_ticket_item_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"ticket_item_type": "adult"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert any(b["id"] == str(test_booking.id) for b in data["data"])
+
+    r2 = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"ticket_item_type": "nonexistent_ticket_type_xyz"},
+    )
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert not any(b["id"] == str(test_booking.id) for b in data2["data"])
+
+
+def test_list_booking_ticket_item_types(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.get(
+        f"{BOOKINGS_URL}/ticket-item-types",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "data" in data
+    assert "adult" in data["data"]
+
+
 def test_list_bookings_filter_mission_id(
     client: TestClient,
     superuser_token_headers: dict[str, str],

@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query"
 import type { TripPublic } from "@/client"
 import {
   BoatsService,
   BookingsService,
   MissionsService,
-  TripsService,
   TripBoatsService,
+  TripsService,
 } from "@/client"
+import { useQuery } from "@tanstack/react-query"
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "../types"
 import type { SortableColumn } from "../types"
 
@@ -18,6 +18,7 @@ export interface UseBookingsListQueriesParams {
   tripId: string | undefined
   boatId: string | undefined
   tripType: string | undefined
+  ticketItemType: string | undefined
   bookingStatusFilter: string[]
   paymentStatusFilter: string[]
   debouncedSearchQuery: string
@@ -35,6 +36,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     tripId,
     boatId,
     tripType,
+    ticketItemType,
     bookingStatusFilter,
     paymentStatusFilter,
     debouncedSearchQuery,
@@ -58,6 +60,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
       tripId,
       boatId,
       tripType,
+      ticketItemType,
       bookingStatusFilter,
       paymentStatusFilter,
       debouncedSearchQuery || null,
@@ -74,6 +77,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
         tripId: tripId || undefined,
         boatId: boatId || undefined,
         tripType: tripType || undefined,
+        ticketItemType: ticketItemType || undefined,
         bookingStatus:
           bookingStatusFilter.length > 0 &&
           bookingStatusFilter.length < BOOKING_STATUSES.length
@@ -113,6 +117,14 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     queryFn: () =>
       TripBoatsService.readTripBoatsByTrip({ tripId: tripId!, limit: 200 }),
     enabled: !!tripId,
+  })
+
+  const { data: ticketItemTypesData } = useQuery({
+    queryKey: ["booking-ticket-item-types", tripId],
+    queryFn: () =>
+      BookingsService.listBookingTicketItemTypes({
+        tripId: tripId || undefined,
+      }),
   })
 
   const { data: allBookingsData } = useQuery({
@@ -163,6 +175,8 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     .filter((t) => includeArchived || !t.archived)
     .filter((t) => !missionId || t.mission_id === missionId)
 
+  const ticketItemTypeOptions = ticketItemTypesData?.data ?? []
+
   return {
     bookings,
     count,
@@ -177,5 +191,6 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     filteredTrips,
     isBookingArchived,
     tripBoatsData,
+    ticketItemTypeOptions,
   }
 }

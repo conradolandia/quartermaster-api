@@ -52,6 +52,19 @@ def test_export_csv_with_filters(
     assert "text/csv" in r.headers.get("content-type", "")
 
 
+def test_export_csv_with_include_archived(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(
+        BOOKINGS_EXPORT_URL,
+        headers=superuser_token_headers,
+        params={"include_archived": "true"},
+    )
+    assert r.status_code == 200
+    assert "text/csv" in r.headers.get("content-type", "")
+
+
 def test_export_csv_with_mission_id(
     client: TestClient,
     superuser_token_headers: dict[str, str],

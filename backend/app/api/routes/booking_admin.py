@@ -55,6 +55,12 @@ class BookingsPaginatedResponse(BaseModel):
     total_pages: int
 
 
+class TicketItemTypesResponse(BaseModel):
+    """Distinct ticket line `item_type` values (excludes merchandise rows)."""
+
+    data: list[str]
+
+
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
@@ -149,6 +155,7 @@ def list_bookings(
     trip_id: uuid.UUID | None = None,
     boat_id: uuid.UUID | None = None,
     trip_type: str | None = None,
+    ticket_item_type: str | None = None,
     booking_status: list[str] | None = Query(None),
     payment_status: list[str] | None = Query(None),
     search: str | None = None,
@@ -158,7 +165,8 @@ def list_bookings(
 ) -> BookingsPaginatedResponse:
     """
     List/search bookings (admin only).
-    Optionally filter by mission_id, launch_id, trip_id, boat_id, trip_type, booking_status, payment_status.
+    Optionally filter by mission_id, launch_id, trip_id, boat_id, trip_type,
+    ticket_item_type (ticket line `item_type`, merchandise excluded), booking_status, payment_status.
     booking_status and payment_status accept multiple values (include only those statuses).
     Optional search: filters by confirmation_code, first_name, last_name, user_email, user_phone (case-insensitive). Multiple words are ANDed: each word must appear in at least one of those fields.
     By default exclude bookings that have any item on an archived trip; set include_archived=true to include them.
@@ -222,12 +230,20 @@ def list_bookings(
         # (trip_name, trip_type, boat_name, total_quantity), we must avoid SELECT DISTINCT +
         # ORDER BY (expression not in SELECT) - PostgreSQL rejects it.
         # Use a subquery for filtered booking IDs, then select Booking by id.
-        has_join_filters = mission_id or launch_id or trip_id or boat_id or trip_type
+        has_join_filters = (
+            mission_id
+            or launch_id
+            or trip_id
+            or boat_id
+            or trip_type
+            or ticket_item_type
+        )
         sort_by_derived = sort_by in (
             "trip_name",
             "trip_type",
             "boat_name",
             "total_quantity",
+            "ticket_item_type",
         )
         use_id_subquery = has_join_filters and sort_by_derived
 
@@ -250,6 +266,9 @@ def list_bookings(
                 id_subq = id_subq.where(BookingItem.trip_id == trip_id)
             if boat_id:
                 id_subq = id_subq.where(BookingItem.boat_id == boat_id)
+            if ticket_item_type:
+                id_subq = id_subq.where(BookingItem.trip_merchandise_id.is_(None))
+                id_subq = id_subq.where(BookingItem.item_type == ticket_item_type)
             if not include_archived:
                 id_subq = id_subq.where(~booking_has_archived_item)
             if booking_status:
@@ -280,6 +299,13 @@ def list_bookings(
                     base_query = base_query.where(BookingItem.trip_id == trip_id)
                 if boat_id:
                     base_query = base_query.where(BookingItem.boat_id == boat_id)
+                if ticket_item_type:
+                    base_query = base_query.where(
+                        BookingItem.trip_merchandise_id.is_(None)
+                    )
+                    base_query = base_query.where(
+                        BookingItem.item_type == ticket_item_type
+                    )
                 base_query = base_query.distinct()
             if not include_archived:
                 base_query = base_query.where(~booking_has_archived_item)
@@ -304,6 +330,8 @@ def list_bookings(
             logger.info(f"Filtering bookings by boat_id: {boat_id}")
         if trip_type:
             logger.info(f"Filtering bookings by trip_type: {trip_type}")
+        if ticket_item_type:
+            logger.info(f"Filtering bookings by ticket_item_type: {ticket_item_type}")
         if booking_status:
             logger.info(f"Filtering bookings by booking_status: {booking_status}")
         if payment_status:
@@ -315,7 +343,14 @@ def list_bookings(
         total_count = 0
         try:
             count_query = select(func.count(Booking.id.distinct()))
-            if mission_id or launch_id or trip_id or boat_id or trip_type:
+            if (
+                mission_id
+                or launch_id
+                or trip_id
+                or boat_id
+                or trip_type
+                or ticket_item_type
+            ):
                 count_query = count_query.select_from(Booking).join(
                     BookingItem, BookingItem.booking_id == Booking.id
                 )
@@ -333,8 +368,22 @@ def list_bookings(
                     count_query = count_query.where(BookingItem.trip_id == trip_id)
                 if boat_id:
                     count_query = count_query.where(BookingItem.boat_id == boat_id)
+                if ticket_item_type:
+                    count_query = count_query.where(
+                        BookingItem.trip_merchandise_id.is_(None)
+                    )
+                    count_query = count_query.where(
+                        BookingItem.item_type == ticket_item_type
+                    )
             if booking_status or payment_status:
-                if not (mission_id or launch_id or trip_id or boat_id or trip_type):
+                if not (
+                    mission_id
+                    or launch_id
+                    or trip_id
+                    or boat_id
+                    or trip_type
+                    or ticket_item_type
+                ):
                     count_query = count_query.select_from(Booking)
             if booking_status:
                 count_query = count_query.where(
@@ -378,6 +427,22 @@ def list_bookings(
                 order_clause = first_item_trip.asc().nulls_last()
             else:
                 order_clause = first_item_trip.desc().nulls_first()
+        elif sort_by == "ticket_item_type":
+            # First ticket line's item_type (display order: tickets before merch)
+            first_ticket_type = (
+                select(BookingItem.item_type)
+                .select_from(BookingItem)
+                .where(BookingItem.booking_id == Booking.id)
+                .where(BookingItem.trip_merchandise_id.is_(None))
+                .order_by(BookingItem.item_type, BookingItem.id)
+                .limit(1)
+                .correlate(Booking)
+                .scalar_subquery()
+            )
+            if sort_direction.lower() == "asc":
+                order_clause = first_ticket_type.asc().nulls_last()
+            else:
+                order_clause = first_ticket_type.desc().nulls_first()
         elif sort_by == "boat_name":
             # Correlated subquery: boat name of first booking item (display order)
             first_item_boat = (
@@ -503,6 +568,28 @@ def list_bookings(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later.",
         )
+
+
+@router.get(
+    "/ticket-item-types",
+    response_model=TicketItemTypesResponse,
+    dependencies=[Depends(deps.get_current_active_superuser)],
+)
+def list_booking_ticket_item_types(
+    *,
+    session: Session = Depends(deps.get_db),
+    trip_id: uuid.UUID | None = None,
+) -> TicketItemTypesResponse:
+    """
+    Distinct ticket line `item_type` values from booking items (merchandise rows excluded).
+    When `trip_id` is set, only types used on that trip are returned.
+    """
+    q = select(BookingItem.item_type).where(BookingItem.trip_merchandise_id.is_(None))
+    if trip_id:
+        q = q.where(BookingItem.trip_id == trip_id)
+    q = q.distinct().order_by(BookingItem.item_type)
+    rows = session.exec(q).all()
+    return TicketItemTypesResponse(data=[str(t) for t in rows])
 
 
 @router.get(

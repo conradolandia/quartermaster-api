@@ -24,6 +24,7 @@ import {
   BOOKING_STATUSES,
   PAYMENT_STATUSES,
   formatTripFilterLabel,
+  getItemTypeLabel,
 } from "./types"
 import BookingsTableHeader from "./BookingsTableHeader"
 import BookingsTableRow from "./BookingsTableRow"
@@ -46,6 +47,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     boatId,
     setBoatId,
     tripType,
+    ticketItemType,
     bookingStatusFilter,
     paymentStatusFilter,
     includeArchived,
@@ -63,6 +65,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     handleTripFilter,
     handleBoatFilter,
     handleTripTypeFilter,
+    handleTicketItemTypeFilter,
     handleIncludeArchivedChange,
     applyBookingStatus,
     applyPaymentStatus,
@@ -91,6 +94,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     filteredTrips,
     isBookingArchived,
     tripBoatsData,
+    ticketItemTypeOptions,
   } = useBookingsListQueries({
     page,
     pageSize: effectivePageSize,
@@ -99,6 +103,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     tripId,
     boatId,
     tripType,
+    ticketItemType,
     bookingStatusFilter,
     paymentStatusFilter,
     debouncedSearchQuery,
@@ -174,6 +179,24 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     ],
   })
 
+  const ticketTypesForSelect =
+    ticketItemType &&
+    !ticketItemTypeOptions.includes(ticketItemType)
+      ? [...ticketItemTypeOptions, ticketItemType].sort((a, b) =>
+          a.localeCompare(b),
+        )
+      : ticketItemTypeOptions
+
+  const ticketItemTypeCollection = createListCollection({
+    items: [
+      { label: "All ticket types", value: "" },
+      ...ticketTypesForSelect.map((t: string) => ({
+        label: getItemTypeLabel(t),
+        value: t,
+      })),
+    ],
+  })
+
   const tripTypeFilterCollection = createListCollection({
     items: [
       { label: "All Types", value: "" },
@@ -223,6 +246,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         onBoatFilter={handleBoatFilter}
         boatsCollection={boatsCollection as ListCollection<{ label: string; value: string }>}
         filteredBoats={filteredBoats}
+        ticketItemType={ticketItemType}
+        onTicketItemTypeFilter={handleTicketItemTypeFilter}
+        ticketItemTypeCollection={
+          ticketItemTypeCollection as ListCollection<{ label: string; value: string }>
+        }
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
       />

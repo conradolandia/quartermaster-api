@@ -25,6 +25,7 @@ const bookingsSearchSchema = z.object({
   tripId: z.string().optional(),
   boatId: z.string().optional(),
   tripType: z.string().optional(),
+  ticketItemType: z.string().optional(),
   search: z.string().optional(),
   page: z.coerce.string().optional(),
   pageSize: z.coerce.string().optional(),

@@ -15,6 +15,7 @@ import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
 import { formatCents, formatDateTimeInLocationTz, parseApiDate } from "@/utils"
 import {
   formatBookingStatusLabel,
+  formatBookingTicketTypesDisplay,
   formatPaymentStatusLabel,
   getBookingStatusColor,
   getPaymentStatusColor,
@@ -106,8 +107,11 @@ export default function BookingsTableRow({
       <Table.Cell w="24">
         {boatName}
       </Table.Cell>
-      <Table.Cell w="52" minW="180px">
-        <VStack align="start" gap={0}>
+      <Table.Cell w="36" minW="28" title={formatBookingTicketTypesDisplay(booking)}>
+        {formatBookingTicketTypesDisplay(booking)}
+      </Table.Cell>
+      <Table.Cell w="180px" maxW="180px">
+        <VStack align="start" gap={0} maxW="100%">
           <Text fontSize="sm" color="text.muted">
             Booking:{" "}
             <Badge
@@ -118,7 +122,7 @@ export default function BookingsTableRow({
             </Badge>
           </Text>
           {booking.payment_status && (
-            <Text fontSize="sm" color="text.muted" whiteSpace="nowrap">
+            <Text fontSize="sm" color="text.muted">
               Payment:{" "}
               {isPartiallyRefunded(booking) ? (
                 <Badge size="xs" colorPalette="red">

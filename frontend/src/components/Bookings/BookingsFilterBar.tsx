@@ -50,6 +50,9 @@ interface BookingsFilterBarProps {
   onBoatFilter: (boatId: string | undefined) => void
   boatsCollection: ListCollection<{ label: string; value: string }>
   filteredBoats: Array<{ id: string }>
+  ticketItemType: string | undefined
+  onTicketItemTypeFilter: (ticketItemType: string | undefined) => void
+  ticketItemTypeCollection: ListCollection<{ label: string; value: string }>
   hasActiveFilters: boolean
   onClearFilters: () => void
 }
@@ -79,6 +82,9 @@ export default function BookingsFilterBar({
   onBoatFilter,
   boatsCollection,
   filteredBoats,
+  ticketItemType,
+  onTicketItemTypeFilter,
+  ticketItemTypeCollection,
   hasActiveFilters,
   onClearFilters,
 }: BookingsFilterBarProps) {
@@ -110,6 +116,13 @@ export default function BookingsFilterBar({
   const boatLabel = getLabelForValue(
     boatsCollection,
     boatId && filteredBoats.some((b) => b.id === boatId) ? boatId : "",
+  )
+  const ticketItemTypeLabel = getLabelForValue(
+    ticketItemTypeCollection,
+    ticketItemType &&
+      ticketItemTypeCollection.items.some((i) => i.value === ticketItemType)
+      ? ticketItemType
+      : "",
   )
 
   const handleBookingMenuOpenChange = (details: { open: boolean }) => {
@@ -502,6 +515,68 @@ export default function BookingsFilterBar({
             </Select.Positioner>
           </Select.Root>
         </Box>
+        </HStack>
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
+            Ticket type:
+          </Text>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "220px" }}
+          >
+            <Select.Root
+              collection={ticketItemTypeCollection}
+              size="xs"
+              borderColor="white"
+              value={
+                ticketItemType &&
+                ticketItemTypeCollection.items.some(
+                  (i) => i.value === ticketItemType,
+                )
+                  ? [ticketItemType]
+                  : [""]
+              }
+              onValueChange={(e) =>
+                onTicketItemTypeFilter(e.value[0] || undefined)
+              }
+              positioning={{ sameWidth: false }}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {ticketItemTypeLabel}
+                  </Text>
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  minWidth={getDropdownMinWidthFromLabels(
+                    ticketItemTypeCollection.items,
+                    { maxWidth: 220 },
+                  )}
+                  maxWidth="220px"
+                  maxHeight="60vh"
+                  overflowY="auto"
+                >
+                  {ticketItemTypeCollection.items.map((item) => (
+                    <Select.Item key={item.value || "__all__"} item={item}>
+                      <Box whiteSpace="normal" textOverflow="unset">
+                        {item.label}
+                      </Box>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
       </Flex>
     </VStack>

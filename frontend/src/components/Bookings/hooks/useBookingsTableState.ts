@@ -29,6 +29,9 @@ export function useBookingsTableState() {
   const [boatId, setBoatId] = useState<string | undefined>(() =>
     initialSearch().get("boatId") || undefined,
   )
+  const [ticketItemType, setTicketItemType] = useState<string | undefined>(
+    () => initialSearch().get("ticketItemType") || undefined,
+  )
   const [bookingStatusFilter, setBookingStatusFilter] = useState<string[]>(
     () =>
       parseStatusList(
@@ -96,6 +99,7 @@ export function useBookingsTableState() {
       setTripId(params.get("tripId") || undefined)
       setBoatId(params.get("boatId") || undefined)
       setTripType(params.get("tripType") || undefined)
+      setTicketItemType(params.get("ticketItemType") || undefined)
       const search = params.get("search") || ""
       setSearchQuery(search)
       setDebouncedSearchQuery(search)
@@ -116,6 +120,7 @@ export function useBookingsTableState() {
     tripId?: string
     boatId?: string
     tripType?: string
+    ticketItemType?: string
     bookingStatuses?: string[]
     paymentStatuses?: string[]
     search?: string
@@ -140,6 +145,11 @@ export function useBookingsTableState() {
     if (updates.tripType !== undefined) {
       if (updates.tripType) params.set("tripType", updates.tripType)
       else params.delete("tripType")
+    }
+    if (updates.ticketItemType !== undefined) {
+      if (updates.ticketItemType)
+        params.set("ticketItemType", updates.ticketItemType)
+      else params.delete("ticketItemType")
     }
     if (updates.bookingStatuses !== undefined) {
       const all =
@@ -188,17 +198,24 @@ export function useBookingsTableState() {
     setMissionId(selectedMissionId)
     setLaunchId(undefined)
     setTripId(undefined)
+    setTicketItemType(undefined)
     updateFiltersInUrl({
       missionId: selectedMissionId,
       launchId: undefined,
       tripId: undefined,
+      ticketItemType: undefined,
     })
   }
 
   const handleTripFilter = (selectedTripId?: string) => {
     setTripId(selectedTripId)
     setBoatId(undefined)
-    updateFiltersInUrl({ tripId: selectedTripId, boatId: undefined })
+    setTicketItemType(undefined)
+    updateFiltersInUrl({
+      tripId: selectedTripId,
+      boatId: undefined,
+      ticketItemType: undefined,
+    })
   }
 
   const handleBoatFilter = (selectedBoatId?: string) => {
@@ -209,6 +226,11 @@ export function useBookingsTableState() {
   const handleTripTypeFilter = (selectedTripType?: string) => {
     setTripType(selectedTripType)
     updateFiltersInUrl({ tripType: selectedTripType })
+  }
+
+  const handleTicketItemTypeFilter = (selected?: string) => {
+    setTicketItemType(selected)
+    updateFiltersInUrl({ ticketItemType: selected })
   }
 
   const handleIncludeArchivedChange = (checked: boolean) => {
@@ -273,6 +295,7 @@ export function useBookingsTableState() {
     tripId ||
     boatId ||
     tripType ||
+    ticketItemType ||
     bookingStatusFilter.length < BOOKING_STATUSES.length ||
     paymentStatusFilter.length < PAYMENT_STATUSES.length ||
     debouncedSearchQuery
@@ -283,6 +306,7 @@ export function useBookingsTableState() {
     setTripId(undefined)
     setBoatId(undefined)
     setTripType(undefined)
+    setTicketItemType(undefined)
     setBookingStatusFilter([...BOOKING_STATUSES])
     setPaymentStatusFilter([...PAYMENT_STATUSES])
     setSearchQuery("")
@@ -292,6 +316,7 @@ export function useBookingsTableState() {
       tripId: undefined,
       boatId: undefined,
       tripType: undefined,
+      ticketItemType: undefined,
       bookingStatuses: [...BOOKING_STATUSES],
       paymentStatuses: [...PAYMENT_STATUSES],
       search: undefined,
@@ -305,6 +330,7 @@ export function useBookingsTableState() {
     tripId,
     setTripId,
     tripType,
+    ticketItemType,
     boatId,
     setBoatId,
     bookingStatusFilter,
@@ -325,6 +351,7 @@ export function useBookingsTableState() {
     handleTripFilter,
     handleBoatFilter,
     handleTripTypeFilter,
+    handleTicketItemTypeFilter,
     handleIncludeArchivedChange,
     applyBookingStatus,
     applyPaymentStatus,

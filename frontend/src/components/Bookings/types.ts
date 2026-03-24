@@ -26,6 +26,7 @@ export type SortableColumn =
   | "trip_name"
   | "trip_type"
   | "boat_name"
+  | "ticket_item_type"
   | "total_quantity"
 
 export type SortDirection = "asc" | "desc"
@@ -49,6 +50,7 @@ export const bookingsSearchSchema = z.object({
       "trip_name",
       "trip_type",
       "boat_name",
+      "ticket_item_type",
       "total_quantity",
     ])
     .catch("created_at"),
@@ -248,6 +250,19 @@ export function getItemTypeLabel(itemType: string): string {
     swag: "Merchandise",
   }
   return merchandiseMap[itemType] ?? itemType
+}
+
+/** Distinct ticket line types for a booking (merchandise lines excluded). */
+export function formatBookingTicketTypesDisplay(
+  booking: BookingPublic | undefined,
+): string {
+  if (!booking?.items?.length) return "—"
+  const labels = booking.items
+    .filter((i) => !i.trip_merchandise_id)
+    .map((i) => getItemTypeLabel(i.item_type))
+  const unique = [...new Set(labels)]
+  if (unique.length === 0) return "—"
+  return unique.join(", ")
 }
 
 // Helper function to format dates (delegates to utils for international format support)
