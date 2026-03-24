@@ -16,3 +16,17 @@ export function getPublicOrigin(): string {
   }
   return window.location.origin
 }
+
+/**
+ * Stripe Dashboard URL for a PaymentIntent. Test vs live path follows
+ * VITE_STRIPE_PUBLISHABLE_KEY (pk_live_ → live dashboard, else test).
+ */
+export function getStripeDashboardPaymentIntentUrl(
+  paymentIntentId: string,
+): string {
+  const pk = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined
+  const isTest = typeof pk === "string" && pk.startsWith("pk_test_")
+  const prefix = isTest ? "test/" : ""
+  const id = encodeURIComponent(paymentIntentId)
+  return `https://dashboard.stripe.com/${prefix}payments/${id}`
+}

@@ -93,7 +93,7 @@ export const MenuTriggerItem = React.forwardRef<
 >(function MenuTriggerItem(props, ref) {
   const { startIcon, children, ...rest } = props
   return (
-    <ChakraMenu.TriggerItem ref={ref} {...rest}>
+    <ChakraMenu.TriggerItem cursor="pointer" ref={ref} {...rest}>
       {startIcon}
       {children}
       <LuChevronRight />

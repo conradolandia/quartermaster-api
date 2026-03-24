@@ -164,6 +164,7 @@ export default function BookingsTableRow({
             booking={booking}
             editDisabled={booking.booking_status === "checked_in"}
             archived={archived}
+            stripeLinkAfterRefund
           />
         </Flex>
       </Table.Cell>

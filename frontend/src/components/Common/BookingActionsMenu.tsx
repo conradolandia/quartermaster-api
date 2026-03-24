@@ -9,6 +9,7 @@ import {
   FiPrinter,
   FiCalendar,
   FiCornerUpLeft,
+  FiExternalLink,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi"
@@ -20,7 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@chakra-ui/react"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { getPublicOrigin } from "@/utils/url"
+import { getPublicOrigin, getStripeDashboardPaymentIntentUrl } from "@/utils/url"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
 import PermanentDeleteBooking from "../Bookings/PermanentDeleteBooking"
@@ -53,6 +54,20 @@ interface BookingActionsMenuProps {
   hideInMenu?: BookingActionHideInMenu[]
   /** When true, disables all mutating actions except Refund. */
   archived?: boolean
+  /**
+   * When true, "View on Stripe" is listed after Refund (e.g. bookings table).
+   * When false, it stays after Raw Data and before Duplicate (e.g. booking detail).
+   */
+  stripeLinkAfterRefund?: boolean
+}
+
+/** Ghost row buttons with `MenuItem` `asChild` need an explicit pointer cursor. */
+const bookingMenuActionButtonProps = {
+  variant: "ghost" as const,
+  size: "sm" as const,
+  justifyContent: "start" as const,
+  w: "full",
+  cursor: "pointer" as const,
 }
 
 const BookingActionsMenu = ({
@@ -66,6 +81,7 @@ const BookingActionsMenu = ({
   onPermanentDeleteSuccess,
   hideInMenu = [],
   archived = false,
+  stripeLinkAfterRefund = false,
 }: BookingActionsMenuProps) => {
   const hide = (key: BookingActionHideInMenu) => hideInMenu.includes(key)
   const [internalEditOpen, setInternalEditOpen] = useState(false)
@@ -155,17 +171,42 @@ const BookingActionsMenu = ({
     })
   }
 
+  const stripePaymentIntentId = booking.payment_intent_id?.trim() ?? ""
+  const stripeDashboardPaymentUrl = stripePaymentIntentId
+    ? getStripeDashboardPaymentIntentUrl(stripePaymentIntentId)
+    : null
+
+  const renderStripeMenuItem = () =>
+    stripeDashboardPaymentUrl ? (
+      <MenuItem
+        value="view-stripe"
+        onClick={() => {
+          window.open(
+            stripeDashboardPaymentUrl,
+            "_blank",
+            "noopener,noreferrer",
+          )
+        }}
+        asChild
+      >
+        <Button
+          {...bookingMenuActionButtonProps}
+          color="dark.accent.primary"
+        >
+          <FiExternalLink fontSize="16px" />
+          View on Stripe
+        </Button>
+      </MenuItem>
+    ) : null
+
   return (
     <>
       <ActionsMenu ariaLabel="Booking actions" disabled={disabled}>
         {onPrint && (
           <MenuItem value="print" onClick={onPrint} asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
             >
               <FiPrinter fontSize="16px" />
               Print
@@ -179,11 +220,8 @@ const BookingActionsMenu = ({
             asChild
           >
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
             >
               <FiLink fontSize="16px" />
               Copy Link
@@ -193,25 +231,20 @@ const BookingActionsMenu = ({
         {onOpenRawData && (
           <MenuItem value="raw-data" onClick={onOpenRawData} asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
             >
               <FiCode fontSize="16px" />
               Raw Data
             </Button>
           </MenuItem>
         )}
+        {!stripeLinkAfterRefund && renderStripeMenuItem()}
         {!isEditControlled && !editDisabled && (
           <MenuItem value="edit" onClick={handleOpenEdit} disabled={archived} asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
               disabled={archived}
             >
               <FiEdit fontSize="16px" />
@@ -225,14 +258,11 @@ const BookingActionsMenu = ({
           disabled={duplicateMutation.isPending || archived}
           asChild
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            color="dark.accent.primary"
-            justifyContent="start"
-            w="full"
-            disabled={duplicateMutation.isPending || archived}
-          >
+            <Button
+              {...bookingMenuActionButtonProps}
+              color="dark.accent.primary"
+              disabled={duplicateMutation.isPending || archived}
+            >
             <FiCopy fontSize="16px" />
             Duplicate
           </Button>
@@ -240,11 +270,8 @@ const BookingActionsMenu = ({
         {!onPrint && (
           <MenuItem value="copy-link" onClick={copyLinkToClipboard} asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
             >
               <FiLink fontSize="16px" />
               Copy Link
@@ -259,11 +286,8 @@ const BookingActionsMenu = ({
             asChild
           >
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
               disabled={checkInMutation.isPending || archived}
             >
               <FiCheck fontSize="16px" />
@@ -279,11 +303,8 @@ const BookingActionsMenu = ({
             asChild
           >
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
               disabled={revertCheckInMutation.isPending || archived}
             >
               <FiCornerUpLeft fontSize="16px" />
@@ -299,11 +320,8 @@ const BookingActionsMenu = ({
             asChild
           >
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
               disabled={archived}
             >
               <FiCalendar fontSize="16px" />
@@ -318,17 +336,15 @@ const BookingActionsMenu = ({
             asChild
           >
             <Button
-              variant="ghost"
-              size="sm"
+              {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
-              justifyContent="start"
-              w="full"
             >
               <FiDollarSign fontSize="16px" />
               Refund
             </Button>
           </MenuItem>
         )}
+        {stripeLinkAfterRefund && renderStripeMenuItem()}
         <MenuItem
           value="cancel"
           onClick={() => setDeleteModalOpen(true)}
@@ -336,11 +352,8 @@ const BookingActionsMenu = ({
           asChild
         >
           <Button
-            variant="ghost"
-            size="sm"
+            {...bookingMenuActionButtonProps}
             color="status.error"
-            justifyContent="start"
-            w="full"
             disabled={archived}
           >
             <FiTrash2 fontSize="16px" />
@@ -354,11 +367,8 @@ const BookingActionsMenu = ({
           asChild
         >
           <Button
-            variant="ghost"
-            size="sm"
+            {...bookingMenuActionButtonProps}
             color="status.error"
-            justifyContent="start"
-            w="full"
             disabled={archived}
           >
             <FiXCircle fontSize="16px" />
