@@ -17,6 +17,7 @@ from app.crud.capacity_holds import (
     trip_boat_pairs_from_booking,
     validate_capacity_for_booking_lines,
 )
+from app.crud.discount_codes import increment_used_count_for_booking
 from app.models import (
     Booking,
     BookingStatus,
@@ -184,6 +185,7 @@ def _confirm_booking_if_capacity_allows(*, session: Session, booking: Booking) -
     booking.booking_status = BookingStatus.confirmed
     booking.payment_status = PaymentStatus.paid
     booking.capacity_hold_expires_at = None
+    increment_used_count_for_booking(session, booking)
     session.add(booking)
     session.commit()
     session.refresh(booking)

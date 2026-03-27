@@ -180,7 +180,7 @@ const SendLaunchUpdate = ({
 
   return (
     <DialogRoot
-      size={{ base: "xs", md: "md" }}
+      size={{ base: "md", md: "lg" }}
       placement="center"
       open={isOpen}
       onOpenChange={({ open }) => setOpen(open)}
@@ -270,6 +270,7 @@ const SendLaunchUpdate = ({
               <>
                 <Field label="Mission">
                   <Select.Root
+                    positioning={{ sameWidth: false }}
                     collection={createListCollection({
                       items: missions.map((m: MissionPublic) => ({
                         value: m.id,
@@ -291,7 +292,7 @@ const SendLaunchUpdate = ({
                       </Select.IndicatorGroup>
                     </Select.Control>
                     <Select.Positioner>
-                      <Select.Content>
+                      <Select.Content maxW="min(80vw, 28rem)">
                         {missions.map((m: MissionPublic) => (
                           <Select.Item
                             key={m.id}
@@ -307,6 +308,7 @@ const SendLaunchUpdate = ({
                 </Field>
                 <Field label="Trip">
                   <Select.Root
+                    positioning={{ sameWidth: false }}
                     collection={createListCollection({
                       items: trips.map((t: TripPublic) => ({
                         value: t.id,
@@ -328,7 +330,7 @@ const SendLaunchUpdate = ({
                       </Select.IndicatorGroup>
                     </Select.Control>
                     <Select.Positioner>
-                      <Select.Content>
+                      <Select.Content maxW="min(80vw, 28rem)">
                         {trips.map((t: TripPublic) => (
                           <Select.Item
                             key={t.id}
@@ -349,7 +351,7 @@ const SendLaunchUpdate = ({
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="e.g. Launch Update: Mission Alpha"
+                placeholder="Optional; blank uses the default subject (rocket viewing and pre-launch)"
               />
             </Field>
 

@@ -13,6 +13,7 @@ from app.models import (
     BoatPricing,
     Booking,
     BookingStatus,
+    DiscountCode,
     PaymentStatus,
     Trip,
     TripBoat,
@@ -37,6 +38,7 @@ def _create_draft_booking(db: Session, **overrides) -> Booking:
         "total_amount": 5350,
         "payment_status": None,
         "booking_status": BookingStatus.draft,
+        "discount_code_id": None,
     }
     defaults.update(overrides)
     booking = Booking(**defaults)
@@ -250,6 +252,28 @@ def test_confirm_free_booking_success(
     db.refresh(booking)
     assert booking.booking_status == BookingStatus.confirmed
     assert booking.payment_status == PaymentStatus.free
+    mock_email.assert_called_once()
+
+
+@patch("app.api.routes.payments.send_booking_confirmation_email")
+def test_confirm_free_booking_increments_discount_used_count(
+    mock_email: MagicMock,
+    client: TestClient,
+    db: Session,
+    test_discount_code: DiscountCode,
+) -> None:
+    booking = _create_draft_booking(
+        db,
+        total_amount=0,
+        discount_code_id=test_discount_code.id,
+    )
+    assert test_discount_code.used_count == 0
+
+    resp = client.post(f"{API_PREFIX}/{booking.confirmation_code}/confirm-free-booking")
+    assert resp.status_code == 200
+
+    db.refresh(test_discount_code)
+    assert test_discount_code.used_count == 1
     mock_email.assert_called_once()
 
 

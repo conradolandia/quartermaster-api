@@ -505,10 +505,43 @@ export default function BookingDetails({
                   </Flex>
                   {booking.discount_amount > 0 && (
                     <Flex justify="space-between" color="green.400">
-                      <Text>Discount:</Text>
+                      <Flex align="center" gap={2} flexWrap="wrap">
+                        <Text>Discount:</Text>
+                        {booking.discount_code?.code ? (
+                          <Badge
+                            size="sm"
+                            colorPalette="green"
+                            variant="subtle"
+                          >
+                            {booking.discount_code.code}
+                          </Badge>
+                        ) : null}
+                      </Flex>
                       <Text>-${formatCents(booking.discount_amount)}</Text>
                     </Flex>
                   )}
+                  {booking.discount_amount === 0 &&
+                    booking.discount_code?.code && (
+                      <Flex justify="space-between" align="center">
+                        <Flex align="center" gap={2} flexWrap="wrap">
+                          <Text>Discount code:</Text>
+                          <Badge
+                            size="sm"
+                            colorPalette={
+                              booking.discount_code.is_access_code
+                                ? "purple"
+                                : "teal"
+                            }
+                            variant="subtle"
+                          >
+                            {booking.discount_code.code}
+                          </Badge>
+                        </Flex>
+                        <Text color="gray.500" fontSize="sm">
+                          —
+                        </Text>
+                      </Flex>
+                    )}
                   <Flex justify="space-between">
                     <Text>Tax:</Text>
                     <Text>${formatCents(booking.tax_amount)}</Text>

@@ -19,7 +19,15 @@ const useCustomToast = () => {
     })
   }
 
-  return { showSuccessToast, showErrorToast }
+  const showWarningToast = (title: string, description: string) => {
+    toaster.create({
+      title,
+      description,
+      type: "warning",
+    })
+  }
+
+  return { showSuccessToast, showErrorToast, showWarningToast }
 }
 
 export default useCustomToast

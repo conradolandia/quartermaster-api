@@ -7,6 +7,7 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import and_, exists, nulls_first, or_
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, func, select
 
 from app import crud
@@ -606,8 +607,12 @@ def get_booking_by_id(
     Retrieve booking details by ID (admin only).
     """
     try:
-        # Fetch booking
-        booking = session.get(Booking, booking_id)
+        # Fetch booking (eager-load discount_code for API responses)
+        booking = session.exec(
+            select(Booking)
+            .where(Booking.id == booking_id)
+            .options(selectinload(Booking.discount_code))
+        ).first()
         if not booking:
             logger.info(f"Booking not found with ID: {booking_id}")
             raise HTTPException(

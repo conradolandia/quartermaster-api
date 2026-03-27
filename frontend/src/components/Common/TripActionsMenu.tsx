@@ -2,6 +2,7 @@ import {
   DiscountCodesService,
   MissionsService,
   TripsService,
+  type DiscountCodePublic,
   type TripPublic,
 } from "../../client"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -24,7 +25,7 @@ interface TripActionsMenuProps {
 
 const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   const queryClient = useQueryClient()
-  const { showSuccessToast } = useCustomToast()
+  const { showSuccessToast, showWarningToast } = useCustomToast()
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripPublic | null>(null)
@@ -84,26 +85,41 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
 
   const copyBookingLink = () => {
     let url = `${getPublicOrigin()}/book?trip=${trip.id}`
+    const isAccessOnlyCode = (dc: DiscountCodePublic) =>
+      Boolean(dc.is_access_code && dc.discount_value === 0)
+
     if (isEarlyBird && discountCodes) {
       const accessCode =
         discountCodes.find(
           (dc) =>
-            dc.is_access_code &&
+            isAccessOnlyCode(dc) &&
             dc.access_code_mission_id === trip.mission_id,
         ) ??
         discountCodes.find(
-          (dc) => dc.is_access_code && dc.access_code_mission_id == null,
+          (dc) =>
+            isAccessOnlyCode(dc) && dc.access_code_mission_id == null,
         )
       if (accessCode?.code) {
         url += `&access=${encodeURIComponent(accessCode.code)}`
       }
     }
     void navigator.clipboard.writeText(url).then(() => {
-      showSuccessToast(
-        isEarlyBird && !url.includes("&access=")
-          ? "Link copied. For early access trips, add &access=YOUR_CODE to the URL."
-          : "Booking link copied to clipboard",
-      )
+      if (isEarlyBird && discountCodes) {
+        if (url.includes("&access=")) {
+          showSuccessToast("Booking link copied to clipboard")
+        } else {
+          showWarningToast(
+            "No access-only code for this trip",
+            "Create an access code with discount value 0 in Discount Codes to allow access. The link was copied without access.",
+          )
+        }
+      } else if (isEarlyBird && discountCodes === undefined) {
+        showSuccessToast(
+          "Link copied. For early access trips, add &access=YOUR_CODE to the URL.",
+        )
+      } else {
+        showSuccessToast("Booking link copied to clipboard")
+      }
     })
   }
 

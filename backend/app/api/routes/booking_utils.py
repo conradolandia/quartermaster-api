@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 import qrcode
 from fastapi import HTTPException, status
 from sqlalchemy import nulls_first
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app import crud
@@ -161,9 +162,11 @@ def get_booking_with_items(
     """
     validate_confirmation_code(confirmation_code)
 
-    # Fetch booking
+    # Fetch booking (eager-load discount_code for API responses)
     booking = session.exec(
-        select(Booking).where(Booking.confirmation_code == confirmation_code)
+        select(Booking)
+        .where(Booking.confirmation_code == confirmation_code)
+        .options(selectinload(Booking.discount_code))
     ).first()
 
     if not booking:

@@ -299,13 +299,18 @@ def generate_launch_update_email(
         confirmation_code: Unique booking confirmation code
         mission_name: Name of the mission/launch
         update_message: The update message to send
-        subject: Optional custom subject line. If omitted, uses default.
+        subject: Optional custom subject line. If omitted, uses the default
+            launch-update line (covers launch viewing and pre-launch trips).
 
     Returns:
         EmailData containing the subject and HTML content
     """
     email_brand = settings.EMAIL_BRAND_NAME or settings.PROJECT_NAME
-    subject = subject or f"{email_brand} - Launch Update: {mission_name}"
+    default_subject = (
+        f"{email_brand} - We have an important update regarding your "
+        "upcoming rocket viewing experience"
+    )
+    subject = subject or default_subject
 
     # Create the confirmation link
     base_url = settings.FRONTEND_HOST

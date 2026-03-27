@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.models import (
     Booking,
     BookingStatus,
+    DiscountCode,
     PaymentStatus,
 )
 
@@ -19,6 +20,7 @@ from app.models import (
 def _create_draft_booking(
     db: Session,
     payment_intent_id: str = "pi_test",
+    discount_code_id: uuid.UUID | None = None,
 ) -> Booking:
     booking = Booking(
         confirmation_code=f"PAY{uuid.uuid4().hex[:8].upper()}",
@@ -35,6 +37,7 @@ def _create_draft_booking(
         payment_status=PaymentStatus.pending_payment,
         booking_status=BookingStatus.draft,
         payment_intent_id=payment_intent_id,
+        discount_code_id=discount_code_id,
     )
     db.add(booking)
     db.commit()
@@ -142,6 +145,31 @@ def test_verify_payment_success(
     data = r.json()
     assert data["status"] == "succeeded"
     assert data["booking_status"] == "confirmed"
+
+
+@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_confirms_and_increments_discount_used_count(
+    mock_retrieve: MagicMock,
+    mock_send_email: MagicMock,
+    client: TestClient,
+    db: Session,
+    test_discount_code: DiscountCode,
+) -> None:
+    _create_draft_booking(
+        db,
+        payment_intent_id="pi_dc_use",
+        discount_code_id=test_discount_code.id,
+    )
+    assert test_discount_code.used_count == 0
+
+    mock_retrieve.return_value = SimpleNamespace(status="succeeded")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_dc_use",
+    )
+    assert r.status_code == 200
+    db.refresh(test_discount_code)
+    assert test_discount_code.used_count == 1
 
 
 # -- POST /payments/create-payment-intent -------------------------------------
