@@ -107,6 +107,41 @@ def test_reschedule_target_trip_not_found(
     assert r.status_code == 404
 
 
+def test_reschedule_allows_target_boat_with_sales_disabled(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_mission: Mission,
+) -> None:
+    """Admin reschedule succeeds when target trip boat has sales paused."""
+    trip2 = _create_target_trip(db, mission_id=test_mission.id, boat_id=test_boat.id)
+    target_tb = db.exec(
+        __import__("sqlmodel", fromlist=["select"])
+        .select(TripBoat)
+        .where(TripBoat.trip_id == trip2.id, TripBoat.boat_id == test_boat.id)
+    ).first()
+    assert target_tb is not None
+    target_tb.sales_enabled = False
+    db.add(target_tb)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(trip2.id)},
+    )
+    assert r.status_code == 200
+    booking = r.json()["booking"]
+    items = booking.get("items", [])
+    ticket_items = [i for i in items if i.get("trip_merchandise_id") is None]
+    assert len(ticket_items) == 1
+    assert ticket_items[0]["trip_id"] == str(trip2.id)
+
+
 def test_reschedule_with_type_mapping_updates_item_type(
     client: TestClient,
     db: Session,

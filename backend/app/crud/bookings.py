@@ -250,7 +250,9 @@ def create_booking_impl(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Boat {item.boat_id} is not associated with trip {item.trip_id}",
             )
-        if not association.sales_enabled:
+        if not association.sales_enabled and not (
+            current_user and current_user.is_superuser
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Sales are currently disabled for boat '{boat.name}' on this trip",

@@ -301,6 +301,33 @@ def test_sales_disabled_on_boat_raises(
     assert "disabled" in exc.value.detail.lower()
 
 
+def test_sales_disabled_on_boat_allowed_for_superuser(
+    db: Session,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+    test_trip_boat: TripBoat,
+) -> None:
+    test_trip_boat.sales_enabled = False
+    db.add(test_trip_boat)
+    db.commit()
+
+    superuser = db.exec(
+        __import__("sqlmodel", fromlist=["select"])
+        .select(User)
+        .where(
+            User.is_superuser == True  # noqa: E712
+        )
+    ).first()
+    assert superuser is not None
+
+    payload = _make_payload(test_trip.id, test_boat.id, price=test_boat_pricing.price)
+    booking = create_booking_impl(
+        session=db, booking_in=payload, current_user=superuser
+    )
+    assert booking.booking_status == BookingStatus.draft
+
+
 def test_early_bird_requires_access_code(
     db: Session,
     test_trip: Trip,

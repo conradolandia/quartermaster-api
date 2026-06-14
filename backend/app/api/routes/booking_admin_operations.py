@@ -197,17 +197,6 @@ def reschedule_booking(
             )
         target_boat_id = body.boat_id
 
-    target_trip_boat = next(
-        (tb for tb in trip_boats if tb.boat_id == target_boat_id), None
-    )
-    if target_trip_boat and not target_trip_boat.sales_enabled:
-        target_boat = session.get(Boat, target_boat_id)
-        boat_name = target_boat.name if target_boat else str(target_boat_id)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Sales are currently disabled for boat '{boat_name}' on the target trip",
-        )
-
     capacities = crud.get_effective_capacity_per_ticket_type(
         session=session,
         trip_id=body.target_trip_id,
