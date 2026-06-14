@@ -16,7 +16,10 @@ from app.models import (
     DiscountCodePublic,
     DiscountCodeUpdate,
 )
-from app.services.discount_restrictions import check_discount_code_restrictions
+from app.services.discount_restrictions import (
+    check_discount_code_restrictions,
+    discount_code_restriction_violation_message,
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -342,6 +345,7 @@ def validate_access_code(
     session: Session = Depends(deps.get_db),
     code: str,
     mission_id: uuid.UUID | None = None,
+    trip_id: uuid.UUID | None = None,
 ) -> AccessCodeValidationResponse:
     """
     Validate an access code for early_bird booking mode.
@@ -398,36 +402,17 @@ def validate_access_code(
                     message="Access code is not valid for this mission",
                 )
 
-        # Check other restrictions (trip type, launch, mission, trip) if trip_id provided
-        has_restriction = (
-            discount_code.restricted_trip_type is not None
-            or discount_code.restricted_launch_id is not None
-            or discount_code.restricted_mission_id is not None
-            or discount_code.restricted_trip_id is not None
+        restriction_message = discount_code_restriction_violation_message(
+            session=session,
+            discount_code=discount_code,
+            trip_id=trip_id,
+            mission_id=mission_id,
         )
-        if has_restriction and mission_id:
-            # For access code we have mission_id; we need trip_id to fully validate.
-            # If we only have mission_id, we can check restricted_mission_id and
-            # restricted_launch_id. For restricted_trip_id and restricted_trip_type
-            # we'd need trip_id. For now, validate what we can with mission_id.
-            mission = crud.get_mission(session=session, mission_id=mission_id)
-            if mission:
-                if (
-                    discount_code.restricted_mission_id
-                    and discount_code.restricted_mission_id != mission_id
-                ):
-                    return AccessCodeValidationResponse(
-                        valid=False,
-                        message="Access code is not valid for this mission",
-                    )
-                if (
-                    discount_code.restricted_launch_id
-                    and discount_code.restricted_launch_id != mission.launch_id
-                ):
-                    return AccessCodeValidationResponse(
-                        valid=False,
-                        message="Access code is not valid for this launch",
-                    )
+        if restriction_message:
+            return AccessCodeValidationResponse(
+                valid=False,
+                message=restriction_message,
+            )
 
         # If mission_id is provided, verify the mission exists
         if mission_id:

@@ -11,6 +11,9 @@ from app import crud
 from app.api import deps
 from app.models import DiscountCode, PublicTripsResponse, TripPublic
 from app.services.date_validator import effective_booking_mode, ensure_aware
+from app.services.discount_restrictions import (
+    discount_code_restriction_violation_message,
+)
 
 from .trip_utils import trip_to_public
 
@@ -211,6 +214,17 @@ def read_public_trips(
                     f"Trip {trip_id} ({trip_name}) filtered out: access code restricted to another mission"
                 )
                 continue
+            restriction_message = discount_code_restriction_violation_message(
+                session=session,
+                discount_code=discount_code,
+                trip_id=uuid.UUID(str(trip_id)),
+                mission_id=mission.id,
+            )
+            if restriction_message:
+                logger.info(
+                    f"Trip {trip_id} ({trip_name}) filtered out: {restriction_message}"
+                )
+                continue
             logger.info(
                 f"Trip {trip_id} ({trip_name}) included: effective early_bird with valid access code"
             )
@@ -400,6 +414,21 @@ def read_public_trip(
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access code is not valid for this trip",
+                )
+
+            restriction_message = discount_code_restriction_violation_message(
+                session=session,
+                discount_code=discount_code_obj,
+                trip_id=trip_id,
+                mission_id=mission.id,
+            )
+            if restriction_message:
+                logger.info(
+                    f"Access code restriction failed for trip {trip_id}: {restriction_message}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=restriction_message,
                 )
 
             logger.info("Access code validated successfully")

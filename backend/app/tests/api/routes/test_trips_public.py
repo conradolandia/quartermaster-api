@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.models import (
     Boat,
     BoatPricing,
+    DiscountCode,
     Jurisdiction,
     Launch,
     Location,
@@ -18,6 +19,7 @@ from app.models import (
     Trip,
     TripBoat,
 )
+from app.models.enums import DiscountCodeType
 
 # -- GET /trips/public/ -------------------------------------------------------
 
@@ -206,3 +208,91 @@ def test_get_public_trip_private_requires_code(
 
     r = client.get(f"{settings.API_V1_STR}/trips/public/{private_trip.id}")
     assert r.status_code == 403
+
+
+def test_list_public_trips_access_code_restricted_to_other_trip_excluded(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    test_trip.booking_mode = "early_bird"
+    db.add(test_trip)
+    other_trip = Trip(
+        mission_id=test_mission.id,
+        name="Other Early Bird",
+        type="launch_viewing",
+        active=True,
+        booking_mode="early_bird",
+        check_in_time=test_trip.check_in_time,
+        boarding_time=test_trip.boarding_time,
+        departure_time=test_trip.departure_time,
+    )
+    db.add(other_trip)
+    db.commit()
+    db.refresh(other_trip)
+
+    code = DiscountCode(
+        code="TRIPONLY",
+        discount_type=DiscountCodeType.percentage,
+        discount_value=0,
+        is_access_code=True,
+        access_code_mission_id=test_mission.id,
+        restricted_trip_id=test_trip.id,
+    )
+    db.add(code)
+    db.commit()
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trips/public/",
+        params={"access_code": code.code},
+    )
+    assert r.status_code == 200
+    trip_ids = [t["id"] for t in r.json()["data"]]
+    assert str(test_trip.id) in trip_ids
+    assert str(other_trip.id) not in trip_ids
+
+
+def test_get_public_trip_access_code_restricted_to_other_trip_forbidden(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    test_trip.booking_mode = "early_bird"
+    db.add(test_trip)
+    other_trip = Trip(
+        mission_id=test_mission.id,
+        name="Other Early Bird Detail",
+        type="launch_viewing",
+        active=True,
+        booking_mode="early_bird",
+        check_in_time=test_trip.check_in_time,
+        boarding_time=test_trip.boarding_time,
+        departure_time=test_trip.departure_time,
+    )
+    db.add(other_trip)
+    db.commit()
+    db.refresh(other_trip)
+
+    code = DiscountCode(
+        code="TRIPONLYDETAIL",
+        discount_type=DiscountCodeType.percentage,
+        discount_value=0,
+        is_access_code=True,
+        access_code_mission_id=test_mission.id,
+        restricted_trip_id=test_trip.id,
+    )
+    db.add(code)
+    db.commit()
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trips/public/{other_trip.id}",
+        params={"access_code": code.code},
+    )
+    assert r.status_code == 403
+    assert "not valid for this trip" in r.json().get("detail", "").lower()

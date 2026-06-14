@@ -13,6 +13,15 @@ from sqlmodel import Session
 from app.models import DiscountCode, Mission, Trip
 
 
+def _has_discount_restrictions(discount_code: DiscountCode) -> bool:
+    return (
+        discount_code.restricted_trip_type is not None
+        or discount_code.restricted_launch_id is not None
+        or discount_code.restricted_mission_id is not None
+        or discount_code.restricted_trip_id is not None
+    )
+
+
 def check_discount_code_restrictions(
     *,
     session: Session,
@@ -25,13 +34,7 @@ def check_discount_code_restrictions(
     """
     if not trip_ids:
         return
-    has_restriction = (
-        discount_code.restricted_trip_type is not None
-        or discount_code.restricted_launch_id is not None
-        or discount_code.restricted_mission_id is not None
-        or discount_code.restricted_trip_id is not None
-    )
-    if not has_restriction:
+    if not _has_discount_restrictions(discount_code):
         return
 
     for trip_id in trip_ids:
@@ -72,3 +75,53 @@ def check_discount_code_restrictions(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Discount code is only valid for {discount_code.restricted_trip_type} trips",
                 )
+
+
+def discount_code_restriction_violation_message(
+    *,
+    session: Session,
+    discount_code: DiscountCode,
+    trip_id: uuid.UUID | None = None,
+    mission_id: uuid.UUID | None = None,
+) -> str | None:
+    """
+    Return a user-facing message when discount/access code restrictions fail.
+    None if restrictions pass or no applicable restrictions.
+    """
+    if not _has_discount_restrictions(discount_code):
+        return None
+
+    if trip_id is not None:
+        try:
+            check_discount_code_restrictions(
+                session=session,
+                discount_code=discount_code,
+                trip_ids=[trip_id],
+            )
+        except HTTPException as exc:
+            detail = exc.detail
+            return detail if isinstance(detail, str) else str(detail)
+        return None
+
+    if (
+        discount_code.restricted_trip_id is not None
+        or discount_code.restricted_trip_type is not None
+    ):
+        return "Access code is not valid for this trip"
+
+    if mission_id is not None:
+        mission = session.get(Mission, mission_id)
+        if not mission:
+            return "Mission not found"
+        if (
+            discount_code.restricted_mission_id is not None
+            and discount_code.restricted_mission_id != mission_id
+        ):
+            return "Access code is not valid for this mission"
+        if (
+            discount_code.restricted_launch_id is not None
+            and discount_code.restricted_launch_id != mission.launch_id
+        ):
+            return "Access code is not valid for this launch"
+
+    return None

@@ -110,10 +110,11 @@ const AccessGate = ({
 
   // Validate access code if provided
   const { data: accessCodeValidation, isLoading: isValidatingCode } = useQuery({
-    queryKey: ["validate-access-code", submittedCode],
+    queryKey: ["validate-access-code", submittedCode, validDirectTripId],
     queryFn: () =>
       DiscountCodesService.validateAccessCode({
         code: submittedCode,
+        tripId: validDirectTripId,
       }),
     enabled: !!submittedCode,
   })

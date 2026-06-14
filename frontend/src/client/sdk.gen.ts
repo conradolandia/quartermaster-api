@@ -1376,6 +1376,7 @@ export class DiscountCodesService {
    * @param data The data for the request.
    * @param data.code
    * @param data.missionId
+   * @param data.tripId
    * @returns AccessCodeValidationResponse Successful Response
    * @throws ApiError
    */
@@ -1390,6 +1391,7 @@ export class DiscountCodesService {
       },
       query: {
         mission_id: data.missionId,
+        trip_id: data.tripId,
       },
       errors: {
         422: "Validation Error",

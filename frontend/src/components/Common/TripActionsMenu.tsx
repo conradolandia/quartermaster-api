@@ -1,23 +1,23 @@
-import {
-  DiscountCodesService,
-  MissionsService,
-  TripsService,
-  type DiscountCodePublic,
-  type TripPublic,
-} from "../../client"
+import { Button } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiArchive, FiCopy, FiLink, FiMail } from "react-icons/fi"
-import { Button } from "@chakra-ui/react"
+import {
+  DiscountCodesService,
+  MissionsService,
+  type TripPublic,
+  TripsService,
+} from "../../client"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
+import { pickAccessCodeForTrip } from "@/utils/pickAccessCodeForTrip"
 import { getPublicOrigin } from "@/utils/url"
-import { ActionsMenu } from "../ui/actions-menu"
-import { MenuItem } from "../ui/menu"
+import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 import DeleteTrip from "../Trips/DeleteTrip"
 import EditTrip from "../Trips/EditTrip"
-import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
+import { ActionsMenu } from "../ui/actions-menu"
+import { MenuItem } from "../ui/menu"
 
 interface TripActionsMenuProps {
   trip: TripPublic
@@ -36,7 +36,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   const { data: mission } = useQuery({
     queryKey: ["mission", trip.mission_id],
     queryFn: () => MissionsService.readMission({ missionId: trip.mission_id }),
-    enabled: sendUpdateOpen,
+    enabled: isEarlyBird || sendUpdateOpen,
   })
 
   const { data: discountCodes } = useQuery({
@@ -85,20 +85,13 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
 
   const copyBookingLink = () => {
     let url = `${getPublicOrigin()}/book?trip=${trip.id}`
-    const isAccessOnlyCode = (dc: DiscountCodePublic) =>
-      Boolean(dc.is_access_code && dc.discount_value === 0)
 
     if (isEarlyBird && discountCodes) {
-      const accessCode =
-        discountCodes.find(
-          (dc) =>
-            isAccessOnlyCode(dc) &&
-            dc.access_code_mission_id === trip.mission_id,
-        ) ??
-        discountCodes.find(
-          (dc) =>
-            isAccessOnlyCode(dc) && dc.access_code_mission_id == null,
-        )
+      const accessCode = pickAccessCodeForTrip(
+        discountCodes,
+        trip,
+        mission?.launch_id,
+      )
       if (accessCode?.code) {
         url += `&access=${encodeURIComponent(accessCode.code)}`
       }

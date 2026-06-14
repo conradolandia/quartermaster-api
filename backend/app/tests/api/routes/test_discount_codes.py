@@ -677,3 +677,67 @@ def test_validate_access_code_restricted_launch_mismatch(
     assert r.status_code == 200
     assert r.json()["valid"] is False
     assert "not valid for this launch" in (r.json().get("message") or "")
+
+
+def test_validate_access_code_restricted_trip_mismatch(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_trip: Trip,
+) -> None:
+    other_trip = Trip(
+        mission_id=test_mission.id,
+        name="Other Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="early_bird",
+        check_in_time=test_trip.check_in_time,
+        boarding_time=test_trip.boarding_time,
+        departure_time=test_trip.departure_time,
+    )
+    db.add(other_trip)
+    db.commit()
+    db.refresh(other_trip)
+    code = DiscountCode(
+        code="ACCRESTTRIP",
+        discount_type=DiscountCodeType.percentage,
+        discount_value=0,
+        is_access_code=True,
+        access_code_mission_id=test_mission.id,
+        restricted_trip_id=test_trip.id,
+    )
+    db.add(code)
+    db.commit()
+    db.refresh(code)
+    r = client.get(
+        f"{DISCOUNT_CODES_URL}/validate-access/{code.code}",
+        params={"trip_id": str(other_trip.id), "mission_id": str(test_mission.id)},
+    )
+    assert r.status_code == 200
+    assert r.json()["valid"] is False
+    assert "not valid for this trip" in (r.json().get("message") or "").lower()
+
+
+def test_validate_access_code_restricted_trip_match(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_trip: Trip,
+) -> None:
+    code = DiscountCode(
+        code="ACCTRIPOK",
+        discount_type=DiscountCodeType.percentage,
+        discount_value=0,
+        is_access_code=True,
+        access_code_mission_id=test_mission.id,
+        restricted_trip_id=test_trip.id,
+    )
+    db.add(code)
+    db.commit()
+    db.refresh(code)
+    r = client.get(
+        f"{DISCOUNT_CODES_URL}/validate-access/{code.code}",
+        params={"trip_id": str(test_trip.id), "mission_id": str(test_mission.id)},
+    )
+    assert r.status_code == 200
+    assert r.json()["valid"] is True

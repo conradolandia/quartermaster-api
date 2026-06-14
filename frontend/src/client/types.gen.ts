@@ -1311,6 +1311,7 @@ export type DiscountCodesValidateDiscountCodeResponse = DiscountCodePublic
 export type DiscountCodesValidateAccessCodeData = {
   code: string
   missionId?: string | null
+  tripId?: string | null
 }
 
 export type DiscountCodesValidateAccessCodeResponse =
