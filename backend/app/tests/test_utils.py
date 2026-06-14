@@ -1,7 +1,11 @@
 """Tests for app.utils (email, slug, token helpers)."""
 
 from app.utils import (
+    _LAUNCH_UPDATE_FOOTER_PRIORITY,
+    _LAUNCH_UPDATE_FOOTER_STANDARD,
     generate_booking_confirmation_email,
+    generate_booking_refunded_email,
+    generate_launch_update_email,
     generate_password_reset_token,
     generate_slug,
     render_email_template,
@@ -106,6 +110,58 @@ def test_render_email_template_experience_display_with_map_link() -> None:
         },
     )
     assert "P" in html
+
+
+def test_generate_launch_update_email_standard_footer() -> None:
+    data = generate_launch_update_email(
+        email_to="customer@example.com",
+        user_name="Jane Doe",
+        confirmation_code="ABC123",
+        mission_name="Mars Launch",
+        update_message="Launch window moved to 3pm.",
+        priority=False,
+    )
+    assert "ABC123" in data.html_content
+    assert _LAUNCH_UPDATE_FOOTER_STANDARD in data.html_content
+    assert _LAUNCH_UPDATE_FOOTER_PRIORITY not in data.html_content
+
+
+def test_generate_launch_update_email_priority_footer() -> None:
+    data = generate_launch_update_email(
+        email_to="customer@example.com",
+        user_name="Jane Doe",
+        confirmation_code="ABC123",
+        mission_name="Mars Launch",
+        update_message="Trip cancelled due to weather.",
+        priority=True,
+    )
+    assert _LAUNCH_UPDATE_FOOTER_PRIORITY in data.html_content
+    assert _LAUNCH_UPDATE_FOOTER_STANDARD not in data.html_content
+
+
+def test_generate_booking_refunded_email_includes_reason() -> None:
+    data = generate_booking_refunded_email(
+        email_to="customer@example.com",
+        user_name="Jane Doe",
+        confirmation_code="ABC123",
+        mission_name="Mars Launch",
+        refund_amount=99.99,
+        refund_reason="Weather conditions",
+    )
+    assert "Refund Processed" in data.subject
+    assert "Weather conditions" in data.html_content
+    assert "<strong>Reason:</strong>" in data.html_content
+
+
+def test_generate_booking_refunded_email_omits_reason_when_absent() -> None:
+    data = generate_booking_refunded_email(
+        email_to="customer@example.com",
+        user_name="Jane Doe",
+        confirmation_code="ABC123",
+        mission_name="Mars Launch",
+        refund_amount=99.99,
+    )
+    assert "<strong>Reason:</strong>" not in data.html_content
 
 
 def test_generate_booking_confirmation_email() -> None:

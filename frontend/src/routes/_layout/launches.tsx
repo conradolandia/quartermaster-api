@@ -381,13 +381,12 @@ function LaunchesTable() {
                     launch.location_id}
                 </Table.Cell>
                 <Table.Cell w="16" textAlign="center">
-                  {launch.archived ? (
-                    <Badge size="sm" colorPalette="gray">
-                      Archived
-                    </Badge>
-                  ) : (
-                    <Text fontSize="sm" color="text.muted">—</Text>
-                  )}
+                  <Badge
+                    size="sm"
+                    colorPalette={launch.archived ? "gray" : "green"}
+                  >
+                    {launch.archived ? "Archived" : "Active"}
+                  </Badge>
                 </Table.Cell>
                 <Table.Cell w="16" textAlign="center">
                   <Flex justify="center">

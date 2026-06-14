@@ -58,6 +58,9 @@
               {{ cancellation_message }}
             {% elif is_refund %}
               {{ refund_message }}
+              {% if refund_reason %}
+              <br/><br/><strong>Reason:</strong> {{ refund_reason }}
+              {% endif %}
             {% else %}
               Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
             {% endif %}

@@ -1045,6 +1045,7 @@ def update_booking(
                             mission_name=mission_name,
                             refund_amount=booking.total_amount
                             / 100.0,  # cents to dollars for display
+                            refund_reason=booking.refund_reason,
                         )
 
                         send_email(

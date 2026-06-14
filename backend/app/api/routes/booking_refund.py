@@ -212,6 +212,7 @@ def process_refund(
                 confirmation_code=booking.confirmation_code,
                 mission_name=mission_name,
                 refund_amount=amount_to_refund / 100.0,  # cents to dollars for display
+                refund_reason=booking.refund_reason,
             )
 
             send_email(

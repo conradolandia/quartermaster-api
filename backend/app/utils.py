@@ -241,6 +241,7 @@ def generate_booking_refunded_email(
     confirmation_code: str,
     mission_name: str,
     refund_amount: float,
+    refund_reason: str | None = None,
 ) -> EmailData:
     """
     Generate booking refund email.
@@ -251,6 +252,7 @@ def generate_booking_refunded_email(
         confirmation_code: Unique booking confirmation code
         mission_name: Name of the mission/launch
         refund_amount: Total amount refunded
+        refund_reason: Refund reason category (not notes)
 
     Returns:
         EmailData containing the subject and HTML content
@@ -274,11 +276,23 @@ def generate_booking_refunded_email(
             "confirmation_link": f"{base_url}/bookings?code={confirmation_code}",
             "is_refund": True,  # Flag for template conditional
             "refund_message": f"Your refund of ${refund_amount:.2f} for booking #{confirmation_code} has been processed. You should see it reflected on your original form of payment within 5-10 buisness days.",
+            "refund_reason": refund_reason,
             "email": email_to,
         },
     )
 
     return EmailData(html_content=html_content, subject=subject)
+
+
+_LAUNCH_UPDATE_FOOTER_STANDARD = (
+    "You received this email because you opted in to receive updates about "
+    "this launch you have booked Star Fleet Tours tickets on. To unsubscribe, "
+    "reply to this email with the message 'Unsubscribe'"
+)
+_LAUNCH_UPDATE_FOOTER_PRIORITY = (
+    "You received this email because it contains important information about "
+    "or change to your recent booking transaction with Star Fleet Tours."
+)
 
 
 def generate_launch_update_email(
@@ -289,6 +303,7 @@ def generate_launch_update_email(
     mission_name: str,
     update_message: str,
     subject: str | None = None,
+    priority: bool = False,
 ) -> EmailData:
     """
     Generate launch update email for customers who opted in.
@@ -301,6 +316,8 @@ def generate_launch_update_email(
         update_message: The update message to send
         subject: Optional custom subject line. If omitted, uses the default
             launch-update line (covers launch viewing and pre-launch trips).
+        priority: When True, use the high-priority footer (transactional);
+            otherwise use the standard footer with unsubscribe instructions.
 
     Returns:
         EmailData containing the subject and HTML content
@@ -316,6 +333,10 @@ def generate_launch_update_email(
     base_url = settings.FRONTEND_HOST
     confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
+    footer_message = (
+        _LAUNCH_UPDATE_FOOTER_PRIORITY if priority else _LAUNCH_UPDATE_FOOTER_STANDARD
+    )
+
     # Render the email template
     html_content = render_email_template(
         template_name="launch_update.html",
@@ -327,6 +348,7 @@ def generate_launch_update_email(
             "mission_name": mission_name,
             "update_message": update_message,
             "confirmation_link": confirmation_link,
+            "footer_message": footer_message,
             "email": email_to,
         },
     )

@@ -456,6 +456,7 @@ def send_launch_update(
                 mission_name=launch.name,
                 update_message=update_data.message,
                 subject=update_data.subject,
+                priority=update_data.priority,
             )
             send_email(
                 email_to=booking.user_email,
