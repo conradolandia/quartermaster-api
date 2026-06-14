@@ -3,6 +3,7 @@ import {
   Container,
   Flex,
   Heading,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/_layout/bookings")({
 function Bookings() {
   const [isAddBookingOpen, setIsAddBookingOpen] = useState(false)
   const { code } = Route.useSearch()
-  const { user } = useAuth()
+  const { user, isUserLoading } = useAuth()
 
   const handleAddBookingSuccess = () => {
     // This will trigger a refetch via the mutation's onSettled
@@ -52,6 +53,13 @@ function Bookings() {
 
   // If a confirmation code is provided, show the appropriate view based on authentication
   if (code) {
+    if (isLoggedIn() && isUserLoading) {
+      return (
+        <Flex justify="center" align="center" minH="400px">
+          <Spinner size="xl" color="white" />
+        </Flex>
+      )
+    }
     // If user is authenticated and has user data, show the internal admin view
     if (isLoggedIn() && user !== undefined && user !== null) {
       return <BookingDetails confirmationCode={code} />

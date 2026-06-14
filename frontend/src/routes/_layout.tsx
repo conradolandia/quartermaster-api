@@ -34,16 +34,26 @@ function fixStuckModalState(): void {
   }
 }
 
+function hasBookingConfirmationCode(location: {
+  pathname: string
+  search: unknown
+}): boolean {
+  const search = location.search as Record<string, unknown> | undefined
+  return (
+    location.pathname === "/bookings" &&
+    !!search &&
+    "code" in search &&
+    typeof search.code === "string" &&
+    search.code.length > 0
+  )
+}
+
 export const Route = createFileRoute("/_layout")({
   component: Layout,
   beforeLoad: async ({ location }) => {
     // Allow unauthenticated access to public booking and confirmation routes
     const isBook = location.pathname === "/book"
-    const isBookingsWithCode =
-      location.pathname === "/bookings" &&
-      location.search &&
-      "code" in location.search &&
-      typeof location.search.code === "string"
+    const isBookingsWithCode = hasBookingConfirmationCode(location)
 
     if (!isLoggedIn() && !isBook && !isBookingsWithCode) {
       throw redirect({
@@ -82,19 +92,38 @@ function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  // Public booking confirmation by code (works even with a stale admin token in storage)
-  const isPublicBookingConfirmation =
-    router.state.location.pathname === "/bookings" &&
-    router.state.location.search &&
-    "code" in router.state.location.search &&
-    typeof router.state.location.search.code === "string"
+  const location = router.state.location
+  const bookingConfirmationCode = hasBookingConfirmationCode(location)
 
-  // For public booking confirmations, don't show navbar and sidebar
-  if (isPublicBookingConfirmation) {
+  const isAuthenticatedSuperuser =
+    isLoggedIn() &&
+    status === "success" &&
+    currentUser != null &&
+    currentUser.is_superuser
+
+  // Wait for auth before choosing layout when a token is present
+  if (isLoggedIn() && status === "pending") {
+    return (
+      <Flex justify="center" align="center" h="100vh">
+        <Spinner size="xl" color="white" />
+      </Flex>
+    )
+  }
+
+  // Public confirmation layout: guests, or stale token on /bookings?code=
+  if (bookingConfirmationCode && !isAuthenticatedSuperuser) {
+    if (
+      isLoggedIn() &&
+      status !== "pending" &&
+      (isError || currentUser == null)
+    ) {
+      localStorage.removeItem("access_token")
+      queryClient.removeQueries({ queryKey: ["currentUser"] })
+    }
     return <Outlet />
   }
 
-  // Token present but auth failed or no user: clear and redirect so we never show sidebar + "Authentication Required"
+  // Token present but auth failed or no user (non-confirmation routes)
   if (
     isLoggedIn() &&
     status !== "pending" &&
@@ -105,15 +134,6 @@ function Layout() {
     throw redirect({ to: "/login" })
   }
 
-  // While checking auth, show minimal loading (avoids flash of sidebar then redirect)
-  if (isLoggedIn() && status === "pending") {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Spinner size="xl" color="white" />
-      </Flex>
-    )
-  }
-
   // Require superuser for dashboard access
   if (isLoggedIn() && currentUser && !currentUser.is_superuser) {
     throw redirect({
@@ -121,7 +141,7 @@ function Layout() {
     })
   }
 
-  // For authenticated superusers or other routes, show the full layout
+  // Authenticated superusers and other protected routes: full admin chrome
   return (
     <Flex
       direction="column"
