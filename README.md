@@ -32,6 +32,7 @@ Originally scaffolded from the [Full Stack FastAPI Template](https://github.com/
     - [Quick Start](#quick-start)
     - [Running Tests](#running-tests)
     - [Regenerating the Frontend API Client](#regenerating-the-frontend-api-client)
+    - [Email Templates](#email-templates)
   - [Configuration](#configuration)
   - [Deployment](#deployment)
     - [Production URLs](#production-urls)
@@ -171,6 +172,22 @@ After backend schema changes:
 source backend/.venv/bin/activate
 ./scripts/generate-client.sh
 ```
+
+### Email Templates
+
+Transactional emails (booking confirmations, launch updates, password reset, etc.) use MJML sources in `backend/app/email-templates/src/`. The backend renders compiled HTML from `backend/app/email-templates/build/`.
+
+**After editing `.mjml` files**, regenerate the build from the project root:
+
+```bash
+./scripts/build-email-templates.sh
+```
+
+This compiles `src/*.mjml` to `build/*.html` (via `npx mjml`) and runs `patch_booking_confirmation.py` to restore Jinja conditionals that the MJML compiler would otherwise strip. Node.js and Python must be installed. Do not edit `build/*.html` by hand.
+
+**Custom message bodies** (e.g. launch update text in the admin UI) are plain text: line breaks and blank lines are preserved in the email via `white-space: pre-wrap` on the message block. Markdown and HTML are not interpreted; pasted tags are escaped.
+
+See [Backend development — Email Templates](./backend/README.md#email-templates) for layout details, the MJML VS Code extension, and template variables.
 
 ## Configuration
 

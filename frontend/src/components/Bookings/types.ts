@@ -225,13 +225,13 @@ export function formatTripFilterLabel(trip: TripPublic): string {
   return `${readableType} (${timeWithoutSeconds})`
 }
 
-/** Full label for trip in dropdowns: name + type + time, or type + time. */
+/** Full label for trip in dropdowns: name when set, otherwise type and departure time. */
 export function formatTripOptionLabel(trip: TripPublic): string {
+  if (trip.name?.trim()) {
+    return trip.name.trim()
+  }
   const readableType = tripTypeToLabel(trip.type)
   const time = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
-  if (trip.name?.trim()) {
-    return `${trip.name.trim()} - ${readableType} (${time})`
-  }
   return `${readableType} (${time})`
 }
 

@@ -18,6 +18,10 @@
       .footer-link {
         color: #a0a0a0;
       }
+      .preserved-whitespace,
+      .preserved-whitespace div {
+        white-space: pre-wrap;
+      }
     </mj-style>
   </mj-head>
   <mj-body background-color="#e8eaed" width="600px">
@@ -53,18 +57,22 @@
             Hi {{ user_name }},
           </mj-text>
 
-          <mj-text color="#637381" font-size="16px">
-            {% if is_cancellation %}
-              {{ cancellation_message }}
-            {% elif is_refund %}
-              {{ refund_message }}
-              {% if refund_reason %}
-              <br/><br/><strong>Reason:</strong> {{ refund_reason }}
-              {% endif %}
-            {% else %}
-              Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
+          {% if is_cancellation %}
+          <mj-text color="#637381" font-size="16px" css-class="preserved-whitespace">
+            {{ cancellation_message }}
+          </mj-text>
+          {% elif is_refund %}
+          <mj-text color="#637381" font-size="16px" css-class="preserved-whitespace">
+            {{ refund_message }}
+            {% if refund_reason %}
+            <br/><br/><strong>Reason:</strong> {{ refund_reason }}
             {% endif %}
           </mj-text>
+          {% else %}
+          <mj-text color="#637381" font-size="16px">
+            Your booking for <strong>{{ mission_name }}</strong> has been confirmed. Your confirmation code is <strong>{{ confirmation_code }}</strong>.
+          </mj-text>
+          {% endif %}
         </mj-column>
       </mj-section>
 

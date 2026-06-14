@@ -359,7 +359,7 @@ const SendLaunchUpdate = ({
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Enter the update message to send to customers..."
+                placeholder="Enter the update message. Line breaks are preserved in the email."
                 rows={6}
               />
             </Field>

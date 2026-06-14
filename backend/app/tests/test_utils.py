@@ -139,6 +139,20 @@ def test_generate_launch_update_email_priority_footer() -> None:
     assert _LAUNCH_UPDATE_FOOTER_STANDARD not in data.html_content
 
 
+def test_generate_launch_update_email_preserves_whitespace() -> None:
+    data = generate_launch_update_email(
+        email_to="customer@example.com",
+        user_name="Jane Doe",
+        confirmation_code="ABC123",
+        mission_name="Mars Launch",
+        update_message="First paragraph.\n\nSecond paragraph.",
+    )
+    assert "preserved-whitespace" in data.html_content
+    assert "white-space: pre-wrap" in data.html_content
+    assert "First paragraph." in data.html_content
+    assert "Second paragraph." in data.html_content
+
+
 def test_generate_booking_refunded_email_includes_reason() -> None:
     data = generate_booking_refunded_email(
         email_to="customer@example.com",

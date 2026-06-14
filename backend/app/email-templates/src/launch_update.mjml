@@ -18,6 +18,10 @@
       .footer-link {
         color: #a0a0a0;
       }
+      .preserved-whitespace,
+      .preserved-whitespace div {
+        white-space: pre-wrap;
+      }
     </mj-style>
   </mj-head>
   <mj-body background-color="#e8eaed" width="600px">
@@ -58,7 +62,7 @@
           <mj-text color="#19232d" font-weight="bold" font-size="18px" padding-bottom="0">
             Update Details
           </mj-text>
-          <mj-text color="#637381" font-size="16px">
+          <mj-text color="#637381" font-size="16px" css-class="preserved-whitespace">
             {{ update_message }}
           </mj-text>
         </mj-column>

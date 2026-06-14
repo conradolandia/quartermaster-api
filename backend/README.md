@@ -187,6 +187,8 @@ This compiles `src/*.mjml` into `build/*.html` using the MJML CLI (via npx), the
 
 To edit templates: change the `.mjml` files in `src/`, then run the script above. You can also use the [MJML VS Code extension](https://marketplace.visualstudio.com/items?itemName=attilabuti.vscode-mjml) and "MJML: Export to HTML" for a single file; save the output into `build/` or run the script to refresh all.
 
+**Custom message bodies** (admin-entered text such as launch updates) are inserted as plain text. Templates apply the `preserved-whitespace` CSS class (`white-space: pre-wrap`) so line breaks and paragraph spacing survive in email clients. Markdown and HTML syntax are not rendered; Jinja auto-escaping still applies. Relevant templates: `launch_update.mjml` (`update_message`) and `booking_confirmation.mjml` (cancellation/refund messages).
+
 ## QR codes
 
 Booking QR codes encode `{base}/check-in?code={confirmation_code}`. The base comes from `QR_CODE_BASE_URL` or `FRONTEND_HOST`. Stored QR images live in `booking.qr_code_base64`.

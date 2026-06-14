@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   ButtonGroup,
   Select,
@@ -7,7 +8,7 @@ import {
   createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import {
   type BookingPublic,
@@ -36,6 +37,17 @@ import { useTripsByMission } from "@/hooks/useTripsByMission"
 import { formatCents } from "@/utils"
 import { formatTripOptionLabel, getItemTypeLabel } from "./types"
 
+const wideSelectContentProps = {
+  minWidth: { base: "var(--reference-width)", md: "420px" } as const,
+  maxW: "min(90vw, 28rem)",
+}
+
+const selectItemLabel = (label: string) => (
+  <Box whiteSpace="normal" textOverflow="unset">
+    {label}
+  </Box>
+)
+
 interface RescheduleBookingProps {
   booking: BookingPublic
   isOpen: boolean
@@ -57,6 +69,12 @@ export default function RescheduleBooking({
   const [targetTripId, setTargetTripId] = useState<string>("")
   const [targetBoatId, setTargetBoatId] = useState<string | null>(null)
   const [typeMapping, setTypeMapping] = useState<Record<string, string>>({})
+  const hasInitializedDefaultsRef = useRef(false)
+
+  const currentTripId =
+    booking.items?.find((i) => !i.trip_merchandise_id)?.trip_id ?? ""
+  const currentBoatId =
+    booking.items?.find((i) => !i.trip_merchandise_id)?.boat_id ?? ""
 
   const { data: firstTrip } = useQuery({
     queryKey: ["trip", booking.items?.[0]?.trip_id],
@@ -105,13 +123,7 @@ export default function RescheduleBooking({
   const needsBoat = tripBoats.length > 1
   const singleBoatId = tripBoats.length === 1 ? tripBoats[0].boat_id : null
 
-  const effectiveLaunchId =
-    effectiveMissionId &&
-    allMissions.find((m) => m.id === effectiveMissionId)?.launch_id
-
   const effectiveBoatId = needsBoat ? targetBoatId : singleBoatId
-  const currentTripId =
-    booking.items?.find((i) => !i.trip_merchandise_id)?.trip_id ?? ""
 
   const originMerchItems = useMemo(() => {
     return (booking.items ?? []).filter((i) => i.trip_merchandise_id)
@@ -147,6 +159,7 @@ export default function RescheduleBooking({
 
   useEffect(() => {
     if (!isOpen) {
+      hasInitializedDefaultsRef.current = false
       setSelectedLaunchId("")
       setSelectedMissionId("")
       setTargetTripId("")
@@ -155,55 +168,57 @@ export default function RescheduleBooking({
     }
   }, [isOpen])
 
+  // Seed launch + mission from the booking once missions are loaded (once per open).
   useEffect(() => {
-    if (isOpen && effectiveLaunchId && !selectedLaunchId) {
-      setSelectedLaunchId(effectiveLaunchId)
+    if (!isOpen || hasInitializedDefaultsRef.current || !missionsData) return
+    const missionId = effectiveMissionId
+    if (!missionId) return
+    const launchId = allMissions.find((m) => m.id === missionId)?.launch_id
+    if (!launchId) return
+
+    setSelectedLaunchId(launchId)
+    setSelectedMissionId(missionId)
+    hasInitializedDefaultsRef.current = true
+  }, [isOpen, missionsData, effectiveMissionId, allMissions, firstTrip])
+
+  // Seed target trip once trips for the mission are loaded.
+  useEffect(() => {
+    if (!isOpen || !selectedMissionId || tripsLoading || !currentTripId) return
+    setTargetTripId((prev) => {
+      if (prev) return prev
+      const inList = trips.some(
+        (t: TripPublic) => !t.archived && t.id === currentTripId,
+      )
+      return inList ? currentTripId : prev
+    })
+  }, [isOpen, selectedMissionId, trips, tripsLoading, currentTripId])
+
+  // Seed boat from booking when trip boats are loaded (or auto-pick sole boat).
+  useEffect(() => {
+    if (!isOpen || !targetTripId || boatsLoading) return
+    if (!needsBoat) {
+      setTargetBoatId(singleBoatId ?? null)
+      return
     }
-  }, [isOpen, effectiveLaunchId, selectedLaunchId])
-
-  useEffect(() => {
-    if (
-      isOpen &&
-      effectiveMissionId &&
-      !selectedMissionId &&
-      missions.some((m) => m.id === effectiveMissionId)
-    ) {
-      setSelectedMissionId(effectiveMissionId)
-    }
-  }, [isOpen, effectiveMissionId, selectedMissionId, missions])
-
-  useEffect(() => {
-    setSelectedMissionId("")
-    setTargetTripId("")
-    setTargetBoatId(null)
-  }, [selectedLaunchId])
-
-  useEffect(() => {
-    setTargetTripId("")
-    setTargetBoatId(null)
-    setTypeMapping({})
-  }, [selectedMissionId])
-
-  useEffect(() => {
-    if (needsBoat) setTargetBoatId(null)
-    else setTargetBoatId(singleBoatId ?? null)
-  }, [needsBoat, singleBoatId])
-
-  useEffect(() => {
-    const currentTripInList = trips
-      .filter((t: TripPublic) => !t.archived)
-      .some((t: TripPublic) => t.id === currentTripId)
-    if (
-      isOpen &&
-      selectedMissionId &&
-      trips.length > 0 &&
-      !targetTripId &&
-      currentTripId &&
-      currentTripInList
-    ) {
-      setTargetTripId(currentTripId)
-    }
-  }, [isOpen, selectedMissionId, trips, targetTripId, currentTripId])
+    setTargetBoatId((prev) => {
+      if (prev && tripBoats.some((tb) => tb.boat_id === prev)) return prev
+      if (
+        currentBoatId &&
+        tripBoats.some((tb) => tb.boat_id === currentBoatId)
+      ) {
+        return currentBoatId
+      }
+      return prev
+    })
+  }, [
+    isOpen,
+    targetTripId,
+    boatsLoading,
+    needsBoat,
+    singleBoatId,
+    currentBoatId,
+    tripBoats,
+  ])
 
   useEffect(() => {
     if (ticketTypeOptions.length === 0 || originTicketTypes.length === 0) {
@@ -369,9 +384,14 @@ export default function RescheduleBooking({
                         })),
                       })}
                       value={selectedLaunchId ? [selectedLaunchId] : []}
-                      onValueChange={(e: { value: string[] }) =>
-                        setSelectedLaunchId(e.value[0] ?? "")
-                      }
+                      onValueChange={(e: { value: string[] }) => {
+                        const next = e.value[0] ?? ""
+                        setSelectedLaunchId(next)
+                        setSelectedMissionId("")
+                        setTargetTripId("")
+                        setTargetBoatId(null)
+                        setTypeMapping({})
+                      }}
                     >
                       <Select.Control width="100%">
                         <Select.Trigger>
@@ -405,9 +425,13 @@ export default function RescheduleBooking({
                         })),
                       })}
                       value={selectedMissionId ? [selectedMissionId] : []}
-                      onValueChange={(e: { value: string[] }) =>
-                        setSelectedMissionId(e.value[0] ?? "")
-                      }
+                      onValueChange={(e: { value: string[] }) => {
+                        const next = e.value[0] ?? ""
+                        setSelectedMissionId(next)
+                        setTargetTripId("")
+                        setTargetBoatId(null)
+                        setTypeMapping({})
+                      }}
                       disabled={!selectedLaunchId}
                     >
                       <Select.Control width="100%">
@@ -438,30 +462,37 @@ export default function RescheduleBooking({
                       collection={createListCollection({
                         items: tripOptions,
                       })}
+                      positioning={{ sameWidth: false }}
                       value={targetTripId ? [targetTripId] : []}
-                      onValueChange={(e: { value: string[] }) =>
-                        setTargetTripId(e.value[0] ?? "")
-                      }
+                      onValueChange={(e: { value: string[] }) => {
+                        const next = e.value[0] ?? ""
+                        setTargetTripId(next)
+                        setTargetBoatId(null)
+                        setTypeMapping({})
+                      }}
                       disabled={
                         !selectedLaunchId || !selectedMissionId || tripsLoading
                       }
                     >
                       <Select.Control width="100%">
-                        <Select.Trigger>
-                          <Select.ValueText placeholder="Select a trip" />
+                        <Select.Trigger width="100%" minW={0}>
+                          <Select.ValueText
+                            placeholder="Select a trip"
+                            truncate={false}
+                          />
                         </Select.Trigger>
                         <Select.IndicatorGroup>
                           <Select.Indicator />
                         </Select.IndicatorGroup>
                       </Select.Control>
                       <Select.Positioner>
-                        <Select.Content>
+                        <Select.Content {...wideSelectContentProps}>
                           {tripOptions.map((opt) => (
                             <Select.Item
                               key={opt.value}
                               item={{ value: opt.value, label: opt.label }}
                             >
-                              {opt.label}
+                              {selectItemLabel(opt.label)}
                               <Select.ItemIndicator />
                             </Select.Item>
                           ))}
@@ -507,63 +538,89 @@ export default function RescheduleBooking({
                   )}
                   {ticketTypeOptions.length > 0 &&
                     originTicketTypes.length > 0 && (
-                      <Field label="Map ticket types to destination">
-                        <VStack align="stretch" gap={3}>
-                          {originTicketTypes.map(({ type, quantity }) => (
-                            <Field
-                              key={type}
-                              label={`${getItemTypeLabel(type)} (${quantity})`}
-                            >
-                              <Select.Root
-                                collection={createListCollection({
-                                  items: ticketTypeOptions.map((p) => ({
-                                    value: p.ticket_type,
-                                    label: `${getItemTypeLabel(
-                                      p.ticket_type,
-                                    )} (${formatCents(p.price)})`,
-                                  })),
-                                })}
-                                value={
-                                  typeMapping[type] ? [typeMapping[type]] : []
-                                }
-                                onValueChange={(e: { value: string[] }) =>
-                                  setTypeMapping((prev) => ({
-                                    ...prev,
-                                    [type]: e.value[0] ?? "",
-                                  }))
-                                }
-                                disabled={pricingLoading}
-                              >
-                                <Select.Control width="100%">
-                                  <Select.Trigger>
-                                    <Select.ValueText placeholder="Select type on destination" />
-                                  </Select.Trigger>
-                                  <Select.IndicatorGroup>
-                                    <Select.Indicator />
-                                  </Select.IndicatorGroup>
-                                </Select.Control>
-                                <Select.Positioner>
-                                  <Select.Content>
-                                    {ticketTypeOptions.map((p) => (
-                                      <Select.Item
-                                        key={p.ticket_type}
-                                        item={{
-                                          value: p.ticket_type,
-                                          label: `${getItemTypeLabel(
-                                            p.ticket_type,
-                                          )} (${formatCents(p.price)})`,
-                                        }}
+                      <Field label="Map ticket types to destination" width="100%">
+                        <VStack align="stretch" gap={3} width="100%">
+                          {originTicketTypes.map(({ type, quantity }) => {
+                            const ticketTypeItems = ticketTypeOptions.map(
+                              (p) => ({
+                                value: p.ticket_type,
+                                label: `${getItemTypeLabel(
+                                  p.ticket_type,
+                                )} (${formatCents(p.price)})`,
+                              }),
+                            )
+                            const ticketTypeCollection = createListCollection({
+                              items: ticketTypeItems,
+                            })
+                            const selectedValue = typeMapping[type]
+                            const selectedLabel =
+                              ticketTypeItems.find(
+                                (item) => item.value === selectedValue,
+                              )?.label ?? "Select type on destination"
+
+                            return (
+                              <Box key={type} width="100%">
+                                <Text
+                                  fontSize="sm"
+                                  fontWeight="medium"
+                                  mb={2}
+                                  color="fg.muted"
+                                >
+                                  {getItemTypeLabel(type)} ({quantity})
+                                </Text>
+                                <Select.Root
+                                  collection={ticketTypeCollection}
+                                  width="100%"
+                                  positioning={{ sameWidth: true }}
+                                  value={
+                                    selectedValue ? [selectedValue] : []
+                                  }
+                                  onValueChange={(e: { value: string[] }) =>
+                                    setTypeMapping((prev) => ({
+                                      ...prev,
+                                      [type]: e.value[0] ?? "",
+                                    }))
+                                  }
+                                  disabled={pricingLoading}
+                                >
+                                  <Select.Control width="100%">
+                                    <Select.Trigger
+                                      justifyContent="space-between"
+                                      width="100%"
+                                    >
+                                      <Text
+                                        fontSize="sm"
+                                        flex="1"
+                                        minW={0}
+                                        textAlign="left"
+                                        whiteSpace="normal"
+                                        overflow="visible"
+                                        textOverflow="unset"
                                       >
-                                        {getItemTypeLabel(p.ticket_type)} (
-                                        {formatCents(p.price)})
-                                        <Select.ItemIndicator />
-                                      </Select.Item>
-                                    ))}
-                                  </Select.Content>
-                                </Select.Positioner>
-                              </Select.Root>
-                            </Field>
-                          ))}
+                                        {selectedLabel}
+                                      </Text>
+                                    </Select.Trigger>
+                                    <Select.IndicatorGroup>
+                                      <Select.Indicator />
+                                    </Select.IndicatorGroup>
+                                  </Select.Control>
+                                  <Select.Positioner>
+                                    <Select.Content {...wideSelectContentProps}>
+                                      {ticketTypeItems.map((item) => (
+                                        <Select.Item
+                                          key={item.value}
+                                          item={item}
+                                        >
+                                          {selectItemLabel(item.label)}
+                                          <Select.ItemIndicator />
+                                        </Select.Item>
+                                      ))}
+                                    </Select.Content>
+                                  </Select.Positioner>
+                                </Select.Root>
+                              </Box>
+                            )
+                          })}
                         </VStack>
                       </Field>
                     )}
