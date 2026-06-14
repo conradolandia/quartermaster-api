@@ -2,18 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 import { type MutableRefObject, useEffect, useRef, useState } from "react"
 
-import {
-  ApiError,
-  type BookingCreate,
-  BookingsService,
-  PaymentsService,
-} from "@/client"
+import { ApiError, type BookingCreate, BookingsService } from "@/client"
 import { handleError } from "@/utils"
 
+import {
+  PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE,
+  confirmPaidBooking,
+  isBookingConfirmed,
+} from "../confirmPaidBooking"
 import type { BookingResult, BookingStepData } from "../bookingTypes"
 import { customerInfoSchema } from "./Step3CustomerInfo"
-
-const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"]
 
 function generateConfirmationCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -62,7 +60,7 @@ export function useBookingDraft({
         confirmationCode: code,
       })
       const bookingStatus = (booking.booking_status ?? "") as string
-      if (CONFIRMED_STATUSES.includes(bookingStatus)) {
+      if (isBookingConfirmed(bookingStatus)) {
         return { outcome: "confirmed" as const, code }
       }
       if (bookingStatus === "cancelled") {
@@ -118,6 +116,15 @@ export function useBookingDraft({
         (bookingToUse.payment_status === "pending_payment" ||
           bookingToUse.payment_status === "failed")
       if (shouldResumePayment) {
+        const paymentIntentId = bookingToUse.payment_intent_id!.trim()
+        const autoConfirm = await confirmPaidBooking({
+          paymentIntentId,
+          confirmationCode: code,
+          maxWaitMs: 20_000,
+        })
+        if (autoConfirm.outcome === "confirmed") {
+          return { outcome: "confirmed" as const, code }
+        }
         const paymentData = await BookingsService.resumePayment({
           confirmationCode: code,
         })
@@ -269,8 +276,26 @@ export function useBookingDraft({
       paymentIntentId: string
       confirmationCode: string
     }) => {
-      await PaymentsService.verifyPayment({ paymentIntentId })
-      return { paymentIntentId, confirmationCode }
+      const result = await confirmPaidBooking({
+        paymentIntentId,
+        confirmationCode,
+      })
+      if (result.outcome === "confirmed") {
+        return { paymentIntentId, confirmationCode }
+      }
+      if (result.outcome === "cancelled") {
+        throw new Error(
+          "This booking was cancelled because capacity was no longer available.",
+        )
+      }
+      if (
+        result.outcome === "verify_failed" &&
+        result.error instanceof ApiError &&
+        result.error.status === 409
+      ) {
+        throw result.error
+      }
+      throw new Error(PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE)
     },
     onSuccess: (data) => {
       setIsBookingSuccessful(true)
@@ -391,6 +416,7 @@ export function useBookingDraft({
     isCreateError: createBookingMutation.isError,
     isCompleteError: completeBookingMutation.isError,
     createError: createBookingMutation.error,
+    completeError: completeBookingMutation.error,
     isCompletePending: completeBookingMutation.isPending,
     canRetryVerification:
       completeBookingMutation.isError &&

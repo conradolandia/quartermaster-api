@@ -22,6 +22,7 @@ interface PaymentFormProps {
   onPaymentSuccess: (paymentIntentId: string) => void
   onPaymentError: (error: Error) => void
   loading: boolean
+  loadingText?: string
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
@@ -31,6 +32,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   onPaymentSuccess,
   onPaymentError,
   loading,
+  loadingText = "Processing Payment...",
 }) => {
   const stripe = useStripe()
   const elements = useElements()
@@ -162,7 +164,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           size="lg"
           w={{ base: "100%", sm: "auto" }}
           loading={isProcessing || loading}
-          loadingText="Processing Payment..."
+          loadingText={loadingText}
           disabled={
             !stripe ||
             !clientSecret ||

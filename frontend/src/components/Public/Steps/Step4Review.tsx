@@ -15,6 +15,7 @@ import { formatCents, getApiErrorMessage } from "@/utils"
 import type { ApiError } from "@/client"
 
 import PaymentForm from "../PaymentForm"
+import { PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE } from "../confirmPaidBooking"
 import type { BookingResult, BookingStepData } from "../bookingTypes"
 import StripeProvider from "../StripeProvider"
 import { useBookingDraft } from "./useBookingDraft"
@@ -53,6 +54,7 @@ const Step4Review = ({
     isCreateError,
     isCompleteError,
     createError,
+    completeError,
     isCompletePending,
     canRetryVerification,
     handlePaymentSuccess,
@@ -97,27 +99,44 @@ const Step4Review = ({
 
   if (createErrorProp || isCreateError || isCompleteError) {
     const isCreateErr = createErrorProp || isCreateError
+    const completeErr = completeError
+    const isTimeoutError =
+      completeErr instanceof Error &&
+      completeErr.message === PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
     const errorMessage = isCreateErr
       ? (createErrorProp
           ? "Something went wrong. Please try again."
           : getApiErrorMessage(createError as ApiError))
-      : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
+      : isTimeoutError
+        ? PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
+        : completeErr instanceof Error
+          ? completeErr.message
+          : "Payment was successful but we couldn't confirm your booking. Please contact FleetCommand@Star-Fleet.Tours for assistance."
 
     return (
       <VStack gap={6} align="stretch">
         <Box
           p={4}
-          bg="red.50"
+          bg={isTimeoutError ? "orange.50" : "red.50"}
           border="1px"
-          borderColor="red.200"
+          borderColor={isTimeoutError ? "orange.200" : "red.200"}
           borderRadius="md"
         >
-          <Text color="red.800" fontWeight="medium">
+          <Text
+            color={isTimeoutError ? "orange.800" : "red.800"}
+            fontWeight="medium"
+          >
             {isCreateErr
               ? "Booking Creation Failed"
-              : "Payment Verification Failed"}
+              : isTimeoutError
+                ? "Still Confirming Your Booking"
+                : "Payment Verification Failed"}
           </Text>
-          <Text color="red.700" fontSize="sm" mt={2}>
+          <Text
+            color={isTimeoutError ? "orange.700" : "red.700"}
+            fontSize="sm"
+            mt={2}
+          >
             {errorMessage}
           </Text>
         </Box>
@@ -142,6 +161,7 @@ const Step4Review = ({
 
   if (isPending && !bookingResult) {
     const isFree = bookingData.total < 50
+    const isResuming = Boolean(urlCode)
     return (
       <VStack gap={6} align="stretch">
         <Box
@@ -155,12 +175,40 @@ const Step4Review = ({
           <Text color="blue.800" fontWeight="medium">
             {isFree
               ? "Confirming your free booking..."
-              : "Preparing your booking..."}
+              : isResuming
+                ? "Checking your booking status..."
+                : "Preparing your booking..."}
           </Text>
           <Text color="blue.700" fontSize="sm" mt={2}>
             {isFree
               ? "Please wait."
-              : "Please wait while we set up your payment."}
+              : isResuming
+                ? "Please wait while we confirm your payment."
+                : "Please wait while we set up your payment."}
+          </Text>
+        </Box>
+      </VStack>
+    )
+  }
+
+  if (isCompletePending) {
+    return (
+      <VStack gap={6} align="stretch">
+        <Box
+          p={6}
+          bg="blue.50"
+          border="1px"
+          borderColor="blue.200"
+          borderRadius="md"
+          textAlign="center"
+        >
+          <Text color="blue.800" fontWeight="medium">
+            Confirming your booking...
+          </Text>
+          <Text color="blue.700" fontSize="sm" mt={2}>
+            Payment received. This can take a moment on slower connections.
+            You can leave this page open—we will email your confirmation when
+            it is ready.
           </Text>
         </Box>
       </VStack>
@@ -347,6 +395,7 @@ const Step4Review = ({
                     onPaymentSuccess={handlePaymentSuccess}
                     onPaymentError={handlePaymentError}
                     loading={isCompletePending}
+                    loadingText="Confirming booking..."
                   />
                 </StripeProvider>
               </VStack>
