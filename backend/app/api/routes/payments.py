@@ -1,12 +1,14 @@
 import logging
+import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.api import deps
 from app.core.config import settings
+from app.core.db import engine
 from app.core.stripe import (
     create_payment_intent,
     release_payment_intent_after_capacity_failure,
@@ -137,6 +139,18 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
         )
 
 
+def send_booking_confirmation_email_task(booking_id: uuid.UUID) -> None:
+    """Send confirmation email in a fresh DB session (for BackgroundTasks after confirm)."""
+    with Session(engine) as session:
+        booking = session.exec(
+            select(Booking)
+            .where(Booking.id == booking_id)
+            .options(selectinload(Booking.items))
+        ).first()
+        if booking:
+            send_booking_confirmation_email(session, booking)
+
+
 def _apply_capacity_failure_after_payment(
     *, session: Session, booking: Booking
 ) -> None:
@@ -159,7 +173,7 @@ def _apply_capacity_failure_after_payment(
 def _confirm_booking_if_capacity_allows(*, session: Session, booking: Booking) -> bool:
     """
     Confirm a paid booking after capacity re-check. booking.items must be loaded.
-    Returns True if confirmed (and confirmation email sent unless duplicate).
+    Returns True if confirmed. Caller should schedule confirmation email via BackgroundTasks.
     Returns False if capacity failed (booking set to cancelled/failed).
     """
     if booking.booking_status == BookingStatus.confirmed:
@@ -186,10 +200,11 @@ def _confirm_booking_if_capacity_allows(*, session: Session, booking: Booking) -
     booking.payment_status = PaymentStatus.paid
     booking.capacity_hold_expires_at = None
     increment_used_count_for_booking(session, booking)
+    if not booking.qr_code_base64:
+        booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
     session.add(booking)
     session.commit()
     session.refresh(booking)
-    send_booking_confirmation_email(session, booking)
     return True
 
 
@@ -218,6 +233,7 @@ def create_payment_intent_endpoint(
 @router.post("/verify-payment/{payment_intent_id}")
 def verify_payment(
     *,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(deps.get_db),
     payment_intent_id: str,
 ) -> dict:
@@ -280,6 +296,7 @@ def verify_payment(
                     "Payment has been refunded or cancelled."
                 ),
             )
+        background_tasks.add_task(send_booking_confirmation_email_task, booking.id)
         return {"status": "succeeded", "booking_status": "confirmed"}
     elif payment_intent.status == "requires_payment_method":
         return {"status": "requires_payment_method"}
@@ -320,6 +337,7 @@ def verify_payment(
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(deps.get_db),
 ) -> dict:
     """
@@ -394,6 +412,10 @@ async def stripe_webhook(
                 logger.info(
                     "Webhook: capacity failure for booking %s",
                     booking.confirmation_code,
+                )
+            else:
+                background_tasks.add_task(
+                    send_booking_confirmation_email_task, booking.id
                 )
         else:
             logger.warning(

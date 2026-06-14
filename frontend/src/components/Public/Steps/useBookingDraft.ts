@@ -147,6 +147,9 @@ export function useBookingDraft({
     },
     onSuccess: (result) => {
       if (result.outcome === "confirmed") {
+        queryClient.invalidateQueries({
+          queryKey: ["booking-by-code", result.code],
+        })
         navigate({ to: "/bookings", search: { code: result.code } })
         return
       }
@@ -163,6 +166,9 @@ export function useBookingDraft({
         return
       }
       if (result.outcome === "free_confirmed") {
+        queryClient.invalidateQueries({
+          queryKey: ["booking-by-code", result.code],
+        })
         navigate({ to: "/bookings", search: { code: result.code } })
         return
       }
@@ -300,6 +306,9 @@ export function useBookingDraft({
     onSuccess: (data) => {
       setIsBookingSuccessful(true)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
+      queryClient.invalidateQueries({
+        queryKey: ["booking-by-code", data.confirmationCode],
+      })
       setTimeout(() => {
         navigate({
           to: "/bookings",
@@ -307,9 +316,31 @@ export function useBookingDraft({
         })
       }, 3000)
     },
-    onError: (err) => {
+    onError: async (err) => {
       if (err instanceof ApiError && err.status === 409) {
         handleError(err)
+        return
+      }
+      const confirmationCode = bookingResult?.booking?.confirmation_code
+      if (confirmationCode) {
+        try {
+          const booking =
+            await BookingsService.getBookingByConfirmationCode({
+              confirmationCode,
+            })
+          if (isBookingConfirmed(booking.booking_status)) {
+            queryClient.invalidateQueries({
+              queryKey: ["booking-by-code", confirmationCode],
+            })
+            navigate({
+              to: "/bookings",
+              search: { code: confirmationCode },
+            })
+            return
+          }
+        } catch {
+          // Fall through to error UI
+        }
       }
     },
   })

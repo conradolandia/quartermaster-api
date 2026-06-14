@@ -109,7 +109,12 @@ function PublicBookingPage() {
       BookingsService.getBookingByConfirmationCode({
         confirmationCode: search.code!,
       }),
-    enabled: !!search.code && !urlTripId,
+    enabled: !!search.code,
+    refetchInterval: (query) => {
+      const status = (query.state.data?.booking_status ?? "") as string
+      if (CONFIRMED_STATUSES.includes(status)) return false
+      return 2500
+    },
   })
 
   const tripIdFromBooking =

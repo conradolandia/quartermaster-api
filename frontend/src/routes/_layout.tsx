@@ -82,13 +82,12 @@ function Layout() {
     return () => clearInterval(id)
   }, [])
 
-  // Check if this is a public booking confirmation (unauthenticated access)
+  // Public booking confirmation by code (works even with a stale admin token in storage)
   const isPublicBookingConfirmation =
     router.state.location.pathname === "/bookings" &&
     router.state.location.search &&
     "code" in router.state.location.search &&
-    typeof router.state.location.search.code === "string" &&
-    !isLoggedIn()
+    typeof router.state.location.search.code === "string"
 
   // For public booking confirmations, don't show navbar and sidebar
   if (isPublicBookingConfirmation) {

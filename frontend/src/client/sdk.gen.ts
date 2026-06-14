@@ -1118,7 +1118,7 @@ export class BookingsService {
   /**
    * Confirm Free Booking
    * Confirm a free or sub-minimum (total_amount < 50 cents) draft booking without payment.
-   * Sets booking to confirmed, sends confirmation email, returns success.
+   * Sets booking to confirmed, schedules confirmation email, returns success.
    * @param data The data for the request.
    * @param data.confirmationCode
    * @returns unknown Successful Response

@@ -129,6 +129,16 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     wasFetchingRef.current = isFetching
   }, [isFetching, debouncedSearchQuery])
 
+  // Clear tripId when it is not in the filtered trip list (e.g. trip type changed)
+  useEffect(() => {
+    if (isLoading || !tripId) return
+    if (!filteredTrips.some((t) => t.id === tripId)) {
+      setTripId(undefined)
+      setBoatId(undefined)
+      updateFiltersInUrl({ tripId: undefined, boatId: undefined })
+    }
+  }, [tripId, filteredTrips, isLoading])
+
   // Clear boatId when it's invalid for the selected trip (e.g. from URL)
   useEffect(() => {
     if (!tripId || !boatId) return

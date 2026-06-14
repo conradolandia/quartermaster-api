@@ -111,7 +111,12 @@ export default function BookingsFilterBar({
   }
 
   const missionLabel = getLabelForValue(missionsCollection, missionId)
-  const tripLabel = getLabelForValue(tripsCollection, tripId)
+  const tripLabel = getLabelForValue(
+    tripsCollection,
+    tripId && tripsCollection.items.some((i) => i.value === tripId)
+      ? tripId
+      : "",
+  )
   const tripTypeLabel = getLabelForValue(tripTypeFilterCollection, tripType)
   const boatLabel = getLabelForValue(
     boatsCollection,
@@ -368,57 +373,7 @@ export default function BookingsFilterBar({
             flexShrink={0}
             w={{ base: "72px", lg: "auto" }}
           >
-            Trip:
-          </Text>
-          <Box
-            flex={1}
-            minW={0}
-            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
-            maxW={{ base: "100%", lg: "320px" }}
-          >
-          <Select.Root
-            collection={tripsCollection}
-            size="xs"
-            borderColor="white"
-            value={tripId ? [tripId] : [""]}
-            onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
-            positioning={{ sameWidth: false }}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger justifyContent="space-between" width="100%">
-                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                  {tripLabel}
-                </Text>
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 320 })}
-                maxWidth="320px"
-                maxHeight="60vh"
-                overflowY="auto"
-              >
-                {tripsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Box whiteSpace="normal" textOverflow="unset">
-                      {item.label}
-                    </Box>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </Box>
-        </HStack>
-        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
-          <Text
-            fontSize="sm"
-            fontWeight="medium"
-            color="text.secondary"
-            flexShrink={0}
-            w={{ base: "72px", lg: "auto" }}
-          >
-            Type:
+            Trip Type:
           </Text>
           <Box
             flex={1}
@@ -451,6 +406,60 @@ export default function BookingsFilterBar({
                 overflowY="auto"
               >
                 {tripTypeFilterCollection.items.map((item) => (
+                  <Select.Item key={item.value} item={item}>
+                    <Box whiteSpace="normal" textOverflow="unset">
+                      {item.label}
+                    </Box>
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Positioner>
+          </Select.Root>
+        </Box>
+        </HStack>
+        <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="text.secondary"
+            flexShrink={0}
+            w={{ base: "72px", lg: "auto" }}
+          >
+            Trip:
+          </Text>
+          <Box
+            flex={1}
+            minW={0}
+            minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
+            maxW={{ base: "100%", lg: "320px" }}
+          >
+          <Select.Root
+            collection={tripsCollection}
+            size="xs"
+            borderColor="white"
+            value={
+              tripId && tripsCollection.items.some((i) => i.value === tripId)
+                ? [tripId]
+                : [""]
+            }
+            onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
+            positioning={{ sameWidth: false }}
+          >
+            <Select.Control width="100%">
+              <Select.Trigger justifyContent="space-between" width="100%">
+                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                  {tripLabel}
+                </Text>
+              </Select.Trigger>
+            </Select.Control>
+            <Select.Positioner>
+              <Select.Content
+                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 320 })}
+                maxWidth="320px"
+                maxHeight="60vh"
+                overflowY="auto"
+              >
+                {tripsCollection.items.map((item) => (
                   <Select.Item key={item.value} item={item}>
                     <Box whiteSpace="normal" textOverflow="unset">
                       {item.label}

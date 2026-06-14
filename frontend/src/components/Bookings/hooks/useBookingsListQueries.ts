@@ -174,6 +174,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
   const filteredTrips = (trips as TripPublic[])
     .filter((t) => includeArchived || !t.archived)
     .filter((t) => !missionId || t.mission_id === missionId)
+    .filter((t) => !tripType || t.type === tripType)
 
   const ticketItemTypeOptions = ticketItemTypesData?.data ?? []
 

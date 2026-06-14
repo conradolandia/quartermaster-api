@@ -7,12 +7,12 @@ This module contains booking endpoints that handle payment operations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.api import deps
-from app.api.routes.booking_utils import get_booking_with_items
+from app.api.routes.booking_utils import generate_qr_code, get_booking_with_items
 from app.core.stripe import retrieve_payment_intent
 from app.crud.capacity_holds import (
     hold_expiry_utc,
@@ -107,14 +107,15 @@ def resume_payment(
 @router.post("/{confirmation_code}/confirm-free-booking")
 def confirm_free_booking(
     *,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(deps.get_db),
     confirmation_code: str,
 ) -> dict:
     """
     Confirm a free or sub-minimum (total_amount < 50 cents) draft booking without payment.
-    Sets booking to confirmed, sends confirmation email, returns success.
+    Sets booking to confirmed, schedules confirmation email, returns success.
     """
-    from app.api.routes.payments import send_booking_confirmation_email
+    from app.api.routes.payments import send_booking_confirmation_email_task
     from app.crud.capacity_holds import (
         lock_trip_boats_for_ticket_items,
         trip_boat_pairs_from_booking,
@@ -148,11 +149,13 @@ def confirm_free_booking(
         booking.payment_status = PaymentStatus.free
         booking.capacity_hold_expires_at = None
         increment_used_count_for_booking(session, booking)
+        if not booking.qr_code_base64:
+            booking.qr_code_base64 = generate_qr_code(booking.confirmation_code)
         session.add(booking)
         session.commit()
         session.refresh(booking)
 
-        send_booking_confirmation_email(session, booking)
+        background_tasks.add_task(send_booking_confirmation_email_task, booking.id)
 
         return {"status": "confirmed"}
     except HTTPException:
