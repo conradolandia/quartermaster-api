@@ -22,12 +22,28 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { formatCents } from "@/utils"
 
+import {
+  BOOKING_NAME_MAX_LENGTH,
+  BOOKING_NAME_PART_MESSAGE,
+  BOOKING_NAME_PART_PATTERN,
+} from "@/utils/bookingName"
+
 import type { BookingStepData } from "../bookingTypes"
+
+const bookingNameField = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} is required`)
+    .max(
+      BOOKING_NAME_MAX_LENGTH,
+      `${label} cannot exceed ${BOOKING_NAME_MAX_LENGTH} characters`,
+    )
+    .regex(BOOKING_NAME_PART_PATTERN, BOOKING_NAME_PART_MESSAGE)
 
 export const customerInfoSchema = z
   .object({
-    first_name: z.string().min(1, "First name is required").max(255),
-    last_name: z.string().min(1, "Last name is required").max(255),
+    first_name: bookingNameField("First name"),
+    last_name: bookingNameField("Last name"),
     email: z
       .string()
       .min(1, "Email is required")

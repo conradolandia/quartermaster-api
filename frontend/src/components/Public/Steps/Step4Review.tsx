@@ -12,7 +12,7 @@ import type { MutableRefObject } from "react"
 
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { formatCents, getApiErrorMessage } from "@/utils"
-import type { ApiError } from "@/client"
+import { ApiError } from "@/client"
 
 import PaymentForm from "../PaymentForm"
 import { PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE } from "../confirmPaidBooking"
@@ -104,9 +104,9 @@ const Step4Review = ({
       completeErr instanceof Error &&
       completeErr.message === PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
     const errorMessage = isCreateErr
-      ? (createErrorProp
-          ? "Something went wrong. Please try again."
-          : getApiErrorMessage(createError as ApiError))
+      ? (createError instanceof ApiError
+          ? getApiErrorMessage(createError)
+          : "Something went wrong. Please try again.")
       : isTimeoutError
         ? PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
         : completeErr instanceof Error

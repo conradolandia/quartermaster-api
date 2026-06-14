@@ -1,6 +1,11 @@
 import { Input, Textarea } from "@chakra-ui/react"
 
 import { Field } from "@/components/ui/field"
+import {
+  BOOKING_NAME_MAX_LENGTH,
+  BOOKING_NAME_PART_MESSAGE,
+  BOOKING_NAME_PART_PATTERN,
+} from "@/utils/bookingName"
 
 /** Minimal errors shape for customer fields; compatible with any form that has these keys. */
 export interface BookingCustomerErrors {
@@ -38,8 +43,12 @@ export function BookingCustomerFields({
           {...register("first_name", {
             ...(required && { required: "First name is required" }),
             maxLength: {
-              value: 128,
-              message: "First name cannot exceed 128 characters",
+              value: BOOKING_NAME_MAX_LENGTH,
+              message: `First name cannot exceed ${BOOKING_NAME_MAX_LENGTH} characters`,
+            },
+            pattern: {
+              value: BOOKING_NAME_PART_PATTERN,
+              message: BOOKING_NAME_PART_MESSAGE,
             },
           })}
           placeholder={required ? "First Name" : "First name"}
@@ -57,8 +66,12 @@ export function BookingCustomerFields({
           {...register("last_name", {
             ...(required && { required: "Last name is required" }),
             maxLength: {
-              value: 128,
-              message: "Last name cannot exceed 128 characters",
+              value: BOOKING_NAME_MAX_LENGTH,
+              message: `Last name cannot exceed ${BOOKING_NAME_MAX_LENGTH} characters`,
+            },
+            pattern: {
+              value: BOOKING_NAME_PART_PATTERN,
+              message: BOOKING_NAME_PART_MESSAGE,
             },
           })}
           placeholder={required ? "Last Name" : "Last name"}

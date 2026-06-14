@@ -22,18 +22,18 @@ if TYPE_CHECKING:
 
 
 def _validate_name_part(v: str | None, max_length: int = 128) -> str | None:
-    """Validate name part (first/last): max chars, letters, numbers, spaces, hyphens, apostrophes; no double quotes."""
+    """Validate name part (first/last): max chars, letters, numbers, spaces, periods, hyphens, apostrophes; no double quotes."""
     if v is None:
         return v
     if len(v) > max_length:
         raise ValueError(f"Name must be {max_length} characters or less")
     if '"' in v:
         raise ValueError(
-            "Name cannot contain double quotes. Letters (including accented), numbers, spaces, hyphens, and apostrophes are allowed."
+            "Name cannot contain double quotes. Letters (including accented), numbers, spaces, periods, hyphens, and apostrophes are allowed."
         )
-    if not re.match(r"^[\w\s\-']+$", v, re.UNICODE):
+    if not re.match(r"^[\w\s\-'.]+$", v, re.UNICODE):
         raise ValueError(
-            "Name can only contain letters (including accented), numbers, spaces, hyphens, and apostrophes"
+            "Name can only contain letters (including accented), numbers, spaces, periods, hyphens, and apostrophes"
         )
     return v
 
