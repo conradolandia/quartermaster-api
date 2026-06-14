@@ -1,11 +1,13 @@
-import { Badge, Input, Table, Text } from "@chakra-ui/react"
+import { Input, Table, Text } from "@chakra-ui/react"
 import { Controller, type Control } from "react-hook-form"
 
-import type { BookingItemPublic, BookingUpdate } from "@/client"
+import type { BookingItemPublic, BookingPublic, BookingUpdate } from "@/client"
 import { formatCents } from "@/utils"
+import { BookingItemStatusBadge } from "./BookingItemStatusBadge"
 import { getItemTypeLabel } from "./types"
 
 interface EditBookingMerchandiseSectionProps {
+  booking: Pick<BookingPublic, "booking_status" | "payment_status">
   /** Full booking items; index matches item_quantity_updates */
   items: BookingItemPublic[]
   control: Control<BookingUpdate>
@@ -14,6 +16,7 @@ interface EditBookingMerchandiseSectionProps {
 }
 
 export function EditBookingMerchandiseSection({
+  booking,
   items,
   control,
   watchedItemQuantities,
@@ -102,20 +105,11 @@ export function EditBookingMerchandiseSection({
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge
+                  <BookingItemStatusBadge
                     size="sm"
-                    colorPalette={
-                      item.status === "active"
-                        ? "green"
-                        : item.status === "refunded" || item.status === "cancelled"
-                          ? "red"
-                          : item.status === "fulfilled"
-                            ? "blue"
-                            : "gray"
-                    }
-                  >
-                    {item.status}
-                  </Badge>
+                    booking={booking}
+                    item={item}
+                  />
                 </Table.Cell>
               </Table.Row>
             ),

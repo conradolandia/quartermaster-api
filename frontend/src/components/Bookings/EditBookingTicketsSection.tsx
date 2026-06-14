@@ -1,5 +1,4 @@
 import {
-  Badge,
   Box,
   Button,
   Card,
@@ -17,6 +16,7 @@ import { NativeSelect } from "@/components/ui/native-select"
 import { formatCents } from "@/utils"
 import type { PendingBoatChange } from "./BoatChangeTypeDialog"
 import { getItemTypeLabel } from "./types"
+import { BookingItemStatusBadge } from "./BookingItemStatusBadge"
 
 interface BoatOption {
   boat_id: string
@@ -274,21 +274,11 @@ export function EditBookingTicketsSection({
                           </Text>
                         </Field>
                         <Field label="Status">
-                          <Badge
+                          <BookingItemStatusBadge
                             size="sm"
-                            colorPalette={
-                              item.status === "active"
-                                ? "green"
-                                : item.status === "refunded" ||
-                                    item.status === "cancelled"
-                                  ? "red"
-                                  : item.status === "fulfilled"
-                                    ? "blue"
-                                    : "gray"
-                            }
-                          >
-                            {item.status}
-                          </Badge>
+                            booking={booking}
+                            item={item}
+                          />
                         </Field>
                       </SimpleGrid>
                     </VStack>

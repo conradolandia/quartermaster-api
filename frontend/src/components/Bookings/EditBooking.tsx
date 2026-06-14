@@ -559,6 +559,7 @@ const EditBooking = ({
                       Merchandise
                     </Text>
                     <EditBookingMerchandiseSection
+                      booking={booking}
                       items={booking.items}
                       control={control}
                       watchedItemQuantities={watchedItemQuantities}

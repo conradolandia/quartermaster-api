@@ -1,4 +1,4 @@
-import type { BookingPublic, TripPublic } from "@/client"
+import type { BookingItemPublic, BookingPublic, TripPublic } from "@/client"
 import { formatDateTimeInLocationTz } from "@/utils"
 import { z } from "zod"
 
@@ -267,3 +267,100 @@ export function formatBookingTicketTypesDisplay(
 
 // Helper function to format dates (delegates to utils for international format support)
 export { formatDateTimeInLocationTz as formatDate } from "@/utils"
+
+/** Display-only ticket line status derived from booking + item fields. */
+export type EffectiveItemStatus =
+  | "active"
+  | "pending"
+  | "pending_payment"
+  | "cancelled"
+  | "refunded"
+  | "fulfilled"
+
+type BookingStatusContext = Pick<
+  BookingPublic,
+  "booking_status" | "payment_status"
+>
+
+/**
+ * Derive ticket status for display. Item.status in the DB may stay "active"
+ * on draft or cancelled bookings; this reflects what admins should see.
+ */
+export function getEffectiveItemStatus(
+  booking: BookingStatusContext,
+  item: Pick<BookingItemPublic, "status">,
+): EffectiveItemStatus {
+  const itemStatus = (item.status ?? "active").toLowerCase()
+
+  if (
+    itemStatus === "refunded" ||
+    itemStatus === "cancelled" ||
+    itemStatus === "fulfilled"
+  ) {
+    return itemStatus
+  }
+
+  const bookingStatus = (booking.booking_status ?? "").toLowerCase()
+  const paymentStatus = (booking.payment_status ?? "").toLowerCase()
+
+  if (bookingStatus === "cancelled") {
+    if (
+      paymentStatus === "refunded" ||
+      paymentStatus === "partially_refunded"
+    ) {
+      return "refunded"
+    }
+    return "cancelled"
+  }
+
+  if (bookingStatus === "draft") {
+    if (paymentStatus === "pending_payment") {
+      return "pending_payment"
+    }
+    if (paymentStatus === "failed") {
+      return "cancelled"
+    }
+    return "pending"
+  }
+
+  return "active"
+}
+
+export function formatEffectiveItemStatusLabel(
+  status: EffectiveItemStatus,
+): string {
+  switch (status) {
+    case "pending_payment":
+      return "PENDING PAYMENT"
+    case "pending":
+      return "PENDING"
+    case "active":
+      return "ACTIVE"
+    case "cancelled":
+      return "CANCELLED"
+    case "refunded":
+      return "REFUNDED"
+    case "fulfilled":
+      return "FULFILLED"
+  }
+}
+
+export function getEffectiveItemStatusColor(
+  status: EffectiveItemStatus,
+): string {
+  switch (status) {
+    case "active":
+      return "green"
+    case "fulfilled":
+      return "blue"
+    case "pending_payment":
+      return "yellow"
+    case "pending":
+      return "gray"
+    case "cancelled":
+    case "refunded":
+      return "red"
+    default:
+      return "gray"
+  }
+}

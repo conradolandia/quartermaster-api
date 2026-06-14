@@ -25,6 +25,7 @@ import {
 
 import { BoatsService, BookingsService, TripsService } from "@/client"
 import BookingDetailInfoSections from "@/components/Bookings/BookingDetailInfoSections"
+import { BookingItemStatusBadge } from "@/components/Bookings/BookingItemStatusBadge"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import RefundBooking from "@/components/Bookings/RefundBooking"
@@ -615,20 +616,7 @@ export default function BookingDetails({
                           )}
                         </Table.Cell>
                         <Table.Cell>
-                          <Badge
-                            colorPalette={
-                              item.status === "active"
-                                ? "green"
-                                : item.status === "refunded" ||
-                                  item.status === "cancelled"
-                                  ? "red"
-                                  : item.status === "fulfilled"
-                                    ? "blue"
-                                    : "gray"
-                            }
-                          >
-                            {item.status?.replace("_", " ").toUpperCase()}
-                          </Badge>
+                          <BookingItemStatusBadge booking={booking} item={item} />
                         </Table.Cell>
                         <Table.Cell>{item.quantity}</Table.Cell>
                         <Table.Cell>
