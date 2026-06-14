@@ -19,9 +19,11 @@ from app.models import (
     BookingPublic,
     BookingStatus,
     Launch,
+    Merchandise,
     MerchandiseVariation,
     Mission,
     Trip,
+    TripMerchandise,
 )
 
 from .booking_utils import (
@@ -46,9 +48,67 @@ class RescheduleBookingRequest(BaseModel):
     )
 
 
+class RescheduleMerchandiseAutoAttached(BaseModel):
+    """Catalog merchandise auto-linked to the target trip during reschedule."""
+
+    merchandise_id: uuid.UUID
+    name: str
+    trip_merchandise_id: uuid.UUID
+
+
+class RescheduleBookingResponse(BaseModel):
+    booking: BookingPublic
+    merchandise_auto_attached: list[RescheduleMerchandiseAutoAttached] = []
+
+
+def _resolve_target_trip_merchandise(
+    *,
+    session: Session,
+    target_trip_id: uuid.UUID,
+    source_tm: TripMerchandise,
+    auto_attached: dict[uuid.UUID, RescheduleMerchandiseAutoAttached],
+    target_tm_cache: dict[uuid.UUID, TripMerchandise],
+) -> TripMerchandise:
+    merchandise_id = source_tm.merchandise_id
+    if merchandise_id in target_tm_cache:
+        return target_tm_cache[merchandise_id]
+
+    existing = crud.get_trip_merchandise_by_trip_and_merchandise(
+        session=session,
+        trip_id=target_trip_id,
+        merchandise_id=merchandise_id,
+    )
+    if existing:
+        target_tm_cache[merchandise_id] = existing
+        return existing
+
+    merchandise = session.get(Merchandise, merchandise_id)
+    if not merchandise:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Merchandise catalog item not found",
+        )
+
+    new_tm = TripMerchandise(
+        trip_id=target_trip_id,
+        merchandise_id=merchandise_id,
+        quantity_available_override=source_tm.quantity_available_override,
+        price_override=source_tm.price_override,
+    )
+    session.add(new_tm)
+    session.flush()
+    target_tm_cache[merchandise_id] = new_tm
+    auto_attached[merchandise_id] = RescheduleMerchandiseAutoAttached(
+        merchandise_id=merchandise_id,
+        name=merchandise.name,
+        trip_merchandise_id=new_tm.id,
+    )
+    return new_tm
+
+
 @router.post(
     "/id/{booking_id}/reschedule",
-    response_model=BookingPublic,
+    response_model=RescheduleBookingResponse,
     dependencies=[Depends(deps.get_current_active_superuser)],
     operation_id="bookings_reschedule",
 )
@@ -57,15 +117,16 @@ def reschedule_booking(
     session: Session = Depends(deps.get_db),
     booking_id: uuid.UUID,
     body: RescheduleBookingRequest,
-) -> BookingPublic:
+) -> RescheduleBookingResponse:
     """
-    Move all ticket items for this booking to another trip (any mission).
+    Move all ticket and merchandise items for this booking to another trip (any mission).
 
     Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
-    rescheduling are allowed. Merchandise items are left on their current trips.
-    Target trip must not be archived; its mission and launch must not be archived.
-    Past (departed) trips are allowed if not archived. Target must have capacity
-    for the moved quantities.
+    rescheduling are allowed. Merchandise is matched by catalog merchandise_id on
+    the target trip; missing trip links are created automatically (overrides copied
+    from the source trip). Target trip must not be archived; its mission and launch
+    must not be archived. Past (departed) trips are allowed if not archived. Target
+    must have capacity for the moved ticket quantities.
     """
     booking = session.get(Booking, booking_id)
     if not booking:
@@ -81,6 +142,7 @@ def reschedule_booking(
 
     items = get_booking_items_in_display_order(session, booking.id)
     ticket_items = [i for i in items if i.trip_merchandise_id is None]
+    merch_items = [i for i in items if i.trip_merchandise_id is not None]
     if not ticket_items:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -254,6 +316,40 @@ def reschedule_booking(
             item.item_type = body.type_mapping[item.item_type]
         session.add(item)
 
+    auto_attached: dict[uuid.UUID, RescheduleMerchandiseAutoAttached] = {}
+    target_tm_cache: dict[uuid.UUID, TripMerchandise] = {}
+    for item in merch_items:
+        source_tm = session.get(TripMerchandise, item.trip_merchandise_id)
+        if not source_tm:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Merchandise reference for '{item.item_type}' is no longer valid",
+            )
+        if item.merchandise_variation_id:
+            variation = session.get(MerchandiseVariation, item.merchandise_variation_id)
+            if not variation:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Merchandise variation for '{item.item_type}' is no longer valid",
+                )
+            if variation.merchandise_id != source_tm.merchandise_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Merchandise variation for '{item.item_type}' does not match catalog item",
+                )
+
+        target_tm = _resolve_target_trip_merchandise(
+            session=session,
+            target_trip_id=body.target_trip_id,
+            source_tm=source_tm,
+            auto_attached=auto_attached,
+            target_tm_cache=target_tm_cache,
+        )
+        item.trip_id = body.target_trip_id
+        item.boat_id = target_boat_id
+        item.trip_merchandise_id = target_tm.id
+        session.add(item)
+
     session.commit()
     session.refresh(booking)
     updated_items = get_booking_items_in_display_order(session, booking.id)
@@ -262,9 +358,18 @@ def reschedule_booking(
         BookingItemPublic.model_validate(item) for item in updated_items
     ]
     logger.info(
-        f"Rescheduled booking {booking_id} ticket items to trip {body.target_trip_id}"
+        "Rescheduled booking %s to trip %s (%s ticket item(s), %s merchandise item(s), "
+        "%s merchandise auto-attached)",
+        booking_id,
+        body.target_trip_id,
+        len(ticket_items),
+        len(merch_items),
+        len(auto_attached),
     )
-    return booking_public
+    return RescheduleBookingResponse(
+        booking=booking_public,
+        merchandise_auto_attached=list(auto_attached.values()),
+    )
 
 
 @router.post(

@@ -876,17 +876,18 @@ export class BookingsService {
 
   /**
    * Reschedule Booking
-   * Move all ticket items for this booking to another trip (any mission).
+   * Move all ticket and merchandise items for this booking to another trip (any mission).
    *
    * Target trip may be Launch Viewing or Pre-Launch; cross-type and cross-mission
-   * rescheduling are allowed. Merchandise items are left on their current trips.
-   * Target trip must not be archived; its mission and launch must not be archived.
-   * Past (departed) trips are allowed if not archived. Target must have capacity
-   * for the moved quantities.
+   * rescheduling are allowed. Merchandise is matched by catalog merchandise_id on
+   * the target trip; missing trip links are created automatically (overrides copied
+   * from the source trip). Target trip must not be archived; its mission and launch
+   * must not be archived. Past (departed) trips are allowed if not archived. Target
+   * must have capacity for the moved ticket quantities.
    * @param data The data for the request.
    * @param data.bookingId
    * @param data.requestBody
-   * @returns BookingPublic Successful Response
+   * @returns RescheduleBookingResponse Successful Response
    * @throws ApiError
    */
   public static reschedule(

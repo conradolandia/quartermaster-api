@@ -28,6 +28,21 @@ def get_trip_merchandise_by_trip(
     ).all()
 
 
+def get_trip_merchandise_by_trip_and_merchandise(
+    *,
+    session: Session,
+    trip_id: uuid.UUID,
+    merchandise_id: uuid.UUID,
+) -> TripMerchandise | None:
+    """Get the trip merchandise link for a catalog item on a trip, if present."""
+    return session.exec(
+        select(TripMerchandise).where(
+            TripMerchandise.trip_id == trip_id,
+            TripMerchandise.merchandise_id == merchandise_id,
+        )
+    ).first()
+
+
 def create_trip_merchandise(
     *, session: Session, trip_merchandise_in: TripMerchandiseCreate
 ) -> TripMerchandise:

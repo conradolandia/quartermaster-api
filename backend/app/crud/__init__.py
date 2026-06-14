@@ -140,6 +140,7 @@ from .trip_merchandise import (
     delete_trip_merchandise,
     get_trip_merchandise,
     get_trip_merchandise_by_trip,
+    get_trip_merchandise_by_trip_and_merchandise,
     update_trip_merchandise,
 )
 from .trips import (
@@ -266,6 +267,7 @@ __all__ = [
     "delete_trip_merchandise",
     "get_trip_merchandise",
     "get_trip_merchandise_by_trip",
+    "get_trip_merchandise_by_trip_and_merchandise",
     "update_trip_merchandise",
     # Boat Pricing
     "create_boat_pricing",

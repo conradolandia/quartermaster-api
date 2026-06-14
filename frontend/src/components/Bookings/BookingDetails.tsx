@@ -416,8 +416,8 @@ export default function BookingDetails({
         booking={booking}
         isOpen={rescheduleDialogOpen}
         onClose={() => setRescheduleDialogOpen(false)}
-        onSuccess={(updated) => {
-          queryClient.setQueryData(["booking", confirmationCode], updated)
+        onSuccess={(result) => {
+          queryClient.setQueryData(["booking", confirmationCode], result.booking)
         }}
       />
 

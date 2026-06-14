@@ -1,24 +1,25 @@
 import {
   Button,
   ButtonGroup,
-  createListCollection,
   Select,
   Text,
   VStack,
+  createListCollection,
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 
 import {
-  BookingsService,
-  LaunchesService,
-  MissionsService,
-  TripsService,
-  TripBoatsService,
   type BookingPublic,
+  BookingsService,
   type LaunchPublic,
+  LaunchesService,
   type MissionPublic,
+  MissionsService,
+  type RescheduleBookingResponse,
+  TripBoatsService,
   type TripPublic,
+  TripsService,
 } from "@/client"
 import {
   DialogBody,
@@ -39,7 +40,7 @@ interface RescheduleBookingProps {
   booking: BookingPublic
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (updated: BookingPublic) => void
+  onSuccess?: (result: RescheduleBookingResponse) => void
 }
 
 export default function RescheduleBooking({
@@ -49,7 +50,8 @@ export default function RescheduleBooking({
   onSuccess,
 }: RescheduleBookingProps) {
   const queryClient = useQueryClient()
-  const { showSuccessToast, showErrorToast } = useCustomToast()
+  const { showSuccessToast, showErrorToast, showWarningToast } =
+    useCustomToast()
   const [selectedLaunchId, setSelectedLaunchId] = useState<string>("")
   const [selectedMissionId, setSelectedMissionId] = useState<string>("")
   const [targetTripId, setTargetTripId] = useState<string>("")
@@ -108,8 +110,12 @@ export default function RescheduleBooking({
     allMissions.find((m) => m.id === effectiveMissionId)?.launch_id
 
   const effectiveBoatId = needsBoat ? targetBoatId : singleBoatId
-  const currentTripId = booking.items?.find((i) => !i.trip_merchandise_id)
-    ?.trip_id ?? ""
+  const currentTripId =
+    booking.items?.find((i) => !i.trip_merchandise_id)?.trip_id ?? ""
+
+  const originMerchItems = useMemo(() => {
+    return (booking.items ?? []).filter((i) => i.trip_merchandise_id)
+  }, [booking.items])
 
   const originTicketTypes = useMemo(() => {
     const byType: Record<string, number> = {}
@@ -117,7 +123,10 @@ export default function RescheduleBooking({
       if (i.trip_merchandise_id) continue
       byType[i.item_type] = (byType[i.item_type] ?? 0) + i.quantity
     }
-    return Object.entries(byType).map(([type, quantity]) => ({ type, quantity }))
+    return Object.entries(byType).map(([type, quantity]) => ({
+      type,
+      quantity,
+    }))
   }, [booking.items])
 
   const { data: effectivePricing = [], isLoading: pricingLoading } = useQuery({
@@ -127,8 +136,7 @@ export default function RescheduleBooking({
         tripId: targetTripId,
         boatId: effectiveBoatId ?? "",
       }),
-    enabled:
-      isOpen && !!targetTripId && !!effectiveBoatId,
+    enabled: isOpen && !!targetTripId && !!effectiveBoatId,
   })
 
   const ticketTypeOptions = effectivePricing
@@ -182,10 +190,9 @@ export default function RescheduleBooking({
   }, [needsBoat, singleBoatId])
 
   useEffect(() => {
-    const currentTripInList =
-      trips.filter((t: TripPublic) => !t.archived).some(
-        (t: TripPublic) => t.id === currentTripId,
-      )
+    const currentTripInList = trips
+      .filter((t: TripPublic) => !t.archived)
+      .some((t: TripPublic) => t.id === currentTripId)
     if (
       isOpen &&
       selectedMissionId &&
@@ -196,13 +203,7 @@ export default function RescheduleBooking({
     ) {
       setTargetTripId(currentTripId)
     }
-  }, [
-    isOpen,
-    selectedMissionId,
-    trips,
-    targetTripId,
-    currentTripId,
-  ])
+  }, [isOpen, selectedMissionId, trips, targetTripId, currentTripId])
 
   useEffect(() => {
     if (ticketTypeOptions.length === 0 || originTicketTypes.length === 0) {
@@ -217,7 +218,9 @@ export default function RescheduleBooking({
         const current = next[type]
         const inList = current && destTypes.has(current)
         if (!inList) {
-          const fallback = destTypes.has(type) ? type : ticketTypeOptions[0]?.ticket_type ?? ""
+          const fallback = destTypes.has(type)
+            ? type
+            : ticketTypeOptions[0]?.ticket_type ?? ""
           if (fallback) {
             next[type] = fallback
             changed = true
@@ -226,7 +229,13 @@ export default function RescheduleBooking({
       }
       return changed ? next : prev
     })
-  }, [targetTripId, effectiveBoatId, ticketTypeKeys, originTicketTypes, ticketTypeOptions])
+  }, [
+    targetTripId,
+    effectiveBoatId,
+    ticketTypeKeys,
+    originTicketTypes,
+    ticketTypeOptions,
+  ])
 
   const rescheduleMutation = useMutation({
     mutationFn: () =>
@@ -246,14 +255,28 @@ export default function RescheduleBooking({
               : undefined,
         },
       }),
-    onSuccess: (updated) => {
+    onSuccess: (result) => {
       showSuccessToast("Booking rescheduled successfully")
+      if (result.merchandise_auto_attached?.length) {
+        const names = result.merchandise_auto_attached
+          .map((m) => m.name)
+          .join(", ")
+        showWarningToast(
+          "Merchandise added to target trip",
+          `${names} ${
+            result.merchandise_auto_attached.length === 1 ? "was" : "were"
+          } not on the target trip and ${
+            result.merchandise_auto_attached.length === 1 ? "was" : "were"
+          } linked automatically (overrides copied from the source trip).`,
+        )
+        queryClient.invalidateQueries({ queryKey: ["trip-merchandise"] })
+      }
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
       queryClient.invalidateQueries({
         queryKey: ["booking", booking.confirmation_code],
       })
       onClose()
-      onSuccess?.(updated)
+      onSuccess?.(result)
     },
     onError: (err: unknown) => {
       const detail = (err as { body?: { detail?: string } })?.body?.detail
@@ -312,10 +335,19 @@ export default function RescheduleBooking({
         <DialogCloseTrigger />
         <DialogBody overflow="visible" pb={8}>
           <Text mb={4} fontSize="sm" color="text.muted">
-            Move this booking&apos;s ticket items to another trip in any mission
-            (Launch Viewing or Pre-Launch). Merchandise items stay on their
-            current trips.
+            Move this booking&apos;s tickets and merchandise to another trip in
+            any mission (Launch Viewing or Pre-Launch). If the target trip does
+            not yet offer a purchased product, it will be linked automatically
+            using overrides from the source trip.
           </Text>
+          {originMerchItems.length > 0 && (
+            <Text mb={4} fontSize="sm" color="text.muted">
+              Merchandise to move:{" "}
+              {originMerchItems
+                .map((i) => `${i.item_type} (×${i.quantity})`)
+                .join(", ")}
+            </Text>
+          )}
           {!hasTicketItems && (
             <Text color="status.error" mb={4}>
               This booking has no ticket items to reschedule.
@@ -411,9 +443,7 @@ export default function RescheduleBooking({
                         setTargetTripId(e.value[0] ?? "")
                       }
                       disabled={
-                        !selectedLaunchId ||
-                        !selectedMissionId ||
-                        tripsLoading
+                        !selectedLaunchId || !selectedMissionId || tripsLoading
                       }
                     >
                       <Select.Control width="100%">
@@ -459,19 +489,19 @@ export default function RescheduleBooking({
                             <Select.Indicator />
                           </Select.IndicatorGroup>
                         </Select.Control>
-                      <Select.Positioner>
-                        <Select.Content>
-                          {boatOptions.map((opt) => (
-                            <Select.Item
-                              key={opt.value}
-                              item={{ value: opt.value, label: opt.label }}
-                            >
-                              {opt.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Positioner>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {boatOptions.map((opt) => (
+                              <Select.Item
+                                key={opt.value}
+                                item={{ value: opt.value, label: opt.label }}
+                              >
+                                {opt.label}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
                       </Select.Root>
                     </Field>
                   )}
@@ -488,13 +518,13 @@ export default function RescheduleBooking({
                                 collection={createListCollection({
                                   items: ticketTypeOptions.map((p) => ({
                                     value: p.ticket_type,
-                                    label: `${getItemTypeLabel(p.ticket_type)} (${formatCents(p.price)})`,
+                                    label: `${getItemTypeLabel(
+                                      p.ticket_type,
+                                    )} (${formatCents(p.price)})`,
                                   })),
                                 })}
                                 value={
-                                  typeMapping[type]
-                                    ? [typeMapping[type]]
-                                    : []
+                                  typeMapping[type] ? [typeMapping[type]] : []
                                 }
                                 onValueChange={(e: { value: string[] }) =>
                                   setTypeMapping((prev) => ({
@@ -519,7 +549,9 @@ export default function RescheduleBooking({
                                         key={p.ticket_type}
                                         item={{
                                           value: p.ticket_type,
-                                          label: `${getItemTypeLabel(p.ticket_type)} (${formatCents(p.price)})`,
+                                          label: `${getItemTypeLabel(
+                                            p.ticket_type,
+                                          )} (${formatCents(p.price)})`,
                                         }}
                                       >
                                         {getItemTypeLabel(p.ticket_type)} (

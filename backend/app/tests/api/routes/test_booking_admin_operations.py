@@ -11,13 +11,61 @@ from app.models import (
     Boat,
     Booking,
     BookingItem,
+    BookingItemStatus,
+    Merchandise,
     Mission,
     Trip,
     TripBoat,
     TripBoatPricing,
+    TripMerchandise,
 )
 
 BOOKINGS_URL = f"{settings.API_V1_STR}/bookings"
+
+
+def _create_target_trip(
+    db: Session,
+    *,
+    mission_id: uuid.UUID,
+    boat_id: uuid.UUID,
+    name: str = "Other Trip",
+) -> Trip:
+    departure = datetime.now(timezone.utc) + timedelta(days=31, hours=-2)
+    trip = Trip(
+        mission_id=mission_id,
+        name=name,
+        type="launch_viewing",
+        active=True,
+        booking_mode="public",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(trip)
+    db.commit()
+    db.refresh(trip)
+    tb = TripBoat(trip_id=trip.id, boat_id=boat_id, max_capacity=50)
+    db.add(tb)
+    db.commit()
+    db.refresh(tb)
+    db.add(
+        TripBoatPricing(
+            trip_boat_id=tb.id,
+            ticket_type="child",
+            price=3000,
+            capacity=20,
+        ),
+    )
+    db.add(
+        TripBoatPricing(
+            trip_boat_id=tb.id,
+            ticket_type="adult",
+            price=6000,
+            capacity=30,
+        ),
+    )
+    db.commit()
+    return trip
 
 
 def test_reschedule_requires_auth(
@@ -70,41 +118,7 @@ def test_reschedule_with_type_mapping_updates_item_type(
     test_mission: Mission,
 ) -> None:
     """Reschedule with type_mapping; items get mapped type."""
-    departure = datetime.now(timezone.utc) + timedelta(days=31, hours=-2)
-    trip2 = Trip(
-        mission_id=test_mission.id,
-        name="Other Trip",
-        type="launch_viewing",
-        active=True,
-        booking_mode="public",
-        check_in_time=departure - timedelta(hours=1),
-        boarding_time=departure - timedelta(minutes=30),
-        departure_time=departure,
-    )
-    db.add(trip2)
-    db.commit()
-    db.refresh(trip2)
-    tb2 = TripBoat(trip_id=trip2.id, boat_id=test_boat.id, max_capacity=50)
-    db.add(tb2)
-    db.commit()
-    db.refresh(tb2)
-    db.add(
-        TripBoatPricing(
-            trip_boat_id=tb2.id,
-            ticket_type="child",
-            price=3000,
-            capacity=20,
-        ),
-    )
-    db.add(
-        TripBoatPricing(
-            trip_boat_id=tb2.id,
-            ticket_type="adult",
-            price=6000,
-            capacity=30,
-        ),
-    )
-    db.commit()
+    trip2 = _create_target_trip(db, mission_id=test_mission.id, boat_id=test_boat.id)
 
     r = client.post(
         f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
@@ -116,11 +130,13 @@ def test_reschedule_with_type_mapping_updates_item_type(
     )
     assert r.status_code == 200
     data = r.json()
-    items = data.get("items", [])
+    booking = data["booking"]
+    items = booking.get("items", [])
     ticket_items = [i for i in items if i.get("trip_merchandise_id") is None]
     assert len(ticket_items) == 1
     assert ticket_items[0]["item_type"] == "child"
     assert ticket_items[0]["trip_id"] == str(trip2.id)
+    assert data.get("merchandise_auto_attached") == []
 
 
 def test_reschedule_with_invalid_type_mapping_target_returns_400(
@@ -165,6 +181,138 @@ def test_reschedule_with_unmapped_ticket_type_returns_400(
     )
     assert r.status_code == 400
     assert "unmapped" in r.json().get("detail", "").lower()
+
+
+def test_reschedule_moves_merch_when_target_has_same_merchandise(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_mission: Mission,
+    test_merchandise: Merchandise,
+) -> None:
+    source_tm = TripMerchandise(
+        trip_id=test_trip.id,
+        merchandise_id=test_merchandise.id,
+        price_override=2500,
+        quantity_available_override=10,
+    )
+    db.add(source_tm)
+    db.commit()
+    db.refresh(source_tm)
+
+    merch_item = BookingItem(
+        booking_id=test_booking.id,
+        trip_id=test_trip.id,
+        boat_id=test_boat.id,
+        trip_merchandise_id=source_tm.id,
+        item_type=test_merchandise.name,
+        quantity=1,
+        price_per_unit=2500,
+        status=BookingItemStatus.active,
+    )
+    db.add(merch_item)
+    db.commit()
+    db.refresh(merch_item)
+
+    trip2 = _create_target_trip(db, mission_id=test_mission.id, boat_id=test_boat.id)
+    target_tm = TripMerchandise(
+        trip_id=trip2.id,
+        merchandise_id=test_merchandise.id,
+    )
+    db.add(target_tm)
+    db.commit()
+    db.refresh(target_tm)
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(trip2.id)},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    merch_items = [
+        i for i in data["booking"]["items"] if i.get("trip_merchandise_id") is not None
+    ]
+    assert len(merch_items) == 1
+    assert merch_items[0]["trip_id"] == str(trip2.id)
+    assert merch_items[0]["boat_id"] == str(test_boat.id)
+    assert merch_items[0]["trip_merchandise_id"] == str(target_tm.id)
+    assert merch_items[0]["price_per_unit"] == 2500
+    assert data["merchandise_auto_attached"] == []
+
+
+def test_reschedule_auto_attaches_merch_with_overrides(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_mission: Mission,
+    test_merchandise: Merchandise,
+) -> None:
+    source_tm = TripMerchandise(
+        trip_id=test_trip.id,
+        merchandise_id=test_merchandise.id,
+        price_override=2500,
+        quantity_available_override=10,
+    )
+    db.add(source_tm)
+    db.commit()
+    db.refresh(source_tm)
+
+    merch_item = BookingItem(
+        booking_id=test_booking.id,
+        trip_id=test_trip.id,
+        boat_id=test_boat.id,
+        trip_merchandise_id=source_tm.id,
+        item_type=test_merchandise.name,
+        quantity=2,
+        price_per_unit=2500,
+        status=BookingItemStatus.active,
+    )
+    db.add(merch_item)
+    db.commit()
+    db.refresh(merch_item)
+
+    trip2 = _create_target_trip(
+        db, mission_id=test_mission.id, boat_id=test_boat.id, name="Merch Target"
+    )
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(trip2.id)},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    auto_attached = data["merchandise_auto_attached"]
+    assert len(auto_attached) == 1
+    assert auto_attached[0]["name"] == test_merchandise.name
+    assert auto_attached[0]["merchandise_id"] == str(test_merchandise.id)
+
+    merch_items = [
+        i for i in data["booking"]["items"] if i.get("trip_merchandise_id") is not None
+    ]
+    assert len(merch_items) == 1
+    assert merch_items[0]["trip_id"] == str(trip2.id)
+    assert (
+        merch_items[0]["trip_merchandise_id"] == auto_attached[0]["trip_merchandise_id"]
+    )
+
+    created_tm = db.get(
+        TripMerchandise, uuid.UUID(auto_attached[0]["trip_merchandise_id"])
+    )
+    assert created_tm is not None
+    assert created_tm.trip_id == trip2.id
+    assert created_tm.merchandise_id == test_merchandise.id
+    assert created_tm.price_override == 2500
+    assert created_tm.quantity_available_override == 10
 
 
 def test_check_in_requires_auth(

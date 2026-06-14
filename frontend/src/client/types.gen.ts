@@ -677,6 +677,20 @@ export type RescheduleBookingRequest = {
   } | null
 }
 
+export type RescheduleBookingResponse = {
+  booking: BookingPublic
+  merchandise_auto_attached?: Array<RescheduleMerchandiseAutoAttached>
+}
+
+/**
+ * Catalog merchandise auto-linked to the target trip during reschedule.
+ */
+export type RescheduleMerchandiseAutoAttached = {
+  merchandise_id: string
+  name: string
+  trip_merchandise_id: string
+}
+
 /**
  * Distinct ticket line `item_type` values (excludes merchandise rows).
  */
@@ -1182,7 +1196,7 @@ export type BookingsRescheduleData = {
   requestBody: RescheduleBookingRequest
 }
 
-export type BookingsRescheduleResponse = BookingPublic
+export type BookingsRescheduleResponse = RescheduleBookingResponse
 
 export type BookingsCheckInBookingData = {
   boatId?: string | null
