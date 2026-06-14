@@ -191,7 +191,7 @@ To edit templates: change the `.mjml` files in `src/`, then run the script above
 
 ## QR codes
 
-Booking QR codes encode `{base}/check-in?code={confirmation_code}`. The base comes from `QR_CODE_BASE_URL` or `FRONTEND_HOST`. Stored QR images live in `booking.qr_code_base64`.
+Booking QR codes encode `{base}/check-in?code={confirmation_code}&check_in=true`. The base comes from `QR_CODE_BASE_URL` or `FRONTEND_HOST`. Stored QR images live in `booking.qr_code_base64`. Older QRs without `check_in=true` still open check-in with lookup only.
 
 **After changing `QR_CODE_BASE_URL`** (or the check-in URL format), regenerate stored QR codes so scans point to the new URL:
 

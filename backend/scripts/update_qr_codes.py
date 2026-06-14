@@ -2,9 +2,8 @@
 """
 Script to regenerate all QR codes in the database.
 
-QR codes encode the admin check-in URL: {base}/check-in?code={confirmation_code}.
-Run this after changing the QR target URL (e.g. from /bookings to /check-in)
-so existing stored QR images match the new format.
+QR codes encode the admin check-in URL: {base}/check-in?code={confirmation_code}&check_in=true.
+Run this after changing the QR target URL so existing stored QR images match the new format.
 """
 
 import logging

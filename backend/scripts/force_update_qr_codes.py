@@ -3,7 +3,7 @@
 Script to force regenerate all QR codes (check-in URL format).
 
 Clears existing qr_code_base64 and regenerates so every booking has a QR
-encoding {base}/check-in?code={confirmation_code}. Use when migrating to
+encoding {base}/check-in?code={confirmation_code}&check_in=true. Use when migrating to
 the check-in URL format or after changing QR_CODE_BASE_URL.
 """
 

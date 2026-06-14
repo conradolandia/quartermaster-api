@@ -59,6 +59,19 @@ def compute_booking_totals(
     return (tax_amount_cents, total_amount_cents)
 
 
+def build_check_in_qr_url(confirmation_code: str, *, auto_check_in: bool = True) -> str:
+    """
+    Admin check-in URL encoded in ticket QR codes.
+
+    When auto_check_in is True, adds check_in=true so a logged-in admin auto-checks in.
+    """
+    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
+    url = f"{base_url}/check-in?code={confirmation_code}"
+    if auto_check_in:
+        url += "&check_in=true"
+    return url
+
+
 def generate_qr_code(confirmation_code: str) -> str:
     """
     Generate a QR code for a booking confirmation code and return as base64 string.
@@ -69,10 +82,7 @@ def generate_qr_code(confirmation_code: str) -> str:
     Returns:
         Base64 encoded PNG image string
     """
-    # Build target URL (prefer explicit QR_CODE_BASE_URL if provided)
-    # QR codes point to admin check-in so staff can scan and check in directly.
-    base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
-    qr_url = f"{base_url}/check-in?code={confirmation_code}"
+    qr_url = build_check_in_qr_url(confirmation_code)
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
     qr.make(fit=True)

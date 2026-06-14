@@ -44,6 +44,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     missionId,
     launchId,
     tripId,
+    setTripId,
     boatId,
     setBoatId,
     tripType,

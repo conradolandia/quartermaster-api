@@ -13,7 +13,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FiCheck, FiCornerUpLeft, FiEdit, FiSearch, FiX } from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
@@ -26,17 +26,22 @@ import {
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
-import { useEffect } from "react"
 
 interface CheckInInterfaceProps {
   /** When set (e.g. from URL ?code=), load this booking on mount. Used by QR scan flow. */
   initialCode?: string
+  /** When true (QR with ?check_in=true), check in automatically after lookup if confirmed. */
+  autoCheckIn?: boolean
   onBookingCheckedIn?: (booking: BookingPublic) => void
+  /** Called after auto check-in completes (e.g. strip check_in from URL). */
+  onAutoCheckInComplete?: () => void
 }
 
 const CheckInInterface = ({
   initialCode,
+  autoCheckIn = false,
   onBookingCheckedIn,
+  onAutoCheckInComplete,
 }: CheckInInterfaceProps) => {
   useDateFormatPreference()
   const [confirmationCode, setConfirmationCode] = useState("")
@@ -47,6 +52,12 @@ const CheckInInterface = ({
 
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
+  const qrLoadAttemptedRef = useRef<string | null>(null)
+
+  const getApiErrorDetail = (error: unknown, fallback: string): string => {
+    const detail = (error as { body?: { detail?: string } })?.body?.detail
+    return typeof detail === "string" ? detail : fallback
+  }
 
   // Look up booking by confirmation code
   const lookupBookingMutation = useMutation({
@@ -58,8 +69,8 @@ const CheckInInterface = ({
       setCurrentBooking(booking)
       showSuccessToast("Booking found successfully")
     },
-    onError: (error: any) => {
-      showErrorToast(error?.response?.data?.detail || "Failed to find booking")
+    onError: (error: unknown) => {
+      showErrorToast(getApiErrorDetail(error, "Failed to find booking"))
       setCurrentBooking(null)
     },
   })
@@ -76,10 +87,8 @@ const CheckInInterface = ({
       onBookingCheckedIn?.(booking)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
-    onError: (error: any) => {
-      showErrorToast(
-        error?.response?.data?.detail || "Failed to check in booking",
-      )
+    onError: (error: unknown) => {
+      showErrorToast(getApiErrorDetail(error, "Failed to check in booking"))
     },
   })
 
@@ -91,19 +100,76 @@ const CheckInInterface = ({
       setCurrentBooking(booking)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
-    onError: (error: any) => {
-      showErrorToast(
-        error?.response?.data?.detail || "Failed to revert check-in",
-      )
+    onError: (error: unknown) => {
+      showErrorToast(getApiErrorDetail(error, "Failed to revert check-in"))
     },
   })
 
-  // Load booking when opened with ?code= (e.g. from QR scan)
+  // Load booking when opened with ?code= (e.g. from QR scan); optional auto check-in
   useEffect(() => {
-    if (!initialCode?.trim()) return
-    setConfirmationCode(initialCode.trim())
-    lookupBookingMutation.mutate(initialCode.trim())
-  }, [initialCode])
+    const code = initialCode?.trim()
+    if (!code) return
+    const loadKey = `${code}:${autoCheckIn}`
+    if (qrLoadAttemptedRef.current === loadKey) return
+    qrLoadAttemptedRef.current = loadKey
+
+    setConfirmationCode(code)
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const booking = await BookingsService.getBookingByConfirmationCode({
+          confirmationCode: code,
+        })
+        if (cancelled) return
+        setCurrentBooking(booking)
+
+        if (!autoCheckIn) {
+          showSuccessToast("Booking found successfully")
+          return
+        }
+
+        const status = (booking.booking_status ?? "").toLowerCase()
+        if (status === "checked_in") {
+          showSuccessToast("Already checked in")
+          onAutoCheckInComplete?.()
+          return
+        }
+        if (status !== "confirmed") {
+          showErrorToast(
+            `Cannot check in booking with status '${booking.booking_status}'. Booking must be 'confirmed'.`,
+          )
+          return
+        }
+
+        const checkedIn = await BookingsService.checkInBooking({
+          confirmationCode: code,
+        })
+        if (cancelled) return
+        setCurrentBooking(checkedIn)
+        showSuccessToast("Booking checked in successfully!")
+        onBookingCheckedIn?.(checkedIn)
+        queryClient.invalidateQueries({ queryKey: ["bookings"] })
+        onAutoCheckInComplete?.()
+      } catch (error: unknown) {
+        if (cancelled) return
+        showErrorToast(getApiErrorDetail(error, "Failed to load booking"))
+        setCurrentBooking(null)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    initialCode,
+    autoCheckIn,
+    onAutoCheckInComplete,
+    onBookingCheckedIn,
+    queryClient,
+    showErrorToast,
+    showSuccessToast,
+  ])
 
   const handleLookupBooking = () => {
     if (!confirmationCode.trim()) {

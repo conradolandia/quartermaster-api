@@ -34,6 +34,7 @@ from app.models import (
 from app.utils import generate_booking_confirmation_email, send_email
 
 from .booking_utils import (
+    build_check_in_qr_url,
     build_experience_display_dict,
     generate_qr_code,
     get_booking_items_in_display_order,
@@ -176,8 +177,7 @@ def get_booking_qr_code(
             )
 
         # Generate QR code image (points to admin check-in URL)
-        base_url = settings.QR_CODE_BASE_URL or settings.FRONTEND_HOST
-        qr_url = f"{base_url}/check-in?code={confirmation_code}"
+        qr_url = build_check_in_qr_url(confirmation_code)
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
         qr.add_data(qr_url)
         qr.make(fit=True)
