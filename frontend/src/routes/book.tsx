@@ -1,13 +1,17 @@
+import { useQuery } from "@tanstack/react-query"
 import {
-  createFileRoute,
   Link,
+  createFileRoute,
   useNavigate,
   useSearch,
 } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
+import { type ApiError, BookingsService } from "@/client"
+import AccessGate from "@/components/Public/AccessGate"
+import BookingPageLayout from "@/components/Public/BookingPageLayout"
+import PublicBookingForm from "@/components/Public/PublicBookingForm"
 import {
   Button,
   Card,
@@ -17,10 +21,6 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { type ApiError, BookingsService } from "@/client"
-import AccessGate from "@/components/Public/AccessGate"
-import BookingPageLayout from "@/components/Public/BookingPageLayout"
-import PublicBookingForm from "@/components/Public/PublicBookingForm"
 
 const bookSearchSchema = z.object({
   discount: z.string().optional(),
@@ -55,13 +55,16 @@ function normalizeBookSearch(
 ): Record<string, string | undefined> {
   const coerced = coerceToStrings(raw)
   const trip = typeof coerced.trip === "string" ? coerced.trip : undefined
-  if (!trip) return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
+  if (!trip)
+    return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
 
-  const accessMatch = trip.match(/\?access=([^&]*)/) ?? trip.match(/&access=([^&]*)/)
+  const accessMatch =
+    trip.match(/\?access=([^&]*)/) ?? trip.match(/&access=([^&]*)/)
   const discountMatch =
     trip.match(/\?discount=([^&]*)/) ?? trip.match(/&discount=([^&]*)/)
   const match = accessMatch ?? discountMatch
-  if (!match) return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
+  if (!match)
+    return bookSearchSchema.parse(coerced) as Record<string, string | undefined>
 
   const paramValue = decodeURIComponent(match[1].replace(/\+/g, " "))
   const cleanTrip = trip.slice(0, match.index).replace(/[?&]$/, "")
@@ -70,12 +73,16 @@ function normalizeBookSearch(
     trip: cleanTrip || undefined,
     ...(accessMatch ? { access: paramValue } : { discount: paramValue }),
   }
-  return bookSearchSchema.parse(normalized) as Record<string, string | undefined>
+  return bookSearchSchema.parse(normalized) as Record<
+    string,
+    string | undefined
+  >
 }
 
 export const Route = createFileRoute("/book")({
   component: PublicBookingPage,
-  validateSearch: (search) => normalizeBookSearch(search as Record<string, unknown>),
+  validateSearch: (search) =>
+    normalizeBookSearch(search as Record<string, unknown>),
 })
 
 /** Fallback: read trip param from URL when router search may not have it yet (e.g. initial load). */
@@ -117,8 +124,7 @@ function PublicBookingPage() {
     },
   })
 
-  const tripIdFromBooking =
-    bookingByCode?.items?.[0]?.trip_id ?? undefined
+  const tripIdFromBooking = bookingByCode?.items?.[0]?.trip_id ?? undefined
   const directTripId = urlTripId ?? tripIdFromBooking
 
   // Redirect to confirmation when resuming by code and booking is already confirmed
@@ -126,7 +132,11 @@ function PublicBookingPage() {
     if (!search.code || !bookingByCode) return
     const status = (bookingByCode.booking_status ?? "") as string
     if (CONFIRMED_STATUSES.includes(status)) {
-      navigate({ to: "/bookings", search: { code: search.code }, replace: true })
+      navigate({
+        to: "/bookings",
+        search: { code: search.code },
+        replace: true,
+      })
     }
   }, [bookingByCode, search.code, navigate])
 
@@ -158,14 +168,13 @@ function PublicBookingPage() {
 
   useEffect(() => {
     if (initialAccessCodeRef.current === null) {
-      initialAccessCodeRef.current =
-        search.access || search.discount || ""
+      initialAccessCodeRef.current = search.access || search.discount || ""
     }
   }, [search.access, search.discount])
   const initialAccessCode =
     initialAccessCodeRef.current === null
-      ? (search.access || search.discount)
-      : (initialAccessCodeRef.current || undefined)
+      ? search.access || search.discount
+      : initialAccessCodeRef.current || undefined
 
   const handleAccessGranted = (
     _accessCodeValue: string | null,
@@ -207,7 +216,9 @@ function PublicBookingPage() {
                     : "We could not load this booking. Please try again or start a new booking."}
                 </Text>
                 <Button asChild colorPalette="blue">
-                  <Link to="/book" search={{}}>Start a new booking</Link>
+                  <Link to="/book" search={{}}>
+                    Start a new booking
+                  </Link>
                 </Button>
               </VStack>
             </Card.Body>

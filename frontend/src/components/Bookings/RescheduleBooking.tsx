@@ -538,7 +538,10 @@ export default function RescheduleBooking({
                   )}
                   {ticketTypeOptions.length > 0 &&
                     originTicketTypes.length > 0 && (
-                      <Field label="Map ticket types to destination" width="100%">
+                      <Field
+                        label="Map ticket types to destination"
+                        width="100%"
+                      >
                         <VStack align="stretch" gap={3} width="100%">
                           {originTicketTypes.map(({ type, quantity }) => {
                             const ticketTypeItems = ticketTypeOptions.map(
@@ -572,9 +575,7 @@ export default function RescheduleBooking({
                                   collection={ticketTypeCollection}
                                   width="100%"
                                   positioning={{ sameWidth: true }}
-                                  value={
-                                    selectedValue ? [selectedValue] : []
-                                  }
+                                  value={selectedValue ? [selectedValue] : []}
                                   onValueChange={(e: { value: string[] }) =>
                                     setTypeMapping((prev) => ({
                                       ...prev,

@@ -67,13 +67,16 @@ const PricingOverridesPanel = ({
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
-  const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null)
+  const [editingOverrideId, setEditingOverrideId] = useState<string | null>(
+    null,
+  )
   const [editingOverrideTicketType, setEditingOverrideTicketType] = useState("")
   const [editingOverridePrice, setEditingOverridePrice] = useState("")
   const [editingOverrideCapacity, setEditingOverrideCapacity] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [form, setForm] = useState({ ticket_type: "", price: "", capacity: "" })
-  const [renamePricingConfirmOpen, setRenamePricingConfirmOpen] = useState(false)
+  const [renamePricingConfirmOpen, setRenamePricingConfirmOpen] =
+    useState(false)
   const [pendingRenamePricingPayload, setPendingRenamePricingPayload] =
     useState<{
       tripBoatPricingId: string
@@ -81,7 +84,8 @@ const PricingOverridesPanel = ({
       price: number
       capacity: number | null
     } | null>(null)
-  const [renamePricingAffectedCount, setRenamePricingAffectedCount] = useState(0)
+  const [renamePricingAffectedCount, setRenamePricingAffectedCount] =
+    useState(0)
   const [renamePricingOldType, setRenamePricingOldType] = useState("")
 
   const hasPending = isAdding || editingOverrideId !== null
@@ -104,8 +108,7 @@ const PricingOverridesPanel = ({
   const { data: tripBoatPricingList = [], refetch: refetchTripBoatPricing } =
     useQuery({
       queryKey: ["trip-boat-pricing", tripBoatId],
-      queryFn: () =>
-        TripBoatPricingService.listTripBoatPricing({ tripBoatId }),
+      queryFn: () => TripBoatPricingService.listTripBoatPricing({ tripBoatId }),
       enabled: isOpen && !!tripBoatId,
     })
 
@@ -169,7 +172,9 @@ const PricingOverridesPanel = ({
       queryClient.invalidateQueries({ queryKey: ["trip-boat-pricing"] })
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
       queryClient.invalidateQueries({ queryKey: ["trip-boats"] })
-      queryClient.invalidateQueries({ queryKey: ["trip-boats-for-edit", tripId] })
+      queryClient.invalidateQueries({
+        queryKey: ["trip-boats-for-edit", tripId],
+      })
     },
     onError: (err: ApiError) => handleError(err),
   })
@@ -178,9 +183,7 @@ const PricingOverridesPanel = ({
 
   const handleAdd = () => {
     const priceDollars = Number.parseFloat(form.price)
-    const cap = form.capacity.trim()
-      ? Number.parseInt(form.capacity, 10)
-      : null
+    const cap = form.capacity.trim() ? Number.parseInt(form.capacity, 10) : null
     if (!form.ticket_type.trim() || Number.isNaN(priceDollars)) return
     if (cap !== null && (Number.isNaN(cap) || cap < 0)) return
     createMutation.mutate({
@@ -235,14 +238,8 @@ const PricingOverridesPanel = ({
         _dark={{ borderColor: "gray.600" }}
       >
         <HStack justify="space-between" mb={2}>
-          <Text fontWeight="bold">
-            Pricing overrides for {boatName}
-          </Text>
-          <Button
-            size="xs"
-            variant="ghost"
-            onClick={onClose}
-          >
+          <Text fontWeight="bold">Pricing overrides for {boatName}</Text>
+          <Button size="xs" variant="ghost" onClick={onClose}>
             Close
           </Button>
         </HStack>
@@ -338,7 +335,11 @@ const PricingOverridesPanel = ({
                 {isEditing ? (
                   <VStack align="stretch" gap={2} width="100%" minWidth={0}>
                     <HStack gap={2} flexWrap="wrap" align="flex-end">
-                      <Field label="Ticket type" flex="1 1 120px" minWidth="100px">
+                      <Field
+                        label="Ticket type"
+                        flex="1 1 120px"
+                        minWidth="100px"
+                      >
                         <Input
                           size="sm"
                           value={editingOverrideTicketType}
@@ -361,7 +362,11 @@ const PricingOverridesPanel = ({
                           placeholder="0.00"
                         />
                       </Field>
-                      <Field label="Capacity (opt)" flex="1 1 70px" minWidth="60px">
+                      <Field
+                        label="Capacity (opt)"
+                        flex="1 1 70px"
+                        minWidth="60px"
+                      >
                         <Input
                           type="number"
                           min="0"
@@ -395,9 +400,7 @@ const PricingOverridesPanel = ({
                         disabled={
                           !editingOverrideTicketType.trim() ||
                           !editingOverridePrice ||
-                          Number.isNaN(
-                            Number.parseFloat(editingOverridePrice),
-                          )
+                          Number.isNaN(Number.parseFloat(editingOverridePrice))
                         }
                       >
                         Save
@@ -426,9 +429,7 @@ const PricingOverridesPanel = ({
                         onClick={() => {
                           setEditingOverrideId(p.id)
                           setEditingOverrideTicketType(p.ticket_type)
-                          setEditingOverridePrice(
-                            (p.price / 100).toFixed(2),
-                          )
+                          setEditingOverridePrice((p.price / 100).toFixed(2))
                           setEditingOverrideCapacity(
                             p.capacity != null ? String(p.capacity) : "",
                           )
@@ -455,10 +456,7 @@ const PricingOverridesPanel = ({
                                   }
                                 ).used_per_ticket_type?.[p.ticket_type] ?? 0
                               : 0
-                          if (
-                            usedCount > 0 &&
-                            onRequestDeletePricing != null
-                          ) {
+                          if (usedCount > 0 && onRequestDeletePricing != null) {
                             onRequestDeletePricing({
                               tripBoatPricingId: p.id,
                               ticketType: p.ticket_type,
@@ -515,8 +513,8 @@ const PricingOverridesPanel = ({
                 const rem = effectiveMax - allocated
                 return (
                   <Text fontSize="xs" color="gray.500">
-                    Effective max: {effectiveMax} seats. Allocated:{" "}
-                    {allocated}. Remaining: {rem}
+                    Effective max: {effectiveMax} seats. Allocated: {allocated}.
+                    Remaining: {rem}
                   </Text>
                 )
               })()}
@@ -600,9 +598,7 @@ const PricingOverridesPanel = ({
                   step="0.01"
                   min="0"
                   value={form.price}
-                  onChange={(e) =>
-                    setForm({ ...form, price: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
                   placeholder="0.00"
                 />
               </Box>
@@ -659,8 +655,8 @@ const PricingOverridesPanel = ({
         )}
         {tripBoatPricingList.length > 0 && isAdding && (
           <Text fontSize="xs" color="gray.500" mt={1}>
-            To change a ticket type already in the list, edit it above
-            instead of adding again.
+            To change a ticket type already in the list, edit it above instead
+            of adding again.
           </Text>
         )}
       </Box>

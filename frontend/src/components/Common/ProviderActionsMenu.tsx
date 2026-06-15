@@ -1,9 +1,9 @@
 import React from "react"
 
 import type { ProviderPublic } from "../../client"
-import { ActionsMenu } from "../ui/actions-menu"
 import DeleteProvider from "../Providers/DeleteProvider"
 import EditProvider from "../Providers/EditProvider"
+import { ActionsMenu } from "../ui/actions-menu"
 
 interface ProviderActionsMenuProps {
   provider: ProviderPublic

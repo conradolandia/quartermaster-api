@@ -1,9 +1,9 @@
 import React from "react"
 
 import type { LocationPublic } from "../../client"
-import { ActionsMenu } from "../ui/actions-menu"
 import DeleteLocation from "../Locations/DeleteLocation"
 import EditLocation from "../Locations/EditLocation"
+import { ActionsMenu } from "../ui/actions-menu"
 
 interface LocationActionsMenuProps {
   location: LocationPublic

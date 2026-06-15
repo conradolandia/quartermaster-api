@@ -15,10 +15,7 @@ export function isRefundableLineItem(item: BookingItemPublic): boolean {
  */
 export function computeLineItemRefundCents(
   item: Pick<BookingItemPublic, "price_per_unit" | "quantity">,
-  booking: Pick<
-    BookingPublic,
-    "subtotal" | "discount_amount" | "tax_amount"
-  >,
+  booking: Pick<BookingPublic, "subtotal" | "discount_amount" | "tax_amount">,
 ): number {
   const itemSubtotal = (item.price_per_unit ?? 0) * (item.quantity ?? 0)
   if (itemSubtotal <= 0 || (booking.subtotal ?? 0) <= 0) {

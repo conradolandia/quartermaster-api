@@ -6,24 +6,28 @@ import {
   HStack,
   Icon,
   Input,
+  type ListCollection,
   Select,
   Text,
   VStack,
-  type ListCollection,
 } from "@chakra-ui/react"
 import type { Ref } from "react"
 import { useState } from "react"
 import { FiChevronDown, FiSearch, FiX } from "react-icons/fi"
 
+import { InputGroup } from "@/components/ui/input-group"
 import {
   MenuCheckboxItem,
   MenuContent,
   MenuRoot,
   MenuTrigger,
 } from "@/components/ui/menu"
-import { InputGroup } from "@/components/ui/input-group"
 import { getDropdownMinWidthFromLabels } from "@/utils"
-import { BOOKING_STATUSES, PAYMENT_STATUSES, DESKTOP_FILTER_MIN_WIDTH } from "./types"
+import {
+  BOOKING_STATUSES,
+  DESKTOP_FILTER_MIN_WIDTH,
+  PAYMENT_STATUSES,
+} from "./types"
 
 interface BookingsFilterBarProps {
   searchQuery: string
@@ -97,8 +101,12 @@ export default function BookingsFilterBar({
     () => paymentStatusFilter,
   )
 
-  const bookingSelection = isBookingMenuOpen ? draftBookingStatus : bookingStatusFilter
-  const paymentSelection = isPaymentMenuOpen ? draftPaymentStatus : paymentStatusFilter
+  const bookingSelection = isBookingMenuOpen
+    ? draftBookingStatus
+    : bookingStatusFilter
+  const paymentSelection = isPaymentMenuOpen
+    ? draftPaymentStatus
+    : paymentStatusFilter
 
   const getLabelForValue = (
     collection: ListCollection<{ label: string; value: string }>,
@@ -181,9 +189,7 @@ export default function BookingsFilterBar({
         <InputGroup
           width="480px"
           maxWidth="100%"
-          startElement={
-            <Icon as={FiSearch} color="text.muted" boxSize={4} />
-          }
+          startElement={<Icon as={FiSearch} color="text.muted" boxSize={4} />}
         >
           <Input
             ref={searchInputRef}
@@ -248,24 +254,24 @@ export default function BookingsFilterBar({
                   borderColor="white"
                   justifyContent="space-between"
                 >
-                {bookingStatusLabel}
-                <Icon as={FiChevronDown} ml={1} />
-              </Button>
-            </MenuTrigger>
-            <MenuContent minWidth="140px">
-              {BOOKING_STATUSES.map((status) => (
-                <MenuCheckboxItem
-                  key={status}
-                  checked={bookingSelection.includes(status)}
-                  onCheckedChange={() => toggleDraftBookingStatus(status)}
-                  value={status}
-                >
-                  {status.replace(/_/g, " ").toUpperCase()}
-                </MenuCheckboxItem>
-              ))}
-            </MenuContent>
-          </MenuRoot>
-        </Box>
+                  {bookingStatusLabel}
+                  <Icon as={FiChevronDown} ml={1} />
+                </Button>
+              </MenuTrigger>
+              <MenuContent minWidth="140px">
+                {BOOKING_STATUSES.map((status) => (
+                  <MenuCheckboxItem
+                    key={status}
+                    checked={bookingSelection.includes(status)}
+                    onCheckedChange={() => toggleDraftBookingStatus(status)}
+                    value={status}
+                  >
+                    {status.replace(/_/g, " ").toUpperCase()}
+                  </MenuCheckboxItem>
+                ))}
+              </MenuContent>
+            </MenuRoot>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text
@@ -296,24 +302,24 @@ export default function BookingsFilterBar({
                   borderColor="white"
                   justifyContent="space-between"
                 >
-                {paymentStatusLabel}
-                <Icon as={FiChevronDown} ml={1} />
-              </Button>
-            </MenuTrigger>
-            <MenuContent minWidth="160px">
-              {PAYMENT_STATUSES.map((status) => (
-                <MenuCheckboxItem
-                  key={status}
-                  checked={paymentSelection.includes(status)}
-                  onCheckedChange={() => toggleDraftPaymentStatus(status)}
-                  value={status}
-                >
-                  {status.replace(/_/g, " ").toUpperCase()}
-                </MenuCheckboxItem>
-              ))}
-            </MenuContent>
-          </MenuRoot>
-        </Box>
+                  {paymentStatusLabel}
+                  <Icon as={FiChevronDown} ml={1} />
+                </Button>
+              </MenuTrigger>
+              <MenuContent minWidth="160px">
+                {PAYMENT_STATUSES.map((status) => (
+                  <MenuCheckboxItem
+                    key={status}
+                    checked={paymentSelection.includes(status)}
+                    onCheckedChange={() => toggleDraftPaymentStatus(status)}
+                    value={status}
+                  >
+                    {status.replace(/_/g, " ").toUpperCase()}
+                  </MenuCheckboxItem>
+                ))}
+              </MenuContent>
+            </MenuRoot>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text
@@ -331,39 +337,42 @@ export default function BookingsFilterBar({
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
             maxW={{ base: "100%", lg: "260px" }}
           >
-          <Select.Root
-            collection={missionsCollection}
-            size="xs"
-            borderColor="white"
-            value={missionId ? [missionId] : [""]}
-            onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
-            positioning={{ sameWidth: false }}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger justifyContent="space-between" width="100%">
-                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                  {missionLabel}
-                </Text>
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items, { maxWidth: 260 })}
-                maxWidth="260px"
-                maxHeight="60vh"
-                overflowY="auto"
-              >
-                {missionsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Box whiteSpace="normal" textOverflow="unset">
-                      {item.label}
-                    </Box>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </Box>
+            <Select.Root
+              collection={missionsCollection}
+              size="xs"
+              borderColor="white"
+              value={missionId ? [missionId] : [""]}
+              onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
+              positioning={{ sameWidth: false }}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {missionLabel}
+                  </Text>
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  minWidth={getDropdownMinWidthFromLabels(
+                    missionsCollection.items,
+                    { maxWidth: 260 },
+                  )}
+                  maxWidth="260px"
+                  maxHeight="60vh"
+                  overflowY="auto"
+                >
+                  {missionsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Box whiteSpace="normal" textOverflow="unset">
+                        {item.label}
+                      </Box>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text
@@ -381,41 +390,42 @@ export default function BookingsFilterBar({
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
             maxW={{ base: "100%", lg: "260px" }}
           >
-          <Select.Root
-            collection={tripTypeFilterCollection}
-            size="xs"
-            borderColor="white"
-            value={tripType ? [tripType] : [""]}
-            onValueChange={(e) =>
-              onTripTypeFilter(e.value[0] || undefined)
-            }
-            positioning={{ sameWidth: false }}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger justifyContent="space-between" width="100%">
-                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                  {tripTypeLabel}
-                </Text>
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripTypeFilterCollection.items, { maxWidth: 260 })}
-                maxWidth="260px"
-                maxHeight="60vh"
-                overflowY="auto"
-              >
-                {tripTypeFilterCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Box whiteSpace="normal" textOverflow="unset">
-                      {item.label}
-                    </Box>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </Box>
+            <Select.Root
+              collection={tripTypeFilterCollection}
+              size="xs"
+              borderColor="white"
+              value={tripType ? [tripType] : [""]}
+              onValueChange={(e) => onTripTypeFilter(e.value[0] || undefined)}
+              positioning={{ sameWidth: false }}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {tripTypeLabel}
+                  </Text>
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  minWidth={getDropdownMinWidthFromLabels(
+                    tripTypeFilterCollection.items,
+                    { maxWidth: 260 },
+                  )}
+                  maxWidth="260px"
+                  maxHeight="60vh"
+                  overflowY="auto"
+                >
+                  {tripTypeFilterCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Box whiteSpace="normal" textOverflow="unset">
+                        {item.label}
+                      </Box>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text
@@ -433,43 +443,46 @@ export default function BookingsFilterBar({
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
             maxW={{ base: "100%", lg: "320px" }}
           >
-          <Select.Root
-            collection={tripsCollection}
-            size="xs"
-            borderColor="white"
-            value={
-              tripId && tripsCollection.items.some((i) => i.value === tripId)
-                ? [tripId]
-                : [""]
-            }
-            onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
-            positioning={{ sameWidth: false }}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger justifyContent="space-between" width="100%">
-                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                  {tripLabel}
-                </Text>
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripsCollection.items, { maxWidth: 320 })}
-                maxWidth="320px"
-                maxHeight="60vh"
-                overflowY="auto"
-              >
-                {tripsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Box whiteSpace="normal" textOverflow="unset">
-                      {item.label}
-                    </Box>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </Box>
+            <Select.Root
+              collection={tripsCollection}
+              size="xs"
+              borderColor="white"
+              value={
+                tripId && tripsCollection.items.some((i) => i.value === tripId)
+                  ? [tripId]
+                  : [""]
+              }
+              onValueChange={(e) => onTripFilter(e.value[0] || undefined)}
+              positioning={{ sameWidth: false }}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {tripLabel}
+                  </Text>
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  minWidth={getDropdownMinWidthFromLabels(
+                    tripsCollection.items,
+                    { maxWidth: 320 },
+                  )}
+                  maxWidth="320px"
+                  maxHeight="60vh"
+                  overflowY="auto"
+                >
+                  {tripsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Box whiteSpace="normal" textOverflow="unset">
+                        {item.label}
+                      </Box>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text
@@ -487,43 +500,46 @@ export default function BookingsFilterBar({
             minWidth={{ base: undefined, lg: DESKTOP_FILTER_MIN_WIDTH }}
             maxW={{ base: "100%", lg: "280px" }}
           >
-          <Select.Root
-            collection={boatsCollection}
-            size="xs"
-            borderColor="white"
-            value={
-              boatId && filteredBoats.some((b) => b.id === boatId)
-                ? [boatId]
-                : [""]
-            }
-            onValueChange={(e) => onBoatFilter(e.value[0] || undefined)}
-            positioning={{ sameWidth: false }}
-          >
-            <Select.Control width="100%">
-              <Select.Trigger justifyContent="space-between" width="100%">
-                <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                  {boatLabel}
-                </Text>
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(boatsCollection.items, { maxWidth: 200 })}
-                maxWidth="200px"
-                maxHeight="60vh"
-                overflowY="auto"
-              >
-                {boatsCollection.items.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Box whiteSpace="normal" textOverflow="unset">
-                      {item.label}
-                    </Box>
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select.Root>
-        </Box>
+            <Select.Root
+              collection={boatsCollection}
+              size="xs"
+              borderColor="white"
+              value={
+                boatId && filteredBoats.some((b) => b.id === boatId)
+                  ? [boatId]
+                  : [""]
+              }
+              onValueChange={(e) => onBoatFilter(e.value[0] || undefined)}
+              positioning={{ sameWidth: false }}
+            >
+              <Select.Control width="100%">
+                <Select.Trigger justifyContent="space-between" width="100%">
+                  <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                    {boatLabel}
+                  </Text>
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content
+                  minWidth={getDropdownMinWidthFromLabels(
+                    boatsCollection.items,
+                    { maxWidth: 200 },
+                  )}
+                  maxWidth="200px"
+                  maxHeight="60vh"
+                  overflowY="auto"
+                >
+                  {boatsCollection.items.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Box whiteSpace="normal" textOverflow="unset">
+                        {item.label}
+                      </Box>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
+          </Box>
         </HStack>
         <HStack gap={3} minW={0} width={{ base: "100%", lg: "auto" }}>
           <Text

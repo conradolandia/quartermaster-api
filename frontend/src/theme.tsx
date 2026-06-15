@@ -10,7 +10,8 @@ const mainFont = "Inter"
 const monoFont = "IBM Plex Mono"
 const logoFont = "Bitsumishi"
 
-const fontStackSystem = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+const fontStackSystem =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 const fontStackMono = `${monoFont}, JetBrains Mono, Fira Code, Courier New, monospace, ${fontStackSystem}`
 const fontStackBody = `${mainFont}, ${fontStackSystem}`
 const fontStackLogo = `${logoFont}, ${fontStackSystem}`

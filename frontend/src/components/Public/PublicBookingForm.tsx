@@ -4,8 +4,8 @@ import {
   Flex,
   Heading,
   Image,
-  Spinner,
   Span,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react"

@@ -3,8 +3,8 @@ import {
   Button,
   Card,
   Container,
-  Input,
   Heading,
+  Input,
   Spinner,
   Text,
   VStack,
@@ -172,7 +172,9 @@ const AccessGate = ({
                   or outdated.
                 </Text>
                 <Button asChild colorPalette="blue">
-                  <Link to="/book" search={{}}>View available trips</Link>
+                  <Link to="/book" search={{}}>
+                    View available trips
+                  </Link>
                 </Button>
               </VStack>
             </Card.Body>
@@ -234,12 +236,15 @@ const AccessGate = ({
     !isLoadingDirectTrip &&
     (directTripError as ApiError)?.status === 403
   if (directTrip403) {
-    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
+    const errBody = (directTripError as ApiError)?.body as
+      | { detail?: string }
+      | undefined
     const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
     const isPrivateNotYetAvailable = detail.includes("not yet available")
     const isRequiresCode = detail.includes("requires an access code")
     // User submitted a code but it was rejected (invalid, expired, inactive, etc.)
-    const isCodeRejected = !!submittedCode && !isPrivateNotYetAvailable && !isRequiresCode
+    const isCodeRejected =
+      !!submittedCode && !isPrivateNotYetAvailable && !isRequiresCode
 
     let heading: string
     let message: string
@@ -248,10 +253,12 @@ const AccessGate = ({
       message = detail || "Tickets are not yet available for this trip."
     } else if (isCodeRejected) {
       heading = "Access Denied"
-      message = detail || "The access code you entered is not valid for this trip."
+      message =
+        detail || "The access code you entered is not valid for this trip."
     } else {
       heading = "Access Code Required"
-      message = "This trip requires an access code to book. If you have one, enter it below to continue."
+      message =
+        "This trip requires an access code to book. If you have one, enter it below to continue."
     }
 
     const showCodeForm = !isPrivateNotYetAvailable
@@ -300,9 +307,13 @@ const AccessGate = ({
 
   // Direct-link trip 404: not found (invalid ID) vs departed/unavailable
   if (validDirectTripId && isDirectTripError && !isLoadingDirectTrip) {
-    const errBody = (directTripError as ApiError)?.body as { detail?: string } | undefined
+    const errBody = (directTripError as ApiError)?.body as
+      | { detail?: string }
+      | undefined
     const detail = typeof errBody?.detail === "string" ? errBody.detail : ""
-    const isNotFound = (directTripError as ApiError)?.status === 404 && detail.toLowerCase().includes("not found")
+    const isNotFound =
+      (directTripError as ApiError)?.status === 404 &&
+      detail.toLowerCase().includes("not found")
     return (
       <BookingPageLayout>
         <Container maxW="container.md" py={16}>
@@ -318,11 +329,10 @@ const AccessGate = ({
                     : "This trip is no longer available for booking. It may have already departed, or the launch for this mission may have already occurred."}
                 </Text>
                 {isNotFound && (
-                  <Button
-                    asChild
-                    colorPalette="blue"
-                  >
-                    <Link to="/book" search={{}}>View available trips</Link>
+                  <Button asChild colorPalette="blue">
+                    <Link to="/book" search={{}}>
+                      View available trips
+                    </Link>
                   </Button>
                 )}
               </VStack>

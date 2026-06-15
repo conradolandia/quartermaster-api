@@ -2,11 +2,7 @@
 // for local environments
 import type { APIRequestContext } from "@playwright/test"
 import { OpenAPI, PrivateService } from "../../src/client"
-import {
-  apiBaseUrl,
-  firstSuperuser,
-  firstSuperuserPassword,
-} from "../config"
+import { apiBaseUrl, firstSuperuser, firstSuperuserPassword } from "../config"
 
 OpenAPI.BASE = `${process.env.VITE_API_URL}`
 
@@ -36,13 +32,18 @@ export async function deleteUserAsSuperuser(
   request: APIRequestContext,
   userId: string,
 ): Promise<void> {
-  const loginRes = await request.post(`${apiBaseUrl}/api/v1/login/access-token`, {
-    form: { username: firstSuperuser, password: firstSuperuserPassword },
-  })
+  const loginRes = await request.post(
+    `${apiBaseUrl}/api/v1/login/access-token`,
+    {
+      form: { username: firstSuperuser, password: firstSuperuserPassword },
+    },
+  )
   if (!loginRes.ok()) {
     const body = await loginRes.text()
     throw new Error(
-      `First superuser login failed: ${loginRes.status()}. ${body || "No response body."} Ensure backend is running and FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD match.`,
+      `First superuser login failed: ${loginRes.status()}. ${
+        body || "No response body."
+      } Ensure backend is running and FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD match.`,
     )
   }
   const body = (await loginRes.json()) as { access_token: string }

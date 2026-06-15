@@ -139,11 +139,7 @@ const Step3CustomerInfo = ({
         Your Information
       </Heading>
 
-      <Flex
-        direction={{ base: "column", lg: "row" }}
-        align="stretch"
-        gap={6}
-      >
+      <Flex direction={{ base: "column", lg: "row" }} align="stretch" gap={6}>
         {/* Left Column - Customer Information */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
@@ -334,9 +330,7 @@ const Step3CustomerInfo = ({
                     <Flex gap={4} align="baseline" w="100%">
                       <Text fontWeight="medium">
                         {formatItemName(item.item_type)}
-                        {item.variant_option
-                          ? ` – ${item.variant_option}`
-                          : ""}
+                        {item.variant_option ? ` – ${item.variant_option}` : ""}
                       </Text>
                       <Text
                         color="text.muted"
@@ -407,10 +401,18 @@ const Step3CustomerInfo = ({
         gap={4}
         direction={{ base: "column-reverse", sm: "row" }}
       >
-        <Button variant="outline" onClick={onBack} w={{ base: "100%", sm: "auto" }}>
+        <Button
+          variant="outline"
+          onClick={onBack}
+          w={{ base: "100%", sm: "auto" }}
+        >
           Back
         </Button>
-        <Button colorScheme="blue" onClick={handleNext} w={{ base: "100%", sm: "auto" }}>
+        <Button
+          colorScheme="blue"
+          onClick={handleNext}
+          w={{ base: "100%", sm: "auto" }}
+        >
           Continue to Review
         </Button>
       </Flex>

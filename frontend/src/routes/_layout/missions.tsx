@@ -12,7 +12,11 @@ import {
   Text,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link as RouterLink, useNavigate } from "@tanstack/react-router"
+import {
+  Link as RouterLink,
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router"
 import { useState } from "react"
 import { FiArrowDown, FiArrowUp, FiFileText, FiPlus } from "react-icons/fi"
 import { z } from "zod"
@@ -36,8 +40,8 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { YamlImportService } from "@/services/yamlImportService"
 import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
+import { YamlImportService } from "@/services/yamlImportService"
 import { formatCents } from "@/utils"
 
 // Define sortable columns (must match MissionWithStats keys)
@@ -130,9 +134,9 @@ function useLaunchesMap() {
 
   const launchesMap = new Map()
   if (data?.data) {
-    data.data.forEach((launch) => {
+    for (const launch of data.data) {
       launchesMap.set(launch.id, launch)
-    })
+    }
   }
 
   return launchesMap
@@ -200,8 +204,13 @@ function Missions() {
   } = useQuery({
     queryKey: [
       "missions",
-      { page, pageSize: effectivePageSize, sortBy, sortDirection, includeArchived },
-
+      {
+        page,
+        pageSize: effectivePageSize,
+        sortBy,
+        sortDirection,
+        includeArchived,
+      },
     ],
     queryFn: () =>
       MissionsService.readMissions({
@@ -371,9 +380,12 @@ function Missions() {
                       color="dark.accent.primary"
                       _hover={{ textDecoration: "underline" }}
                     >
-                      <RouterLink to="/bookings" search={{ missionId: mission.id }}>
-                      <Text fontSize="md" fontWeight="500" as="span">
-                        {mission.name || "—"}
+                      <RouterLink
+                        to="/bookings"
+                        search={{ missionId: mission.id }}
+                      >
+                        <Text fontSize="md" fontWeight="500" as="span">
+                          {mission.name || "—"}
                         </Text>
                       </RouterLink>
                     </Link>

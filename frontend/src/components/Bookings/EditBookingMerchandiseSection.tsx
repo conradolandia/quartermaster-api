@@ -1,5 +1,5 @@
 import { Input, Table, Text } from "@chakra-ui/react"
-import { Controller, type Control } from "react-hook-form"
+import { type Control, Controller } from "react-hook-form"
 
 import type { BookingItemPublic, BookingPublic, BookingUpdate } from "@/client"
 import { formatCents } from "@/utils"
@@ -55,9 +55,7 @@ export function EditBookingMerchandiseSection({
                 <Table.Cell>
                   <Text>
                     {getItemTypeLabel(item.item_type)}
-                    {item.variant_option
-                      ? ` – ${item.variant_option}`
-                      : ""}
+                    {item.variant_option ? ` – ${item.variant_option}` : ""}
                   </Text>
                 </Table.Cell>
                 <Table.Cell>
@@ -99,8 +97,8 @@ export function EditBookingMerchandiseSection({
                   <Text fontWeight="medium">
                     $
                     {formatCents(
-                      (watchedItemQuantities?.[index]?.quantity ?? item.quantity) *
-                        item.price_per_unit,
+                      (watchedItemQuantities?.[index]?.quantity ??
+                        item.quantity) * item.price_per_unit,
                     )}
                   </Text>
                 </Table.Cell>

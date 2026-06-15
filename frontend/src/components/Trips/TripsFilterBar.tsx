@@ -4,9 +4,9 @@ import {
   Checkbox,
   Flex,
   HStack,
+  type ListCollection,
   Select,
   Text,
-  type ListCollection,
 } from "@chakra-ui/react"
 import { FiX } from "react-icons/fi"
 
@@ -72,9 +72,7 @@ export default function TripsFilterBar({
             size="xs"
             borderColor="white"
             value={missionId ? [missionId] : [""]}
-            onValueChange={(e) =>
-              onMissionFilter(e.value[0] || undefined)
-            }
+            onValueChange={(e) => onMissionFilter(e.value[0] || undefined)}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -85,7 +83,10 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(missionsCollection.items, { maxWidth: 260 })}
+                minWidth={getDropdownMinWidthFromLabels(
+                  missionsCollection.items,
+                  { maxWidth: 260 },
+                )}
                 maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
@@ -123,9 +124,7 @@ export default function TripsFilterBar({
             size="xs"
             borderColor="white"
             value={tripType ? [tripType] : [""]}
-            onValueChange={(e) =>
-              onTripTypeFilter(e.value[0] || undefined)
-            }
+            onValueChange={(e) => onTripTypeFilter(e.value[0] || undefined)}
           >
             <Select.Control width="100%">
               <Select.Trigger justifyContent="space-between" width="100%">
@@ -136,7 +135,10 @@ export default function TripsFilterBar({
             </Select.Control>
             <Select.Positioner>
               <Select.Content
-                minWidth={getDropdownMinWidthFromLabels(tripTypeCollection.items, { maxWidth: 260 })}
+                minWidth={getDropdownMinWidthFromLabels(
+                  tripTypeCollection.items,
+                  { maxWidth: 260 },
+                )}
                 maxWidth="260px"
                 maxHeight="60vh"
                 overflowY="auto"
@@ -156,9 +158,7 @@ export default function TripsFilterBar({
       <HStack gap={3} flexWrap="wrap">
         <Checkbox.Root
           checked={includeArchived}
-          onCheckedChange={(e) =>
-            onIncludeArchivedChange(e.checked === true)
-          }
+          onCheckedChange={(e) => onIncludeArchivedChange(e.checked === true)}
         >
           <Checkbox.HiddenInput />
           <Checkbox.Control />

@@ -15,8 +15,8 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import {
-  createFileRoute,
   Link as RouterLink,
+  createFileRoute,
   useNavigate,
 } from "@tanstack/react-router"
 import { useState } from "react"
@@ -44,9 +44,9 @@ import {
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
-import { YamlImportService } from "@/services/yamlImportService"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
+import { YamlImportService } from "@/services/yamlImportService"
 import { formatInLocationTimezoneWithAbbr, parseApiDate } from "@/utils"
 
 // Define sortable columns
@@ -140,9 +140,9 @@ function useLocationsMap() {
 
   const locationsMap = new Map()
   if (data?.data) {
-    data.data.forEach((location) => {
+    for (const location of data.data) {
       locationsMap.set(location.id, location)
-    })
+    }
   }
 
   return locationsMap
@@ -281,7 +281,9 @@ function LaunchesTable() {
               <FiSearch />
             </EmptyState.Indicator>
             <VStack textAlign="center">
-              <EmptyState.Title>You don't have any launches yet</EmptyState.Title>
+              <EmptyState.Title>
+                You don't have any launches yet
+              </EmptyState.Title>
               <EmptyState.Description>
                 Add a new launch to get started
               </EmptyState.Description>
@@ -289,141 +291,157 @@ function LaunchesTable() {
           </EmptyState.Content>
         </EmptyState.Root>
       ) : (
-      <>
-      <Box overflowX="auto">
-        <Table.Root size="md">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("name")}
-              >
-                <Flex align="center">
-                  Name
-                  <SortIcon column="name" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("launch_timestamp")}
-              >
-                <Flex align="center">
-                  Launch Date
-                  <SortIcon column="launch_timestamp" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="2xl"
-                minW="12rem"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("summary")}
-              >
-                <Flex align="center">
-                  Summary
-                  <SortIcon column="summary" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader
-                w="sm"
-                fontWeight="bold"
-                cursor="pointer"
-                onClick={() => handleSort("location_id")}
-              >
-                <Flex align="center">
-                  Location
-                  <SortIcon column="location_id" />
-                </Flex>
-              </Table.ColumnHeader>
-              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
-                Status
-              </Table.ColumnHeader>
-              <Table.ColumnHeader w="16" fontWeight="bold" textAlign="center">
-                Actions
-              </Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {launches?.map((launch) => (
-              <Table.Row
-                key={launch.id}
-                opacity={isPlaceholderData ? 0.5 : launch.archived ? 0.6 : 1}
-                bg={launch.archived ? "bg.muted" : undefined}
-              >
-                <Table.Cell truncate maxW="sm">
-                  <Link
-                    asChild
-                    color="dark.accent.primary"
-                    _hover={{ textDecoration: "underline" }}
+        <>
+          <Box overflowX="auto">
+            <Table.Root size="md">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader
+                    w="sm"
+                    fontWeight="bold"
+                    cursor="pointer"
+                    onClick={() => handleSort("name")}
                   >
-                    <RouterLink
-                      to="/bookings"
-                      search={{ launchId: launch.id }}
-                    >
-                      <Text fontSize="md" fontWeight="500" as="span">
-                        {launch.name}
-                      </Text>
-                    </RouterLink>
-                  </Link>
-                </Table.Cell>
-                <Table.Cell truncate maxW="sm">
-                  {renderLaunchDate(launch.launch_timestamp, launch.timezone)}
-                </Table.Cell>
-                <Table.Cell maxW="2xl" minW="12rem" whiteSpace="normal">
-                  {launch.summary}
-                </Table.Cell>
-                <Table.Cell truncate maxW="sm">
-                  {locationsMap.get(launch.location_id)?.name ||
-                    launch.location_id}
-                </Table.Cell>
-                <Table.Cell w="16" textAlign="center">
-                  <Badge
-                    size="sm"
-                    colorPalette={launch.archived ? "gray" : "green"}
+                    <Flex align="center">
+                      Name
+                      <SortIcon column="name" />
+                    </Flex>
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader
+                    w="sm"
+                    fontWeight="bold"
+                    cursor="pointer"
+                    onClick={() => handleSort("launch_timestamp")}
                   >
-                    {launch.archived ? "Archived" : "Active"}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell w="16" textAlign="center">
-                  <Flex justify="center">
-                    <LaunchActionsMenu launch={launch} />
-                  </Flex>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </Box>
-      {count > 0 && (
-        <Flex
-          justifyContent="space-between"
-          align="center"
-          flexWrap="wrap"
-          gap={4}
-          mt={4}
-        >
-          <PageSizeSelect value={effectivePageSize} onChange={setPageSize} />
-          {count > effectivePageSize && (
-            <PaginationRoot
-              page={page}
-              count={count}
-              pageSize={effectivePageSize}
-              onPageChange={({ page }) => setPage(page)}
+                    <Flex align="center">
+                      Launch Date
+                      <SortIcon column="launch_timestamp" />
+                    </Flex>
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader
+                    w="2xl"
+                    minW="12rem"
+                    fontWeight="bold"
+                    cursor="pointer"
+                    onClick={() => handleSort("summary")}
+                  >
+                    <Flex align="center">
+                      Summary
+                      <SortIcon column="summary" />
+                    </Flex>
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader
+                    w="sm"
+                    fontWeight="bold"
+                    cursor="pointer"
+                    onClick={() => handleSort("location_id")}
+                  >
+                    <Flex align="center">
+                      Location
+                      <SortIcon column="location_id" />
+                    </Flex>
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader
+                    w="16"
+                    fontWeight="bold"
+                    textAlign="center"
+                  >
+                    Status
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader
+                    w="16"
+                    fontWeight="bold"
+                    textAlign="center"
+                  >
+                    Actions
+                  </Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {launches?.map((launch) => (
+                  <Table.Row
+                    key={launch.id}
+                    opacity={
+                      isPlaceholderData ? 0.5 : launch.archived ? 0.6 : 1
+                    }
+                    bg={launch.archived ? "bg.muted" : undefined}
+                  >
+                    <Table.Cell truncate maxW="sm">
+                      <Link
+                        asChild
+                        color="dark.accent.primary"
+                        _hover={{ textDecoration: "underline" }}
+                      >
+                        <RouterLink
+                          to="/bookings"
+                          search={{ launchId: launch.id }}
+                        >
+                          <Text fontSize="md" fontWeight="500" as="span">
+                            {launch.name}
+                          </Text>
+                        </RouterLink>
+                      </Link>
+                    </Table.Cell>
+                    <Table.Cell truncate maxW="sm">
+                      {renderLaunchDate(
+                        launch.launch_timestamp,
+                        launch.timezone,
+                      )}
+                    </Table.Cell>
+                    <Table.Cell maxW="2xl" minW="12rem" whiteSpace="normal">
+                      {launch.summary}
+                    </Table.Cell>
+                    <Table.Cell truncate maxW="sm">
+                      {locationsMap.get(launch.location_id)?.name ||
+                        launch.location_id}
+                    </Table.Cell>
+                    <Table.Cell w="16" textAlign="center">
+                      <Badge
+                        size="sm"
+                        colorPalette={launch.archived ? "gray" : "green"}
+                      >
+                        {launch.archived ? "Archived" : "Active"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell w="16" textAlign="center">
+                      <Flex justify="center">
+                        <LaunchActionsMenu launch={launch} />
+                      </Flex>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </Box>
+          {count > 0 && (
+            <Flex
+              justifyContent="space-between"
+              align="center"
+              flexWrap="wrap"
+              gap={4}
+              mt={4}
             >
-              <Flex>
-                <PaginationPrevTrigger />
-                <PaginationItems />
-                <PaginationNextTrigger />
-              </Flex>
-            </PaginationRoot>
+              <PageSizeSelect
+                value={effectivePageSize}
+                onChange={setPageSize}
+              />
+              {count > effectivePageSize && (
+                <PaginationRoot
+                  page={page}
+                  count={count}
+                  pageSize={effectivePageSize}
+                  onPageChange={({ page }) => setPage(page)}
+                >
+                  <Flex>
+                    <PaginationPrevTrigger />
+                    <PaginationItems />
+                    <PaginationNextTrigger />
+                  </Flex>
+                </PaginationRoot>
+              )}
+            </Flex>
           )}
-        </Flex>
-      )}
-      </>
+        </>
       )}
     </>
   )

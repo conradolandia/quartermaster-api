@@ -56,21 +56,16 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
       (sum, booking) => sum + booking.total_amount,
       0,
     ),
-    confirmedBookings: bookings.filter(
-      (b) => b.booking_status === "confirmed",
-    ).length,
-    checkedInBookings: bookings.filter(
-      (b) => b.booking_status === "checked_in",
-    ).length,
-    completedBookings: bookings.filter(
-      (b) => b.booking_status === "completed",
-    ).length,
-    cancelledBookings: bookings.filter(
-      (b) => b.booking_status === "cancelled",
-    ).length,
-    refundedBookings: bookings.filter(
-      (b) => b.payment_status === "refunded",
-    ).length,
+    confirmedBookings: bookings.filter((b) => b.booking_status === "confirmed")
+      .length,
+    checkedInBookings: bookings.filter((b) => b.booking_status === "checked_in")
+      .length,
+    completedBookings: bookings.filter((b) => b.booking_status === "completed")
+      .length,
+    cancelledBookings: bookings.filter((b) => b.booking_status === "cancelled")
+      .length,
+    refundedBookings: bookings.filter((b) => b.payment_status === "refunded")
+      .length,
     totalPassengers: bookings.reduce((sum, booking) => {
       return (
         sum +
@@ -390,10 +385,10 @@ const DashboardStats = ({ selectedMissionId }: DashboardStatsProps) => {
                   >
                     <VStack align="start" gap={1}>
                       <Text fontWeight="medium">
-                      {[booking.first_name, booking.last_name]
-                        .filter(Boolean)
-                        .join(" ")}
-                    </Text>
+                        {[booking.first_name, booking.last_name]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </Text>
                       <Text fontSize="sm" color="text.muted">
                         {booking.confirmation_code}
                       </Text>

@@ -10,9 +10,9 @@ import ReactDOM from "react-dom/client"
 import { routeTree } from "./routeTree.gen"
 
 import { ApiError, OpenAPI } from "./client"
+import { CustomProvider } from "./components/ui/provider"
 import "./styles/fonts.css"
 import "./styles/print.css"
-import { CustomProvider } from "./components/ui/provider"
 
 // Route protection based on hostname
 // Base domain (e.g., book.star-fleet.tours) only allows public routes

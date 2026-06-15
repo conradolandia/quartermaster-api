@@ -11,11 +11,17 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { Link as RouterLink } from "@tanstack/react-router"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Link as RouterLink } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { FiCheck, FiCornerUpLeft, FiEdit, FiExternalLink, FiSearch } from "react-icons/fi"
+import {
+  FiCheck,
+  FiCornerUpLeft,
+  FiEdit,
+  FiExternalLink,
+  FiSearch,
+} from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
@@ -27,8 +33,8 @@ import {
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
-import { isAdmin } from "@/utils/permissions"
 import { formatCents } from "@/utils"
+import { isAdmin } from "@/utils/permissions"
 
 const DetailRow = ({
   label,
@@ -184,7 +190,9 @@ const CheckInInterface = ({
         onAutoCheckInCompleteRef.current?.()
       } catch (error: unknown) {
         if (cancelled) return
-        showErrorToastRef.current(getApiErrorDetail(error, "Failed to load booking"))
+        showErrorToastRef.current(
+          getApiErrorDetail(error, "Failed to load booking"),
+        )
         setCurrentBooking(null)
       }
     })()
@@ -330,7 +338,11 @@ const CheckInInterface = ({
                 </HStack>
                 <HStack gap={2} flexWrap="wrap">
                   {canManageBookings && (
-                    <Button variant="outline" size={{ base: "xs", md: "sm" }} asChild>
+                    <Button
+                      variant="outline"
+                      size={{ base: "xs", md: "sm" }}
+                      asChild
+                    >
                       <RouterLink
                         to="/bookings"
                         search={{ code: currentBooking.confirmation_code }}
@@ -342,16 +354,16 @@ const CheckInInterface = ({
                   )}
                   {canManageBookings &&
                     currentBooking.booking_status !== "checked_in" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditOpen(true)}
-                      disabled={checkInMutation.isPending}
-                    >
-                      <FiEdit />
-                      Edit Booking
-                    </Button>
-                  )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditOpen(true)}
+                        disabled={checkInMutation.isPending}
+                      >
+                        <FiEdit />
+                        Edit Booking
+                      </Button>
+                    )}
                   {currentBooking.booking_status === "confirmed" && (
                     <Button
                       colorPalette="green"
@@ -384,10 +396,7 @@ const CheckInInterface = ({
               </HStack>
             </Card.Header>
             <Card.Body>
-              <Grid
-                templateColumns={{ base: "1fr", md: "1fr 1fr" }}
-                gap={6}
-              >
+              <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
                 <VStack gap={4} align="stretch">
                   <Box>
                     <Heading size="lg" mb={4}>
@@ -396,7 +405,10 @@ const CheckInInterface = ({
                     <VStack align="stretch" gap={3}>
                       <DetailRow
                         label="Name"
-                        value={[currentBooking.first_name, currentBooking.last_name]
+                        value={[
+                          currentBooking.first_name,
+                          currentBooking.last_name,
+                        ]
                           .filter(Boolean)
                           .join(" ")}
                       />

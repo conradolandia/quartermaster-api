@@ -62,10 +62,7 @@ function TripTimesCard({
         </Heading>
         <Separator mb={3} />
         <VStack align="stretch" gap={2}>
-          <DetailRow
-            label="Type"
-            value={tripTypeToLabel(selectedTrip.type)}
-          />
+          <DetailRow label="Type" value={tripTypeToLabel(selectedTrip.type)} />
           <DetailRow
             label="Check-in"
             value={formatTripTime(
@@ -128,11 +125,7 @@ function BoatDepartureCard({
             Select a boat to see provider and departure location.
           </Text>
         ) : (
-          <VStack
-            align="stretch"
-            gap={2}
-            separator={<Separator mb={3} />}
-          >
+          <VStack align="stretch" gap={2} separator={<Separator mb={3} />}>
             {boat.provider?.name && (
               <DetailRow label="Provider" value={boat.provider.name} />
             )}
@@ -215,8 +208,8 @@ function TicketTypesCard({
         <VStack align="stretch" gap={1}>
           {pricing.map((p) => (
             <Text key={p.ticket_type} fontSize="lg">
-              {p.ticket_type.replace(/_/g, " ")}: $
-              {(p.price / 100).toFixed(2)} ({p.remaining} left)
+              {p.ticket_type.replace(/_/g, " ")}: ${(p.price / 100).toFixed(2)}{" "}
+              ({p.remaining} left)
             </Text>
           ))}
         </VStack>
@@ -251,10 +244,7 @@ const TripDetailsCards = ({
         tripBoats={tripBoats}
         selectedBoatId={selectedBoatId}
       />
-      <TicketTypesCard
-        tripBoats={tripBoats}
-        selectedBoatId={selectedBoatId}
-      />
+      <TicketTypesCard tripBoats={tripBoats} selectedBoatId={selectedBoatId} />
     </Grid>
   )
 }

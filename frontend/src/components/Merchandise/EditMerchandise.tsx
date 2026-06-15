@@ -16,9 +16,9 @@ import { FaExchangeAlt } from "react-icons/fa"
 import {
   type ApiError,
   type MerchandisePublic,
-  type MerchandiseVariationUpdate,
   MerchandiseService,
   type MerchandiseUpdate,
+  type MerchandiseVariationUpdate,
 } from "@/client"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
@@ -33,9 +33,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 import { Field } from "../ui/field"
-import VariationsTable, {
-  type VariationsTableRef,
-} from "./VariationsTable"
+import VariationsTable, { type VariationsTableRef } from "./VariationsTable"
 
 interface EditMerchandiseProps {
   merchandise: MerchandisePublic
@@ -50,7 +48,8 @@ const EditMerchandise = ({
   onOpenChange: controlledOnOpenChange,
 }: EditMerchandiseProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
-  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isControlled =
+    controlledOpen !== undefined && controlledOnOpenChange != null
   const isOpen = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const queryClient = useQueryClient()
@@ -242,8 +241,7 @@ const EditMerchandise = ({
                     {...register("description", {
                       maxLength: {
                         value: 2000,
-                        message:
-                          "Description cannot exceed 2000 characters",
+                        message: "Description cannot exceed 2000 characters",
                       },
                     })}
                     placeholder="Optional description"

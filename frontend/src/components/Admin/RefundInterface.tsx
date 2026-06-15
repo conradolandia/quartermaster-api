@@ -109,7 +109,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
         requestBody: {
           refund_reason: reason,
           refund_notes: notes || undefined,
-          refund_amount_cents: itemIds?.length ? undefined : amount ?? undefined,
+          refund_amount_cents: itemIds?.length
+            ? undefined
+            : amount ?? undefined,
           refund_item_ids: itemIds?.length ? itemIds : undefined,
         },
       }),
@@ -147,7 +149,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       return
     }
 
-    const remaining = currentBooking.total_amount - getRefundedCents(currentBooking)
+    const remaining =
+      currentBooking.total_amount - getRefundedCents(currentBooking)
 
     if (refundMode === "items") {
       if (selectedItemIds.length === 0) {
@@ -165,7 +168,9 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
 
     if (refundAmount !== null && refundAmount > remaining) {
       showErrorToast(
-        `Refund amount cannot exceed remaining refundable amount ($${formatCents(remaining)})`,
+        `Refund amount cannot exceed remaining refundable amount ($${formatCents(
+          remaining,
+        )})`,
       )
       return
     }
@@ -219,7 +224,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     ) &&
     getRefundedCents(currentBooking) < currentBooking.total_amount
   const isRefunded = currentBooking?.payment_status === "refunded"
-  const partiallyRefunded = currentBooking && isPartiallyRefunded(currentBooking)
+  const partiallyRefunded =
+    currentBooking && isPartiallyRefunded(currentBooking)
   const remainingRefundable = currentBooking
     ? currentBooking.total_amount - getRefundedCents(currentBooking)
     : 0

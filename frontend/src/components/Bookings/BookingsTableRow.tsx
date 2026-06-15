@@ -42,10 +42,9 @@ export default function BookingsTableRow({
   onCopyCode,
   onRowClick,
 }: BookingsTableRowProps) {
-  const boatName =
-    booking.items?.[0]?.boat_id
-      ? boats.find((b) => b.id === booking.items?.[0]?.boat_id)?.name ?? "—"
-      : "—"
+  const boatName = booking.items?.[0]?.boat_id
+    ? boats.find((b) => b.id === booking.items?.[0]?.boat_id)?.name ?? "—"
+    : "—"
 
   return (
     <Table.Row
@@ -100,14 +99,14 @@ export default function BookingsTableRow({
       </Table.Cell>
       <Table.Cell w="32" minW="24">
         {booking.trip_name?.trim() ||
-          (booking.trip_type
-            ? tripTypeToLabel(booking.trip_type)
-            : "N/A")}
+          (booking.trip_type ? tripTypeToLabel(booking.trip_type) : "N/A")}
       </Table.Cell>
-      <Table.Cell w="24">
-        {boatName}
-      </Table.Cell>
-      <Table.Cell w="36" minW="28" title={formatBookingTicketTypesDisplay(booking)}>
+      <Table.Cell w="24">{boatName}</Table.Cell>
+      <Table.Cell
+        w="36"
+        minW="28"
+        title={formatBookingTicketTypesDisplay(booking)}
+      >
         {formatBookingTicketTypesDisplay(booking)}
       </Table.Cell>
       <Table.Cell w="180px" maxW="180px">

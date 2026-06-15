@@ -16,13 +16,7 @@ import { Field } from "@/components/ui/field"
 import useCustomToast from "@/hooks/useCustomToast"
 import type { Boat } from "@/types/boat"
 import { handleError } from "@/utils"
-import {
-  Button,
-  ButtonGroup,
-  Input,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
+import { Button, ButtonGroup, Input, Text, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
@@ -98,142 +92,142 @@ const EditBoat = ({ boat }: EditBoatProps) => {
 
   return (
     <>
-    <DialogRoot
-      size={{ base: "xs", md: "md" }}
-      placement="center"
-      open={isOpen}
-      onOpenChange={({ open }) => setIsOpen(open)}
-    >
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" color="dark.accent.primary">
-          <FiEdit fontSize="16px" />
-          Edit
-        </Button>
-      </DialogTrigger>
+      <DialogRoot
+        size={{ base: "xs", md: "md" }}
+        placement="center"
+        open={isOpen}
+        onOpenChange={({ open }) => setIsOpen(open)}
+      >
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" color="dark.accent.primary">
+            <FiEdit fontSize="16px" />
+            Edit
+          </Button>
+        </DialogTrigger>
 
-      <DialogContent ref={contentRef}>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogCloseTrigger />
-          <DialogHeader>
-            <DialogTitle>Edit Boat</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <Text mb={4}>Update the boat details below.</Text>
-            <VStack gap={4}>
-              <Field
-                invalid={!!errors.name}
-                errorText={errors.name?.message}
-                label="Name"
-                required
-              >
-                <Input
-                  id="name"
-                  {...register("name", {
-                    minLength: { value: 1, message: "Name cannot be empty" },
-                    maxLength: {
-                      value: 255,
-                      message: "Name cannot exceed 255 characters",
-                    },
-                  })}
-                  placeholder="Name"
-                  type="text"
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.capacity}
-                errorText={errors.capacity?.message}
-                label="Capacity"
-                required
-              >
-                <Controller
-                  name="capacity"
-                  control={control}
-                  rules={{
-                    min: { value: 1, message: "Capacity must be at least 1" },
-                  }}
-                  render={({ field }) => (
-                    <Input
-                      id="capacity"
-                      type="number"
-                      value={field.value ?? ""}
-                      onChange={(e) =>
-                        field.onChange(Number.parseInt(e.target.value) || 1)
-                      }
-                      min={1}
-                      disabled={isSubmitting}
-                      placeholder="Capacity"
-                    />
-                  )}
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.captain}
-                errorText={errors.captain?.message}
-                label="Captain"
-              >
-                <Input
-                  id="captain"
-                  {...register("captain", {
-                    maxLength: {
-                      value: 255,
-                      message: "Captain name cannot exceed 255 characters",
-                    },
-                  })}
-                  placeholder="Optional"
-                  disabled={isSubmitting}
-                />
-              </Field>
-
-              <Field
-                invalid={!!errors.provider_id}
-                errorText={errors.provider_id?.message}
-                label="Provider"
-                required
-              >
-                <Controller
-                  name="provider_id"
-                  control={control}
-                  render={({ field }) => (
-                    <ProviderDropdown
-                      id="provider_id"
-                      value={field.value ? String(field.value) : ""}
-                      onChange={field.onChange}
-                      isDisabled={isSubmitting}
-                      portalRef={contentRef}
-                    />
-                  )}
-                />
-              </Field>
-
-              <BoatPricingSection
-                boat={boat}
-                effectiveCapacity={effectiveCapacity}
-                isOpen={isOpen}
-              />
-            </VStack>
-          </DialogBody>
-
-          <DialogFooter gap={2}>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button
-                  variant="subtle"
-                  colorPalette="gray"
-                  disabled={isSubmitting}
+        <DialogContent ref={contentRef}>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <DialogCloseTrigger />
+            <DialogHeader>
+              <DialogTitle>Edit Boat</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <Text mb={4}>Update the boat details below.</Text>
+              <VStack gap={4}>
+                <Field
+                  invalid={!!errors.name}
+                  errorText={errors.name?.message}
+                  label="Name"
+                  required
                 >
-                  Cancel
+                  <Input
+                    id="name"
+                    {...register("name", {
+                      minLength: { value: 1, message: "Name cannot be empty" },
+                      maxLength: {
+                        value: 255,
+                        message: "Name cannot exceed 255 characters",
+                      },
+                    })}
+                    placeholder="Name"
+                    type="text"
+                  />
+                </Field>
+
+                <Field
+                  invalid={!!errors.capacity}
+                  errorText={errors.capacity?.message}
+                  label="Capacity"
+                  required
+                >
+                  <Controller
+                    name="capacity"
+                    control={control}
+                    rules={{
+                      min: { value: 1, message: "Capacity must be at least 1" },
+                    }}
+                    render={({ field }) => (
+                      <Input
+                        id="capacity"
+                        type="number"
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(Number.parseInt(e.target.value) || 1)
+                        }
+                        min={1}
+                        disabled={isSubmitting}
+                        placeholder="Capacity"
+                      />
+                    )}
+                  />
+                </Field>
+
+                <Field
+                  invalid={!!errors.captain}
+                  errorText={errors.captain?.message}
+                  label="Captain"
+                >
+                  <Input
+                    id="captain"
+                    {...register("captain", {
+                      maxLength: {
+                        value: 255,
+                        message: "Captain name cannot exceed 255 characters",
+                      },
+                    })}
+                    placeholder="Optional"
+                    disabled={isSubmitting}
+                  />
+                </Field>
+
+                <Field
+                  invalid={!!errors.provider_id}
+                  errorText={errors.provider_id?.message}
+                  label="Provider"
+                  required
+                >
+                  <Controller
+                    name="provider_id"
+                    control={control}
+                    render={({ field }) => (
+                      <ProviderDropdown
+                        id="provider_id"
+                        value={field.value ? String(field.value) : ""}
+                        onChange={field.onChange}
+                        isDisabled={isSubmitting}
+                        portalRef={contentRef}
+                      />
+                    )}
+                  />
+                </Field>
+
+                <BoatPricingSection
+                  boat={boat}
+                  effectiveCapacity={effectiveCapacity}
+                  isOpen={isOpen}
+                />
+              </VStack>
+            </DialogBody>
+
+            <DialogFooter gap={2}>
+              <ButtonGroup>
+                <DialogActionTrigger asChild>
+                  <Button
+                    variant="subtle"
+                    colorPalette="gray"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </DialogActionTrigger>
+                <Button variant="solid" type="submit" loading={isSubmitting}>
+                  Save
                 </Button>
-              </DialogActionTrigger>
-              <Button variant="solid" type="submit" loading={isSubmitting}>
-                Save
-              </Button>
-            </ButtonGroup>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </DialogRoot>
+              </ButtonGroup>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </DialogRoot>
     </>
   )
 }

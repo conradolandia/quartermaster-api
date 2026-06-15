@@ -1,11 +1,11 @@
 import {
   Badge,
-  Separator,
   Box,
   Button,
   Container,
   Flex,
   Heading,
+  Separator,
   Table,
   Text,
   VStack,
@@ -25,12 +25,12 @@ import {
 
 import { BoatsService, BookingsService, TripsService } from "@/client"
 import BookingDetailInfoSections from "@/components/Bookings/BookingDetailInfoSections"
-import { BookingItemStatusBadge } from "@/components/Bookings/BookingItemStatusBadge"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
-import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
+import { BookingItemStatusBadge } from "@/components/Bookings/BookingItemStatusBadge"
 import RefundBooking from "@/components/Bookings/RefundBooking"
 import RescheduleBooking from "@/components/Bookings/RescheduleBooking"
 import BookingActionsMenu from "@/components/Common/BookingActionsMenu"
+import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import {
   DialogBody,
   DialogContent,
@@ -43,10 +43,7 @@ import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
 import { getTripName as getTripNameFromTrips } from "./types"
-import {
-  formatPaymentStatusLabel,
-  getRefundedCents,
-} from "./types"
+import { formatPaymentStatusLabel, getRefundedCents } from "./types"
 
 interface BookingDetailsProps {
   confirmationCode: string
@@ -84,7 +81,8 @@ export default function BookingDetails({
 
   const { data: tripsData } = useQuery({
     queryKey: ["trips", "for-booking-detail"],
-    queryFn: () => TripsService.readTrips({ limit: 500, includeArchived: true }),
+    queryFn: () =>
+      TripsService.readTrips({ limit: 500, includeArchived: true }),
     enabled: !!booking?.items?.length,
   })
 
@@ -102,10 +100,13 @@ export default function BookingDetails({
     return boat ? boat.name : boatId
   }
 
-  const isArchived = booking?.items?.some((item) => {
-    const trip = tripsData?.data?.find((t: { id: string }) => t.id === item.trip_id)
-    return trip?.archived
-  }) ?? false
+  const isArchived =
+    booking?.items?.some((item) => {
+      const trip = tripsData?.data?.find(
+        (t: { id: string }) => t.id === item.trip_id,
+      )
+      return trip?.archived
+    }) ?? false
 
   const displayItems = useMemo(() => {
     if (!booking?.items?.length) return []
@@ -132,8 +133,7 @@ export default function BookingDetails({
   })
 
   const revertCheckInMutation = useMutation({
-    mutationFn: () =>
-      BookingsService.revertCheckIn({ confirmationCode }),
+    mutationFn: () => BookingsService.revertCheckIn({ confirmationCode }),
     onSuccess: (updated) => {
       showSuccessToast("Check-in reverted; booking is confirmed again")
       queryClient.setQueryData(["booking", confirmationCode], updated)
@@ -170,7 +170,9 @@ export default function BookingDetails({
         const data = await response.json().catch(() => ({}))
         const detail = data?.detail
         showErrorToast(
-          typeof detail === "string" ? detail : "Failed to send confirmation email",
+          typeof detail === "string"
+            ? detail
+            : "Failed to send confirmation email",
         )
       }
     } catch {
@@ -279,8 +281,8 @@ export default function BookingDetails({
               isArchived
                 ? "Cannot resend email for archived bookings"
                 : !["confirmed", "checked_in", "completed"].includes(
-                    booking?.booking_status ?? "",
-                  )
+                      booking?.booking_status ?? "",
+                    )
                   ? "Resend email is only available for confirmed, checked-in, or completed bookings"
                   : undefined
             }
@@ -354,12 +356,7 @@ export default function BookingDetails({
             onOpenRawData={() => setJsonDialogOpen(true)}
             editDisabled={booking.booking_status === "checked_in"}
             onPermanentDeleteSuccess={() => navigate({ to: "/bookings" })}
-            hideInMenu={[
-              "refund",
-              "reschedule",
-              "check-in",
-              "revert-check-in",
-            ]}
+            hideInMenu={["refund", "reschedule", "check-in", "revert-check-in"]}
             archived={isArchived}
           />
         </Flex>
@@ -417,7 +414,10 @@ export default function BookingDetails({
         isOpen={rescheduleDialogOpen}
         onClose={() => setRescheduleDialogOpen(false)}
         onSuccess={(result) => {
-          queryClient.setQueryData(["booking", confirmationCode], result.booking)
+          queryClient.setQueryData(
+            ["booking", confirmationCode],
+            result.booking,
+          )
         }}
       />
 
@@ -469,10 +469,7 @@ export default function BookingDetails({
               Printed
             </Text>
             <Text fontSize="sm">
-              {formatDateTimeInLocationTz(
-                new Date().toISOString(),
-                userTz,
-              )}
+              {formatDateTimeInLocationTz(new Date().toISOString(), userTz)}
             </Text>
           </Box>
         </Flex>
@@ -552,11 +549,7 @@ export default function BookingDetails({
                     <Text>${formatCents(booking.tip_amount)}</Text>
                   </Flex>
                   <Separator />
-                  <Flex
-                    justify="space-between"
-                    fontWeight="bold"
-                    fontSize="lg"
-                  >
+                  <Flex justify="space-between" fontWeight="bold" fontSize="lg">
                     <Text>Total:</Text>
                     <Text>${formatCents(booking.total_amount)}</Text>
                   </Flex>
@@ -585,7 +578,9 @@ export default function BookingDetails({
                       <Table.Row key={index}>
                         <Table.Cell>
                           {item.trip_id ? (
-                            <Text fontSize="sm">{getTripName(item.trip_id)}</Text>
+                            <Text fontSize="sm">
+                              {getTripName(item.trip_id)}
+                            </Text>
                           ) : (
                             <Text fontSize="sm" color="gray.500">
                               —
@@ -594,7 +589,9 @@ export default function BookingDetails({
                         </Table.Cell>
                         <Table.Cell>
                           {item.boat_id ? (
-                            <Text fontSize="sm">{getBoatName(item.boat_id)}</Text>
+                            <Text fontSize="sm">
+                              {getBoatName(item.boat_id)}
+                            </Text>
                           ) : (
                             <Text fontSize="sm" color="gray.500">
                               —
@@ -617,7 +614,10 @@ export default function BookingDetails({
                           )}
                         </Table.Cell>
                         <Table.Cell>
-                          <BookingItemStatusBadge booking={booking} item={item} />
+                          <BookingItemStatusBadge
+                            booking={booking}
+                            item={item}
+                          />
                         </Table.Cell>
                         <Table.Cell>{item.quantity}</Table.Cell>
                         <Table.Cell>

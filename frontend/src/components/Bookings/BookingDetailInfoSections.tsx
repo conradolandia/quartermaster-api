@@ -60,7 +60,8 @@ export default function BookingDetailInfoSections({
                     <Text fontWeight="bold">Payment:</Text>
                     {booking.payment_status === "refunded" ||
                     ((booking.total_amount ?? 0) > 0 &&
-                      getRefundedCents(booking) >= (booking.total_amount ?? 0)) ? (
+                      getRefundedCents(booking) >=
+                        (booking.total_amount ?? 0)) ? (
                       <Badge colorPalette="red" textTransform="uppercase">
                         Fully refunded
                       </Badge>
@@ -73,10 +74,7 @@ export default function BookingDetailInfoSections({
                         >
                           Paid
                         </Badge>
-                        <Badge
-                          colorPalette="red"
-                          textTransform="uppercase"
-                        >
+                        <Badge colorPalette="red" textTransform="uppercase">
                           Partially refunded
                         </Badge>
                       </>

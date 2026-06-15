@@ -176,8 +176,7 @@ export function useStep1Queries({
   const availableBoats = React.useMemo(() => {
     return (
       tripBoats?.filter(
-        (tb) =>
-          tb.sales_enabled !== false && (tb.remaining_capacity ?? 0) > 0,
+        (tb) => tb.sales_enabled !== false && (tb.remaining_capacity ?? 0) > 0,
       ) ?? []
     )
   }, [tripBoats])
@@ -224,10 +223,7 @@ export function useStep1Queries({
   const tripOptionsPending = React.useMemo(() => {
     if (!bookingData.selectedLaunchId) return false
     if (isLoadingTrips || isLoadingMissions) return true
-    if (
-      activeTrips.length === 0 &&
-      (isFetchingTrips || isFetchingMissions)
-    ) {
+    if (activeTrips.length === 0 && (isFetchingTrips || isFetchingMissions)) {
       return true
     }
     return false
@@ -255,13 +251,11 @@ export function useStep1Queries({
     )
     const trip =
       tripFromList ??
-      (directLinkTrip &&
-      bookingData.selectedTripId === directLinkTrip.id
+      (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id
         ? directLinkTrip
         : null)
     const mission =
-      trip &&
-      missions.find((m: { id: string }) => m.id === trip.mission_id)
+      trip && missions.find((m: { id: string }) => m.id === trip.mission_id)
     if (mission) {
       updateBookingData({ selectedLaunchId: mission.launch_id })
     }
@@ -362,9 +356,7 @@ export function useStep1Queries({
       isLoadingMissions ||
       isLoadingDirectTrip ||
       !bookingData.selectedTripId ||
-      activeTrips.some(
-        (t: TripPublic) => t.id === bookingData.selectedTripId,
-      )
+      activeTrips.some((t: TripPublic) => t.id === bookingData.selectedTripId)
     )
       return
     const message = isDirectLinkTripError
@@ -506,9 +498,7 @@ export function useStep1Queries({
     items:
       availableBoats.map((tripBoat: TripBoatPublicWithAvailability) => {
         const name =
-          tripBoat.boat?.name ||
-          boatNames?.[tripBoat.boat_id] ||
-          "Loading..."
+          tripBoat.boat?.name || boatNames?.[tripBoat.boat_id] || "Loading..."
         return {
           label: `${name} (${tripBoat.remaining_capacity} spots left)`,
           value: tripBoat.boat_id,

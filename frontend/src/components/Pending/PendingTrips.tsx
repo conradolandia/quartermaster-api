@@ -5,14 +5,20 @@ const PendingTrips = () => (
   <Table.Root size="sm">
     <Table.Header>
       <Table.Row>
-        <Table.ColumnHeader w={{ base: "sm", lg: "300px" }}>Name</Table.ColumnHeader>
+        <Table.ColumnHeader w={{ base: "sm", lg: "300px" }}>
+          Name
+        </Table.ColumnHeader>
         <Table.ColumnHeader w="sm" display={{ base: "none", md: "table-cell" }}>
           Trip Type
         </Table.ColumnHeader>
         <Table.ColumnHeader w="sm" display={{ base: "none", lg: "table-cell" }}>
           Mission
         </Table.ColumnHeader>
-        <Table.ColumnHeader w="sm" minW="200px" display={{ base: "none", lg: "table-cell" }}>
+        <Table.ColumnHeader
+          w="sm"
+          minW="200px"
+          display={{ base: "none", lg: "table-cell" }}
+        >
           Schedule
         </Table.ColumnHeader>
         <Table.ColumnHeader w="sm" display={{ base: "none", lg: "table-cell" }}>

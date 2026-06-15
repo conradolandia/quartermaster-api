@@ -1,20 +1,17 @@
-import {
-  LaunchesService,
-  type LaunchPublic,
-} from "../../client"
+import { Button } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiArchive, FiCopy, FiLink } from "react-icons/fi"
-import { Button } from "@chakra-ui/react"
+import { type LaunchPublic, LaunchesService } from "../../client"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
 import { getPublicOrigin } from "@/utils/url"
-import { ActionsMenu } from "../ui/actions-menu"
-import { MenuItem } from "../ui/menu"
 import DeleteLaunch from "../Launches/DeleteLaunch"
 import EditLaunch from "../Launches/EditLaunch"
 import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
+import { ActionsMenu } from "../ui/actions-menu"
+import { MenuItem } from "../ui/menu"
 
 interface LaunchActionsMenuProps {
   launch: LaunchPublic
@@ -27,8 +24,7 @@ export const LaunchActionsMenu = ({ launch }: LaunchActionsMenuProps) => {
   const [editingLaunch, setEditingLaunch] = useState<LaunchPublic | null>(null)
 
   const duplicateMutation = useMutation({
-    mutationFn: () =>
-      LaunchesService.duplicateLaunch({ launchId: launch.id }),
+    mutationFn: () => LaunchesService.duplicateLaunch({ launchId: launch.id }),
     onSuccess: (duplicated) => {
       setEditingLaunch(duplicated)
       setEditModalOpen(true)

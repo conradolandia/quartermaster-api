@@ -20,9 +20,7 @@ import { getPublicOrigin } from "@/utils/url"
 import DiscountCodeFormDialog from "./DiscountCodeFormDialog"
 import DiscountCodesTable from "./DiscountCodesTable"
 
-import { Button, Heading, HStack, Text, VStack } from "@chakra-ui/react"
-
-type DiscountCodeManagerProps = {}
+import { Button, HStack, Heading, Text, VStack } from "@chakra-ui/react"
 
 const initialFormData: Partial<DiscountCodeCreate> = {
   code: "",
@@ -42,7 +40,7 @@ const initialFormData: Partial<DiscountCodeCreate> = {
   restricted_trip_id: null,
 }
 
-export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
+export default function DiscountCodeManager() {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] =
@@ -52,7 +50,9 @@ export default function DiscountCodeManager({}: DiscountCodeManagerProps) {
   const { showSuccessToast } = useCustomToast()
 
   const buildBookingUrl = (code: string, isAccessCode: boolean) => {
-    return `${getPublicOrigin()}/book?${isAccessCode ? "access" : "discount"}=${encodeURIComponent(code)}`
+    return `${getPublicOrigin()}/book?${
+      isAccessCode ? "access" : "discount"
+    }=${encodeURIComponent(code)}`
   }
 
   const copyBookingUrl = (code: string, isAccessCode: boolean) => {

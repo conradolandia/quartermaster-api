@@ -27,10 +27,7 @@ import useCustomToast from "@/hooks/useCustomToast"
 function sumConstrainedBoatCapacities(
   rows: Array<{ capacity?: number | null }>,
 ): number {
-  return rows.reduce(
-    (sum, p) => sum + (p.capacity != null ? p.capacity : 0),
-    0,
-  )
+  return rows.reduce((sum, p) => sum + (p.capacity != null ? p.capacity : 0), 0)
 }
 
 interface BoatPricingSectionProps {
@@ -262,9 +259,7 @@ export default function BoatPricingSection({
                   !pricingForm.price ||
                   Number.isNaN(Number.parseFloat(pricingForm.price)) ||
                   (pricingForm.capacity.trim() !== "" &&
-                    (Number.isNaN(
-                      Number.parseInt(pricingForm.capacity, 10),
-                    ) ||
+                    (Number.isNaN(Number.parseInt(pricingForm.capacity, 10)) ||
                       Number.parseInt(pricingForm.capacity, 10) < 0))
                 }
               >
@@ -367,16 +362,13 @@ export default function BoatPricingSection({
                   <Button
                     size="sm"
                     onClick={() => {
-                      const ticketType =
-                        editPricingForm.ticket_type.trim()
+                      const ticketType = editPricingForm.ticket_type.trim()
                       const priceDollars = Number.parseFloat(
                         editPricingForm.price,
                       )
                       const capTrim = editPricingForm.capacity.trim()
                       const cap =
-                        capTrim === ""
-                          ? null
-                          : Number.parseInt(capTrim, 10)
+                        capTrim === "" ? null : Number.parseInt(capTrim, 10)
                       if (
                         !ticketType ||
                         Number.isNaN(priceDollars) ||
@@ -444,8 +436,7 @@ export default function BoatPricingSection({
                       setEditPricingForm({
                         ticket_type: p.ticket_type,
                         price: (p.price / 100).toFixed(2),
-                        capacity:
-                          p.capacity != null ? String(p.capacity) : "",
+                        capacity: p.capacity != null ? String(p.capacity) : "",
                       })
                     }}
                     disabled={

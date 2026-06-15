@@ -70,7 +70,12 @@ const DeleteTrip = ({ id, type, disabled = false }: DeleteTripProps) => {
       onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" color="status.error" disabled={disabled}>
+        <Button
+          variant="ghost"
+          size="sm"
+          color="status.error"
+          disabled={disabled}
+        >
           <FiTrash2 fontSize="16px" />
           Delete Trip
         </Button>
@@ -91,9 +96,7 @@ const DeleteTrip = ({ id, type, disabled = false }: DeleteTripProps) => {
                 <Alert.Indicator />
                 <Alert.Content>
                   <Alert.Title>Unable to delete trip</Alert.Title>
-                  <Alert.Description>
-                    {errorMessage}
-                  </Alert.Description>
+                  <Alert.Description>{errorMessage}</Alert.Description>
                 </Alert.Content>
               </Alert.Root>
             )}

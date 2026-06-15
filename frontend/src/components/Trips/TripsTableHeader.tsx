@@ -1,7 +1,7 @@
 import { Flex, Table } from "@chakra-ui/react"
 
-import type { SortableColumn } from "./types"
 import SortIcon from "./shared/SortIcon"
+import type { SortableColumn } from "./types"
 
 interface TripsTableHeaderProps {
   sortBy: SortableColumn

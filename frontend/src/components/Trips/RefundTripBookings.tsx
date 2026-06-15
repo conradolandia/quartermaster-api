@@ -1,25 +1,11 @@
 import {
-  Alert,
-  Box,
-  Button,
-  ButtonGroup,
-  Flex,
-  Select,
-  Text,
-  Textarea,
-  VStack,
-  createListCollection,
-} from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import {
   type TripBulkRefundResult,
   type TripPublic,
   TripsService,
 } from "@/client"
 import {
-  REFUND_REASON_OTHER,
   REFUND_REASONS,
+  REFUND_REASON_OTHER,
 } from "@/components/Bookings/refundReasons"
 import {
   DialogActionTrigger,
@@ -33,6 +19,20 @@ import {
 } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
+import {
+  Alert,
+  Box,
+  Button,
+  ButtonGroup,
+  Flex,
+  Select,
+  Text,
+  Textarea,
+  VStack,
+  createListCollection,
+} from "@chakra-ui/react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 
 interface RefundTripBookingsProps {
   trip: TripPublic
@@ -53,8 +53,7 @@ export default function RefundTripBookings({
 
   const previewQuery = useQuery({
     queryKey: ["trip-refundable-bookings", trip.id],
-    queryFn: () =>
-      TripsService.readTripRefundableBookings({ tripId: trip.id }),
+    queryFn: () => TripsService.readTripRefundableBookings({ tripId: trip.id }),
     enabled: isOpen,
   })
 
@@ -84,14 +83,20 @@ export default function RefundTripBookings({
       })
       if (data.refunded_count > 0 && data.failed_count === 0) {
         showSuccessToast(
-          `Refunded ${data.refunded_count} booking(s) ($${formatCents(data.total_refunded_cents)}).`,
+          `Refunded ${data.refunded_count} booking(s) ($${formatCents(
+            data.total_refunded_cents,
+          )}).`,
         )
       } else if (data.refunded_count > 0) {
         showSuccessToast(
-          `Refunded ${data.refunded_count} booking(s) ($${formatCents(data.total_refunded_cents)}). ${data.failed_count} failed.`,
+          `Refunded ${data.refunded_count} booking(s) ($${formatCents(
+            data.total_refunded_cents,
+          )}). ${data.failed_count} failed.`,
         )
       } else if (data.failed_count > 0) {
-        showErrorToast(`No bookings were refunded. ${data.failed_count} failed.`)
+        showErrorToast(
+          `No bookings were refunded. ${data.failed_count} failed.`,
+        )
       } else {
         showSuccessToast("No eligible bookings to refund.")
       }
@@ -180,13 +185,13 @@ export default function RefundTripBookings({
                   <Text color="text.muted">
                     Trips table: {preview.committed_passengers} committed
                     passenger
-                    {preview.committed_passengers === 1 ? "" : "s"},{" "}
-                    ${formatCents(preview.trip_sales_cents)} sales (excludes tax,
+                    {preview.committed_passengers === 1 ? "" : "s"}, $
+                    {formatCents(preview.trip_sales_cents)} sales (excludes tax,
                     includes checked-in).
                   </Text>
                   <Text color="text.muted" mt={2}>
-                    Bulk refund only affects confirmed bookings that are paid via
-                    Stripe with no prior refund. Refund amounts use the full
+                    Bulk refund only affects confirmed bookings that are paid
+                    via Stripe with no prior refund. Refund amounts use the full
                     booking total (includes tax).
                   </Text>
                 </Box>
@@ -194,7 +199,11 @@ export default function RefundTripBookings({
                 <Text fontSize="sm" color="text.muted">
                   {previewCount === 0
                     ? "No eligible bookings on this trip."
-                    : `${previewCount} booking${previewCount === 1 ? "" : "s"} will be fully refunded for $${formatCents(previewTotalCents)}.`}
+                    : `${previewCount} booking${
+                        previewCount === 1 ? "" : "s"
+                      } will be fully refunded for $${formatCents(
+                        previewTotalCents,
+                      )}.`}
                 </Text>
 
                 {preview.bookings.length > 0 && (
@@ -225,8 +234,8 @@ export default function RefundTripBookings({
                 {preview.skipped.length > 0 && (
                   <Box>
                     <Text fontSize="sm" fontWeight="medium" mb={2}>
-                      Skipped ({preview.skipped_count},{" "}
-                      ${formatCents(preview.skipped_total_cents)} not refunded)
+                      Skipped ({preview.skipped_count}, $
+                      {formatCents(preview.skipped_total_cents)} not refunded)
                     </Text>
                     <VStack align="stretch" gap={2}>
                       {preview.skipped.map((booking) => (

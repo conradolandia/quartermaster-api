@@ -136,9 +136,7 @@ export const AddJurisdiction = ({
                         const percentValue =
                           Number.parseFloat(e.target.value) || 0
                         // Round to 4 decimals to avoid float noise (e.g. 7 -> 0.07)
-                        field.onChange(
-                          Math.round(percentValue * 100) / 10000
-                        )
+                        field.onChange(Math.round(percentValue * 100) / 10000)
                       }}
                       min={0}
                       max={100}

@@ -1,7 +1,10 @@
 import { TripsService } from "@/client"
 import { useQuery } from "@tanstack/react-query"
 
-export function useTripsByMission(missionId: string | null | undefined, enabled = true) {
+export function useTripsByMission(
+  missionId: string | null | undefined,
+  enabled = true,
+) {
   const query = useQuery({
     queryKey: ["trips", "mission", missionId],
     queryFn: () =>

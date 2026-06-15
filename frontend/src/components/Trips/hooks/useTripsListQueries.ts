@@ -1,14 +1,11 @@
-import { useQueries, useQuery } from "@tanstack/react-query"
-import type {
-  TripBoatPublicWithAvailability,
-  TripWithStats,
-} from "@/client"
+import type { TripBoatPublicWithAvailability, TripWithStats } from "@/client"
 import { MissionsService, TripBoatsService } from "@/client"
+import { useQueries, useQuery } from "@tanstack/react-query"
 import {
+  type SortDirection,
+  type SortableColumn,
   getTripsQueryOptions,
   sortTripsWithStats,
-  type SortableColumn,
-  type SortDirection,
 } from "../types"
 
 export interface UseTripsListQueriesParams {
@@ -72,11 +69,14 @@ export function useTripsListQueries(params: UseTripsListQueriesParams) {
       ]),
     )
 
-  const missionsMap = new Map<string, { id: string; name: string; archived?: boolean }>()
+  const missionsMap = new Map<
+    string,
+    { id: string; name: string; archived?: boolean }
+  >()
   if (missionsData?.data) {
-    missionsData.data.forEach((mission) => {
+    for (const mission of missionsData.data) {
       missionsMap.set(mission.id, mission)
-    })
+    }
   }
 
   const missionsForDropdown = (missionsData?.data ?? []).filter(

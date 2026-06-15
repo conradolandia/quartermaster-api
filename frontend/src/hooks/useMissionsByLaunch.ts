@@ -1,7 +1,10 @@
 import { MissionsService } from "@/client"
 import { useQuery } from "@tanstack/react-query"
 
-export function useMissionsByLaunch(launchId: string | undefined, enabled = true) {
+export function useMissionsByLaunch(
+  launchId: string | undefined,
+  enabled = true,
+) {
   const query = useQuery({
     queryKey: ["missions", "launch", launchId],
     queryFn: () =>

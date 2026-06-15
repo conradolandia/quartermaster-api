@@ -1,21 +1,5 @@
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  HStack,
-  NumberInput,
-  Select,
-  Text,
-  Textarea,
-  VStack,
-  createListCollection,
-} from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import { BookingsService, type BookingPublic } from "@/client"
-import {
-  RefundLineItemSelector,
-} from "@/components/Bookings/RefundLineItemSelector"
+import { type BookingPublic, BookingsService } from "@/client"
+import { RefundLineItemSelector } from "@/components/Bookings/RefundLineItemSelector"
 import {
   type RefundMode,
   isRefundableLineItem,
@@ -35,9 +19,20 @@ import { Radio, RadioGroup } from "@/components/ui/radio"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import {
-  REFUND_REASON_OTHER,
-  REFUND_REASONS,
-} from "./refundReasons"
+  Box,
+  Button,
+  ButtonGroup,
+  HStack,
+  NumberInput,
+  Select,
+  Text,
+  Textarea,
+  VStack,
+  createListCollection,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+import { REFUND_REASONS, REFUND_REASON_OTHER } from "./refundReasons"
 import { getRefundedCents, isPartiallyRefunded } from "./types"
 
 interface RefundBookingProps {
@@ -57,7 +52,9 @@ export default function RefundBooking({
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
-  const [refundAmountCents, setRefundAmountCents] = useState<number | null>(null)
+  const [refundAmountCents, setRefundAmountCents] = useState<number | null>(
+    null,
+  )
   const [refundMode, setRefundMode] = useState<RefundMode>("amount")
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
 
@@ -114,7 +111,10 @@ export default function RefundBooking({
   const refundableItems = booking.items?.filter(isRefundableLineItem) ?? []
   const selectedItems =
     booking.items?.filter((item) => selectedItemIds.includes(item.id)) ?? []
-  const selectedItemsRefundTotal = sumLineItemRefundCents(selectedItems, booking)
+  const selectedItemsRefundTotal = sumLineItemRefundCents(
+    selectedItems,
+    booking,
+  )
   const canSubmitItemRefund =
     refundMode === "items" &&
     selectedItemIds.length > 0 &&
@@ -144,10 +144,7 @@ export default function RefundBooking({
       return
     }
 
-    if (
-      refundAmountCents !== null &&
-      refundAmountCents > remaining
-    ) {
+    if (refundAmountCents !== null && refundAmountCents > remaining) {
       showErrorToast(
         `Refund amount cannot exceed remaining ($${formatCents(remaining)})`,
       )
@@ -178,9 +175,7 @@ export default function RefundBooking({
               <Text fontSize="sm" color="text.muted">
                 Already refunded: ${formatCents(getRefundedCents(booking))}.
                 Remaining: $
-                {formatCents(
-                  booking.total_amount - getRefundedCents(booking),
-                )}
+                {formatCents(booking.total_amount - getRefundedCents(booking))}
               </Text>
             )}
             <Box>
@@ -205,10 +200,7 @@ export default function RefundBooking({
                 <Select.Positioner>
                   <Select.Content minWidth="280px">
                     {REFUND_REASONS.map((r) => (
-                      <Select.Item
-                        key={r}
-                        item={{ value: r, label: r }}
-                      >
+                      <Select.Item key={r} item={{ value: r, label: r }}>
                         {r}
                         <Select.ItemIndicator />
                       </Select.Item>
@@ -233,10 +225,7 @@ export default function RefundBooking({
               >
                 <HStack gap={4} flexWrap="wrap">
                   <Radio value="amount">Flat amount</Radio>
-                  <Radio
-                    value="items"
-                    disabled={refundableItems.length === 0}
-                  >
+                  <Radio value="items" disabled={refundableItems.length === 0}>
                     Specific line items
                   </Radio>
                 </HStack>
@@ -289,7 +278,11 @@ export default function RefundBooking({
                 Notes {isOtherReason ? "*" : "(optional)"}
               </Text>
               <Textarea
-                placeholder={isOtherReason ? "Please describe the reason..." : "Additional details..."}
+                placeholder={
+                  isOtherReason
+                    ? "Please describe the reason..."
+                    : "Additional details..."
+                }
                 value={refundNotes}
                 onChange={(e) => setRefundNotes(e.target.value)}
                 rows={2}

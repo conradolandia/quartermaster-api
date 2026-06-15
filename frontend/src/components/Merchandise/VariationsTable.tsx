@@ -39,13 +39,7 @@ interface VariationsTableProps {
 
 const VariationsTable = forwardRef<VariationsTableRef, VariationsTableProps>(
   function VariationsTable(
-    {
-      variations,
-      onUpdateVariation,
-      onAddVariation,
-      isUpdating,
-      isAdding,
-    },
+    { variations, onUpdateVariation, onAddVariation, isUpdating, isAdding },
     ref,
   ) {
     const [editingId, setEditingId] = useState<string | null>(null)
@@ -174,9 +168,7 @@ const VariationsTable = forwardRef<VariationsTableRef, VariationsTableProps>(
                           id={`variation-edit-${v.id}-variant`}
                           size="sm"
                           value={editVariantValue}
-                          onChange={(e) =>
-                            setEditVariantValue(e.target.value)
-                          }
+                          onChange={(e) => setEditVariantValue(e.target.value)}
                           placeholder="e.g. XL"
                           maxLength={128}
                         />
@@ -251,9 +243,7 @@ const VariationsTable = forwardRef<VariationsTableRef, VariationsTableProps>(
             <Field label="Quantity" width="100px">
               <NumberInput.Root
                 value={String(newQuantity)}
-                onValueChange={(e) =>
-                  setNewQuantity(e.valueAsNumber ?? 0)
-                }
+                onValueChange={(e) => setNewQuantity(e.valueAsNumber ?? 0)}
                 min={0}
                 step={1}
                 size="sm"

@@ -1,9 +1,4 @@
-import {
-  Button,
-  ButtonGroup,
-  Tabs,
-  Text,
-} from "@chakra-ui/react"
+import { Button, ButtonGroup, Tabs, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { FiEdit } from "react-icons/fi"
@@ -58,7 +53,8 @@ const EditTrip = ({
   disabled = false,
 }: EditTripProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
-  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isControlled =
+    controlledOpen !== undefined && controlledOnOpenChange != null
   const isOpen = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const [missionId, setMissionId] = useState(trip.mission_id)
@@ -66,9 +62,7 @@ const EditTrip = ({
   const [type, setType] = useState(trip.type)
   const [active, setActive] = useState(trip.active ?? true)
   const [unlisted, setUnlisted] = useState(trip.unlisted ?? false)
-  const [bookingMode, setBookingMode] = useState(
-    trip.booking_mode ?? "private",
-  )
+  const [bookingMode, setBookingMode] = useState(trip.booking_mode ?? "private")
 
   const tz = trip.timezone ?? "UTC"
   const dep = parseApiDate(trip.departure_time)
@@ -138,7 +132,8 @@ const EditTrip = ({
       setDepartureTime(
         formatInLocationTimezone(parseApiDate(trip.departure_time), zone),
       )
-      const salesOpen = (trip as { sales_open_at?: string | null }).sales_open_at
+      const salesOpen = (trip as { sales_open_at?: string | null })
+        .sales_open_at
       setSalesOpenAt(
         salesOpen
           ? formatInLocationTimezone(parseApiDate(salesOpen), zone)
@@ -158,8 +153,9 @@ const EditTrip = ({
 
   const handleSubmit = () => {
     if (!missionId || !departureTime) return
-    const boardingMins = parseInt(boardingMinutesBeforeDeparture, 10) || 0
-    const checkinMins = parseInt(checkinMinutesBeforeBoarding, 10) || 0
+    const boardingMins =
+      Number.parseInt(boardingMinutesBeforeDeparture, 10) || 0
+    const checkinMins = Number.parseInt(checkinMinutesBeforeBoarding, 10) || 0
     if (boardingMins < 0 || checkinMins < 0) return
 
     mutation.mutate({
@@ -233,10 +229,16 @@ const EditTrip = ({
                     setSalesOpenAt={setSalesOpenAt}
                     departureTime={departureTime}
                     setDepartureTime={setDepartureTime}
-                    boardingMinutesBeforeDeparture={boardingMinutesBeforeDeparture}
-                    setBoardingMinutesBeforeDeparture={setBoardingMinutesBeforeDeparture}
+                    boardingMinutesBeforeDeparture={
+                      boardingMinutesBeforeDeparture
+                    }
+                    setBoardingMinutesBeforeDeparture={
+                      setBoardingMinutesBeforeDeparture
+                    }
                     checkinMinutesBeforeBoarding={checkinMinutesBeforeBoarding}
-                    setCheckinMinutesBeforeBoarding={setCheckinMinutesBeforeBoarding}
+                    setCheckinMinutesBeforeBoarding={
+                      setCheckinMinutesBeforeBoarding
+                    }
                     active={active}
                     setActive={setActive}
                     unlisted={unlisted}
@@ -305,7 +307,6 @@ const EditTrip = ({
           </form>
         </DialogContent>
       </DialogRoot>
-
     </>
   )
 }

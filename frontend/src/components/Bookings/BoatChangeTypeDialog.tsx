@@ -1,7 +1,6 @@
 import { Button, Text, VStack } from "@chakra-ui/react"
 
 import type { BookingItemPublic } from "@/client"
-import { Field } from "@/components/ui/field"
 import {
   DialogBody,
   DialogCloseTrigger,
@@ -11,6 +10,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatCents } from "@/utils"
 import { getItemTypeLabel } from "./types"
@@ -56,8 +56,10 @@ export function BoatChangeTypeDialog({
           {pendingBoatChange && (
             <VStack gap={4} align="stretch">
               <Text>
-                Ticket type &quot;{getItemTypeLabel(pendingBoatChange.item.item_type)}
-                &quot; is not available on boat &quot;{pendingBoatChange.newBoatName}
+                Ticket type &quot;
+                {getItemTypeLabel(pendingBoatChange.item.item_type)}
+                &quot; is not available on boat &quot;
+                {pendingBoatChange.newBoatName}
                 &quot;. Select a ticket type for the new boat:
               </Text>
               <Field label="Ticket type">
@@ -67,8 +69,8 @@ export function BoatChangeTypeDialog({
                 >
                   {pendingBoatChange.ticketTypeOptions.map((p) => (
                     <option key={p.ticket_type} value={p.ticket_type}>
-                      {getItemTypeLabel(p.ticket_type)} (
-                      ${formatCents(p.price)})
+                      {getItemTypeLabel(p.ticket_type)} ( $
+                      {formatCents(p.price)})
                     </option>
                   ))}
                 </NativeSelect>

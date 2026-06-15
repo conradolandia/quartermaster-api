@@ -16,17 +16,17 @@ import { useEffect, useMemo, useState } from "react"
 import { FiDownload, FiFilter } from "react-icons/fi"
 
 import {
-  BookingsService,
   type BoatPublic,
   BoatsService,
+  BookingsService,
   type MissionPublic,
   MissionsService,
   TripBoatsService,
   type TripPublic,
   TripsService,
 } from "@/client"
-import useCustomToast from "@/hooks/useCustomToast"
 import { formatTripFilterLabel } from "@/components/Bookings/types"
+import useCustomToast from "@/hooks/useCustomToast"
 
 const BOOKING_STATUSES = [
   "confirmed",
@@ -284,13 +284,17 @@ const CSVExportInterface = () => {
 
   const deselectAmountFields = () => {
     const next = new Set(selectedFields)
-    AMOUNT_FIELD_KEYS.forEach((k) => next.delete(k))
+    for (const k of AMOUNT_FIELD_KEYS) {
+      next.delete(k)
+    }
     setSelectedFields(next)
   }
 
   const selectAmountFields = () => {
     const next = new Set(selectedFields)
-    AMOUNT_FIELD_KEYS.forEach((k) => next.add(k))
+    for (const k of AMOUNT_FIELD_KEYS) {
+      next.add(k)
+    }
     setSelectedFields(next)
   }
 

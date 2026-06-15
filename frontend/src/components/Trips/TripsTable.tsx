@@ -7,15 +7,14 @@ import {
   Table,
   VStack,
 } from "@chakra-ui/react"
-import {
-  createListCollection,
-  type ListCollection,
-} from "@chakra-ui/react"
+import { type ListCollection, createListCollection } from "@chakra-ui/react"
 import { FiSearch, FiX } from "react-icons/fi"
 
-import type { TripsSearch } from "@/routes/_layout/trips"
 import PendingTrips from "@/components/Pending/PendingTrips"
-import { DEFAULT_PAGE_SIZE, PageSizeSelect } from "@/components/ui/page-size-select"
+import {
+  DEFAULT_PAGE_SIZE,
+  PageSizeSelect,
+} from "@/components/ui/page-size-select"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -24,27 +23,29 @@ import {
 } from "@/components/ui/pagination"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
-import { TRIP_TYPES, getLabelForValue, type SortableColumn, type SortDirection } from "./types"
+import type { TripsSearch } from "@/routes/_layout/trips"
 import TripsFilterBar from "./TripsFilterBar"
 import TripsTableHeader from "./TripsTableHeader"
 import TripsTableRow from "./TripsTableRow"
 import { useTripsListQueries } from "./hooks/useTripsListQueries"
+import {
+  type SortDirection,
+  type SortableColumn,
+  TRIP_TYPES,
+  getLabelForValue,
+} from "./types"
 
 interface TripsTableProps {
   search: TripsSearch
   onSearchChange: (updates: Partial<TripsSearch>) => void
 }
 
-export default function TripsTable({ search, onSearchChange }: TripsTableProps) {
+export default function TripsTable({
+  search,
+  onSearchChange,
+}: TripsTableProps) {
   useDateFormatPreference()
-  const {
-    page,
-    pageSize,
-    sortBy,
-    sortDirection,
-    missionId,
-    tripType,
-  } = search
+  const { page, pageSize, sortBy, sortDirection, missionId, tripType } = search
   const { includeArchived, setIncludeArchived } = useIncludeArchived()
 
   const effectivePageSize = pageSize ?? DEFAULT_PAGE_SIZE
@@ -123,11 +124,15 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
   })
 
   const missionFilterLabel = getLabelForValue(
-    missionsCollection as unknown as { items: Array<{ label: string; value: string }> },
+    missionsCollection as unknown as {
+      items: Array<{ label: string; value: string }>
+    },
     missionId,
   )
   const tripTypeFilterLabel = getLabelForValue(
-    tripTypeCollection as unknown as { items: Array<{ label: string; value: string }> },
+    tripTypeCollection as unknown as {
+      items: Array<{ label: string; value: string }>
+    },
     tripType,
   )
 
@@ -144,11 +149,15 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
         missionId={missionId}
         missionFilterLabel={missionFilterLabel}
         onMissionFilter={handleMissionFilter}
-        missionsCollection={missionsCollection as ListCollection<{ label: string; value: string }>}
+        missionsCollection={
+          missionsCollection as ListCollection<{ label: string; value: string }>
+        }
         tripType={tripType}
         tripTypeFilterLabel={tripTypeFilterLabel}
         onTripTypeFilter={handleTripTypeFilter}
-        tripTypeCollection={tripTypeCollection as ListCollection<{ label: string; value: string }>}
+        tripTypeCollection={
+          tripTypeCollection as ListCollection<{ label: string; value: string }>
+        }
         includeArchived={includeArchived}
         onIncludeArchivedChange={handleIncludeArchivedChange}
         hasActiveFilters={hasActiveFilters}
@@ -190,11 +199,7 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
       ) : (
         <>
           <Box overflowX="auto">
-            <Table.Root
-              size="sm"
-              width="100%"
-              minW="max-content"
-            >
+            <Table.Root size="sm" width="100%" minW="max-content">
               <TripsTableHeader
                 sortBy={effectiveSortBy}
                 sortDirection={effectiveSortDirection}
@@ -205,7 +210,9 @@ export default function TripsTable({ search, onSearchChange }: TripsTableProps) 
                   <TripsTableRow
                     key={trip.id}
                     trip={trip}
-                    missionName={missionsMap.get(trip.mission_id)?.name ?? "Unknown"}
+                    missionName={
+                      missionsMap.get(trip.mission_id)?.name ?? "Unknown"
+                    }
                     boats={tripBoatsByTrip[trip.id] ?? []}
                     isPlaceholderData={isPlaceholderData}
                   />

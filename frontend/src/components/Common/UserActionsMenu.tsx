@@ -1,7 +1,7 @@
 import type { UserPublic } from "../../client"
-import { ActionsMenu } from "../ui/actions-menu"
 import DeleteUser from "../Admin/DeleteUser"
 import EditUser from "../Admin/EditUser"
+import { ActionsMenu } from "../ui/actions-menu"
 
 interface UserActionsMenuProps {
   user: UserPublic

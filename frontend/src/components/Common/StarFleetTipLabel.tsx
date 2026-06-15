@@ -18,7 +18,10 @@ interface StarFleetTipLabelProps {
   showTooltip?: boolean
 }
 
-export function StarFleetTipLabel({ showColon, showTooltip = true }: StarFleetTipLabelProps) {
+export function StarFleetTipLabel({
+  showColon,
+  showTooltip = true,
+}: StarFleetTipLabelProps) {
   return (
     <HStack gap={1} align="center" display="inline-flex">
       <Text as="span">Star Fleet Tip{showColon ? ":" : ""}</Text>

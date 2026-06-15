@@ -3,7 +3,9 @@ import { formatDateTimeInLocationTz } from "@/utils"
 import { z } from "zod"
 
 /** Sum of ticket quantities (items without trip_merchandise_id) for a booking. */
-export function totalTicketQuantity(booking: BookingPublic | undefined): number {
+export function totalTicketQuantity(
+  booking: BookingPublic | undefined,
+): number {
   if (!booking?.items) return 0
   return booking.items
     .filter((item) => !item.trip_merchandise_id)
@@ -192,7 +194,10 @@ export function parseStatusList(
   all: readonly string[],
 ): string[] {
   if (!param?.trim()) return [...all]
-  const parsed = param.split(",").map((s) => s.trim()).filter(Boolean)
+  const parsed = param
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
   const valid = parsed.filter((s) => all.includes(s))
   return valid.length > 0 ? valid : [...all]
 }
@@ -213,14 +218,8 @@ export function formatTripFilterLabel(trip: TripPublic): string {
   const name = trip.name?.trim()
   if (name) return name
   const readableType = tripTypeToLabel(trip.type)
-  const rawTime = formatDateTimeInLocationTz(
-    trip.departure_time,
-    trip.timezone,
-  )
-  const timeWithoutSeconds = rawTime.replace(
-    /(\d{2}:\d{2}):\d{2}/,
-    "$1",
-  )
+  const rawTime = formatDateTimeInLocationTz(trip.departure_time, trip.timezone)
+  const timeWithoutSeconds = rawTime.replace(/(\d{2}:\d{2}):\d{2}/, "$1")
   if (!timeWithoutSeconds) return readableType
   return `${readableType} (${timeWithoutSeconds})`
 }

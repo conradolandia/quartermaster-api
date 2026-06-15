@@ -1,3 +1,4 @@
+import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import {
   Box,
   Button,
@@ -11,7 +12,6 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useEffect } from "react"
-import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 
 import type { TripPublic } from "@/client"
 
@@ -74,9 +74,7 @@ const Step1TripSelection = ({
     (directLinkTrip && bookingData.selectedTripId === directLinkTrip.id
       ? directLinkTrip
       : null) ??
-    allTrips?.data?.find(
-      (t: TripPublic) => t.id === bookingData.selectedTripId,
-    )
+    allTrips?.data?.find((t: TripPublic) => t.id === bookingData.selectedTripId)
 
   const selectedLaunch = selectedTrip
     ? launches.find((l) => l.id === bookingData.selectedLaunchId) ?? null
@@ -154,12 +152,14 @@ const Step1TripSelection = ({
                 </Text>
               ) : !tripOptionsPending && activeTrips.length === 0 ? (
                 <Text color="text.muted" fontSize="sm">
-                  No active trips for this mission right now. Try another mission
-                  or check back later.
+                  No active trips for this mission right now. Try another
+                  mission or check back later.
                 </Text>
               ) : (
                 <Select.Root
-                  key={`trip-${bookingData.selectedLaunchId}-${tripOptionsPending ? "pending" : "ready"}-${activeTrips.length}`}
+                  key={`trip-${bookingData.selectedLaunchId}-${
+                    tripOptionsPending ? "pending" : "ready"
+                  }-${activeTrips.length}`}
                   collection={tripsCollection}
                   disabled={tripOptionsPending}
                   value={
@@ -195,7 +195,9 @@ const Step1TripSelection = ({
                       }}
                     >
                       {activeTrips.map((trip: TripPublic) => {
-                        const label = `${trip.name?.trim() ? `${trip.name.trim()} - ` : ""}${tripTypeToLabel(trip.type)}`
+                        const label = `${
+                          trip.name?.trim() ? `${trip.name.trim()} - ` : ""
+                        }${tripTypeToLabel(trip.type)}`
                         return (
                           <Select.Item
                             key={trip.id}
@@ -230,23 +232,25 @@ const Step1TripSelection = ({
             )}
 
             {/* Booking Paused */}
-            {bookingData.selectedTripId &&
-              !isLoadingBoats &&
-              isTripPaused && (
-                <Card.Root bg="orange.50" borderColor="orange.200" borderWidth="1px">
-                  <Card.Body>
-                    <VStack gap={2}>
-                      <Heading size="md" color="orange.700">
-                        Booking Is Paused for This Trip
-                      </Heading>
-                      <Text color="orange.600" textAlign="center">
-                        Please check back later or contact Star Fleet directly
-                        to book.
-                      </Text>
-                    </VStack>
-                  </Card.Body>
-                </Card.Root>
-              )}
+            {bookingData.selectedTripId && !isLoadingBoats && isTripPaused && (
+              <Card.Root
+                bg="orange.50"
+                borderColor="orange.200"
+                borderWidth="1px"
+              >
+                <Card.Body>
+                  <VStack gap={2}>
+                    <Heading size="md" color="orange.700">
+                      Booking Is Paused for This Trip
+                    </Heading>
+                    <Text color="orange.600" textAlign="center">
+                      Please check back later or contact Star Fleet directly to
+                      book.
+                    </Text>
+                  </VStack>
+                </Card.Body>
+              </Card.Root>
+            )}
 
             {/* Boat Selection */}
             {bookingData.selectedTripId &&

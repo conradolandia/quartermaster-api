@@ -44,59 +44,55 @@ const Sidebar = () => {
         >
           <DrawerBackdrop />
           <DrawerTrigger asChild>
-            <IconButton
-              variant="ghost"
-              color="inherit"
-              aria-label="Open Menu"
-            >
+            <IconButton variant="ghost" color="inherit" aria-label="Open Menu">
               <FaBars />
             </IconButton>
           </DrawerTrigger>
-        <DrawerContent maxW="xs" bg="dark.bg.secondary">
-          <DrawerCloseTrigger />
-          <DrawerBody>
-            <Flex flexDir="column" justify="space-between" h="100%">
-              <Box>
-                <SidebarItems onClose={() => setOpen(false)} />
-                <Flex
-                  as="button"
-                  onClick={() => {
-                    logout()
-                  }}
-                  alignItems="center"
-                  gap={4}
-                  px={4}
-                  py={2}
-                  color="text.secondary"
-                  _hover={{
-                    bg: "dark.bg.hover",
-                    color: "text.primary",
-                  }}
-                  borderRadius="md"
-                  mt={2}
-                >
-                  <FiLogOut />
-                  <Text>Log Out</Text>
-                </Flex>
-              </Box>
-              {currentUser?.email && (
-                <Text
-                  fontSize="sm"
-                  p={2}
-                  truncate
-                  maxW="sm"
-                  color="text.muted"
-                  borderTop="1px solid"
-                  borderColor="border.default"
-                  mt={4}
-                >
-                  Logged in as: {currentUser.email}
-                </Text>
-              )}
-            </Flex>
-          </DrawerBody>
-          <DrawerCloseTrigger />
-        </DrawerContent>
+          <DrawerContent maxW="xs" bg="dark.bg.secondary">
+            <DrawerCloseTrigger />
+            <DrawerBody>
+              <Flex flexDir="column" justify="space-between" h="100%">
+                <Box>
+                  <SidebarItems onClose={() => setOpen(false)} />
+                  <Flex
+                    as="button"
+                    onClick={() => {
+                      logout()
+                    }}
+                    alignItems="center"
+                    gap={4}
+                    px={4}
+                    py={2}
+                    color="text.secondary"
+                    _hover={{
+                      bg: "dark.bg.hover",
+                      color: "text.primary",
+                    }}
+                    borderRadius="md"
+                    mt={2}
+                  >
+                    <FiLogOut />
+                    <Text>Log Out</Text>
+                  </Flex>
+                </Box>
+                {currentUser?.email && (
+                  <Text
+                    fontSize="sm"
+                    p={2}
+                    truncate
+                    maxW="sm"
+                    color="text.muted"
+                    borderTop="1px solid"
+                    borderColor="border.default"
+                    mt={4}
+                  >
+                    Logged in as: {currentUser.email}
+                  </Text>
+                )}
+              </Flex>
+            </DrawerBody>
+            <DrawerCloseTrigger />
+          </DrawerContent>
         </DrawerRoot>
       </Box>
 

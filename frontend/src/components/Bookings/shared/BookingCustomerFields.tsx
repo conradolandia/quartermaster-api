@@ -97,9 +97,9 @@ export function BookingCustomerFields({
             }),
             maxLength: {
               value: 255,
-              message:
-                (required ? "Customer email" : "Email") +
-                " cannot exceed 255 characters",
+              message: `${
+                required ? "Customer email" : "Email"
+              } cannot exceed 255 characters`,
             },
           })}
           placeholder="customer@example.com"
@@ -117,9 +117,9 @@ export function BookingCustomerFields({
             ...(required && { required: "Customer phone is required" }),
             maxLength: {
               value: 40,
-              message:
-                (required ? "Customer phone" : "Phone") +
-                " cannot exceed 40 characters",
+              message: `${
+                required ? "Customer phone" : "Phone"
+              } cannot exceed 40 characters`,
             },
           })}
           placeholder={required ? "Customer Phone" : "Phone number"}

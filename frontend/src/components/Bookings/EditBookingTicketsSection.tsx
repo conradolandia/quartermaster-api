@@ -7,16 +7,16 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { Controller, type Control } from "react-hook-form"
+import { type Control, Controller } from "react-hook-form"
 
-import type { UseMutationResult } from "@tanstack/react-query"
 import type { BookingPublic, BookingUpdate } from "@/client"
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import { formatCents } from "@/utils"
+import type { UseMutationResult } from "@tanstack/react-query"
 import type { PendingBoatChange } from "./BoatChangeTypeDialog"
-import { getItemTypeLabel } from "./types"
 import { BookingItemStatusBadge } from "./BookingItemStatusBadge"
+import { getItemTypeLabel } from "./types"
 
 interface BoatOption {
   boat_id: string
@@ -106,20 +106,14 @@ export function EditBookingTicketsSection({
                   </Card.Header>
                   <Card.Body>
                     <VStack gap={4} align="stretch">
-                      <SimpleGrid
-                        columns={{ base: 1, md: 2 }}
-                        gap={4}
-                        w="full"
-                      >
+                      <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} w="full">
                         <Field label="Boat" w="full">
                           {(() => {
                             const boats = boatsByTripId[item.trip_id]
                             const canChangeBoat =
                               booking.booking_status !== "checked_in"
                             if (!boats?.length) {
-                              return (
-                                <Text>{getBoatName(item.boat_id)}</Text>
-                              )
+                              return <Text>{getBoatName(item.boat_id)}</Text>
                             }
                             const updatingBoat =
                               updateItemBoatMutation.isPending &&
@@ -211,8 +205,8 @@ export function EditBookingTicketsSection({
                                     key={p.ticket_type}
                                     value={p.ticket_type}
                                   >
-                                    {getItemTypeLabel(p.ticket_type)} (
-                                    ${formatCents(p.price)})
+                                    {getItemTypeLabel(p.ticket_type)} ( $
+                                    {formatCents(p.price)})
                                   </option>
                                 ))}
                               </NativeSelect>
@@ -250,8 +244,7 @@ export function EditBookingTicketsSection({
                                   field.onChange(
                                     Math.max(
                                       0,
-                                      Number.parseInt(e.target.value, 10) ??
-                                        0,
+                                      Number.parseInt(e.target.value, 10) ?? 0,
                                     ),
                                   )
                                 }
@@ -260,9 +253,7 @@ export function EditBookingTicketsSection({
                           />
                         </Field>
                         <Field label="Price">
-                          <Text>
-                            ${formatCents(item.price_per_unit)}
-                          </Text>
+                          <Text>${formatCents(item.price_per_unit)}</Text>
                         </Field>
                         <Field label="Total">
                           <Text fontWeight="medium">
@@ -346,8 +337,8 @@ export function EditBookingTicketsSection({
                   <option value="">Select type...</option>
                   {newTicketPricing?.map((p) => (
                     <option key={p.ticket_type} value={p.ticket_type}>
-                      {getItemTypeLabel(p.ticket_type)} (
-                      ${formatCents(p.price)})
+                      {getItemTypeLabel(p.ticket_type)} ( $
+                      {formatCents(p.price)})
                     </option>
                   )) ?? []}
                 </NativeSelect>
@@ -359,10 +350,7 @@ export function EditBookingTicketsSection({
                   value={newTicketQty}
                   onChange={(e) =>
                     onNewTicketQtyChange(
-                      Math.max(
-                        1,
-                        Number.parseInt(e.target.value, 10) || 1,
-                      ),
+                      Math.max(1, Number.parseInt(e.target.value, 10) || 1),
                     )
                   }
                 />

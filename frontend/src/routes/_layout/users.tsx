@@ -11,13 +11,13 @@ import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
 } from "@/components/ui/page-size-select"
-import { formatUserRole } from "@/utils/permissions"
 import {
   PaginationItems,
   PaginationNextTrigger,
   PaginationPrevTrigger,
   PaginationRoot,
 } from "@/components/ui/pagination.tsx"
+import { formatUserRole } from "@/utils/permissions"
 
 const usersSearchSchema = z.object({
   page: z.number().catch(1),
@@ -85,44 +85,44 @@ function UsersTable() {
   return (
     <>
       <Box overflowX="auto">
-      <Table.Root size="sm">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="sm">Full name</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Email</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Role</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
-            <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {users?.map((user) => (
-            <Table.Row key={user.id} opacity={isPlaceholderData ? 0.5 : 1}>
-              <Table.Cell color={!user.full_name ? "gray" : "inherit"}>
-                {user.full_name || "N/A"}
-                {currentUser?.id === user.id && (
-                  <Badge ml="1" colorPalette="teal">
-                    You
-                  </Badge>
-                )}
-              </Table.Cell>
-              <Table.Cell truncate maxW="sm">
-                {user.email}
-              </Table.Cell>
-              <Table.Cell>
-                {formatUserRole(user.role)}
-              </Table.Cell>
-              <Table.Cell>{user.is_active ? "Active" : "Inactive"}</Table.Cell>
-              <Table.Cell>
-                <UserActionsMenu
-                  user={user}
-                  disabled={currentUser?.id === user.id}
-                />
-              </Table.Cell>
+        <Table.Root size="sm">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader w="sm">Full name</Table.ColumnHeader>
+              <Table.ColumnHeader w="sm">Email</Table.ColumnHeader>
+              <Table.ColumnHeader w="sm">Role</Table.ColumnHeader>
+              <Table.ColumnHeader w="sm">Status</Table.ColumnHeader>
+              <Table.ColumnHeader w="sm">Actions</Table.ColumnHeader>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+          </Table.Header>
+          <Table.Body>
+            {users?.map((user) => (
+              <Table.Row key={user.id} opacity={isPlaceholderData ? 0.5 : 1}>
+                <Table.Cell color={!user.full_name ? "gray" : "inherit"}>
+                  {user.full_name || "N/A"}
+                  {currentUser?.id === user.id && (
+                    <Badge ml="1" colorPalette="teal">
+                      You
+                    </Badge>
+                  )}
+                </Table.Cell>
+                <Table.Cell truncate maxW="sm">
+                  {user.email}
+                </Table.Cell>
+                <Table.Cell>{formatUserRole(user.role)}</Table.Cell>
+                <Table.Cell>
+                  {user.is_active ? "Active" : "Inactive"}
+                </Table.Cell>
+                <Table.Cell>
+                  <UserActionsMenu
+                    user={user}
+                    disabled={currentUser?.id === user.id}
+                  />
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
       </Box>
       {count > 0 && (
         <Flex

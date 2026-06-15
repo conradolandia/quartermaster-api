@@ -1,10 +1,4 @@
-import {
-  Alert,
-  Button,
-  ButtonGroup,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
+import { Alert, Button, ButtonGroup, Text, VStack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiTrash2 } from "react-icons/fi"
@@ -24,7 +18,11 @@ import {
   DialogTrigger,
 } from "../ui/dialog"
 
-const DeleteMission = ({ id, name, disabled = false }: { id: string; name: string; disabled?: boolean }) => {
+const DeleteMission = ({
+  id,
+  name,
+  disabled = false,
+}: { id: string; name: string; disabled?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -65,7 +63,12 @@ const DeleteMission = ({ id, name, disabled = false }: { id: string; name: strin
       onOpenChange={handleOpenChange}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" color="status.error" disabled={disabled}>
+        <Button
+          variant="ghost"
+          size="sm"
+          color="status.error"
+          disabled={disabled}
+        >
           <FiTrash2 fontSize="16px" />
           Delete Mission
         </Button>
@@ -82,8 +85,8 @@ const DeleteMission = ({ id, name, disabled = false }: { id: string; name: strin
               will not be able to undo this action.
             </Text>
             <Text fontSize="sm" color="red.500">
-              Note: You cannot delete a mission if any trips are associated
-              with it.
+              Note: You cannot delete a mission if any trips are associated with
+              it.
             </Text>
             {errorMessage && (
               <Alert.Root status="error">

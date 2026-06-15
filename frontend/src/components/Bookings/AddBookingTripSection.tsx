@@ -57,7 +57,9 @@ export function AddBookingTripSection({
           >
             {tripBoats.map((tb, idx) => (
               <option key={`${tb.boat_id}-${idx}`} value={tb.boat_id}>
-                {`${boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id} (${tb.remaining_capacity} spots left)`}
+                {`${boatNames[tb.boat_id] || tb.boat?.name || tb.boat_id} (${
+                  tb.remaining_capacity
+                } spots left)`}
               </option>
             ))}
           </NativeSelect>

@@ -1,7 +1,7 @@
 import { Flex, Table } from "@chakra-ui/react"
 
-import type { SortableColumn } from "./types"
 import SortIcon from "./shared/SortIcon"
+import type { SortableColumn } from "./types"
 
 interface BookingsTableHeaderProps {
   sortBy: SortableColumn
@@ -26,7 +26,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Code
-            <SortIcon column="confirmation_code" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="confirmation_code"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -38,7 +42,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Customer info
-            <SortIcon column="last_name" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="last_name"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -50,7 +58,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Mission
-            <SortIcon column="mission_name" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="mission_name"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -62,7 +74,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Trip
-            <SortIcon column="trip_name" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="trip_name"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -73,7 +89,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Boat
-            <SortIcon column="boat_name" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="boat_name"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -85,7 +105,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Ticket type
-            <SortIcon column="ticket_item_type" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="ticket_item_type"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -98,7 +122,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Status
-            <SortIcon column="booking_status" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="booking_status"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -111,7 +139,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Total
-            <SortIcon column="total_amount" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="total_amount"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -123,7 +155,11 @@ export default function BookingsTableHeader({
         >
           <Flex align="center" justify="center">
             Qty
-            <SortIcon column="total_quantity" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="total_quantity"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
         <Table.ColumnHeader
@@ -135,10 +171,19 @@ export default function BookingsTableHeader({
         >
           <Flex align="center">
             Created at
-            <SortIcon column="created_at" sortBy={sortBy} sortDirection={sortDirection} />
+            <SortIcon
+              column="created_at"
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+            />
           </Flex>
         </Table.ColumnHeader>
-        <Table.ColumnHeader w="20" fontWeight="bold" whiteSpace="nowrap" textAlign="center">
+        <Table.ColumnHeader
+          w="20"
+          fontWeight="bold"
+          whiteSpace="nowrap"
+          textAlign="center"
+        >
           Actions
         </Table.ColumnHeader>
       </Table.Row>

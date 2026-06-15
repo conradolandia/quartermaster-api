@@ -1,16 +1,16 @@
-import { type MissionPublic, MissionsService } from "../../client"
+import { Button } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { FiArchive, FiCopy, FiMail } from "react-icons/fi"
-import { Button } from "@chakra-ui/react"
+import { type MissionPublic, MissionsService } from "../../client"
 
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { ActionsMenu } from "../ui/actions-menu"
-import { MenuItem } from "../ui/menu"
+import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 import DeleteMission from "../Missions/DeleteMission"
 import EditMission from "../Missions/EditMission"
-import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
+import { ActionsMenu } from "../ui/actions-menu"
+import { MenuItem } from "../ui/menu"
 
 interface Mission {
   id: string
@@ -151,7 +151,11 @@ export const MissionActionsMenu = ({ mission }: MissionActionsMenuProps) => {
             </Button>
           </MenuItem>
         )}
-        <DeleteMission id={mission.id} name={mission.name} disabled={!!mission.archived} />
+        <DeleteMission
+          id={mission.id}
+          name={mission.name}
+          disabled={!!mission.archived}
+        />
       </ActionsMenu>
       <EditMission
         mission={

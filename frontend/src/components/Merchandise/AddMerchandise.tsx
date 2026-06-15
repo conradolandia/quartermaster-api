@@ -11,6 +11,7 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { useRef, useState } from "react"
+import { FiTrash2 } from "react-icons/fi"
 import {
   DialogActionTrigger,
   DialogBody,
@@ -21,7 +22,6 @@ import {
   DialogRoot,
   DialogTitle,
 } from "../ui/dialog"
-import { FiTrash2 } from "react-icons/fi"
 
 import {
   type ApiError,
@@ -233,9 +233,7 @@ export const AddMerchandise = ({
                       value={formatPriceValue(value)}
                       onValueChange={(e) => {
                         const n = e.valueAsNumber
-                        onChange(
-                          n === undefined || Number.isNaN(n) ? 0 : n
-                        )
+                        onChange(n === undefined || Number.isNaN(n) ? 0 : n)
                       }}
                       min={0}
                       step={0.01}
@@ -267,9 +265,7 @@ export const AddMerchandise = ({
                             ? ""
                             : String(value)
                         }
-                        onValueChange={(e) =>
-                          onChange(e.valueAsNumber ?? 0)
-                        }
+                        onValueChange={(e) => onChange(e.valueAsNumber ?? 0)}
                         min={0}
                         step={1}
                       >
@@ -297,7 +293,11 @@ export const AddMerchandise = ({
                         flexWrap="wrap"
                       >
                         <Box minW="80px" flex={1}>
-                          <Text fontWeight="medium" fontSize="sm" color="text.muted">
+                          <Text
+                            fontWeight="medium"
+                            fontSize="sm"
+                            color="text.muted"
+                          >
                             Variant
                           </Text>
                           <Text>{pv.variant_value}</Text>
@@ -335,9 +335,7 @@ export const AddMerchandise = ({
                           size="sm"
                           placeholder="e.g. XL"
                           value={newVariantValue}
-                          onChange={(e) =>
-                            setNewVariantValue(e.target.value)
-                          }
+                          onChange={(e) => setNewVariantValue(e.target.value)}
                         />
                       </Field>
                       <Field label="Quantity" width="100px">
@@ -375,9 +373,7 @@ export const AddMerchandise = ({
                         size="sm"
                         placeholder="e.g. XL"
                         value={newVariantValue}
-                        onChange={(e) =>
-                          setNewVariantValue(e.target.value)
-                        }
+                        onChange={(e) => setNewVariantValue(e.target.value)}
                       />
                     </Field>
                     <Field label="Quantity" width="100px">

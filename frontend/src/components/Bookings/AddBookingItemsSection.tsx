@@ -43,9 +43,7 @@ interface AddBookingItemsSectionProps {
   getItemDisplayName: (item: SelectedItem) => string
   updateItemQuantity: (index: number, quantity: number) => void
   removeItem: (index: number) => void
-  setMerchandiseVariantByKey: Dispatch<
-    SetStateAction<Record<string, string>>
-  >
+  setMerchandiseVariantByKey: Dispatch<SetStateAction<Record<string, string>>>
 }
 
 export function AddBookingItemsSection({
@@ -90,9 +88,7 @@ export function AddBookingItemsSection({
                   .replace("_", " ")
                   .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
                 - ${formatCents(pricing.price)}
-                {pricing.remaining >= 0 && (
-                  <> ({pricing.remaining} left)</>
-                )}
+                {pricing.remaining >= 0 && <> ({pricing.remaining} left)</>}
               </Button>
             ))}
           </HStack>
@@ -152,10 +148,7 @@ export function AddBookingItemsSection({
                       <Select.Positioner>
                         <Select.Content>
                           {options.map((o) => (
-                            <Select.Item
-                              key={o}
-                              item={{ label: o, value: o }}
-                            >
+                            <Select.Item key={o} item={{ label: o, value: o }}>
                               {o}
                             </Select.Item>
                           ))}
@@ -198,11 +191,7 @@ export function AddBookingItemsSection({
         >
           <Text fontWeight="medium">Selected Items</Text>
           {selectedItems.map((item, index) => (
-            <HStack
-              key={index}
-              width="100%"
-              justify="space-between"
-            >
+            <HStack key={index} width="100%" justify="space-between">
               <VStack align="start" gap={0}>
                 <Text fontSize="sm" fontWeight="medium">
                   {getItemDisplayName(item)}
@@ -233,10 +222,7 @@ export function AddBookingItemsSection({
                                 x.item_type === item.item_type,
                             )
                             .reduce((sum, x) => sum + x.quantity, 0)
-                          return Math.max(
-                            0,
-                            pricing.remaining - otherSameType,
-                          )
+                          return Math.max(0, pricing.remaining - otherSameType)
                         })()
                   }
                   value={item.quantity}

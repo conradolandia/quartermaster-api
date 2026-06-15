@@ -41,7 +41,11 @@ interface AddBoatProps {
 
 type AddBoatForm = Omit<BoatCreate, "capacity"> & { capacity?: number }
 
-type PendingPricingRow = { ticket_type: string; price: string; capacity: string }
+type PendingPricingRow = {
+  ticket_type: string
+  price: string
+  capacity: string
+}
 
 const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
   const contentRef = useRef(null)
@@ -255,8 +259,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   rules={{
                     required: "Capacity is required",
                     validate: (value) => {
-                      if (value === undefined || value === null) return "Capacity is required"
-                      if (typeof value !== "number" || !Number.isInteger(value)) return "Capacity must be a number"
+                      if (value === undefined || value === null)
+                        return "Capacity is required"
+                      if (typeof value !== "number" || !Number.isInteger(value))
+                        return "Capacity must be a number"
                       if (value < 1) return "Capacity must be at least 1"
                       return true
                     },
@@ -423,7 +429,10 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                       <HStack>
                         <Text fontWeight="medium">{p.ticket_type}</Text>
                         <Text fontSize="sm" color="gray.400">
-                          ${formatCents(Math.round(Number.parseFloat(p.price) * 100))}
+                          $
+                          {formatCents(
+                            Math.round(Number.parseFloat(p.price) * 100),
+                          )}
                           {p.capacity.trim() === ""
                             ? " (shared boat)"
                             : ` (${p.capacity} seats)`}

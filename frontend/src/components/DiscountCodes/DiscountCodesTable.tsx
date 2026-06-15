@@ -1,12 +1,5 @@
 import type { DiscountCodePublic } from "@/client"
-import {
-  Badge,
-  Box,
-  HStack,
-  IconButton,
-  Table,
-  Text,
-} from "@chakra-ui/react"
+import { Badge, Box, HStack, IconButton, Table, Text } from "@chakra-ui/react"
 import { FiCopy, FiEdit, FiTrash2 } from "react-icons/fi"
 
 import { formatCents } from "@/utils"
@@ -15,7 +8,9 @@ function formatRestrictions(
   dc: DiscountCodePublic,
   tableLaunches: Array<{ id: string; name: string }> | undefined,
   tableMissions: Array<{ id: string; name: string }> | undefined,
-  tableTrips: Array<{ id: string; name?: string | null; type: string }> | undefined,
+  tableTrips:
+    | Array<{ id: string; name?: string | null; type: string }>
+    | undefined,
 ): string {
   const parts: string[] = []
   if (dc.restricted_trip_type) {
@@ -30,9 +25,7 @@ function formatRestrictions(
     parts.push(launch ? launch.name : "Launch")
   }
   if (dc.restricted_mission_id && tableMissions?.length) {
-    const mission = tableMissions.find(
-      (m) => m.id === dc.restricted_mission_id,
-    )
+    const mission = tableMissions.find((m) => m.id === dc.restricted_mission_id)
     parts.push(mission ? mission.name : "Mission")
   }
   if (dc.restricted_trip_id && tableTrips?.length) {
@@ -46,7 +39,9 @@ interface DiscountCodesTableProps {
   discountCodes: DiscountCodePublic[] | undefined
   tableLaunches: Array<{ id: string; name: string }> | undefined
   tableMissions: Array<{ id: string; name: string }> | undefined
-  tableTrips: Array<{ id: string; name?: string | null; type: string }> | undefined
+  tableTrips:
+    | Array<{ id: string; name?: string | null; type: string }>
+    | undefined
   onEdit: (dc: DiscountCodePublic) => void
   onDelete: (id: string) => void
   buildBookingUrl: (code: string, isAccessCode: boolean) => string
@@ -100,12 +95,7 @@ export default function DiscountCodesTable({
                 </Text>
               </Table.Cell>
               <Table.Cell>
-                <Badge
-                  size="lg"
-                  colorPalette="green"
-                  px={2}
-                  py={0.5}
-                >
+                <Badge size="lg" colorPalette="green" px={2} py={0.5}>
                   {discountCode.discount_type === "percentage" ? "%" : "$"}
                 </Badge>
               </Table.Cell>
@@ -128,9 +118,7 @@ export default function DiscountCodesTable({
               <Table.Cell>
                 <Badge
                   size="sm"
-                  colorPalette={
-                    discountCode.is_access_code ? "purple" : "gray"
-                  }
+                  colorPalette={discountCode.is_access_code ? "purple" : "gray"}
                 >
                   {discountCode.is_access_code ? "Access Code" : "Discount"}
                 </Badge>

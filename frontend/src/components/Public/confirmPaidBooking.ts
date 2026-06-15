@@ -20,9 +20,7 @@ export type ConfirmPaidBookingResult =
 export const PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE =
   "Payment confirmation is taking longer than expected. Your booking may still confirm—check your email or use Retry below."
 
-export function isBookingConfirmed(
-  status: string | null | undefined,
-): boolean {
+export function isBookingConfirmed(status: string | null | undefined): boolean {
   return CONFIRMED_BOOKING_STATUSES.includes(
     status as (typeof CONFIRMED_BOOKING_STATUSES)[number],
   )
@@ -32,8 +30,7 @@ export function isVerifyPaymentConfirmed(
   response: VerifyPaymentResponse,
 ): boolean {
   return (
-    response.status === "succeeded" &&
-    response.booking_status === "confirmed"
+    response.status === "succeeded" && response.booking_status === "confirmed"
   )
 }
 
@@ -43,10 +40,7 @@ function sleep(ms: number): Promise<void> {
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("Request timed out")),
-      ms,
-    )
+    const timer = setTimeout(() => reject(new Error("Request timed out")), ms)
     promise
       .then((value) => {
         clearTimeout(timer)
@@ -76,11 +70,7 @@ async function verifyPaymentWithRetry(
     retryDelayMs?: number
   } = {},
 ): Promise<VerifyPaymentResponse | null> {
-  const {
-    maxAttempts = 3,
-    timeoutMs = 30_000,
-    retryDelayMs = 2_000,
-  } = options
+  const { maxAttempts = 3, timeoutMs = 30_000, retryDelayMs = 2_000 } = options
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {

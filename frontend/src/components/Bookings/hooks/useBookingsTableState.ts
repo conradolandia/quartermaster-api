@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/page-size-select"
 import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
-import {
-  BOOKING_STATUSES,
-  PAYMENT_STATUSES,
-  parseStatusList,
-} from "../types"
+import { BOOKING_STATUSES, PAYMENT_STATUSES, parseStatusList } from "../types"
 import type { SortableColumn } from "../types"
 
 type SortDirection = "asc" | "desc"
@@ -14,37 +10,29 @@ type SortDirection = "asc" | "desc"
 const initialSearch = () => new URLSearchParams(window.location.search)
 
 export function useBookingsTableState() {
-  const [missionId, setMissionId] = useState<string | undefined>(() =>
-    initialSearch().get("missionId") || undefined,
+  const [missionId, setMissionId] = useState<string | undefined>(
+    () => initialSearch().get("missionId") || undefined,
   )
-  const [launchId, setLaunchId] = useState<string | undefined>(() =>
-    initialSearch().get("launchId") || undefined,
+  const [launchId, setLaunchId] = useState<string | undefined>(
+    () => initialSearch().get("launchId") || undefined,
   )
-  const [tripId, setTripId] = useState<string | undefined>(() =>
-    initialSearch().get("tripId") || undefined,
+  const [tripId, setTripId] = useState<string | undefined>(
+    () => initialSearch().get("tripId") || undefined,
   )
-  const [tripType, setTripType] = useState<string | undefined>(() =>
-    initialSearch().get("tripType") || undefined,
+  const [tripType, setTripType] = useState<string | undefined>(
+    () => initialSearch().get("tripType") || undefined,
   )
-  const [boatId, setBoatId] = useState<string | undefined>(() =>
-    initialSearch().get("boatId") || undefined,
+  const [boatId, setBoatId] = useState<string | undefined>(
+    () => initialSearch().get("boatId") || undefined,
   )
   const [ticketItemType, setTicketItemType] = useState<string | undefined>(
     () => initialSearch().get("ticketItemType") || undefined,
   )
-  const [bookingStatusFilter, setBookingStatusFilter] = useState<string[]>(
-    () =>
-      parseStatusList(
-        initialSearch().get("bookingStatuses"),
-        BOOKING_STATUSES,
-      ),
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<string[]>(() =>
+    parseStatusList(initialSearch().get("bookingStatuses"), BOOKING_STATUSES),
   )
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string[]>(
-    () =>
-      parseStatusList(
-        initialSearch().get("paymentStatuses"),
-        PAYMENT_STATUSES,
-      ),
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string[]>(() =>
+    parseStatusList(initialSearch().get("paymentStatuses"), PAYMENT_STATUSES),
   )
   const { includeArchived, setIncludeArchived } = useIncludeArchived()
   const [searchQuery, setSearchQuery] = useState<string>(

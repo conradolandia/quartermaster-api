@@ -91,7 +91,6 @@ const BookingLookup = () => {
     }
   }
 
-
   return (
     <VStack gap={6} align="stretch" maxW="2xl" mx="auto">
       <Box textAlign="center">
@@ -278,7 +277,12 @@ const BookingLookup = () => {
                 <VStack gap={2} align="stretch">
                   <HStack justify="space-between">
                     <Text fontWeight="medium">Created:</Text>
-                    <Text>{formatDateTimeInLocationTz(currentBooking.created_at, null)}</Text>
+                    <Text>
+                      {formatDateTimeInLocationTz(
+                        currentBooking.created_at,
+                        null,
+                      )}
+                    </Text>
                   </HStack>
                   {currentBooking.special_requests && (
                     <Box>

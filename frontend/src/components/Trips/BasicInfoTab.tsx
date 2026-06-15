@@ -73,10 +73,7 @@ const BasicInfoTab = ({
         />
       </Field>
 
-      <Field
-        label="Name"
-        helperText="Optional custom label for this trip"
-      >
+      <Field label="Name" helperText="Optional custom label for this trip">
         <Input
           id="name"
           value={name}
@@ -100,10 +97,7 @@ const BasicInfoTab = ({
         </NativeSelect>
       </Field>
 
-      <Field
-        label="Booking Mode"
-        helperText="Controls who can book this trip"
-      >
+      <Field label="Booking Mode" helperText="Controls who can book this trip">
         <NativeSelect
           id="booking_mode"
           value={bookingMode}
@@ -117,9 +111,7 @@ const BasicInfoTab = ({
           disabled={isPending}
         >
           <option value="private">Private (Admin Only)</option>
-          <option value="early_bird">
-            Early Bird (Access Code Required)
-          </option>
+          <option value="early_bird">Early Bird (Access Code Required)</option>
           <option value="public">Public (Open to All)</option>
         </NativeSelect>
       </Field>
@@ -190,11 +182,7 @@ const BasicInfoTab = ({
       </Field>
 
       <Field>
-        <Flex
-          alignItems="center"
-          justifyContent="space-between"
-          width="100%"
-        >
+        <Flex alignItems="center" justifyContent="space-between" width="100%">
           <Text>Active</Text>
           <Box
             onClick={() => setActive(!active)}
@@ -209,14 +197,8 @@ const BasicInfoTab = ({
           </Box>
         </Flex>
       </Field>
-      <Field
-        helperText="Only visible via direct link; excluded from public listing."
-      >
-        <Flex
-          alignItems="center"
-          justifyContent="space-between"
-          width="100%"
-        >
+      <Field helperText="Only visible via direct link; excluded from public listing.">
+        <Flex alignItems="center" justifyContent="space-between" width="100%">
           <Text>Unlisted</Text>
           <Box
             onClick={() => setUnlisted(!unlisted)}

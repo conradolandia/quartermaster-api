@@ -12,12 +12,7 @@ import {
 } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import {
-  FiDollarSign,
-  FiPlus,
-  FiSliders,
-  FiTrash2,
-} from "react-icons/fi"
+import { FiDollarSign, FiPlus, FiSliders, FiTrash2 } from "react-icons/fi"
 
 import {
   BoatPricingService,
@@ -192,9 +187,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     )
       return
     const launchDate = parseApiDate(launchData.launch_timestamp)
-    const departureDate = new Date(
-      launchDate.getTime() - 1 * 60 * 60 * 1000,
-    )
+    const departureDate = new Date(launchDate.getTime() - 1 * 60 * 60 * 1000)
     setDepartureTime(formatInLocationTimezone(departureDate, timezone))
   }, [isOpen, type, launchData?.launch_timestamp, timezone, departureTime])
 
@@ -208,7 +201,11 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       const firstId = catalogMerchandise.data[0].id
       setMerchandiseForm((prev) => ({ ...prev, merchandise_id: firstId }))
     }
-  }, [isAddingMerchandise, catalogMerchandise?.data, merchandiseForm.merchandise_id])
+  }, [
+    isAddingMerchandise,
+    catalogMerchandise?.data,
+    merchandiseForm.merchandise_id,
+  ])
 
   // Reset form on close
   useEffect(() => {
@@ -286,9 +283,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
     const num = Number.parseInt(trimmed, 10)
     if (Number.isNaN(num) || num < 1) return
     setSelectedBoats((prev) =>
-      prev.map((b) =>
-        b.boat_id === boatId ? { ...b, max_capacity: num } : b,
-      ),
+      prev.map((b) => (b.boat_id === boatId ? { ...b, max_capacity: num } : b)),
     )
     setEditingCapacityBoatId(null)
     setCapacityInputValue("")
@@ -312,8 +307,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       (b) => b.boat_id === selectedBoatForPricing.boatId,
     )
     if (boat) {
-      const effectiveMax =
-        boat.max_capacity ?? boat.capacity ?? 0
+      const effectiveMax = boat.max_capacity ?? boat.capacity ?? 0
       const existingConstrained = boat.pricing.reduce(
         (sum, p) => sum + (p.capacity ?? 0),
         0,
@@ -322,7 +316,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
       if (existingConstrained + newConstrained > effectiveMax) {
         handleError({
           body: {
-            detail: `Sum of ticket-type capacities (${existingConstrained + newConstrained}) would exceed effective max (${effectiveMax})`,
+            detail: `Sum of ticket-type capacities (${
+              existingConstrained + newConstrained
+            }) would exceed effective max (${effectiveMax})`,
           },
         } as any)
         return
@@ -364,7 +360,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
   }
 
   const boatsMap = new Map<string, any>()
-  boatsData.forEach((boat) => boatsMap.set(boat.id, boat))
+  for (const boat of boatsData) {
+    boatsMap.set(boat.id, boat)
+  }
 
   // Handle adding merchandise (from catalog)
   const handleAddMerchandise = () => {
@@ -436,7 +434,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
         booking_mode: data.booking_mode,
         sales_open_at: data.sales_open_at,
         departure_time: data.departure_time,
-        boarding_minutes_before_departure: data.boarding_minutes_before_departure,
+        boarding_minutes_before_departure:
+          data.boarding_minutes_before_departure,
         checkin_minutes_before_boarding: data.checkin_minutes_before_boarding,
         boats: data.boats.map((boat) => ({
           boat_id: boat.boat_id,
@@ -486,8 +485,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
 
   const handleSubmit = async () => {
     if (!missionId || !departureTime) return
-    const boardingMins = parseInt(boardingMinutesBeforeDeparture, 10) || 0
-    const checkinMins = parseInt(checkinMinutesBeforeBoarding, 10) || 0
+    const boardingMins =
+      Number.parseInt(boardingMinutesBeforeDeparture, 10) || 0
+    const checkinMins = Number.parseInt(checkinMinutesBeforeBoarding, 10) || 0
     if (boardingMins < 0 || checkinMins < 0) return
     if (selectedBoats.length === 0) {
       showSuccessToast("Please add at least one boat to the trip")
@@ -574,8 +574,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                 {selectedBoats.length > 0 ? (
                   <VStack align="stretch" mb={4} gap={2}>
                     {selectedBoats.map((boat) => {
-                      const maxCap =
-                        boat.max_capacity ?? boat.capacity ?? 0
+                      const maxCap = boat.max_capacity ?? boat.capacity ?? 0
                       const used = 0
                       const remaining = maxCap
                       const isPricingOpen =
@@ -612,8 +611,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                       color="gray.500"
                                       lineHeight="1.2"
                                     >
-                                      {p.ticket_type}: $
-                                      {formatCents(p.price)}
+                                      {p.ticket_type}: ${formatCents(p.price)}
                                       {p.capacity != null
                                         ? ` (${p.capacity} seats)`
                                         : ""}
@@ -690,15 +688,10 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 Capacity override for {boat.name || "Unknown"}
                               </Text>
                               <Text fontSize="sm" color="gray.500" mb={2}>
-                                Boat default: {boat.capacity ?? "—"} seats.
-                                Set a lower limit for this trip or leave
-                                default.
+                                Boat default: {boat.capacity ?? "—"} seats. Set
+                                a lower limit for this trip or leave default.
                               </Text>
-                              <HStack
-                                gap={2}
-                                align="center"
-                                flexWrap="wrap"
-                              >
+                              <HStack gap={2} align="center" flexWrap="wrap">
                                 <Input
                                   type="number"
                                   min={1}
@@ -739,9 +732,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                         capacityInputValue.trim(),
                                         10,
                                       )
-                                      return (
-                                        Number.isNaN(n) || n < 1
-                                      )
+                                      return Number.isNaN(n) || n < 1
                                     })()
                                   }
                                 >
@@ -772,8 +763,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             >
                               <HStack justify="space-between" mb={2}>
                                 <Text fontWeight="bold">
-                                  Pricing overrides for{" "}
-                                  {boat.name || "Unknown"}
+                                  Pricing overrides for {boat.name || "Unknown"}
                                 </Text>
                                 <Button
                                   size="xs"
@@ -837,48 +827,46 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 )
                               })()}
                               {!(boat.use_only_trip_pricing ?? false) && (
-                              <Box mb={3}>
-                                <Text
-                                  fontSize="sm"
-                                  fontWeight="bold"
-                                  mb={2}
-                                  color="gray.500"
-                                >
-                                  Boat defaults (Edit Boat to change)
-                                </Text>
-                                {boatDefaultsList.length > 0 ? (
-                                  <VStack align="stretch" gap={1}>
-                                    {boatDefaultsList.map((bp) => (
-                                      <HStack
-                                        key={bp.id}
-                                        justify="space-between"
-                                        p={2}
-                                        borderWidth="1px"
-                                        borderRadius="md"
-                                        borderColor="gray.400"
-                                        _dark={{
-                                          borderColor: "gray.600",
-                                          bg: "gray.800",
-                                        }}
-                                      >
-                                        <Text fontSize="sm">
-                                          {bp.ticket_type}
-                                        </Text>
-                                        <Text
-                                          fontSize="sm"
-                                          color="gray.500"
-                                        >
-                                          ${formatCents(bp.price)} (default)
-                                        </Text>
-                                      </HStack>
-                                    ))}
-                                  </VStack>
-                                ) : (
-                                  <Text fontSize="sm" color="gray.500">
-                                    No defaults. Add ticket types in Edit Boat.
+                                <Box mb={3}>
+                                  <Text
+                                    fontSize="sm"
+                                    fontWeight="bold"
+                                    mb={2}
+                                    color="gray.500"
+                                  >
+                                    Boat defaults (Edit Boat to change)
                                   </Text>
-                                )}
-                              </Box>
+                                  {boatDefaultsList.length > 0 ? (
+                                    <VStack align="stretch" gap={1}>
+                                      {boatDefaultsList.map((bp) => (
+                                        <HStack
+                                          key={bp.id}
+                                          justify="space-between"
+                                          p={2}
+                                          borderWidth="1px"
+                                          borderRadius="md"
+                                          borderColor="gray.400"
+                                          _dark={{
+                                            borderColor: "gray.600",
+                                            bg: "gray.800",
+                                          }}
+                                        >
+                                          <Text fontSize="sm">
+                                            {bp.ticket_type}
+                                          </Text>
+                                          <Text fontSize="sm" color="gray.500">
+                                            ${formatCents(bp.price)} (default)
+                                          </Text>
+                                        </HStack>
+                                      ))}
+                                    </VStack>
+                                  ) : (
+                                    <Text fontSize="sm" color="gray.500">
+                                      No defaults. Add ticket types in Edit
+                                      Boat.
+                                    </Text>
+                                  )}
+                                </Box>
                               )}
                               <Text
                                 fontSize="sm"
@@ -887,7 +875,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 color="gray.700"
                                 _dark={{ color: "gray.300" }}
                               >
-                                {(boat.use_only_trip_pricing ?? false)
+                                {boat.use_only_trip_pricing ?? false
                                   ? "Ticket types for this trip"
                                   : "Overrides for this trip"}
                               </Text>
@@ -905,10 +893,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                       <Text fontWeight="medium">
                                         {p.ticket_type}
                                       </Text>
-                                      <Text
-                                        fontSize="sm"
-                                        color="gray.500"
-                                      >
+                                      <Text fontSize="sm" color="gray.500">
                                         ${formatCents(p.price)}
                                         {p.capacity != null
                                           ? `, ${p.capacity} seats`
@@ -933,12 +918,8 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 ))}
                                 {boatPricing.length === 0 &&
                                   !isAddingTripBoatPricing && (
-                                    <Text
-                                      fontSize="sm"
-                                      color="gray.500"
-                                      py={2}
-                                    >
-                                      {(boat.use_only_trip_pricing ?? false)
+                                    <Text fontSize="sm" color="gray.500" py={2}>
+                                      {boat.use_only_trip_pricing ?? false
                                         ? "No ticket types defined. Add at least one to offer tickets."
                                         : "No overrides. Boat default pricing applies."}
                                     </Text>
@@ -991,9 +972,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                             }))
                                           }}
                                         >
-                                          <option value="">
-                                            Select type
-                                          </option>
+                                          <option value="">Select type</option>
                                           {boatDefaultsList
                                             .filter(
                                               (bp) =>
@@ -1028,10 +1007,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                               tripBoatPricingForm.ticket_type
                                             }
                                             onChange={(e) =>
-                                              setTripBoatPricingForm((prev) => ({
-                                                ...prev,
-                                                ticket_type: e.target.value,
-                                              }))
+                                              setTripBoatPricingForm(
+                                                (prev) => ({
+                                                  ...prev,
+                                                  ticket_type: e.target.value,
+                                                }),
+                                              )
                                             }
                                             placeholder="e.g. VIP, Premium"
                                           />
@@ -1084,13 +1065,16 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                       . Remaining:{" "}
                                       {Math.max(
                                         0,
-                                        (boat.max_capacity ?? boat.capacity ?? 0) -
+                                        (boat.max_capacity ??
+                                          boat.capacity ??
+                                          0) -
                                           (boat.pricing ?? []).reduce(
                                             (s, p) => s + (p.capacity ?? 0),
                                             0,
                                           ),
                                       )}
-                                      . Leave capacity empty to share boat capacity.
+                                      . Leave capacity empty to share boat
+                                      capacity.
                                     </Text>
                                     <HStack width="100%" justify="flex-end">
                                       <Button
@@ -1115,7 +1099,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                           )
                                         }
                                       >
-                                        {(boat.use_only_trip_pricing ?? false)
+                                        {boat.use_only_trip_pricing ?? false
                                           ? "Add"
                                           : "Add override"}
                                       </Button>
@@ -1131,7 +1115,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                     }
                                   >
                                     <FiPlus style={{ marginRight: "4px" }} />
-                                    {(boat.use_only_trip_pricing ?? false)
+                                    {boat.use_only_trip_pricing ?? false
                                       ? "Add ticket type"
                                       : "Add pricing override"}
                                   </Button>
@@ -1159,9 +1143,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                     <Field label="Select Boat" required>
                       <NativeSelect
                         value={selectedBoatId}
-                        onChange={(
-                          e: React.ChangeEvent<HTMLSelectElement>,
-                        ) => setSelectedBoatId(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setSelectedBoatId(e.target.value)
+                        }
                         disabled={mutation.isPending}
                       >
                         <option value="">Select a boat</option>
@@ -1208,10 +1192,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                       </Box>
                     </Flex>
                     <Flex justify="flex-end" gap={2}>
-                      <Button
-                        size="sm"
-                        onClick={() => setIsAddingBoat(false)}
-                      >
+                      <Button size="sm" onClick={() => setIsAddingBoat(false)}>
                         Cancel
                       </Button>
                       <Button
@@ -1267,10 +1248,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               mt={0.5}
                               lineHeight="1.2"
                             >
-                              Price: $
-                              {formatCents(catalogItem?.price ?? 0)} (default)
+                              Price: ${formatCents(catalogItem?.price ?? 0)}{" "}
+                              (default)
                               {item.price_override != null &&
-                                ` · $${formatCents(item.price_override)} (custom)`}
+                                ` · $${formatCents(
+                                  item.price_override,
+                                )} (custom)`}
                             </Text>
                             <VStack align="start" gap={0}>
                               {hasVariations ? (
@@ -1280,10 +1263,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   lineHeight="1.2"
                                 >
                                   Qty:{" "}
-                                  {catalogItem!.variations!
-                                    .map(
+                                  {catalogItem!
+                                    .variations!.map(
                                       (v) =>
-                                        `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                        `${v.variant_value}: ${
+                                          v.quantity_total - v.quantity_sold
+                                        }`,
                                     )
                                     .join(", ")}{" "}
                                   (default)
@@ -1297,8 +1282,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   Options: {catalogItem.variant_options}. Qty:{" "}
                                   {catalogItem?.quantity_available ?? 0}{" "}
                                   (default)
-                                  {item.quantity_available_override !=
-                                    null &&
+                                  {item.quantity_available_override != null &&
                                     ` · ${item.quantity_available_override} (custom)`}
                                 </Text>
                               ) : (
@@ -1307,11 +1291,9 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                   color="gray.500"
                                   lineHeight="1.2"
                                 >
-                                  Qty:{" "}
-                                  {catalogItem?.quantity_available ?? 0}{" "}
+                                  Qty: {catalogItem?.quantity_available ?? 0}{" "}
                                   (default)
-                                  {item.quantity_available_override !=
-                                    null &&
+                                  {item.quantity_available_override != null &&
                                     ` · ${item.quantity_available_override} (custom)`}
                                 </Text>
                               )}
@@ -1353,8 +1335,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                             </Text>
                             {(() => {
                               const selected = catalogMerchandise?.data?.find(
-                                (m) =>
-                                  m.id === merchandiseForm.merchandise_id,
+                                (m) => m.id === merchandiseForm.merchandise_id,
                               )
                               if (
                                 !selected ||
@@ -1362,11 +1343,7 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                               )
                                 return null
                               return (
-                                <Text
-                                  fontSize="xs"
-                                  color="gray.500"
-                                  mt={1}
-                                >
+                                <Text fontSize="xs" color="gray.500" mt={1}>
                                   No variants. Add variants in Merchandise
                                   catalog to show per-option availability.
                                 </Text>
@@ -1387,10 +1364,12 @@ const AddTrip = ({ isOpen, onClose, onSuccess }: AddTripProps) => {
                                 const hasVariations =
                                   (m.variations?.length ?? 0) > 0
                                 const qtyLabel = hasVariations
-                                  ? m.variations!
-                                      .map(
+                                  ? m
+                                      .variations!.map(
                                         (v) =>
-                                          `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                          `${v.variant_value}: ${
+                                            v.quantity_total - v.quantity_sold
+                                          }`,
                                       )
                                       .join(", ")
                                   : m.variant_options

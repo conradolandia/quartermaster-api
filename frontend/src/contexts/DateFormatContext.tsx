@@ -1,4 +1,5 @@
-import React, {
+import type React from "react"
+import {
   createContext,
   useCallback,
   useContext,
@@ -18,7 +19,9 @@ type DateFormatContextValue = {
 
 const DateFormatContext = createContext<DateFormatContextValue | null>(null)
 
-export function DateFormatProvider({ children }: { children: React.ReactNode }) {
+export function DateFormatProvider({
+  children,
+}: { children: React.ReactNode }) {
   const [useInternationalFormat, setState] = useState(() =>
     getUseInternationalDateFormat(),
   )

@@ -15,8 +15,8 @@ import { FiPlus, FiTrash2 } from "react-icons/fi"
 
 import {
   type ApiError,
-  type TripMerchandisePublic,
   MerchandiseService,
+  type TripMerchandisePublic,
   TripMerchandiseService,
 } from "@/client"
 import { formatCents, handleError } from "@/utils"
@@ -25,10 +25,18 @@ function formatMerchandiseQtyLine(item: TripMerchandisePublic): string {
   const hasVariations = (item.variations_availability?.length ?? 0) > 0
   const customSuffix =
     item.quantity_available_override != null
-      ? ` / ${hasVariations ? item.quantity_available : item.quantity_available_override} (custom)`
+      ? ` / ${
+          hasVariations
+            ? item.quantity_available
+            : item.quantity_available_override
+        } (custom)`
       : ""
   return hasVariations
-    ? `Qty: ${item.variations_availability!.map((v) => `${v.variant_value}: ${v.quantity_available}`).join(", ")} (default)${customSuffix}`
+    ? `Qty: ${item
+        .variations_availability!.map(
+          (v) => `${v.variant_value}: ${v.quantity_available}`,
+        )
+        .join(", ")} (default)${customSuffix}`
     : item.variant_options
       ? `Options: ${item.variant_options}. Qty: ${item.quantity_available_default} (default)${customSuffix}`
       : `Qty: ${item.quantity_available_default} (default)${customSuffix}`
@@ -40,7 +48,11 @@ interface MerchandiseTabProps {
   onPendingChange: (hasPending: boolean) => void
 }
 
-const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps) => {
+const MerchandiseTab = ({
+  tripId,
+  isOpen,
+  onPendingChange,
+}: MerchandiseTabProps) => {
   const queryClient = useQueryClient()
 
   const [isAdding, setIsAdding] = useState(false)
@@ -56,8 +68,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
 
   const { data: tripMerchandiseList } = useQuery({
     queryKey: ["trip-merchandise", tripId],
-    queryFn: () =>
-      TripMerchandiseService.listTripMerchandise({ tripId }),
+    queryFn: () => TripMerchandiseService.listTripMerchandise({ tripId }),
     enabled: isOpen,
   })
 
@@ -69,11 +80,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
   })
 
   useEffect(() => {
-    if (
-      isAdding &&
-      catalogMerchandise?.data?.length &&
-      !form.merchandise_id
-    ) {
+    if (isAdding && catalogMerchandise?.data?.length && !form.merchandise_id) {
       const firstId = catalogMerchandise.data[0].id
       setForm((prev) => ({ ...prev, merchandise_id: firstId }))
     }
@@ -85,8 +92,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
       merchandise_id: string
       price_override?: number | null
       quantity_available_override?: number | null
-    }) =>
-      TripMerchandiseService.createTripMerchandise({ requestBody: body }),
+    }) => TripMerchandiseService.createTripMerchandise({ requestBody: body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip-merchandise", tripId] })
       setIsAdding(false)
@@ -152,22 +158,13 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                 <Text color="gray.100" fontWeight="medium">
                   {item.name}
                 </Text>
-                <Text
-                  fontSize="xs"
-                  color="gray.300"
-                  mt={0.5}
-                  lineHeight="1.2"
-                >
+                <Text fontSize="xs" color="gray.300" mt={0.5} lineHeight="1.2">
                   Price: ${formatCents(item.price_default)} (default)
                   {item.price_override != null &&
                     ` / $${formatCents(item.price_override)} (custom)`}
                 </Text>
                 <VStack align="start" gap={0}>
-                  <Text
-                    fontSize="xs"
-                    color="gray.500"
-                    lineHeight="1.2"
-                  >
+                  <Text fontSize="xs" color="gray.500" lineHeight="1.2">
                     {formatMerchandiseQtyLine(item)}
                   </Text>
                 </VStack>
@@ -184,8 +181,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
               </IconButton>
             </Flex>
           ))}
-          {(!tripMerchandiseList ||
-            tripMerchandiseList.length === 0) &&
+          {(!tripMerchandiseList || tripMerchandiseList.length === 0) &&
             !isAdding && (
               <Text color="gray.500" textAlign="center" py={3}>
                 No merchandise configured for this trip
@@ -196,12 +192,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
           <Box mt={2} p={3} borderWidth="1px" borderRadius="md">
             <VStack gap={3}>
               <HStack width="100%" align="stretch" gap={4}>
-                <Box
-                  flex={1}
-                  display="flex"
-                  flexDirection="column"
-                  minW={0}
-                >
+                <Box flex={1} display="flex" flexDirection="column" minW={0}>
                   <Text fontSize="sm" mb={1}>
                     Catalog item
                   </Text>
@@ -209,19 +200,12 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                     const selected = catalogMerchandise?.data?.find(
                       (m) => m.id === form.merchandise_id,
                     )
-                    if (
-                      !selected ||
-                      (selected.variations?.length ?? 0) > 0
-                    )
+                    if (!selected || (selected.variations?.length ?? 0) > 0)
                       return null
                     return (
-                      <Text
-                        fontSize="xs"
-                        color="gray.500"
-                        mt={1}
-                      >
-                        No variants. Add variants in Merchandise
-                        catalog to show per-option availability.
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        No variants. Add variants in Merchandise catalog to show
+                        per-option availability.
                       </Text>
                     )
                   })()}
@@ -237,13 +221,14 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                     placeholder="Select merchandise"
                   >
                     {catalogMerchandise?.data?.map((m) => {
-                      const hasVariations =
-                        (m.variations?.length ?? 0) > 0
+                      const hasVariations = (m.variations?.length ?? 0) > 0
                       const qtyLabel = hasVariations
-                        ? m.variations!
-                            .map(
+                        ? m
+                            .variations!.map(
                               (v) =>
-                                `${v.variant_value}: ${v.quantity_total - v.quantity_sold}`,
+                                `${v.variant_value}: ${
+                                  v.quantity_total - v.quantity_sold
+                                }`,
                             )
                             .join(", ")
                         : m.variant_options
@@ -251,19 +236,13 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                           : `qty ${m.quantity_available}`
                       return (
                         <option key={m.id} value={m.id}>
-                          {m.name} — ${formatCents(m.price)} (
-                          {qtyLabel})
+                          {m.name} — ${formatCents(m.price)} ({qtyLabel})
                         </option>
                       )
                     })}
                   </NativeSelect>
                 </Box>
-                <Box
-                  flex={1}
-                  display="flex"
-                  flexDirection="column"
-                  minW={0}
-                >
+                <Box flex={1} display="flex" flexDirection="column" minW={0}>
                   <Text fontSize="sm" mb={1}>
                     Price override ($, optional)
                   </Text>
@@ -282,12 +261,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                     placeholder="Use catalog price"
                   />
                 </Box>
-                <Box
-                  flex={1}
-                  display="flex"
-                  flexDirection="column"
-                  minW={0}
-                >
+                <Box flex={1} display="flex" flexDirection="column" minW={0}>
                   <Text fontSize="sm" mb={1}>
                     Quantity override (optional)
                   </Text>
@@ -295,8 +269,8 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                     (m) => m.id === form.merchandise_id,
                   )?.variations?.length ? (
                     <Text fontSize="xs" color="gray.500" mt={1}>
-                      Cap on total for this trip. Per-variant
-                      availability comes from catalog.
+                      Cap on total for this trip. Per-variant availability comes
+                      from catalog.
                     </Text>
                   ) : null}
                   <Box flex={1} minHeight={2} />
@@ -328,10 +302,7 @@ const MerchandiseTab = ({ tripId, isOpen, onPendingChange }: MerchandiseTabProps
                   size="sm"
                   colorPalette="blue"
                   onClick={handleAdd}
-                  disabled={
-                    !form.merchandise_id ||
-                    createMutation.isPending
-                  }
+                  disabled={!form.merchandise_id || createMutation.isPending}
                 >
                   Add Merchandise
                 </Button>

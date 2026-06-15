@@ -66,11 +66,11 @@ const ReassignPassengersDialog = ({
               )
               const used: Record<string, number> =
                 fromBoat && "used_per_ticket_type" in fromBoat
-                  ? ((
+                  ? (
                       fromBoat as {
                         used_per_ticket_type?: Record<string, number>
                       }
-                    ).used_per_ticket_type ?? {})
+                    ).used_per_ticket_type ?? {}
                   : {}
               const sourceTypesWithQty = Object.entries(used).filter(
                 ([, qty]) => qty > 0,
@@ -116,8 +116,12 @@ const ReassignPassengersDialog = ({
                             : null
                         const isSameBoat = tb.boat_id === from.boat_id
                         const label = isSameBoat
-                          ? `${b?.name || "Unknown"} (same boat – change types only)`
-                          : `${b?.name || "Unknown"}${rem != null ? ` (${rem} spots left)` : ""}`
+                          ? `${
+                              b?.name || "Unknown"
+                            } (same boat – change types only)`
+                          : `${b?.name || "Unknown"}${
+                              rem != null ? ` (${rem} spots left)` : ""
+                            }`
                         return (
                           <option key={tb.boat_id} value={tb.boat_id}>
                             {label}

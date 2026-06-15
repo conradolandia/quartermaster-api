@@ -6,7 +6,10 @@ import { DEFAULT_HOME_PATH } from "./SidebarItems"
 import UserMenu from "./UserMenu"
 
 function Navbar() {
-  const display = useBreakpointValue({ base: "none", nav: "flex" } as Record<string, "none" | "flex">)
+  const display = useBreakpointValue({ base: "none", nav: "flex" } as Record<
+    string,
+    "none" | "flex"
+  >)
 
   return (
     <Flex

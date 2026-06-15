@@ -1,33 +1,36 @@
 import { useState } from "react"
 import {
+  FiCalendar,
   FiCheck,
   FiCode,
   FiCopy,
+  FiCornerUpLeft,
   FiDollarSign,
   FiEdit,
+  FiExternalLink,
   FiLink,
   FiPrinter,
-  FiCalendar,
-  FiCornerUpLeft,
-  FiExternalLink,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi"
 
-import { BookingsService, type BookingPublic } from "../../client"
-import { MenuItem } from "../ui/menu"
-import { ActionsMenu } from "../ui/actions-menu"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@chakra-ui/react"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { getPublicOrigin, getStripeDashboardPaymentIntentUrl } from "@/utils/url"
+import {
+  getPublicOrigin,
+  getStripeDashboardPaymentIntentUrl,
+} from "@/utils/url"
+import { Button } from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type BookingPublic, BookingsService } from "../../client"
 import DeleteBooking from "../Bookings/DeleteBooking"
 import EditBooking from "../Bookings/EditBooking"
 import PermanentDeleteBooking from "../Bookings/PermanentDeleteBooking"
 import RefundBooking from "../Bookings/RefundBooking"
 import RescheduleBooking from "../Bookings/RescheduleBooking"
 import { getRefundedCents } from "../Bookings/types"
+import { ActionsMenu } from "../ui/actions-menu"
+import { MenuItem } from "../ui/menu"
 
 /** Action keys that can be hidden when shown as standalone buttons (e.g. on the detail page). */
 export type BookingActionHideInMenu =
@@ -94,9 +97,12 @@ const BookingActionsMenu = ({
     null,
   )
 
-  const isEditControlled = controlledEditOpen !== undefined && onEditModalOpenChange != null
+  const isEditControlled =
+    controlledEditOpen !== undefined && onEditModalOpenChange != null
   const editModalOpen = isEditControlled ? controlledEditOpen : internalEditOpen
-  const setEditModalOpen = isEditControlled ? onEditModalOpenChange : setInternalEditOpen
+  const setEditModalOpen = isEditControlled
+    ? onEditModalOpenChange
+    : setInternalEditOpen
   const queryClient = useQueryClient()
   const { showSuccessToast } = useCustomToast()
 
@@ -146,9 +152,7 @@ const BookingActionsMenu = ({
 
   const canRefund =
     booking.booking_status &&
-    ["confirmed", "checked_in", "completed"].includes(
-      booking.booking_status,
-    ) &&
+    ["confirmed", "checked_in", "completed"].includes(booking.booking_status) &&
     booking.payment_status !== "refunded" &&
     getRefundedCents(booking) < (booking.total_amount ?? 0)
   const canCheckIn = booking.booking_status === "confirmed"
@@ -165,7 +169,9 @@ const BookingActionsMenu = ({
   }
 
   const copyLinkToClipboard = () => {
-    const url = `${getPublicOrigin()}/bookings?code=${booking.confirmation_code}`
+    const url = `${getPublicOrigin()}/bookings?code=${
+      booking.confirmation_code
+    }`
     void navigator.clipboard.writeText(url).then(() => {
       showSuccessToast("Booking link copied to clipboard")
     })
@@ -189,10 +195,7 @@ const BookingActionsMenu = ({
         }}
         asChild
       >
-        <Button
-          {...bookingMenuActionButtonProps}
-          color="dark.accent.primary"
-        >
+        <Button {...bookingMenuActionButtonProps} color="dark.accent.primary">
           <FiExternalLink fontSize="16px" />
           View on Stripe
         </Button>
@@ -214,11 +217,7 @@ const BookingActionsMenu = ({
           </MenuItem>
         )}
         {onPrint && (
-          <MenuItem
-            value="copy-link"
-            onClick={copyLinkToClipboard}
-            asChild
-          >
+          <MenuItem value="copy-link" onClick={copyLinkToClipboard} asChild>
             <Button
               {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
@@ -241,7 +240,12 @@ const BookingActionsMenu = ({
         )}
         {!stripeLinkAfterRefund && renderStripeMenuItem()}
         {!isEditControlled && !editDisabled && (
-          <MenuItem value="edit" onClick={handleOpenEdit} disabled={archived} asChild>
+          <MenuItem
+            value="edit"
+            onClick={handleOpenEdit}
+            disabled={archived}
+            asChild
+          >
             <Button
               {...bookingMenuActionButtonProps}
               color="dark.accent.primary"
@@ -258,11 +262,11 @@ const BookingActionsMenu = ({
           disabled={duplicateMutation.isPending || archived}
           asChild
         >
-            <Button
-              {...bookingMenuActionButtonProps}
-              color="dark.accent.primary"
-              disabled={duplicateMutation.isPending || archived}
-            >
+          <Button
+            {...bookingMenuActionButtonProps}
+            color="dark.accent.primary"
+            disabled={duplicateMutation.isPending || archived}
+          >
             <FiCopy fontSize="16px" />
             Duplicate
           </Button>

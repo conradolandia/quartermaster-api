@@ -51,9 +51,9 @@ export const JurisdictionDropdown = ({
   // Create locations map
   const locationsMap = new Map()
   if (locationsData?.data) {
-    locationsData.data.forEach((location) => {
+    for (const location of locationsData.data) {
       locationsMap.set(location.id, location)
-    })
+    }
   }
 
   // Helper to get state from jurisdiction

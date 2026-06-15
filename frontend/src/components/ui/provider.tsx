@@ -13,9 +13,7 @@ export function CustomProvider(props: PropsWithChildren) {
     <ChakraProvider value={system}>
       <ColorModeProvider defaultTheme="dark" forcedTheme="dark">
         <DateFormatProvider>
-          <IncludeArchivedProvider>
-            {props.children}
-          </IncludeArchivedProvider>
+          <IncludeArchivedProvider>{props.children}</IncludeArchivedProvider>
         </DateFormatProvider>
       </ColorModeProvider>
       <Toaster />

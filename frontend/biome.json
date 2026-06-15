@@ -6,15 +6,32 @@
   "files": {
     "ignore": [
       "node_modules",
+      "dist",
+      "dist-ssr",
       "src/routeTree.gen.ts",
+      "openapi.json",
       "playwright.config.ts",
       "playwright-report"
     ]
   },
+  "overrides": [
+    {
+      "include": ["src/client/**"],
+      "linter": {
+        "enabled": false
+      },
+      "organizeImports": {
+        "enabled": false
+      }
+    }
+  ],
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off"

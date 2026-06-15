@@ -1,16 +1,16 @@
 import {
   Box,
   Flex,
+  type ListCollection,
   Table,
   Text,
   createListCollection,
-  type ListCollection,
 } from "@chakra-ui/react"
 import { useEffect, useRef } from "react"
 
 import type { TripPublic } from "@/client"
-import PendingBookings from "@/components/Pending/PendingBookings"
 import BookingsFilterBar from "@/components/Bookings/BookingsFilterBar"
+import PendingBookings from "@/components/Pending/PendingBookings"
 import { PageSizeSelect } from "@/components/ui/page-size-select"
 import {
   PaginationItems,
@@ -20,16 +20,16 @@ import {
 } from "@/components/ui/pagination"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
+import BookingsTableHeader from "./BookingsTableHeader"
+import BookingsTableRow from "./BookingsTableRow"
+import { useBookingsListQueries } from "./hooks/useBookingsListQueries"
+import { useBookingsTableState } from "./hooks/useBookingsTableState"
 import {
   BOOKING_STATUSES,
   PAYMENT_STATUSES,
   formatTripFilterLabel,
   getItemTypeLabel,
 } from "./types"
-import BookingsTableHeader from "./BookingsTableHeader"
-import BookingsTableRow from "./BookingsTableRow"
-import { useBookingsListQueries } from "./hooks/useBookingsListQueries"
-import { useBookingsTableState } from "./hooks/useBookingsTableState"
 
 interface BookingsTableProps {
   onBookingClick: (confirmationCode: string) => void
@@ -191,8 +191,7 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
   })
 
   const ticketTypesForSelect =
-    ticketItemType &&
-    !ticketItemTypeOptions.includes(ticketItemType)
+    ticketItemType && !ticketItemTypeOptions.includes(ticketItemType)
       ? [...ticketItemTypeOptions, ticketItemType].sort((a, b) =>
           a.localeCompare(b),
         )
@@ -246,32 +245,42 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
         onApplyPaymentStatus={applyPaymentStatus}
         missionId={missionId}
         onMissionFilter={handleMissionFilter}
-        missionsCollection={missionsCollection as ListCollection<{ label: string; value: string }>}
+        missionsCollection={
+          missionsCollection as ListCollection<{ label: string; value: string }>
+        }
         tripId={tripId}
         onTripFilter={handleTripFilter}
-        tripsCollection={tripsCollection as ListCollection<{ label: string; value: string }>}
+        tripsCollection={
+          tripsCollection as ListCollection<{ label: string; value: string }>
+        }
         tripType={tripType}
         onTripTypeFilter={handleTripTypeFilter}
-        tripTypeFilterCollection={tripTypeFilterCollection as ListCollection<{ label: string; value: string }>}
+        tripTypeFilterCollection={
+          tripTypeFilterCollection as ListCollection<{
+            label: string
+            value: string
+          }>
+        }
         boatId={boatId}
         onBoatFilter={handleBoatFilter}
-        boatsCollection={boatsCollection as ListCollection<{ label: string; value: string }>}
+        boatsCollection={
+          boatsCollection as ListCollection<{ label: string; value: string }>
+        }
         filteredBoats={filteredBoats}
         ticketItemType={ticketItemType}
         onTicketItemTypeFilter={handleTicketItemTypeFilter}
         ticketItemTypeCollection={
-          ticketItemTypeCollection as ListCollection<{ label: string; value: string }>
+          ticketItemTypeCollection as ListCollection<{
+            label: string
+            value: string
+          }>
         }
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
       />
 
       <Box overflowX="auto">
-        <Table.Root
-          size="sm"
-          width="100%"
-          style={{ tableLayout: "fixed" }}
-        >
+        <Table.Root size="sm" width="100%" style={{ tableLayout: "fixed" }}>
           <BookingsTableHeader
             sortBy={sortBy}
             sortDirection={sortDirection}

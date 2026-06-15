@@ -63,7 +63,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         elements,
         clientSecret,
         confirmParams: {
-          return_url: `${getPublicOrigin()}${window.location.pathname}${window.location.search}`,
+          return_url: `${getPublicOrigin()}${window.location.pathname}${
+            window.location.search
+          }`,
         },
         redirect: "if_required",
       })

@@ -1,11 +1,4 @@
-import {
-  Badge,
-  Box,
-  Checkbox,
-  HStack,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
+import { Badge, Box, Checkbox, HStack, Text, VStack } from "@chakra-ui/react"
 
 import type { BookingItemPublic, BookingPublic } from "@/client"
 import { formatCents } from "@/utils"
@@ -56,8 +49,8 @@ export function RefundLineItemSelector({
   return (
     <VStack align="stretch" gap={3}>
       <Text fontSize="sm" color="text.muted">
-        Select line items to refund. Amount includes proportional tax (tip is not
-        refunded).
+        Select line items to refund. Amount includes proportional tax (tip is
+        not refunded).
       </Text>
       <VStack align="stretch" gap={2}>
         {refundableItems.map((item) => (
@@ -152,9 +145,7 @@ export function RefundedItemsSummary({ booking }: RefundedItemsSummaryProps) {
               ${formatCents(item.refunded_amount_cents ?? 0)}
             </Text>
           </HStack>
-          {item.refund_reason && (
-            <Text>Reason: {item.refund_reason}</Text>
-          )}
+          {item.refund_reason && <Text>Reason: {item.refund_reason}</Text>}
           {item.refund_notes && <Text>Notes: {item.refund_notes}</Text>}
         </Box>
       ))}

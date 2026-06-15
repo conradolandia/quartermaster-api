@@ -56,7 +56,8 @@ const EditMission = ({
   disabled = false,
 }: EditMissionProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
-  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const isControlled =
+    controlledOpen !== undefined && controlledOnOpenChange != null
   const isOpen = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange : setInternalOpen
   const [active, setActive] = useState(mission.active)
@@ -130,7 +131,12 @@ const EditMission = ({
     >
       {!isControlled && (
         <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" color="dark.accent.primary" disabled={disabled}>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            disabled={disabled}
+          >
             <FaExchangeAlt fontSize="16px" />
             Edit Mission
           </Button>
@@ -201,10 +207,7 @@ const EditMission = ({
                   width="100%"
                 >
                   <Text>Active</Text>
-                  <Box
-                    onClick={() => setActive(!active)}
-                    cursor="pointer"
-                  >
+                  <Box onClick={() => setActive(!active)} cursor="pointer">
                     <Switch checked={active} inputProps={{ id: "active" }} />
                   </Box>
                 </Flex>
@@ -223,11 +226,7 @@ const EditMission = ({
                   Cancel
                 </Button>
               </DialogActionTrigger>
-              <Button
-                variant="solid"
-                type="submit"
-                loading={isSubmitting}
-              >
+              <Button variant="solid" type="submit" loading={isSubmitting}>
                 Save
               </Button>
             </ButtonGroup>

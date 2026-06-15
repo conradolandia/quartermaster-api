@@ -41,7 +41,11 @@ export async function logInUser(page: Page, email: string, password: string) {
       .textContent()
       .catch(() => null)
     throw new Error(
-      `Login failed: user-menu not visible. ${errorMsg ? `App message: ${errorMsg.trim()}` : "No error message on page."}`,
+      `Login failed: user-menu not visible. ${
+        errorMsg
+          ? `App message: ${errorMsg.trim()}`
+          : "No error message on page."
+      }`,
     )
   }
 }
@@ -60,15 +64,20 @@ export async function changePasswordViaApi(
 ): Promise<void> {
   const token = await page.evaluate(() => localStorage.getItem("access_token"))
   if (!token) throw new Error("Change password failed: no access token in page")
-  const res = await page.request.patch(`${apiBaseUrl}/api/v1/users/me/password`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+  const res = await page.request.patch(
+    `${apiBaseUrl}/api/v1/users/me/password`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      data: { current_password: currentPassword, new_password: newPassword },
     },
-    data: { current_password: currentPassword, new_password: newPassword },
-  })
+  )
   if (!res.ok()) {
-    throw new Error(`Change password failed: ${res.status()} ${await res.text()}`)
+    throw new Error(
+      `Change password failed: ${res.status()} ${await res.text()}`,
+    )
   }
 }
 
@@ -78,9 +87,12 @@ export async function logInUserViaApi(
   email: string,
   password: string,
 ): Promise<void> {
-  const res = await page.request.post(`${apiBaseUrl}/api/v1/login/access-token`, {
-    form: { username: email, password },
-  })
+  const res = await page.request.post(
+    `${apiBaseUrl}/api/v1/login/access-token`,
+    {
+      form: { username: email, password },
+    },
+  )
   if (!res.ok()) {
     const body = await res.text()
     throw new Error(`API login failed: ${res.status()} ${body}`)
@@ -115,7 +127,9 @@ export async function resetTestSuperuserPassword(page: Page): Promise<void> {
     headers: { Authorization: `Bearer ${access_token}` },
   })
   if (!usersRes.ok()) {
-    throw new Error(`Reset password failed: list users returned ${usersRes.status()}`)
+    throw new Error(
+      `Reset password failed: list users returned ${usersRes.status()}`,
+    )
   }
   const { data: users } = (await usersRes.json()) as {
     data: Array<{ id: string; email: string }>

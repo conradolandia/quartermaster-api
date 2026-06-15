@@ -1,12 +1,12 @@
-import { FiCopy } from "react-icons/fi"
 import { Button } from "@chakra-ui/react"
+import { FiCopy } from "react-icons/fi"
 
 import useCustomToast from "../../hooks/useCustomToast"
 import type { Boat } from "../../types/boat"
-import { ActionsMenu } from "../ui/actions-menu"
-import { MenuItem } from "../ui/menu"
 import DeleteBoat from "../Boats/DeleteBoat"
 import EditBoat from "../Boats/EditBoat"
+import { ActionsMenu } from "../ui/actions-menu"
+import { MenuItem } from "../ui/menu"
 
 interface BoatActionsMenuProps {
   boat: Boat

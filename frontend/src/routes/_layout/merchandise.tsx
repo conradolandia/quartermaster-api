@@ -244,10 +244,7 @@ function MerchandiseTable() {
                 (v.variant_value ?? "").trim(),
               )
               return (
-                <Table.Row
-                  key={item.id}
-                  opacity={isPlaceholderData ? 0.5 : 1}
-                >
+                <Table.Row key={item.id} opacity={isPlaceholderData ? 0.5 : 1}>
                   <Table.Cell
                     truncate
                     w="10rem"

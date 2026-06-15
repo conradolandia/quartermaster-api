@@ -67,11 +67,7 @@ const OrderPriceSummary = ({
               gap={2}
             >
               <Text>Discount Code:</Text>
-              <HStack
-                gap={2}
-                flex={1}
-                maxW={{ base: "100%", sm: "200px" }}
-              >
+              <HStack gap={2} flex={1} maxW={{ base: "100%", sm: "200px" }}>
                 <Input
                   size={{ base: "md", sm: "sm" }}
                   placeholder="Enter code"
@@ -101,11 +97,7 @@ const OrderPriceSummary = ({
                 <Text fontSize="sm" color="green.500">
                   {appliedDiscountCode.code} applied
                 </Text>
-                <Text
-                  fontSize="sm"
-                  color="green.500"
-                  fontWeight="semibold"
-                >
+                <Text fontSize="sm" color="green.500" fontWeight="semibold">
                   -${formatCents(bookingData.discount_amount)}
                 </Text>
               </HStack>
@@ -171,8 +163,7 @@ const OrderPriceSummary = ({
                 min={0}
                 value={(tip / 100).toFixed(2)}
                 onValueChange={(details) => {
-                  const dollars =
-                    Number.parseFloat(details.value || "0") || 0
+                  const dollars = Number.parseFloat(details.value || "0") || 0
                   setTip(Math.round(dollars * 100))
                 }}
                 w={{ base: "100%", sm: "120px" }}

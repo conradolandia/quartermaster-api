@@ -82,8 +82,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
 
   const { data: refundablePreview } = useQuery({
     queryKey: ["trip-refundable-bookings", trip.id],
-    queryFn: () =>
-      TripsService.readTripRefundableBookings({ tripId: trip.id }),
+    queryFn: () => TripsService.readTripRefundableBookings({ tripId: trip.id }),
     staleTime: 30_000,
   })
   const hasRefundableBookings = (refundablePreview?.count ?? 0) > 0

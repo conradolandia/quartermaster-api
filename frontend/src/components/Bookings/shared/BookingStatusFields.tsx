@@ -1,5 +1,5 @@
 import type { BookingUpdate } from "@/client"
-import { Controller, type Control, type FieldErrors } from "react-hook-form"
+import { type Control, Controller, type FieldErrors } from "react-hook-form"
 
 import { Field } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"

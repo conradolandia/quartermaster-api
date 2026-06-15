@@ -5,8 +5,8 @@ import {
   type BookingPublic,
   type BookingUpdate,
   BookingsService,
-  TripsService,
   TripBoatsService,
+  TripsService,
 } from "@/client"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -21,13 +21,6 @@ import { Field } from "@/components/ui/field"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
 import { handleError } from "@/utils"
-import { BookingCustomerFields } from "./shared/BookingCustomerFields"
-import { BookingPricingSummary } from "./shared/BookingPricingSummary"
-import { BookingStatusFields } from "./shared/BookingStatusFields"
-import { BoatChangeTypeDialog } from "./BoatChangeTypeDialog"
-import { EditBookingMerchandiseSection } from "./EditBookingMerchandiseSection"
-import { EditBookingTicketsSection } from "./EditBookingTicketsSection"
-import { getTripName } from "./types"
 import {
   Box,
   Button,
@@ -39,7 +32,12 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Controller,
@@ -47,6 +45,13 @@ import {
   useFieldArray,
   useForm,
 } from "react-hook-form"
+import { BoatChangeTypeDialog } from "./BoatChangeTypeDialog"
+import { EditBookingMerchandiseSection } from "./EditBookingMerchandiseSection"
+import { EditBookingTicketsSection } from "./EditBookingTicketsSection"
+import { BookingCustomerFields } from "./shared/BookingCustomerFields"
+import { BookingPricingSummary } from "./shared/BookingPricingSummary"
+import { BookingStatusFields } from "./shared/BookingStatusFields"
+import { getTripName } from "./types"
 
 interface EditBookingProps {
   booking: BookingPublic
@@ -101,9 +106,12 @@ const EditBooking = ({
     uniqueTripIds.forEach((tripId, i) => {
       const q = tripBoatsQueries[i]
       if (q.data && Array.isArray(q.data))
-        map[tripId] = (q.data as { boat_id: string; boat: { name: string } }[]).map(
-          (tb) => ({ boat_id: tb.boat_id, name: tb.boat?.name ?? tb.boat_id }),
-        )
+        map[tripId] = (
+          q.data as { boat_id: string; boat: { name: string } }[]
+        ).map((tb) => ({
+          boat_id: tb.boat_id,
+          name: tb.boat?.name ?? tb.boat_id,
+        }))
     })
     return map
   }, [uniqueTripIds, tripBoatsQueries])
@@ -122,8 +130,7 @@ const EditBooking = ({
   const pricingQueries = useQueries({
     queries: allPricingKeys.map(({ tripId, boatId }) => ({
       queryKey: ["effective-pricing", tripId, boatId],
-      queryFn: () =>
-        TripBoatsService.readEffectivePricing({ tripId, boatId }),
+      queryFn: () => TripBoatsService.readEffectivePricing({ tripId, boatId }),
       enabled: isOpen && !!tripId && !!boatId,
     })),
   })
@@ -153,10 +160,7 @@ const EditBooking = ({
         requestBody: { item_type: itemType },
       }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(
-        ["booking", booking.confirmation_code],
-        updated,
-      )
+      queryClient.setQueryData(["booking", booking.confirmation_code], updated)
       showSuccessToast("Ticket type updated")
       onSuccess()
     },
@@ -182,10 +186,7 @@ const EditBooking = ({
         },
       }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(
-        ["booking", booking.confirmation_code],
-        updated,
-      )
+      queryClient.setQueryData(["booking", booking.confirmation_code], updated)
       showSuccessToast("Boat updated")
       onSuccess()
     },
@@ -248,10 +249,7 @@ const EditBooking = ({
         },
       }),
     onSuccess: (updated) => {
-      queryClient.setQueryData(
-        ["booking", booking.confirmation_code],
-        updated,
-      )
+      queryClient.setQueryData(["booking", booking.confirmation_code], updated)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
       showSuccessToast("Ticket added")
       setNewTicketTripId("")
@@ -353,8 +351,7 @@ const EditBooking = ({
       effectiveSubtotal - (watchedDiscountAmount ?? 0),
     )
     const newTax = Math.round(afterDiscount * taxRate)
-    const newTotal =
-      afterDiscount + newTax + (watchedTipAmount ?? 0)
+    const newTotal = afterDiscount + newTax + (watchedTipAmount ?? 0)
     setValue("tax_amount", newTax)
     setValue("total_amount", Math.max(0, newTotal))
   }, [
@@ -399,8 +396,12 @@ const EditBooking = ({
     if (booking.items?.length && Array.isArray(payload.item_quantity_updates)) {
       payload.item_quantity_updates = booking.items.map((item, index) => {
         const raw = payload.item_quantity_updates?.[index]?.quantity
-        const q = typeof raw === "number" && !Number.isNaN(raw) ? raw : Number(raw)
-        const quantity = typeof q === "number" && !Number.isNaN(q) ? Math.max(0, q) : item.quantity
+        const q =
+          typeof raw === "number" && !Number.isNaN(raw) ? raw : Number(raw)
+        const quantity =
+          typeof q === "number" && !Number.isNaN(q)
+            ? Math.max(0, q)
+            : item.quantity
         return { id: item.id, quantity }
       })
     }
@@ -428,11 +429,16 @@ const EditBooking = ({
     ) ?? []
 
   const handleAddTicket = () => {
-    if (!newTicketTripId || !newTicketBoatId || !newTicketType || newTicketQty < 1)
-      return
-    const pricing = (newTicketPricing as { ticket_type: string; price: number }[])?.find(
-      (p) => p.ticket_type === newTicketType,
+    if (
+      !newTicketTripId ||
+      !newTicketBoatId ||
+      !newTicketType ||
+      newTicketQty < 1
     )
+      return
+    const pricing = (
+      newTicketPricing as { ticket_type: string; price: number }[]
+    )?.find((p) => p.ticket_type === newTicketType)
     if (!pricing) return
 
     // If the same ticket (trip + boat + type) already exists, update its quantity instead of creating a duplicate
@@ -445,7 +451,8 @@ const EditBooking = ({
     )
     if (existingIndex >= 0) {
       const item = booking.items[existingIndex]
-      const currentQty = watchedItemQuantities?.[existingIndex]?.quantity ?? item.quantity
+      const currentQty =
+        watchedItemQuantities?.[existingIndex]?.quantity ?? item.quantity
       const newQty = currentQty + newTicketQty
       setValue(`item_quantity_updates.${existingIndex}.quantity`, newQty, {
         shouldDirty: true,
@@ -476,218 +483,219 @@ const EditBooking = ({
 
   return (
     <>
-    <DialogRoot
-      size={{ base: "lg", md: "xl" }}
-      placement="center"
-      open={isOpen}
-      onOpenChange={({ open }) => !open && onClose()}
-    >
-      <DialogContent ref={contentRef}>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogHeader>
-            <DialogTitle>
-              Edit Booking:{" "}
-              <Text as="span" fontFamily="mono" color="dark.text.highlight">
-                {booking.confirmation_code}
-              </Text>
-            </DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <Text mb={4}>Update booking information.</Text>
-            <VStack gap={4}>
-              <BookingCustomerFields
-                register={register}
-                errors={errors}
-              />
+      <DialogRoot
+        size={{ base: "lg", md: "xl" }}
+        placement="center"
+        open={isOpen}
+        onOpenChange={({ open }) => !open && onClose()}
+      >
+        <DialogContent ref={contentRef}>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>
+                Edit Booking:{" "}
+                <Text as="span" fontFamily="mono" color="dark.text.highlight">
+                  {booking.confirmation_code}
+                </Text>
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <Text mb={4}>Update booking information.</Text>
+              <VStack gap={4}>
+                <BookingCustomerFields register={register} errors={errors} />
 
-              <Field
-                label="Payment Intent ID"
-                helperText="This field is read-only"
-              >
-                <Input
-                  value={booking.payment_intent_id || "Not set"}
-                  readOnly
-                  bg="dark.bg.accent"
-                  color="text.muted"
-                  _focus={{ boxShadow: "none" }}
-                  cursor="default"
-                />
-              </Field>
-
-              {/* Tickets and Merchandise (item_quantity_updates index matches booking.items index) */}
-              {booking.items && booking.items.length > 0 && (
-                <>
-                  <EditBookingTicketsSection
-                    booking={booking}
-                    boatsByTripId={boatsByTripId}
-                    pricingByKey={pricingByKey}
-                    getTripNameForId={(tripId) =>
-                      getTripName(tripId, tripsData?.data)
-                    }
-                    getBoatName={getBoatName}
-                    control={control}
-                    watchedItemQuantities={watchedItemQuantities}
-                    updateItemBoatMutation={updateItemBoatMutation}
-                    updateItemTypeMutation={updateItemTypeMutation}
-                    setPendingBoatChange={setPendingBoatChange}
-                    setSelectedTicketTypeForBoatChange={
-                      setSelectedTicketTypeForBoatChange
-                    }
-                    showErrorToast={showErrorToast}
-                    newTicketTripId={newTicketTripId}
-                    newTicketBoatId={newTicketBoatId}
-                    newTicketType={newTicketType}
-                    newTicketQty={newTicketQty}
-                    tripsForAddTicket={tripsForAddTicket}
-                    boatsForNewTicket={boatsForNewTicket}
-                    newTicketPricing={newTicketPricing as { ticket_type: string; price: number }[] | undefined}
-                    onNewTicketTripIdChange={setNewTicketTripId}
-                    onNewTicketBoatIdChange={setNewTicketBoatId}
-                    onNewTicketTypeChange={setNewTicketType}
-                    onNewTicketQtyChange={setNewTicketQty}
-                    onAddTicket={handleAddTicket}
-                    addTicketMutation={{
-                      isPending: addTicketMutation.isPending,
-                    }}
-                    getTripNameForAddTicket={(tripId) =>
-                      getTripName(tripId, tripsData?.data)
-                    }
+                <Field
+                  label="Payment Intent ID"
+                  helperText="This field is read-only"
+                >
+                  <Input
+                    value={booking.payment_intent_id || "Not set"}
+                    readOnly
+                    bg="dark.bg.accent"
+                    color="text.muted"
+                    _focus={{ boxShadow: "none" }}
+                    cursor="default"
                   />
+                </Field>
 
-                  <Box w="full" mt={4}>
-                    <Text fontWeight="semibold" mb={3}>
-                      Merchandise
-                    </Text>
-                    <EditBookingMerchandiseSection
+                {/* Tickets and Merchandise (item_quantity_updates index matches booking.items index) */}
+                {booking.items && booking.items.length > 0 && (
+                  <>
+                    <EditBookingTicketsSection
                       booking={booking}
-                      items={booking.items}
-                      control={control}
-                      watchedItemQuantities={watchedItemQuantities}
+                      boatsByTripId={boatsByTripId}
+                      pricingByKey={pricingByKey}
                       getTripNameForId={(tripId) =>
                         getTripName(tripId, tripsData?.data)
                       }
-                    />
-                  </Box>
-                </>
-              )}
-
-              <BookingStatusFields
-                mode="edit"
-                control={control}
-                errors={errors}
-              />
-              {/* Show refund information (booking-level reason/notes only) */}
-              {(booking.refund_reason?.trim() || booking.refund_notes?.trim()) && (
-                <Box
-                  p={3}
-                  bg="bg.panel"
-                  borderRadius="md"
-                  borderLeft="4px solid"
-                  borderColor="status.warning"
-                  w="full"
-                >
-                  <Heading
-                    size="lg"
-                    mb={2}
-                  >
-                    Refund Details
-                  </Heading>
-                  <VStack align="stretch" gap={1}>
-                    {booking.refund_reason?.trim() && (
-                      <Text fontSize="sm" color="text.secondary">
-                        <strong>Reason:</strong> {booking.refund_reason.trim()}
-                      </Text>
-                    )}
-                    {booking.refund_notes?.trim() && (
-                      <Text fontSize="sm" color="text.secondary">
-                        <strong>Notes:</strong> {booking.refund_notes.trim()}
-                      </Text>
-                    )}
-                  </VStack>
-                </Box>
-              )}
-              <Field
-                invalid={!!errors.special_requests}
-                errorText={errors.special_requests?.message}
-                label="Special Requests"
-              >
-                <Textarea
-                  id="special_requests"
-                  {...register("special_requests", {
-                    maxLength: {
-                      value: 1000,
-                      message: "Special requests cannot exceed 1000 characters",
-                    },
-                  })}
-                  placeholder="Special Requests"
-                  rows={3}
-                />
-              </Field>
-
-              <BookingPricingSummary
-                mode="edit"
-                effectiveSubtotalCents={effectiveSubtotal}
-                control={control}
-                errors={errors}
-              />
-
-              <Field>
-                <Controller
-                  name="launch_updates_pref"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      checked={field.value || false}
-                      onCheckedChange={(details) =>
-                        field.onChange(details.checked)
+                      getBoatName={getBoatName}
+                      control={control}
+                      watchedItemQuantities={watchedItemQuantities}
+                      updateItemBoatMutation={updateItemBoatMutation}
+                      updateItemTypeMutation={updateItemTypeMutation}
+                      setPendingBoatChange={setPendingBoatChange}
+                      setSelectedTicketTypeForBoatChange={
+                        setSelectedTicketTypeForBoatChange
                       }
-                    >
-                      Send launch updates
-                    </Checkbox>
-                  )}
-                />
-              </Field>
-            </VStack>
-          </DialogBody>
-          <DialogFooter>
-            <ButtonGroup>
-              <DialogActionTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogActionTrigger>
-              <Button
-                variant="solid"
-                type="submit"
-                loading={isSubmitting}
-                disabled={isSubmitting}
-              >
-                Save
-              </Button>
-            </ButtonGroup>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </DialogRoot>
+                      showErrorToast={showErrorToast}
+                      newTicketTripId={newTicketTripId}
+                      newTicketBoatId={newTicketBoatId}
+                      newTicketType={newTicketType}
+                      newTicketQty={newTicketQty}
+                      tripsForAddTicket={tripsForAddTicket}
+                      boatsForNewTicket={boatsForNewTicket}
+                      newTicketPricing={
+                        newTicketPricing as
+                          | { ticket_type: string; price: number }[]
+                          | undefined
+                      }
+                      onNewTicketTripIdChange={setNewTicketTripId}
+                      onNewTicketBoatIdChange={setNewTicketBoatId}
+                      onNewTicketTypeChange={setNewTicketType}
+                      onNewTicketQtyChange={setNewTicketQty}
+                      onAddTicket={handleAddTicket}
+                      addTicketMutation={{
+                        isPending: addTicketMutation.isPending,
+                      }}
+                      getTripNameForAddTicket={(tripId) =>
+                        getTripName(tripId, tripsData?.data)
+                      }
+                    />
 
-    <BoatChangeTypeDialog
-      open={!!pendingBoatChange}
-      pendingBoatChange={pendingBoatChange}
-      selectedTicketType={selectedTicketTypeForBoatChange}
-      onSelectedTicketTypeChange={setSelectedTicketTypeForBoatChange}
-      onConfirm={() => {
-        if (!pendingBoatChange) return
-        updateItemBoatMutation.mutate({
-          itemId: pendingBoatChange.itemId,
-          boatId: pendingBoatChange.newBoatId,
-          itemType: selectedTicketTypeForBoatChange,
-        })
-        setPendingBoatChange(null)
-        setSelectedTicketTypeForBoatChange("")
-      }}
-      onClose={() => {
-        setPendingBoatChange(null)
-        setSelectedTicketTypeForBoatChange("")
-      }}
-    />
+                    <Box w="full" mt={4}>
+                      <Text fontWeight="semibold" mb={3}>
+                        Merchandise
+                      </Text>
+                      <EditBookingMerchandiseSection
+                        booking={booking}
+                        items={booking.items}
+                        control={control}
+                        watchedItemQuantities={watchedItemQuantities}
+                        getTripNameForId={(tripId) =>
+                          getTripName(tripId, tripsData?.data)
+                        }
+                      />
+                    </Box>
+                  </>
+                )}
+
+                <BookingStatusFields
+                  mode="edit"
+                  control={control}
+                  errors={errors}
+                />
+                {/* Show refund information (booking-level reason/notes only) */}
+                {(booking.refund_reason?.trim() ||
+                  booking.refund_notes?.trim()) && (
+                  <Box
+                    p={3}
+                    bg="bg.panel"
+                    borderRadius="md"
+                    borderLeft="4px solid"
+                    borderColor="status.warning"
+                    w="full"
+                  >
+                    <Heading size="lg" mb={2}>
+                      Refund Details
+                    </Heading>
+                    <VStack align="stretch" gap={1}>
+                      {booking.refund_reason?.trim() && (
+                        <Text fontSize="sm" color="text.secondary">
+                          <strong>Reason:</strong>{" "}
+                          {booking.refund_reason.trim()}
+                        </Text>
+                      )}
+                      {booking.refund_notes?.trim() && (
+                        <Text fontSize="sm" color="text.secondary">
+                          <strong>Notes:</strong> {booking.refund_notes.trim()}
+                        </Text>
+                      )}
+                    </VStack>
+                  </Box>
+                )}
+                <Field
+                  invalid={!!errors.special_requests}
+                  errorText={errors.special_requests?.message}
+                  label="Special Requests"
+                >
+                  <Textarea
+                    id="special_requests"
+                    {...register("special_requests", {
+                      maxLength: {
+                        value: 1000,
+                        message:
+                          "Special requests cannot exceed 1000 characters",
+                      },
+                    })}
+                    placeholder="Special Requests"
+                    rows={3}
+                  />
+                </Field>
+
+                <BookingPricingSummary
+                  mode="edit"
+                  effectiveSubtotalCents={effectiveSubtotal}
+                  control={control}
+                  errors={errors}
+                />
+
+                <Field>
+                  <Controller
+                    name="launch_updates_pref"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        checked={field.value || false}
+                        onCheckedChange={(details) =>
+                          field.onChange(details.checked)
+                        }
+                      >
+                        Send launch updates
+                      </Checkbox>
+                    )}
+                  />
+                </Field>
+              </VStack>
+            </DialogBody>
+            <DialogFooter>
+              <ButtonGroup>
+                <DialogActionTrigger asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogActionTrigger>
+                <Button
+                  variant="solid"
+                  type="submit"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                >
+                  Save
+                </Button>
+              </ButtonGroup>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </DialogRoot>
+
+      <BoatChangeTypeDialog
+        open={!!pendingBoatChange}
+        pendingBoatChange={pendingBoatChange}
+        selectedTicketType={selectedTicketTypeForBoatChange}
+        onSelectedTicketTypeChange={setSelectedTicketTypeForBoatChange}
+        onConfirm={() => {
+          if (!pendingBoatChange) return
+          updateItemBoatMutation.mutate({
+            itemId: pendingBoatChange.itemId,
+            boatId: pendingBoatChange.newBoatId,
+            itemType: selectedTicketTypeForBoatChange,
+          })
+          setPendingBoatChange(null)
+          setSelectedTicketTypeForBoatChange("")
+        }}
+        onClose={() => {
+          setPendingBoatChange(null)
+          setSelectedTicketTypeForBoatChange("")
+        }}
+      />
     </>
   )
 }

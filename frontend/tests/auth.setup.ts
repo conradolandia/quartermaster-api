@@ -10,12 +10,15 @@ import {
 const authFile = "playwright/.auth/user.json"
 
 setup("authenticate", async ({ page, request }) => {
-  const loginRes = await request.post(`${apiBaseUrl}/api/v1/login/access-token`, {
-    form: {
-      username: firstSuperuser,
-      password: firstSuperuserPassword,
+  const loginRes = await request.post(
+    `${apiBaseUrl}/api/v1/login/access-token`,
+    {
+      form: {
+        username: firstSuperuser,
+        password: firstSuperuserPassword,
+      },
     },
-  })
+  )
   if (!loginRes.ok()) {
     throw new Error(
       `Auth setup failed: first superuser login returned ${loginRes.status()}. Ensure backend is running and FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD match.`,
@@ -58,7 +61,9 @@ setup("authenticate", async ({ page, request }) => {
     }
     const existing = users.find((u) => u.email === testSuperuserEmail)
     if (!existing) {
-      throw new Error("Auth setup failed: test superuser not found after create conflict")
+      throw new Error(
+        "Auth setup failed: test superuser not found after create conflict",
+      )
     }
     const resetRes = await request.patch(
       `${apiBaseUrl}/api/v1/users/${existing.id}`,
@@ -85,12 +90,18 @@ setup("authenticate", async ({ page, request }) => {
     await page.waitForURL("/", { waitUntil: "commit", timeout: 15000 })
   } catch {
     const errorMsg = await page
-      .getByText(/Incorrect email or password|Only superusers|Invalid email|Inactive user/)
+      .getByText(
+        /Incorrect email or password|Only superusers|Invalid email|Inactive user/,
+      )
       .first()
       .textContent()
       .catch(() => null)
     throw new Error(
-      `Auth setup failed: test superuser login did not reach /. ${errorMsg ? `App message: ${errorMsg.trim()}` : "No error message on page."}`,
+      `Auth setup failed: test superuser login did not reach /. ${
+        errorMsg
+          ? `App message: ${errorMsg.trim()}`
+          : "No error message on page."
+      }`,
     )
   }
   await page.context().storageState({ path: authFile })

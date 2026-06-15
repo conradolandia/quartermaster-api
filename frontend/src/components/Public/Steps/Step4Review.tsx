@@ -10,14 +10,14 @@ import {
 } from "@chakra-ui/react"
 import type { MutableRefObject } from "react"
 
+import { ApiError } from "@/client"
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { formatCents, getApiErrorMessage } from "@/utils"
-import { ApiError } from "@/client"
 
 import PaymentForm from "../PaymentForm"
-import { PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE } from "../confirmPaidBooking"
-import type { BookingResult, BookingStepData } from "../bookingTypes"
 import StripeProvider from "../StripeProvider"
+import type { BookingResult, BookingStepData } from "../bookingTypes"
+import { PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE } from "../confirmPaidBooking"
 import { useBookingDraft } from "./useBookingDraft"
 
 interface Step4ReviewProps {
@@ -104,9 +104,9 @@ const Step4Review = ({
       completeErr instanceof Error &&
       completeErr.message === PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
     const errorMessage = isCreateErr
-      ? (createError instanceof ApiError
-          ? getApiErrorMessage(createError)
-          : "Something went wrong. Please try again.")
+      ? createError instanceof ApiError
+        ? getApiErrorMessage(createError)
+        : "Something went wrong. Please try again."
       : isTimeoutError
         ? PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE
         : completeErr instanceof Error
@@ -206,9 +206,9 @@ const Step4Review = ({
             Confirming your booking...
           </Text>
           <Text color="blue.700" fontSize="sm" mt={2}>
-            Payment received. This can take a moment on slower connections.
-            You can leave this page open—we will email your confirmation when
-            it is ready.
+            Payment received. This can take a moment on slower connections. You
+            can leave this page open—we will email your confirmation when it is
+            ready.
           </Text>
         </Box>
       </VStack>
@@ -249,11 +249,7 @@ const Step4Review = ({
         </Text>
       </Box>
 
-      <Flex
-        direction={{ base: "column", lg: "row" }}
-        align="stretch"
-        gap={6}
-      >
+      <Flex direction={{ base: "column", lg: "row" }} align="stretch" gap={6}>
         {/* Left Column - Booking Details */}
         <VStack gap={4} align="stretch" flex={1}>
           <Box>
@@ -309,9 +305,7 @@ const Step4Review = ({
                       {item.item_type
                         .replace("_", " ")
                         .replace(/\b\w/g, (l) => l.toUpperCase())}
-                      {item.variant_option
-                        ? ` – ${item.variant_option}`
-                        : ""}
+                      {item.variant_option ? ` – ${item.variant_option}` : ""}
                     </Text>
                     <Text fontSize="sm" color="gray.400">
                       Quantity: {item.quantity}
@@ -347,9 +341,7 @@ const Step4Review = ({
                 </HStack>
               )}
               <HStack justify="space-between">
-                <Text>
-                  Tax ({Number(bookingData.tax_rate.toFixed(2))}%):
-                </Text>
+                <Text>Tax ({Number(bookingData.tax_rate.toFixed(2))}%):</Text>
                 <Text>${formatCents(bookingData.tax_amount)}</Text>
               </HStack>
               {bookingData.tip > 0 && (

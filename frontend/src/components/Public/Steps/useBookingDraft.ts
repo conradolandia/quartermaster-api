@@ -5,12 +5,12 @@ import { type MutableRefObject, useEffect, useRef, useState } from "react"
 import { ApiError, type BookingCreate, BookingsService } from "@/client"
 import { handleError } from "@/utils"
 
+import type { BookingResult, BookingStepData } from "../bookingTypes"
 import {
   PAYMENT_CONFIRMATION_TIMEOUT_MESSAGE,
   confirmPaidBooking,
   isBookingConfirmed,
 } from "../confirmPaidBooking"
-import type { BookingResult, BookingStepData } from "../bookingTypes"
 import { customerInfoSchema } from "./Step3CustomerInfo"
 
 function generateConfirmationCode() {
@@ -70,36 +70,31 @@ export function useBookingDraft({
       if (!skipHydrateForm) {
         onResumeBookingLoaded?.(booking)
       } else {
-        const parsed = customerInfoSchema.safeParse(
-          bookingData.customerInfo,
-        )
+        const parsed = customerInfoSchema.safeParse(bookingData.customerInfo)
         if (!parsed.success) {
           return { outcome: "invalid_customer" as const }
         }
         setCustomerInfoInvalid(false)
-        const updated =
-          await BookingsService.bookingPublicUpdateDraftBooking({
-            confirmationCode: code,
-            requestBody: {
-              first_name:
-                bookingData.customerInfo.first_name || undefined,
-              last_name:
-                bookingData.customerInfo.last_name || undefined,
-              user_email: bookingData.customerInfo.email || undefined,
-              user_phone: bookingData.customerInfo.phone || undefined,
-              billing_address:
-                bookingData.customerInfo.billing_address || undefined,
-              special_requests:
-                bookingData.customerInfo.special_requests || undefined,
-              launch_updates_pref:
-                bookingData.customerInfo.launch_updates_pref ?? undefined,
-              tip_amount: bookingData.tip ?? undefined,
-              subtotal: bookingData.subtotal,
-              discount_amount: bookingData.discount_amount,
-              tax_amount: bookingData.tax_amount,
-              total_amount: bookingData.total,
-            },
-          })
+        const updated = await BookingsService.bookingPublicUpdateDraftBooking({
+          confirmationCode: code,
+          requestBody: {
+            first_name: bookingData.customerInfo.first_name || undefined,
+            last_name: bookingData.customerInfo.last_name || undefined,
+            user_email: bookingData.customerInfo.email || undefined,
+            user_phone: bookingData.customerInfo.phone || undefined,
+            billing_address:
+              bookingData.customerInfo.billing_address || undefined,
+            special_requests:
+              bookingData.customerInfo.special_requests || undefined,
+            launch_updates_pref:
+              bookingData.customerInfo.launch_updates_pref ?? undefined,
+            tip_amount: bookingData.tip ?? undefined,
+            subtotal: bookingData.subtotal,
+            discount_amount: bookingData.discount_amount,
+            tax_amount: bookingData.tax_amount,
+            total_amount: bookingData.total,
+          },
+        })
         bookingToUse = updated
       }
       const totalCents = bookingToUse.total_amount ?? 0
@@ -324,10 +319,9 @@ export function useBookingDraft({
       const confirmationCode = bookingResult?.booking?.confirmation_code
       if (confirmationCode) {
         try {
-          const booking =
-            await BookingsService.getBookingByConfirmationCode({
-              confirmationCode,
-            })
+          const booking = await BookingsService.getBookingByConfirmationCode({
+            confirmationCode,
+          })
           if (isBookingConfirmed(booking.booking_status)) {
             queryClient.invalidateQueries({
               queryKey: ["booking-by-code", confirmationCode],
@@ -442,8 +436,7 @@ export function useBookingDraft({
   return {
     isBookingSuccessful,
     customerInfoInvalid,
-    isPending:
-      createBookingMutation.isPending || loadByCodeMutation.isPending,
+    isPending: createBookingMutation.isPending || loadByCodeMutation.isPending,
     isCreateError: createBookingMutation.isError,
     isCompleteError: completeBookingMutation.isError,
     createError: createBookingMutation.error,

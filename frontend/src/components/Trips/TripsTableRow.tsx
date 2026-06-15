@@ -96,8 +96,8 @@ export default function TripsTableRow({
                 <Box key={tb.boat_id}>
                   <Text fontSize="sm">{name}</Text>
                   <Text fontSize="sm" color="gray.400" mt={0.5} lineHeight="1">
-                    {committed} of {maxCap} seats taken (
-                    {remainingCommitted} remaining)
+                    {committed} of {maxCap} seats taken ({remainingCommitted}{" "}
+                    remaining)
                   </Text>
                 </Box>
               )

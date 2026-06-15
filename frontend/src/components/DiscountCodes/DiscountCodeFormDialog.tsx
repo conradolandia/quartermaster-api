@@ -9,6 +9,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import {
   Box,
@@ -21,7 +22,6 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { NativeSelect } from "@/components/ui/native-select"
 
 interface DiscountCodeFormDialogProps {
   open: boolean
@@ -348,9 +348,7 @@ export default function DiscountCodeFormDialog({
             <Button
               colorPalette="blue"
               onClick={onSubmit}
-              disabled={
-                !formData.code || isSubmitting
-              }
+              disabled={!formData.code || isSubmitting}
               loading={isSubmitting}
             >
               {isEdit ? "Update" : "Create"} Discount Code

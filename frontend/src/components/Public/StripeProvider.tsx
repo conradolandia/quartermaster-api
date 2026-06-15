@@ -7,8 +7,7 @@ const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
 // Log Stripe key mode so you can verify live vs test in browser console (publishable keys are safe to expose)
 if (stripePublishableKey) {
-  const mode =
-    stripePublishableKey.startsWith("pk_live_") ? "live" : "test"
+  const mode = stripePublishableKey.startsWith("pk_live_") ? "live" : "test"
   console.log(`[Stripe] Using ${mode} publishable key`)
 }
 

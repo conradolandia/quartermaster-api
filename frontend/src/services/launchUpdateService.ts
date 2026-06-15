@@ -34,7 +34,9 @@ export async function sendLaunchUpdate(
   const baseUrl =
     (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env
       ?.VITE_API_URL ?? ""
-  const url = `${baseUrl}/api/v1/launches/${launchId}/send-update${qs ? `?${qs}` : ""}`
+  const url = `${baseUrl}/api/v1/launches/${launchId}/send-update${
+    qs ? `?${qs}` : ""
+  }`
   const token = localStorage.getItem("access_token")
   const response = await fetch(url, {
     method: "POST",

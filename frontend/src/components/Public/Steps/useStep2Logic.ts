@@ -196,12 +196,11 @@ export function useStep2Logic({
         (sum, item) => sum + item.quantity * item.price_per_unit,
         0,
       )
-      const discountCodeData =
-        await DiscountCodesService.validateDiscountCode({
-          code: code.trim(),
-          subtotalCents: subtotal,
-          tripId: bookingData.selectedTripId ?? undefined,
-        })
+      const discountCodeData = await DiscountCodesService.validateDiscountCode({
+        code: code.trim(),
+        subtotalCents: subtotal,
+        tripId: bookingData.selectedTripId ?? undefined,
+      })
       setAppliedDiscountCode(discountCodeData)
       setDiscountCodeError("")
       updateBookingData({ discount_code: code.trim() })

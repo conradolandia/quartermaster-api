@@ -524,7 +524,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                                   ? String(boat.capacity)
                                   : "",
                             )
-                            setCaptainInputValue(tripBoat.captain_override ?? "")
+                            setCaptainInputValue(
+                              tripBoat.captain_override ?? "",
+                            )
                           }
                         }}
                       >
@@ -674,7 +676,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                         <Input
                           size="sm"
                           width="48"
-                          placeholder={boat?.captain?.trim() || "Use boat default"}
+                          placeholder={
+                            boat?.captain?.trim() || "Use boat default"
+                          }
                           value={captainInputValue}
                           onChange={(e) => setCaptainInputValue(e.target.value)}
                           maxLength={255}

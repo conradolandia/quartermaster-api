@@ -312,7 +312,11 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
           orderedItems.map((item) => {
             const isActive = !!matchRoute({ to: item.path })
             return (
-              <RouterLink key={item.title} to={item.path} onClick={() => onClose?.()}>
+              <RouterLink
+                key={item.title}
+                to={item.path}
+                onClick={() => onClose?.()}
+              >
                 <Flex
                   gap={3}
                   px={3}

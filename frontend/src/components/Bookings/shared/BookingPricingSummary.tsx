@@ -1,12 +1,6 @@
 import type { BookingUpdate } from "@/client"
-import {
-  Button,
-  HStack,
-  Input,
-  Text,
-  VStack,
-} from "@chakra-ui/react"
-import { Controller, type Control, type FieldErrors } from "react-hook-form"
+import { Button, HStack, Input, Text, VStack } from "@chakra-ui/react"
+import { type Control, Controller, type FieldErrors } from "react-hook-form"
 
 import { StarFleetTipLabel } from "@/components/Common/StarFleetTipLabel"
 import { Field } from "@/components/ui/field"
@@ -185,9 +179,7 @@ export function BookingPricingSummary(props: BookingPricingSummaryProps) {
                 value={field.value != null ? field.value / 100 : ""}
                 onChange={(e) =>
                   field.onChange(
-                    Math.round(
-                      (Number.parseFloat(e.target.value) || 0) * 100,
-                    ),
+                    Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                   )
                 }
                 placeholder="0.00"
@@ -215,9 +207,7 @@ export function BookingPricingSummary(props: BookingPricingSummaryProps) {
                 value={field.value != null ? field.value / 100 : ""}
                 onChange={(e) =>
                   field.onChange(
-                    Math.round(
-                      (Number.parseFloat(e.target.value) || 0) * 100,
-                    ),
+                    Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                   )
                 }
                 placeholder="0.00"
@@ -247,9 +237,7 @@ export function BookingPricingSummary(props: BookingPricingSummaryProps) {
                 value={field.value != null ? field.value / 100 : ""}
                 onChange={(e) =>
                   field.onChange(
-                    Math.round(
-                      (Number.parseFloat(e.target.value) || 0) * 100,
-                    ),
+                    Math.round((Number.parseFloat(e.target.value) || 0) * 100),
                   )
                 }
                 placeholder="0.00"

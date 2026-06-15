@@ -74,7 +74,11 @@ export const Route = createFileRoute("/_layout")({
 function Layout() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { data: currentUser, status, isError } = useQuery<UserPublic | null>({
+  const {
+    data: currentUser,
+    status,
+    isError,
+  } = useQuery<UserPublic | null>({
     queryKey: ["currentUser"],
     queryFn: UsersService.readUserMe,
     enabled: isLoggedIn(),
@@ -86,7 +90,8 @@ function Layout() {
       if (document.visibilityState === "visible") fixStuckModalState()
     }
     document.addEventListener("visibilitychange", onVisibilityChange)
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange)
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange)
   }, [])
 
   useEffect(() => {
@@ -159,11 +164,7 @@ function Layout() {
 
   // Authenticated dashboard users: full admin chrome
   return (
-    <Flex
-      direction="column"
-      h="100vh"
-      data-print-layout
-    >
+    <Flex direction="column" h="100vh" data-print-layout>
       <Navbar />
       <Flex flex="1" overflow="hidden">
         <Sidebar />

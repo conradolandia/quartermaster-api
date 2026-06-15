@@ -120,9 +120,9 @@ function useLocationsMap() {
 
   const locationsMap = new Map()
   if (data?.data) {
-    data.data.forEach((location) => {
+    for (const location of data.data) {
       locationsMap.set(location.id, location)
-    })
+    }
   }
 
   return locationsMap

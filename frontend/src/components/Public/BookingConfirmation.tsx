@@ -1,15 +1,15 @@
 import {
   Box,
-  Separator,
-  Image,
   Button,
+  Container,
   Flex,
   Heading,
+  Image,
   Link,
+  Separator,
+  Span,
   Text,
   VStack,
-  Container,
-  Span,
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
@@ -96,7 +96,9 @@ const BookingConfirmation = ({
         const data = await response.json().catch(() => ({}))
         const detail = data?.detail
         showErrorToast(
-          typeof detail === "string" ? detail : "Failed to send confirmation email",
+          typeof detail === "string"
+            ? detail
+            : "Failed to send confirmation email",
         )
       }
     } catch {
@@ -137,7 +139,10 @@ const BookingConfirmation = ({
           <Text fontSize="sm" color="gray.400" textAlign="center">
             If you don't see the email, please check your spam folder. <br />
             If you still don't see the email, please contact us at <br />
-            <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">fleetcommand@star-fleet.tours</Link>.
+            <Link color="blue.200" href="mailto:fleetcommand@star-fleet.tours">
+              fleetcommand@star-fleet.tours
+            </Link>
+            .
           </Text>
         </Flex>
 
@@ -179,7 +184,14 @@ const BookingConfirmation = ({
             p={{ base: 4, md: 8 }}
             className="print-booking-details"
           >
-            <Image src={SFLogo} alt="Star Fleet Tours" maxW="320px" p={2} mx="auto" mb={4} />
+            <Image
+              src={SFLogo}
+              alt="Star Fleet Tours"
+              maxW="320px"
+              p={2}
+              mx="auto"
+              mb={4}
+            />
             <Heading size="sm" mb={4}>
               Booking Information
             </Heading>
@@ -242,7 +254,9 @@ const BookingConfirmation = ({
                 align={{ base: "stretch", sm: "center" }}
               >
                 <Text fontWeight="medium">Booking Date:</Text>
-                <Text>{formatDateTimeInLocationTz(booking.created_at, null)}</Text>
+                <Text>
+                  {formatDateTimeInLocationTz(booking.created_at, null)}
+                </Text>
               </Flex>
 
               {booking.items && booking.items.length > 0 && (
@@ -255,7 +269,10 @@ const BookingConfirmation = ({
               )}
 
               {booking.items && booking.items.length > 0 && (
-                <PublicBookingItemsList items={booking.items} boxProps={{ mt: 6 }} />
+                <PublicBookingItemsList
+                  items={booking.items}
+                  boxProps={{ mt: 6 }}
+                />
               )}
 
               <Heading size="xl" mb={4} mt={6}>

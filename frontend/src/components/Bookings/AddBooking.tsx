@@ -98,13 +98,14 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   >({})
   const [discountCodeError, setDiscountCodeError] = useState<string>("")
   const [appliedDiscountCode, setAppliedDiscountCode] = useState<any>(null)
-  const [bookingStatus, setBookingStatus] = useState<
-    "draft" | "confirmed"
-  >("confirmed")
+  const [bookingStatus, setBookingStatus] = useState<"draft" | "confirmed">(
+    "confirmed",
+  )
   const [paymentStatus, setPaymentStatus] = useState<
     "pending_payment" | "paid" | "free"
   >("paid")
-  const [sendConfirmationEmail, setSendConfirmationEmail] = useState<boolean>(true)
+  const [sendConfirmationEmail, setSendConfirmationEmail] =
+    useState<boolean>(true)
 
   // Get trips for dropdown
   const { data: tripsData } = useQuery({
@@ -180,7 +181,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
 
         const map: Record<string, string> = {}
         const idsToFetch: string[] = []
-        list.forEach((tb) => {
+        for (const tb of list) {
           const id = tb.boat_id
           const name = tb.boat?.name ?? boatNameCache.get(id)
           if (name) {
@@ -189,7 +190,7 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
           } else {
             idsToFetch.push(id)
           }
-        })
+        }
         if (idsToFetch.length === 0) {
           setBoatNames(map)
           if (!selectedBoatId && list.length > 0) {
@@ -207,9 +208,9 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
           ),
         )
           .then((pairs) => {
-            pairs.forEach((p) => {
+            for (const p of pairs) {
               map[p.id] = p.name
-            })
+            }
             setBoatNames(map)
             if (!selectedBoatId && list.length > 0) {
               setSelectedBoatId(list[0].boat_id)
@@ -506,7 +507,12 @@ const AddBooking = ({ isOpen, onClose, onSuccess }: AddBookingProps) => {
   }
 
   const variantOptionsList = (opts: string | null | undefined): string[] =>
-    opts ? opts.split(",").map((o) => o.trim()).filter(Boolean) : []
+    opts
+      ? opts
+          .split(",")
+          .map((o) => o.trim())
+          .filter(Boolean)
+      : []
 
   // Add merchandise item (optionally with variant)
   const addMerchandiseItem = (

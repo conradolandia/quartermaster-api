@@ -1,15 +1,3 @@
-import {
-  Button,
-  ButtonGroup,
-  createListCollection,
-  DialogActionTrigger,
-  Input,
-  Portal,
-  Select,
-  Text,
-  Textarea,
-  VStack,
-} from "@chakra-ui/react"
 import { LaunchesService, TripBoatsService } from "@/client"
 import type {
   LaunchPublic,
@@ -17,9 +5,6 @@ import type {
   TripBoatPublicWithAvailability,
   TripPublic,
 } from "@/client"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { FiMail } from "react-icons/fi"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogBody,
@@ -38,6 +23,21 @@ import { useMissionsByLaunch } from "@/hooks/useMissionsByLaunch"
 import { useTripsByMission } from "@/hooks/useTripsByMission"
 import { sendLaunchUpdate } from "@/services/launchUpdateService"
 import { formatTripLabel } from "@/utils"
+import {
+  Button,
+  ButtonGroup,
+  DialogActionTrigger,
+  Input,
+  Portal,
+  Select,
+  Text,
+  Textarea,
+  VStack,
+  createListCollection,
+} from "@chakra-ui/react"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { FiMail } from "react-icons/fi"
 
 type ScopeKind = "all" | "mission" | "trip"
 
@@ -113,7 +113,9 @@ const SendLaunchUpdate = ({
     enabled: isOpen && scope === "trip" && !!tripId,
   })
 
-  const tripBoats: TripBoatPublicWithAvailability[] = Array.isArray(tripBoatsData)
+  const tripBoats: TripBoatPublicWithAvailability[] = Array.isArray(
+    tripBoatsData,
+  )
     ? tripBoatsData
     : []
   const boatsCollection = useMemo(
@@ -133,8 +135,8 @@ const SendLaunchUpdate = ({
     }
     if (boatIds.length === 1) {
       return (
-        boatsCollection.items.find((item) => item.value === boatIds[0])?.label ??
-        "1 boat"
+        boatsCollection.items.find((item) => item.value === boatIds[0])
+          ?.label ?? "1 boat"
       )
     }
     return `${boatIds.length} of ${tripBoats.length}`
@@ -243,7 +245,12 @@ const SendLaunchUpdate = ({
     >
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button variant="ghost" size="sm" color="dark.accent.primary" disabled={disabled}>
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            disabled={disabled}
+          >
             <FiMail fontSize="16px" />
             Send Update
           </Button>
@@ -416,8 +423,15 @@ const SendLaunchUpdate = ({
                     >
                       <Select.Control width="100%">
                         <Select.Trigger>
-                          <Text fontSize="sm" flex="1" minW={0} textAlign="left">
-                            {tripBoatsLoading ? "Loading boats..." : boatFilterLabel}
+                          <Text
+                            fontSize="sm"
+                            flex="1"
+                            minW={0}
+                            textAlign="left"
+                          >
+                            {tripBoatsLoading
+                              ? "Loading boats..."
+                              : boatFilterLabel}
                           </Text>
                         </Select.Trigger>
                         <Select.IndicatorGroup>

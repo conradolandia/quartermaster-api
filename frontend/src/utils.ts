@@ -160,7 +160,7 @@ const TIMEZONE_ABBR_FALLBACK: Record<string, string> = {
   "America/Phoenix": "MST",
   "Europe/London": "GMT",
   "Europe/Paris": "CET",
-  "UTC": "UTC",
+  UTC: "UTC",
 }
 
 function resolveTimezoneAbbr(ianaTimezone: string, fromIntl: string): string {

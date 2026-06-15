@@ -156,7 +156,9 @@ export default function BookingExperienceDetails({
     if (!boatsForTrip?.length) return []
     const names = uniqueBoatIds
       .map((bid) => {
-        const tb = boatsForTrip.find((row) => String(row.boat_id) === String(bid))
+        const tb = boatsForTrip.find(
+          (row) => String(row.boat_id) === String(bid),
+        )
         return tb?.effective_captain?.trim() || null
       })
       .filter(Boolean) as string[]
@@ -266,11 +268,7 @@ export default function BookingExperienceDetails({
                   />
                 )}
                 {exp.launch_summary && (
-                  <Row
-                    label="Summary"
-                    value={exp.launch_summary}
-                    valueSmall
-                  />
+                  <Row label="Summary" value={exp.launch_summary} valueSmall />
                 )}
               </>
             )}
@@ -421,7 +419,10 @@ export default function BookingExperienceDetails({
           {boatQueries[0]?.data?.provider?.name && (
             <Row
               label="Provider"
-              value={(boatQueries[0].data as { provider?: { name?: string } }).provider?.name}
+              value={
+                (boatQueries[0].data as { provider?: { name?: string } })
+                  .provider?.name
+              }
             />
           )}
           {boatNames.length > 0 && (
@@ -430,30 +431,31 @@ export default function BookingExperienceDetails({
           {captainNames.length > 0 && (
             <Row label="Captain" value={captainNames.join(", ")} />
           )}
-          {boatQueries[0]?.data?.provider?.address && (() => {
-            const b = boatQueries[0].data as {
-              provider?: { address?: string; map_link?: string }
-            }
-            const prov = b?.provider
-            return (
-              <Row
-                label="Location"
-                value={
-                  prov?.map_link ? (
-                    <Link
-                      href={prov.map_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {prov.address}
-                    </Link>
-                  ) : (
-                    prov?.address
-                  )
-                }
-              />
-            )
-          })()}
+          {boatQueries[0]?.data?.provider?.address &&
+            (() => {
+              const b = boatQueries[0].data as {
+                provider?: { address?: string; map_link?: string }
+              }
+              const prov = b?.provider
+              return (
+                <Row
+                  label="Location"
+                  value={
+                    prov?.map_link ? (
+                      <Link
+                        href={prov.map_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {prov.address}
+                      </Link>
+                    ) : (
+                      prov?.address
+                    )
+                  }
+                />
+              )
+            })()}
         </VStack>
       </Grid>
     </Box>

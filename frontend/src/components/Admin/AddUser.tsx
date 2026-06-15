@@ -5,8 +5,8 @@ import { type UserCreate, UsersService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
 import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
-import type { UserRole } from "@/utils/permissions"
 import { emailPattern, handleError } from "@/utils"
+import type { UserRole } from "@/utils/permissions"
 import {
   Button,
   DialogActionTrigger,
