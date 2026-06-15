@@ -239,7 +239,7 @@ def test_resume_payment_no_intent(
 # --- POST /bookings/{code}/confirm-free-booking ---
 
 
-@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.send_booking_confirmation_email_task")
 def test_confirm_free_booking_success(
     mock_email: MagicMock, client: TestClient, db: Session
 ) -> None:
@@ -252,10 +252,10 @@ def test_confirm_free_booking_success(
     db.refresh(booking)
     assert booking.booking_status == BookingStatus.confirmed
     assert booking.payment_status == PaymentStatus.free
-    mock_email.assert_called_once()
+    mock_email.assert_called_once_with(booking.id)
 
 
-@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.send_booking_confirmation_email_task")
 def test_confirm_free_booking_increments_discount_used_count(
     mock_email: MagicMock,
     client: TestClient,
@@ -274,10 +274,10 @@ def test_confirm_free_booking_increments_discount_used_count(
 
     db.refresh(test_discount_code)
     assert test_discount_code.used_count == 1
-    mock_email.assert_called_once()
+    mock_email.assert_called_once_with(booking.id)
 
 
-@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.send_booking_confirmation_email_task")
 def test_confirm_free_booking_non_zero(
     mock_email: MagicMock, client: TestClient, db: Session
 ) -> None:

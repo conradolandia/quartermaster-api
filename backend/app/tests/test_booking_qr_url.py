@@ -38,3 +38,20 @@ def test_build_check_in_qr_url_falls_back_to_frontend_host(monkeypatch) -> None:
         build_check_in_qr_url("ABC")
         == "http://localhost:5173/check-in?code=ABC&check_in=true"
     )
+
+
+def test_build_booking_qr_image_url(monkeypatch) -> None:
+    from app.api.routes.booking_utils import build_booking_qr_image_url
+
+    monkeypatch.setattr(
+        "app.api.routes.booking_utils.settings.BACKEND_HOST",
+        "https://api.example.com",
+    )
+    monkeypatch.setattr(
+        "app.api.routes.booking_utils.settings.API_V1_STR",
+        "/api/v1",
+    )
+    assert (
+        build_booking_qr_image_url("YABW9RS5")
+        == "https://api.example.com/api/v1/bookings/qr/YABW9RS5"
+    )

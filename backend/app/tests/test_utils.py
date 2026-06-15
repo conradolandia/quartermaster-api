@@ -192,3 +192,5 @@ def test_generate_booking_confirmation_email() -> None:
     assert "ABC123" in data.html_content
     assert "Jane Doe" in data.html_content
     assert "Mars Launch" in data.html_content
+    assert "/api/v1/bookings/qr/ABC123" in data.html_content
+    assert "data:image/png;base64" not in data.html_content

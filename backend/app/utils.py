@@ -10,6 +10,7 @@ import jwt
 from jinja2 import Template
 from jwt.exceptions import InvalidTokenError
 
+from app.api.routes.booking_utils import build_booking_qr_image_url
 from app.core import security
 from app.core.config import settings
 
@@ -130,7 +131,6 @@ def generate_booking_confirmation_email(
     mission_name: str,
     booking_items: list[dict],
     total_amount: float,
-    qr_code_base64: str | None = None,
     experience_display: dict | None = None,
 ) -> EmailData:
     """
@@ -143,7 +143,6 @@ def generate_booking_confirmation_email(
         mission_name: Name of the mission/launch
         booking_items: List of booked items with details
         total_amount: Total amount paid
-        qr_code_base64: Optional base64-encoded PNG of the booking QR code for the email
         experience_display: Optional trip/boat/departure details for email (Provider, Boat, Departure location, times)
 
     Returns:
@@ -156,11 +155,11 @@ def generate_booking_confirmation_email(
     base_url = settings.FRONTEND_HOST
     confirmation_link = f"{base_url}/bookings?code={confirmation_code}"
 
-    qr_b64 = qr_code_base64 or ""
+    qr_image_url = build_booking_qr_image_url(confirmation_code)
     logger.info(
-        "Booking confirmation email: confirmation_code=%s qr_code_len=%s",
+        "Booking confirmation email: confirmation_code=%s qr_image_url=%s",
         confirmation_code,
-        len(qr_b64),
+        qr_image_url,
     )
 
     context: dict[str, Any] = {
@@ -173,7 +172,7 @@ def generate_booking_confirmation_email(
         "total_amount": total_amount,
         "confirmation_link": confirmation_link,
         "email": email_to,
-        "qr_code_base64": qr_b64,
+        "qr_image_url": qr_image_url,
         "is_cancellation": False,  # Explicitly set to False for regular bookings
         "is_refund": False,  # Explicitly set to False for regular bookings
     }

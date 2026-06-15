@@ -59,6 +59,12 @@ def compute_booking_totals(
     return (tax_amount_cents, total_amount_cents)
 
 
+def build_booking_qr_image_url(confirmation_code: str) -> str:
+    """Public API URL for the booking QR PNG (used in confirmation emails)."""
+    base = settings.BACKEND_HOST.rstrip("/")
+    return f"{base}{settings.API_V1_STR}/bookings/qr/{confirmation_code}"
+
+
 def build_check_in_qr_url(confirmation_code: str, *, auto_check_in: bool = True) -> str:
     """
     Admin check-in URL encoded in ticket QR codes.

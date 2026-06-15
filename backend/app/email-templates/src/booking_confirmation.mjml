@@ -89,9 +89,7 @@
             Your Tickets
           </mj-text>
           <mj-text padding-top="12px" padding-bottom="12px" align="center">
-            {% if qr_code_base64 %}
-            <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Your ticket QR code" width="480" height="480" style="display:block;margin:0 auto;" />
-            {% endif %}
+            <img src="{{ qr_image_url }}" alt="Your ticket QR code" width="480" height="480" style="display:block;margin:0 auto;" />
           </mj-text>
           <mj-text color="#637381" font-size="16px">
             Access your digital tickets by clicking the button below or visiting our website and entering your confirmation code. You can also show this QR code at check-in.

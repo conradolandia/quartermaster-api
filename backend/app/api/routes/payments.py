@@ -96,11 +96,6 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
                 }
             )
 
-        # Get or generate QR code for the email
-        qr_code_base64 = booking.qr_code_base64 or generate_qr_code(
-            booking.confirmation_code
-        )
-
         experience_display = build_experience_display_dict(session, list(booking.items))
 
         # Generate and send the email
@@ -111,7 +106,6 @@ def send_booking_confirmation_email(session: Session, booking: Booking) -> None:
             mission_name=mission_name,
             booking_items=booking_items,
             total_amount=booking.total_amount / 100.0,  # cents to dollars for display
-            qr_code_base64=qr_code_base64,
             experience_display=experience_display,
         )
 

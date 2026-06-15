@@ -1,5 +1,6 @@
 import { Container } from "@chakra-ui/react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useCallback } from "react"
 import { z } from "zod"
 
 import CheckInInterface from "@/components/Admin/CheckInInterface"
@@ -23,6 +24,14 @@ function CheckIn() {
   const { code, check_in: autoCheckIn } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
 
+  const handleAutoCheckInComplete = useCallback(() => {
+    if (!code) return
+    navigate({
+      search: { code },
+      replace: true,
+    })
+  }, [code, navigate])
+
   if (!user) {
     return (
       <Container maxW="full" pt={12} px={{ base: 4, md: 6 }}>
@@ -36,13 +45,7 @@ function CheckIn() {
       <CheckInInterface
         initialCode={code}
         autoCheckIn={autoCheckIn === true}
-        onAutoCheckInComplete={() => {
-          if (!code) return
-          navigate({
-            search: { code },
-            replace: true,
-          })
-        }}
+        onAutoCheckInComplete={handleAutoCheckInComplete}
       />
     </Container>
   )

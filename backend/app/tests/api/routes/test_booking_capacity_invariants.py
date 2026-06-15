@@ -127,7 +127,7 @@ def test_read_trip_capacity_used_matches_sum_of_paid_per_boat(
 
 
 @patch("app.api.routes.payments.release_payment_intent_after_capacity_failure")
-@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.send_booking_confirmation_email_task")
 @patch("stripe.Webhook.construct_event")
 def test_webhook_second_booking_rejected_when_boat_would_overbook(
     mock_construct: MagicMock,
@@ -243,4 +243,4 @@ def test_webhook_second_booking_rejected_when_boat_would_overbook(
 
     paid = crud.get_paid_ticket_count_per_boat_for_trip(session=db, trip_id=trip.id)
     assert paid.get(boat.id, 0) == 6
-    mock_send_email.assert_called_once()
+    mock_send_email.assert_called_once_with(b1.id)

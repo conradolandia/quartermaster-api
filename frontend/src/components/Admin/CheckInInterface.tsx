@@ -53,6 +53,17 @@ const CheckInInterface = ({
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const qrLoadAttemptedRef = useRef<string | null>(null)
+  const onAutoCheckInCompleteRef = useRef(onAutoCheckInComplete)
+  const onBookingCheckedInRef = useRef(onBookingCheckedIn)
+  const showSuccessToastRef = useRef(showSuccessToast)
+  const showErrorToastRef = useRef(showErrorToast)
+
+  useEffect(() => {
+    onAutoCheckInCompleteRef.current = onAutoCheckInComplete
+    onBookingCheckedInRef.current = onBookingCheckedIn
+    showSuccessToastRef.current = showSuccessToast
+    showErrorToastRef.current = showErrorToast
+  })
 
   const getApiErrorDetail = (error: unknown, fallback: string): string => {
     const detail = (error as { body?: { detail?: string } })?.body?.detail
@@ -125,18 +136,18 @@ const CheckInInterface = ({
         setCurrentBooking(booking)
 
         if (!autoCheckIn) {
-          showSuccessToast("Booking found successfully")
+          showSuccessToastRef.current("Booking found successfully")
           return
         }
 
         const status = (booking.booking_status ?? "").toLowerCase()
         if (status === "checked_in") {
-          showSuccessToast("Already checked in")
-          onAutoCheckInComplete?.()
+          showSuccessToastRef.current("Already checked in")
+          onAutoCheckInCompleteRef.current?.()
           return
         }
         if (status !== "confirmed") {
-          showErrorToast(
+          showErrorToastRef.current(
             `Cannot check in booking with status '${booking.booking_status}'. Booking must be 'confirmed'.`,
           )
           return
@@ -147,29 +158,24 @@ const CheckInInterface = ({
         })
         if (cancelled) return
         setCurrentBooking(checkedIn)
-        showSuccessToast("Booking checked in successfully!")
-        onBookingCheckedIn?.(checkedIn)
+        showSuccessToastRef.current("Booking checked in successfully!")
+        onBookingCheckedInRef.current?.(checkedIn)
         queryClient.invalidateQueries({ queryKey: ["bookings"] })
-        onAutoCheckInComplete?.()
+        onAutoCheckInCompleteRef.current?.()
       } catch (error: unknown) {
         if (cancelled) return
-        showErrorToast(getApiErrorDetail(error, "Failed to load booking"))
+        showErrorToastRef.current(getApiErrorDetail(error, "Failed to load booking"))
         setCurrentBooking(null)
       }
     })()
 
     return () => {
       cancelled = true
+      if (qrLoadAttemptedRef.current === loadKey) {
+        qrLoadAttemptedRef.current = null
+      }
     }
-  }, [
-    initialCode,
-    autoCheckIn,
-    onAutoCheckInComplete,
-    onBookingCheckedIn,
-    queryClient,
-    showErrorToast,
-    showSuccessToast,
-  ])
+  }, [initialCode, autoCheckIn, queryClient])
 
   const handleLookupBooking = () => {
     if (!confirmationCode.trim()) {
