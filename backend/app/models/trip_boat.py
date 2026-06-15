@@ -83,7 +83,9 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
     """Trip boat with effective max capacity, remaining slots, and per-ticket-type pricing/availability."""
 
     max_capacity: int  # Effective capacity (TripBoat.max_capacity or Boat.capacity)
-    remaining_capacity: int  # Seats left for sale (pricing aggregates; includes hold deduction)
+    remaining_capacity: (
+        int  # Seats left for sale (pricing aggregates; includes hold deduction)
+    )
     pricing: list["EffectivePricingItem"] = Field(default_factory=list)  # noqa: F821
     used_per_ticket_type: dict[str, int] = Field(
         default_factory=dict,

@@ -3,6 +3,6 @@
 set -e
 set -x
 
-mypy app
+# Ruff is enforced in CI. Mypy (strict) has known backlog; run scripts/typecheck.sh locally.
 ruff check app
 ruff format app --check

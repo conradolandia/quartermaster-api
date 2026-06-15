@@ -6,7 +6,7 @@ Overview of the workflows in this directory. Trigger events use the branches def
 
 | File | Trigger | Purpose |
 |------|---------|---------|
-| **ci.yml** | Push/PR to `master`, `staging` | CI: backend lint (mypy, ruff), backend tests in Docker (db + prestart + backend via `docker-compose.ci.yml`), frontend lint (Biome), frontend build. |
+| **ci.yml** | Push/PR to `master`, `staging` | CI: backend lint (ruff), backend tests in Docker (db + prestart + backend via `docker-compose.ci.yml`), frontend lint (Biome), frontend build. Backend mypy is optional via `backend/scripts/typecheck.sh` (not CI-gated). |
 
 ## Optional workflows (not enabled by default)
 
