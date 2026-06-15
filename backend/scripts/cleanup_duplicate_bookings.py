@@ -6,10 +6,9 @@ This script identifies and removes duplicate bookings, keeping only the confirme
 and removing pending/cancelled duplicates for the same customer and timestamp.
 """
 
-from sqlmodel import select
-
 from app.api import deps
 from app.models import Booking, BookingStatus, PaymentStatus
+from sqlmodel import select
 
 
 def _booking_priority(b: Booking) -> int:

@@ -798,9 +798,9 @@ def update_booking(
             current_this_booking: dict[tuple[uuid.UUID, str], int] = defaultdict(int)
             for item in items:
                 if item.trip_merchandise_id is None:
-                    current_this_booking[
-                        (item.boat_id, item.item_type)
-                    ] += item.quantity
+                    current_this_booking[(item.boat_id, item.item_type)] += (
+                        item.quantity
+                    )
             for (trip_id, boat_id, item_type), qty in ticket_totals.items():
                 capacities = crud.get_effective_capacity_per_ticket_type(
                     session=session, trip_id=trip_id, boat_id=boat_id

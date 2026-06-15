@@ -41,9 +41,7 @@ class RescheduleBookingRequest(BaseModel):
 
     target_trip_id: uuid.UUID
     boat_id: uuid.UUID | None = None  # Required if target trip has more than one boat
-    type_mapping: dict[
-        str, str
-    ] | None = (
+    type_mapping: dict[str, str] | None = (
         None  # Map each source item_type to target ticket type on destination boat
     )
 

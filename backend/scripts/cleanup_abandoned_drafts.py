@@ -11,11 +11,10 @@ Run periodically (e.g. cron). Default: cancel draft and pending_payment older th
 import argparse
 from datetime import datetime, timedelta, timezone
 
-from sqlmodel import select
-
 from app.api import deps
 from app.core.stripe import release_payment_intent_after_capacity_failure
 from app.models import Booking, BookingStatus, PaymentStatus
+from sqlmodel import select
 
 ALLOWED_CLEANUP_STATUSES = {
     BookingStatus.draft,

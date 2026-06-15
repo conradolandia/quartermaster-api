@@ -416,14 +416,14 @@ def create_booking_impl(
                     )
 
         # Validate total boat capacity: sum of all ticket types must not exceed boat's max_capacity
-        ticket_quantity_by_trip_boat: dict[
-            tuple[uuid.UUID, uuid.UUID], int
-        ] = defaultdict(int)
+        ticket_quantity_by_trip_boat: dict[tuple[uuid.UUID, uuid.UUID], int] = (
+            defaultdict(int)
+        )
         for item in booking_in.items:
             if item.trip_merchandise_id is None:
-                ticket_quantity_by_trip_boat[
-                    (item.trip_id, item.boat_id)
-                ] += item.quantity
+                ticket_quantity_by_trip_boat[(item.trip_id, item.boat_id)] += (
+                    item.quantity
+                )
 
         paid_total_by_trip: dict[uuid.UUID, dict[uuid.UUID, int]] = {
             tid: crud.get_paid_ticket_count_per_boat_for_trip(

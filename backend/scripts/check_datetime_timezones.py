@@ -11,10 +11,9 @@ from pathlib import Path
 # Add the parent directory to the path so we can import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlmodel import Session, select
-
 from app.core.db import engine
 from app.models import Booking, Launch, Mission, Trip
+from sqlmodel import Session, select
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger(__name__)

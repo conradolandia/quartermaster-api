@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.12.*"
 
 [[package]]
@@ -101,7 +101,7 @@ dev = [
     { name = "mypy", specifier = ">=1.8.0,<2.0.0" },
     { name = "pre-commit", specifier = ">=3.6.2,<4.0.0" },
     { name = "pytest", specifier = ">=7.4.3,<8.0.0" },
-    { name = "ruff", specifier = ">=0.2.2,<1.0.0" },
+    { name = "ruff", specifier = "==0.6.7" },
     { name = "types-passlib", specifier = ">=1.7.7.20240106,<2.0.0.0" },
 ]
 

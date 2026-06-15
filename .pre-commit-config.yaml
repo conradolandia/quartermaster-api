@@ -17,13 +17,20 @@ repos:
             )$
       - id: trailing-whitespace
         exclude: ^frontend/src/client/.*
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.2.2
+  - repo: local
     hooks:
       - id: ruff
-        args:
-          - --fix
+        name: ruff
+        entry: bash -c 'cd backend && uv run ruff check app --fix'
+        language: system
+        files: ^backend/app/.*\.py$
+        pass_filenames: false
       - id: ruff-format
+        name: ruff-format
+        entry: bash -c 'cd backend && uv run ruff format app'
+        language: system
+        files: ^backend/app/.*\.py$
+        pass_filenames: false
 
 ci:
   autofix_commit_msg: 🎨 [pre-commit.ci] Auto format from pre-commit.com hooks

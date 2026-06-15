@@ -9,11 +9,10 @@ the check-in URL format or after changing QR_CODE_BASE_URL.
 
 import logging
 
-from sqlmodel import Session, select
-
 from app.api.routes.booking_utils import generate_qr_code
 from app.core.db import engine
 from app.models import Booking
+from sqlmodel import Session, select
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

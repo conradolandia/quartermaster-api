@@ -14,10 +14,9 @@ import argparse
 import sys
 import uuid
 
-from sqlmodel import Session
-
 from app import crud
 from app.core.db import engine
+from sqlmodel import Session
 
 
 def main() -> int:

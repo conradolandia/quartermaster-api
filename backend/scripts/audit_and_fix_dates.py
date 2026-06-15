@@ -18,10 +18,9 @@ from typing import Any
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlmodel import Session, select
-
 from app.core.db import engine
 from app.models import Booking, BookingItem, Launch, Mission, Trip
+from sqlmodel import Session, select
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
