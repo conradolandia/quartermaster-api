@@ -291,6 +291,35 @@ def update_trip(*, session: Session, db_obj: Trip, obj_in: TripUpdate | dict) ->
     return db_obj
 
 
+def get_trip_sales_cents(*, session: Session, trip_id: uuid.UUID) -> int:
+    """
+    Sum trip-attributed sales in cents (excludes tax), matching the trips table.
+    Includes confirmed, checked_in, and completed bookings.
+    """
+    sales_statement = text(
+        """
+        SELECT COALESCE(SUM(
+            CASE WHEN b.subtotal > 0
+            THEN (trip_items.trip_item_subtotal::float / b.subtotal)
+                 * (b.total_amount - b.tax_amount)
+            ELSE 0 END
+        ), 0)::bigint
+        FROM (
+            SELECT bi.booking_id,
+                   SUM(bi.quantity * bi.price_per_unit) AS trip_item_subtotal
+            FROM bookingitem bi
+            WHERE bi.trip_id = :trip_id
+              AND bi.status IN ('active', 'fulfilled')
+            GROUP BY bi.booking_id
+        ) trip_items
+        JOIN booking b ON b.id = trip_items.booking_id
+        WHERE b.booking_status IN ('confirmed', 'checked_in', 'completed')
+        """
+    ).params(trip_id=trip_id)
+    sales_row = session.exec(sales_statement).first()
+    return int(sales_row[0]) if sales_row is not None else 0
+
+
 def get_trip_booking_count_and_codes(
     *, session: Session, trip_id: uuid.UUID
 ) -> tuple[int, list[str]]:

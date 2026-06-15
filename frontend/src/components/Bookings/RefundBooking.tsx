@@ -24,20 +24,11 @@ import {
 import { DialogActionTrigger } from "@/components/ui/dialog"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
+import {
+  REFUND_REASON_OTHER,
+  REFUND_REASONS,
+} from "./refundReasons"
 import { getRefundedCents, isPartiallyRefunded } from "./types"
-
-const REFUND_REASONS = [
-  "Customer requested cancellation",
-  "Change in party size",
-  "Could not make date",
-  "Weather conditions",
-  "Technical issues",
-  "Service quality issues",
-  "Medical emergency",
-  "Other",
-]
-
-const REFUND_REASON_OTHER = "Other"
 
 interface RefundBookingProps {
   booking: BookingPublic

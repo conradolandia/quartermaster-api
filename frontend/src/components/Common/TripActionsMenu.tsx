@@ -1,7 +1,7 @@
 import { Button } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { FiArchive, FiCopy, FiLink, FiMail } from "react-icons/fi"
+import { FiArchive, FiCopy, FiDollarSign, FiLink, FiMail } from "react-icons/fi"
 import {
   DiscountCodesService,
   MissionsService,
@@ -16,6 +16,7 @@ import { getPublicOrigin } from "@/utils/url"
 import SendLaunchUpdate from "../Launches/SendLaunchUpdate"
 import DeleteTrip from "../Trips/DeleteTrip"
 import EditTrip from "../Trips/EditTrip"
+import RefundTripBookings from "../Trips/RefundTripBookings"
 import { ActionsMenu } from "../ui/actions-menu"
 import { MenuItem } from "../ui/menu"
 
@@ -28,6 +29,7 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
   const { showSuccessToast, showWarningToast } = useCustomToast()
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false)
+  const [refundBookingsOpen, setRefundBookingsOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<TripPublic | null>(null)
 
   const isEarlyBird =
@@ -77,6 +79,14 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
   })
+
+  const { data: refundablePreview } = useQuery({
+    queryKey: ["trip-refundable-bookings", trip.id],
+    queryFn: () =>
+      TripsService.readTripRefundableBookings({ tripId: trip.id }),
+    staleTime: 30_000,
+  })
+  const hasRefundableBookings = (refundablePreview?.count ?? 0) > 0
 
   const handleCloseEdit = () => {
     setEditModalOpen(false)
@@ -163,6 +173,24 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
           </Button>
         </MenuItem>
         <MenuItem
+          value="refund-paid-bookings"
+          onClick={() => setRefundBookingsOpen(true)}
+          disabled={trip.archived || !hasRefundableBookings}
+          asChild
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            color="dark.accent.primary"
+            justifyContent="start"
+            w="full"
+            disabled={trip.archived || !hasRefundableBookings}
+          >
+            <FiDollarSign fontSize="16px" />
+            Refund Paid Bookings
+          </Button>
+        </MenuItem>
+        <MenuItem
           value="copy-booking-link"
           onClick={copyBookingLink}
           disabled={trip.archived}
@@ -238,6 +266,11 @@ const TripActionsMenu = ({ trip }: TripActionsMenuProps) => {
           dialogTitle="Send Trip Update"
         />
       )}
+      <RefundTripBookings
+        trip={trip}
+        isOpen={refundBookingsOpen}
+        onOpenChange={setRefundBookingsOpen}
+      />
     </>
   )
 }

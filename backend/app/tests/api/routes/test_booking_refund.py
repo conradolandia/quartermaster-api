@@ -156,7 +156,7 @@ def test_refund_400_amount_exceeds_remaining(
     )
 
 
-@patch("app.api.routes.booking_refund.send_email")
+@patch("app.services.refund.send_email")
 @patch("app.core.stripe.refund_payment", new_callable=MagicMock)
 def test_refund_success_full_refund_with_stripe(
     mock_refund_payment: MagicMock,
@@ -193,7 +193,7 @@ def test_refund_success_full_refund_with_stripe(
     mock_send_email.assert_called_once()
 
 
-@patch("app.api.routes.booking_refund.send_email")
+@patch("app.services.refund.send_email")
 def test_refund_success_without_stripe_no_payment_intent(
     mock_send_email: MagicMock,
     client: TestClient,

@@ -24,6 +24,7 @@ from app.api.routes import (
     trip_boat_pricing,
     trip_boats,
     trip_merchandise,
+    trip_refund,
     trips_admin,
     trips_operations,
     trips_public,
@@ -48,6 +49,7 @@ api_router.include_router(boat_pricing.router)
 api_router.include_router(trips_public.router)
 api_router.include_router(trips_operations.router)
 api_router.include_router(trips_admin.router)
+api_router.include_router(trip_refund.router)
 api_router.include_router(imports.router)
 api_router.include_router(trip_boats.router)
 api_router.include_router(trip_boat_pricing.router)

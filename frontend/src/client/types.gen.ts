@@ -660,6 +660,13 @@ export type ReassignBoatResponse = {
   moved: number
 }
 
+export type RefundableBookingSummary = {
+  confirmation_code: string
+  refund_amount_cents: number
+  booking_status: string
+  payment_status?: string | null
+}
+
 export type RefundRequest = {
   refund_reason: string
   refund_notes?: string | null
@@ -689,6 +696,15 @@ export type RescheduleMerchandiseAutoAttached = {
   merchandise_id: string
   name: string
   trip_merchandise_id: string
+}
+
+export type SkippedBookingSummary = {
+  confirmation_code: string
+  refund_amount_cents: number
+  booking_status: string
+  payment_status?: string | null
+  skip_reason: string
+  skip_reason_label: string
 }
 
 /**
@@ -821,6 +837,18 @@ export type TripBoatUpdate = {
   sales_enabled?: boolean | null
 }
 
+export type TripBulkRefundRequest = {
+  refund_reason: string
+  refund_notes?: string | null
+}
+
+export type TripBulkRefundResult = {
+  refunded_count: number
+  failed_count: number
+  total_refunded_cents: number
+  failures: Array<TripRefundFailure>
+}
+
 export type TripCapacityResponse = {
   total_capacity: number
   used_capacity: number
@@ -934,6 +962,22 @@ export type TripPublic = {
    * Booking mode in effect (considering sales_open_at); for display.
    */
   effective_booking_mode?: string
+}
+
+export type TripRefundableBookingsPublic = {
+  count: number
+  total_refundable_cents: number
+  bookings: Array<RefundableBookingSummary>
+  skipped_count: number
+  skipped_total_cents: number
+  skipped: Array<SkippedBookingSummary>
+  trip_sales_cents: number
+  committed_passengers: number
+}
+
+export type TripRefundFailure = {
+  confirmation_code: string
+  detail: string
 }
 
 export type TripsPublic = {
@@ -1959,6 +2003,20 @@ export type TripsReadTripsByMissionData = {
 }
 
 export type TripsReadTripsByMissionResponse = TripsPublic
+
+export type TripsReadTripRefundableBookingsData = {
+  tripId: string
+}
+
+export type TripsReadTripRefundableBookingsResponse =
+  TripRefundableBookingsPublic
+
+export type TripsRefundTripPaidBookingsEndpointData = {
+  requestBody: TripBulkRefundRequest
+  tripId: string
+}
+
+export type TripsRefundTripPaidBookingsEndpointResponse = TripBulkRefundResult
 
 export type UsersReadUsersData = {
   limit?: number

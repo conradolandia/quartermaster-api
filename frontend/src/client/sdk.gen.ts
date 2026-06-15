@@ -270,6 +270,10 @@ import type {
   TripsReadTripCapacityResponse,
   TripsReadTripsByMissionData,
   TripsReadTripsByMissionResponse,
+  TripsReadTripRefundableBookingsData,
+  TripsReadTripRefundableBookingsResponse,
+  TripsRefundTripPaidBookingsEndpointData,
+  TripsRefundTripPaidBookingsEndpointResponse,
   UsersReadUsersData,
   UsersReadUsersResponse,
   UsersCreateUserData,
@@ -3772,6 +3776,56 @@ export class TripsService {
         limit: data.limit,
         include_archived: data.includeArchived,
       },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Read Trip Refundable Bookings
+   * Preview confirmed paid bookings on a trip that can be fully refunded via Stripe.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @returns TripRefundableBookingsPublic Successful Response
+   * @throws ApiError
+   */
+  public static readTripRefundableBookings(
+    data: TripsReadTripRefundableBookingsData,
+  ): CancelablePromise<TripsReadTripRefundableBookingsResponse> {
+    return __request(OpenAPI, {
+      method: "GET",
+      url: "/api/v1/trips/{trip_id}/refundable-bookings",
+      path: {
+        trip_id: data.tripId,
+      },
+      errors: {
+        422: "Validation Error",
+      },
+    })
+  }
+
+  /**
+   * Refund Trip Paid Bookings Endpoint
+   * Fully refund all confirmed paid bookings on a trip with a Stripe payment.
+   * Skips ineligible bookings. Continues processing when individual refunds fail.
+   * @param data The data for the request.
+   * @param data.tripId
+   * @param data.requestBody
+   * @returns TripBulkRefundResult Successful Response
+   * @throws ApiError
+   */
+  public static refundTripPaidBookingsEndpoint(
+    data: TripsRefundTripPaidBookingsEndpointData,
+  ): CancelablePromise<TripsRefundTripPaidBookingsEndpointResponse> {
+    return __request(OpenAPI, {
+      method: "POST",
+      url: "/api/v1/trips/{trip_id}/refund-paid-bookings",
+      path: {
+        trip_id: data.tripId,
+      },
+      body: data.requestBody,
+      mediaType: "application/json",
       errors: {
         422: "Validation Error",
       },
