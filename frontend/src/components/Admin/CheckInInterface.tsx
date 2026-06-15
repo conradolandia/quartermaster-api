@@ -8,13 +8,14 @@ import {
   HStack,
   Heading,
   Input,
-  Separator,
   Text,
   VStack,
 } from "@chakra-ui/react"
+import { Link as RouterLink } from "@tanstack/react-router"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
-import { FiCheck, FiCornerUpLeft, FiEdit, FiSearch, FiX } from "react-icons/fi"
+import type { ReactNode } from "react"
+import { FiCheck, FiCornerUpLeft, FiEdit, FiExternalLink, FiSearch } from "react-icons/fi"
 
 import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
@@ -25,7 +26,22 @@ import {
 } from "@/components/Bookings/types"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import useCustomToast from "@/hooks/useCustomToast"
-import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import { formatCents } from "@/utils"
+
+const DetailRow = ({
+  label,
+  value,
+}: {
+  label: string
+  value: ReactNode
+}) => (
+  <Flex gap={4} alignItems="baseline">
+    <Text fontWeight="bold" minW="100px" fontSize="sm">
+      {label}:
+    </Text>
+    <Text fontSize="sm">{value}</Text>
+  </Flex>
+)
 
 interface CheckInInterfaceProps {
   /** When set (e.g. from URL ?code=), load this booking on mount. Used by QR scan flow. */
@@ -190,12 +206,6 @@ const CheckInInterface = ({
     checkInMutation.mutate({ code: confirmationCode })
   }
 
-  const handleReset = () => {
-    setConfirmationCode("")
-    setCurrentBooking(null)
-    setIsEditOpen(false)
-  }
-
   const refetchCurrentBooking = async () => {
     if (!currentBooking?.confirmation_code) return
     try {
@@ -315,14 +325,14 @@ const CheckInInterface = ({
                   )}
                 </HStack>
                 <HStack gap={2} flexWrap="wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={checkInMutation.isPending}
-                  >
-                    <FiX />
-                    Reset
+                  <Button variant="outline" size={{ base: "xs", md: "sm" }} asChild>
+                    <RouterLink
+                      to="/bookings"
+                      search={{ code: currentBooking.confirmation_code }}
+                    >
+                      <FiExternalLink />
+                      Full Details
+                    </RouterLink>
                   </Button>
                   {currentBooking.booking_status !== "checked_in" && (
                     <Button
@@ -350,7 +360,7 @@ const CheckInInterface = ({
                     <Button
                       variant="outline"
                       colorPalette="orange"
-                      size="sm"
+                      size={{ base: "xs", md: "sm" }}
                       onClick={() =>
                         revertCheckInMutation.mutate({
                           code: confirmationCode,
@@ -366,54 +376,43 @@ const CheckInInterface = ({
                 </HStack>
               </HStack>
             </Card.Header>
-            <Separator mt={6} />
             <Card.Body>
               <Grid
                 templateColumns={{ base: "1fr", md: "1fr 1fr" }}
                 gap={6}
-                mb={6}
               >
                 <VStack gap={4} align="stretch">
                   <Box>
-                    <Heading size="lg" mb={2}>
-                      Customer Information
-                    </Heading>
-                    <Text>
-                      <strong>Name:</strong>{" "}
-                      {[currentBooking.first_name, currentBooking.last_name]
-                        .filter(Boolean)
-                        .join(" ")}
-                    </Text>
-                    <Text>
-                      <strong>Email:</strong> {currentBooking.user_email}
-                    </Text>
-                    <Text>
-                      <strong>Phone:</strong>{" "}
-                      {currentBooking.user_phone || "Not provided"}
-                    </Text>
-                  </Box>
-
-                  <Box>
-                    <Heading size="lg" mb={2}>
+                    <Heading size="lg" mb={4}>
                       Booking Information
                     </Heading>
-                    <Text>
-                      <strong>Confirmation Code:</strong>{" "}
-                      {currentBooking.confirmation_code}
-                    </Text>
-                    <Text>
-                      <strong>Total Amount:</strong> $
-                      {formatCents(currentBooking.total_amount)}
-                    </Text>
-                    <Text>
-                      <strong>Created:</strong>{" "}
-                      {formatDateTimeInLocationTz(currentBooking.created_at, null)}
-                    </Text>
+                    <VStack align="stretch" gap={3}>
+                      <DetailRow
+                        label="Name"
+                        value={[currentBooking.first_name, currentBooking.last_name]
+                          .filter(Boolean)
+                          .join(" ")}
+                      />
+                      <DetailRow
+                        label="Confirmation"
+                        value={currentBooking.confirmation_code}
+                      />
+                    </VStack>
                   </Box>
+
+                  {currentBooking.items && currentBooking.items.length > 0 && (
+                    <BookingExperienceDetails
+                      booking={currentBooking}
+                      usePublicApis={false}
+                      heading="Trip Information"
+                      variant="checkIn"
+                      showSeparator={false}
+                    />
+                  )}
                 </VStack>
 
                 <Box>
-                  <Heading size="lg" mb={2}>
+                  <Heading size="lg" mb={4}>
                     Booking Items
                   </Heading>
                   {currentBooking.items && currentBooking.items.length > 0 ? (
@@ -423,9 +422,6 @@ const CheckInInterface = ({
                           <Text>
                             <strong>{item.item_type}</strong> x {item.quantity}
                           </Text>
-                          <Text fontSize="sm" color="text.muted">
-                            ${formatCents(item.price_per_unit)} each
-                          </Text>
                         </Box>
                       ))}
                     </VStack>
@@ -433,16 +429,6 @@ const CheckInInterface = ({
                     <Text color="text.muted">No items</Text>
                   )}
                 </Box>
-
-                {currentBooking.items && currentBooking.items.length > 0 && (
-                  <Box gridColumn={{ base: "1", md: "1 / -1" }}>
-                    <BookingExperienceDetails
-                      booking={currentBooking}
-                      usePublicApis={false}
-                      heading="Mission, launch & trip"
-                    />
-                  </Box>
-                )}
               </Grid>
             </Card.Body>
           </Card.Root>

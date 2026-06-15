@@ -20,8 +20,36 @@ import {
 } from "@/client"
 import type { BookingPublic } from "@/client"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
-import { formatDateTimeInLocationTz } from "@/utils"
+import {
+  formatDateTimeInLocationTz,
+  formatInLocationTimezoneWithAbbr,
+  getTimezoneAbbr,
+  getUseInternationalDateFormat,
+  parseApiDate,
+} from "@/utils"
+import { formatInTimeZone } from "date-fns-tz/formatInTimeZone"
+import { enUS } from "date-fns/locale/en-US"
 import { tripTypeToLabel } from "./types"
+
+function formatDepartureDateTimeInLocationTz(
+  dateString: string | null | undefined,
+  timezone?: string | null,
+): string {
+  if (!dateString) return ""
+  const d = parseApiDate(dateString)
+  if (Number.isNaN(d.getTime())) return ""
+  if (timezone) {
+    if (getUseInternationalDateFormat()) {
+      const dateTime = formatInTimeZone(d, timezone, "yyyy-MM-dd HH:mm", {
+        locale: enUS,
+      })
+      return `${dateTime} ${getTimezoneAbbr(timezone)}`
+    }
+    const parts = formatInLocationTimezoneWithAbbr(d, timezone)
+    if (parts) return `${parts.dateTime} ${parts.timezoneAbbr}`
+  }
+  return formatDateTimeInLocationTz(dateString, timezone)
+}
 
 interface BookingExperienceDetailsProps {
   booking: BookingPublic
@@ -35,6 +63,10 @@ interface BookingExperienceDetailsProps {
   narrowLayout?: boolean
   /** Styling: border, bg, etc. Passed to outer Box. */
   boxProps?: Record<string, unknown>
+  /** Compact check-in layout: Mission, Trip, Departure, Boat only; no separator. */
+  variant?: "full" | "checkIn"
+  /** Show separator below heading (default true). */
+  showSeparator?: boolean
 }
 
 export default function BookingExperienceDetails({
@@ -44,6 +76,8 @@ export default function BookingExperienceDetails({
   showHeading = true,
   narrowLayout = usePublicApis,
   boxProps = {},
+  variant = "full",
+  showSeparator = true,
 }: BookingExperienceDetailsProps) {
   useDateFormatPreference()
   const firstItem = booking?.items?.[0]
@@ -128,6 +162,42 @@ export default function BookingExperienceDetails({
     </Flex>
   )
 
+  if (variant === "checkIn") {
+    const tz = trip?.timezone ?? undefined
+    const missionName = mission?.name
+    const tripLabel = trip
+      ? trip.name?.trim()
+        ? `${trip.name.trim()} – ${tripTypeToLabel(trip.type)}`
+        : tripTypeToLabel(trip.type)
+      : null
+
+    return (
+      <Box {...boxProps}>
+        {showHeading && (
+          <Heading size="lg" mb={4}>
+            {heading}
+          </Heading>
+        )}
+        <VStack align="stretch" gap={3}>
+          {missionName && <Row label="Mission" value={missionName} />}
+          {tripLabel && <Row label="Trip" value={tripLabel} />}
+          {trip?.departure_time && (
+            <Row
+              label="Departure"
+              value={formatDepartureDateTimeInLocationTz(
+                trip.departure_time,
+                tz,
+              )}
+            />
+          )}
+          {boatNames.length > 0 && (
+            <Row label="Boat" value={boatNames.join(", ")} />
+          )}
+        </VStack>
+      </Box>
+    )
+  }
+
   // Public booking detail: use embedded experience_display when present (avoids read_public_trip 404 for past trips)
   if (exp) {
     return (
@@ -137,7 +207,7 @@ export default function BookingExperienceDetails({
             {heading}
           </Heading>
         )}
-        <Separator mb={4} />
+        {showSeparator && <Separator mb={4} />}
         <Grid
           templateColumns={
             narrowLayout
@@ -253,7 +323,7 @@ export default function BookingExperienceDetails({
           {heading}
         </Heading>
       )}
-      <Separator mb={4} />
+      {showSeparator && <Separator mb={4} />}
       <Grid
         templateColumns={
           narrowLayout
