@@ -55,6 +55,7 @@ from app.models.enums import (
     BookingStatus,
     DiscountCodeType,
     PaymentStatus,
+    UserRole,
 )
 from app.models.jurisdiction import (
     Jurisdiction,
@@ -281,6 +282,7 @@ __all__ = [
     "TripUpdate",
     "TripWithStats",
     "UpdatePassword",
+    "UserRole",
     "User",
     "UserBase",
     "UserCreate",

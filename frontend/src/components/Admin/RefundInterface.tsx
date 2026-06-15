@@ -22,9 +22,20 @@ import { FiChevronDown, FiChevronUp, FiSearch, FiX } from "react-icons/fi"
 import { type BookingPublic, BookingsService } from "@/client"
 import BookingExperienceDetails from "@/components/Bookings/BookingExperienceDetails"
 import {
+  RefundLineItemSelector,
+  RefundedItemsSummary,
+} from "@/components/Bookings/RefundLineItemSelector"
+import {
+  type RefundMode,
+  formatLineItemLabel,
+  isRefundableLineItem,
+  sumLineItemRefundCents,
+} from "@/components/Bookings/refundLineItems"
+import {
   getRefundedCents,
   isPartiallyRefunded,
 } from "@/components/Bookings/types"
+import { Radio, RadioGroup } from "@/components/ui/radio"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 
@@ -48,6 +59,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
   const [refundAmount, setRefundAmount] = useState<number | null>(null)
+  const [refundMode, setRefundMode] = useState<RefundMode>("amount")
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
   const [currentBooking, setCurrentBooking] = useState<BookingPublic | null>(
     null,
   )
@@ -66,6 +79,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       const refunded = getRefundedCents(booking)
       const remaining = booking.total_amount - refunded
       setRefundAmount(remaining > 0 ? remaining : null)
+      setRefundMode("amount")
+      setSelectedItemIds([])
       showSuccessToast("Booking found successfully")
     },
     onError: (error: any) => {
@@ -81,23 +96,28 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
       reason,
       notes,
       amount,
+      itemIds,
     }: {
       code: string
       reason: string
       notes?: string
       amount?: number
+      itemIds?: string[]
     }) =>
       BookingsService.processRefund({
         confirmationCode: code,
         requestBody: {
           refund_reason: reason,
           refund_notes: notes || undefined,
-          refund_amount_cents: amount ?? undefined,
+          refund_amount_cents: itemIds?.length ? undefined : amount ?? undefined,
+          refund_item_ids: itemIds?.length ? itemIds : undefined,
         },
       }),
     onSuccess: (booking) => {
       showSuccessToast("Refund processed successfully!")
       setCurrentBooking(booking)
+      setRefundMode("amount")
+      setSelectedItemIds([])
       onBookingRefunded?.(booking)
       queryClient.invalidateQueries({ queryKey: ["bookings"] })
     },
@@ -128,6 +148,21 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     }
 
     const remaining = currentBooking.total_amount - getRefundedCents(currentBooking)
+
+    if (refundMode === "items") {
+      if (selectedItemIds.length === 0) {
+        showErrorToast("Select at least one line item to refund")
+        return
+      }
+      refundMutation.mutate({
+        code: currentBooking.confirmation_code,
+        reason: refundReason,
+        notes: refundNotes.trim() || undefined,
+        itemIds: selectedItemIds,
+      })
+      return
+    }
+
     if (refundAmount !== null && refundAmount > remaining) {
       showErrorToast(
         `Refund amount cannot exceed remaining refundable amount ($${formatCents(remaining)})`,
@@ -148,6 +183,8 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
     setRefundReason("")
     setRefundNotes("")
     setRefundAmount(null)
+    setRefundMode("amount")
+    setSelectedItemIds([])
     setCurrentBooking(null)
   }
 
@@ -186,6 +223,20 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
   const remainingRefundable = currentBooking
     ? currentBooking.total_amount - getRefundedCents(currentBooking)
     : 0
+  const refundableItems =
+    currentBooking?.items?.filter(isRefundableLineItem) ?? []
+  const selectedItems =
+    currentBooking?.items?.filter((item) =>
+      selectedItemIds.includes(item.id),
+    ) ?? []
+  const selectedItemsRefundTotal = currentBooking
+    ? sumLineItemRefundCents(selectedItems, currentBooking)
+    : 0
+  const canSubmitItemRefund =
+    refundMode === "items" &&
+    selectedItemIds.length > 0 &&
+    selectedItemsRefundTotal > 0 &&
+    selectedItemsRefundTotal <= remainingRefundable
 
   return (
     <VStack gap={6} align="stretch">
@@ -290,15 +341,21 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                       Items:
                     </Text>
                     <VStack gap={2} align="stretch">
-                      {currentBooking.items.map((item, index) => (
+                      {currentBooking.items.map((item) => (
                         <HStack
-                          key={index}
+                          key={item.id}
                           justify="space-between"
                           borderRadius="md"
                         >
-                          <Text>
-                            {item.quantity}x {item.item_type.replace("_", " ")}
-                          </Text>
+                          <Box>
+                            <Text>{formatLineItemLabel(item)}</Text>
+                            {(item.refunded_amount_cents ?? 0) > 0 && (
+                              <Text fontSize="xs" color="text.muted">
+                                Refunded: $
+                                {formatCents(item.refunded_amount_cents ?? 0)}
+                              </Text>
+                            )}
+                          </Box>
                           <Badge
                             colorPalette={
                               item.status === "refunded" ? "orange" : "blue"
@@ -309,6 +366,7 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         </HStack>
                       ))}
                     </VStack>
+                    <RefundedItemsSummary booking={currentBooking} />
                   </Box>
                 )}
               </VStack>
@@ -335,38 +393,71 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         </Text>
                       </HStack>
                     )}
-                    {/* Refund Amount */}
                     <Box>
                       <Text fontWeight="medium" mb={2}>
-                        Refund Amount
+                        Refund method
                       </Text>
-                      <NumberInput.Root
-                        value={(
-                          (refundAmount ?? remainingRefundable) / 100
-                        ).toFixed(2)}
-                        onValueChange={(details) => {
-                          const dollars =
-                            Number.parseFloat(details.value || "0") || 0
-                          setRefundAmount(Math.round(dollars * 100))
+                      <RadioGroup
+                        value={refundMode}
+                        onValueChange={(e) => {
+                          const mode = (e.value ?? "amount") as RefundMode
+                          setRefundMode(mode)
+                          if (mode === "amount") {
+                            setSelectedItemIds([])
+                          }
                         }}
-                        min={0}
-                        max={remainingRefundable / 100}
-                        step={0.01}
                       >
-                        <NumberInput.Input placeholder="0.00" />
-                        <NumberInput.Control>
-                          <NumberInput.IncrementTrigger>
-                            <FiChevronUp />
-                          </NumberInput.IncrementTrigger>
-                          <NumberInput.DecrementTrigger>
-                            <FiChevronDown />
-                          </NumberInput.DecrementTrigger>
-                        </NumberInput.Control>
-                      </NumberInput.Root>
-                      <Text fontSize="sm" color="text.muted" mt={1}>
-                        Maximum: ${formatCents(remainingRefundable)}
-                      </Text>
+                        <HStack gap={4} flexWrap="wrap">
+                          <Radio value="amount">Flat amount</Radio>
+                          <Radio
+                            value="items"
+                            disabled={refundableItems.length === 0}
+                          >
+                            Specific line items
+                          </Radio>
+                        </HStack>
+                      </RadioGroup>
                     </Box>
+
+                    {refundMode === "items" ? (
+                      <RefundLineItemSelector
+                        booking={currentBooking}
+                        selectedItemIds={selectedItemIds}
+                        onSelectedItemIdsChange={setSelectedItemIds}
+                      />
+                    ) : (
+                      <Box>
+                        <Text fontWeight="medium" mb={2}>
+                          Refund Amount
+                        </Text>
+                        <NumberInput.Root
+                          value={(
+                            (refundAmount ?? remainingRefundable) / 100
+                          ).toFixed(2)}
+                          onValueChange={(details) => {
+                            const dollars =
+                              Number.parseFloat(details.value || "0") || 0
+                            setRefundAmount(Math.round(dollars * 100))
+                          }}
+                          min={0}
+                          max={remainingRefundable / 100}
+                          step={0.01}
+                        >
+                          <NumberInput.Input placeholder="0.00" />
+                          <NumberInput.Control>
+                            <NumberInput.IncrementTrigger>
+                              <FiChevronUp />
+                            </NumberInput.IncrementTrigger>
+                            <NumberInput.DecrementTrigger>
+                              <FiChevronDown />
+                            </NumberInput.DecrementTrigger>
+                          </NumberInput.Control>
+                        </NumberInput.Root>
+                        <Text fontSize="sm" color="text.muted" mt={1}>
+                          Maximum: ${formatCents(remainingRefundable)}
+                        </Text>
+                      </Box>
+                    )}
 
                     {/* Refund Reason */}
                     <Box>
@@ -433,7 +524,10 @@ const RefundInterface = ({ onBookingRefunded }: RefundInterfaceProps) => {
                         colorPalette="red"
                         onClick={handleProcessRefund}
                         loading={refundMutation.isPending}
-                        disabled={!refundReason.trim()}
+                        disabled={
+                          !refundReason.trim() ||
+                          (refundMode === "items" && !canSubmitItemRefund)
+                        }
                       >
                         Process Refund
                       </Button>

@@ -167,6 +167,7 @@ export type BookingItemCreate = {
   quantity: number
   price_per_unit: number
   status?: BookingItemStatus
+  refunded_amount_cents?: number
   refund_reason?: string | null
   refund_notes?: string | null
   variant_option?: string | null
@@ -182,6 +183,7 @@ export type BookingItemPublic = {
   quantity: number
   price_per_unit: number
   status?: BookingItemStatus
+  refunded_amount_cents?: number
   refund_reason?: string | null
   refund_notes?: string | null
   variant_option?: string | null
@@ -675,6 +677,7 @@ export type RefundRequest = {
   refund_reason: string
   refund_notes?: string | null
   refund_amount_cents?: number | null
+  refund_item_ids?: Array<string> | null
 }
 
 /**
@@ -1064,7 +1067,7 @@ export type UpdatePassword = {
 export type UserCreate = {
   email: string
   is_active?: boolean
-  is_superuser?: boolean
+  role?: UserRole
   full_name?: string | null
   password: string
 }
@@ -1072,10 +1075,12 @@ export type UserCreate = {
 export type UserPublic = {
   email: string
   is_active?: boolean
-  is_superuser?: boolean
+  role?: UserRole
   full_name?: string | null
   id: string
 }
+
+export type UserRole = "admin" | "staff"
 
 export type UsersPublic = {
   data: Array<UserPublic>
@@ -1085,7 +1090,7 @@ export type UsersPublic = {
 export type UserUpdate = {
   email?: string | null
   is_active?: boolean
-  is_superuser?: boolean
+  role?: UserRole
   full_name?: string | null
   password?: string | null
 }

@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Booking,
     BookingItem,
@@ -42,7 +42,7 @@ def _launch_to_public(session: Session, launch: Launch) -> LaunchPublic:
 @router.get(
     "/",
     response_model=LaunchesPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_launches(
     *,
@@ -69,7 +69,7 @@ def read_launches(
     "/",
     response_model=LaunchPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_launch(
     *,
@@ -95,7 +95,7 @@ def create_launch(
     "/{launch_id}/duplicate",
     response_model=LaunchPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def duplicate_launch(
     *,
@@ -127,7 +127,7 @@ def duplicate_launch(
 @router.get(
     "/{launch_id}",
     response_model=LaunchPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_launch(
     *,
@@ -149,7 +149,7 @@ def read_launch(
 @router.put(
     "/{launch_id}",
     response_model=LaunchPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_launch(
     *,
@@ -189,7 +189,7 @@ def update_launch(
 @router.delete(
     "/{launch_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_launch(
     *,
@@ -218,7 +218,7 @@ def delete_launch(
 @router.get(
     "/location/{location_id}",
     response_model=LaunchesPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_launches_by_location(
     *,
@@ -299,7 +299,7 @@ def read_public_launch(
 @router.post(
     "/import-yaml",
     response_model=LaunchPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def import_launch_from_yaml(
     *,
@@ -365,7 +365,7 @@ class LaunchUpdateResponse(BaseModel):
 @router.post(
     "/{launch_id}/send-update",
     response_model=LaunchUpdateResponse,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def send_launch_update(
     *,

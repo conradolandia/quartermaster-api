@@ -11,6 +11,7 @@ import {
   DEFAULT_PAGE_SIZE,
   PageSizeSelect,
 } from "@/components/ui/page-size-select"
+import { formatUserRole } from "@/utils/permissions"
 import {
   PaginationItems,
   PaginationNextTrigger,
@@ -109,7 +110,7 @@ function UsersTable() {
                 {user.email}
               </Table.Cell>
               <Table.Cell>
-                {user.is_superuser ? "Superuser" : "User"}
+                {formatUserRole(user.role)}
               </Table.Cell>
               <Table.Cell>{user.is_active ? "Active" : "Inactive"}</Table.Cell>
               <Table.Cell>

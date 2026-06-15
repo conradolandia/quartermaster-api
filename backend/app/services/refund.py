@@ -1,6 +1,7 @@
 """Shared booking refund processing."""
 
 import logging
+import uuid
 from collections.abc import Sequence
 
 from sqlmodel import Session, select
@@ -34,6 +35,60 @@ DEFAULT_REFUNDABLE_BOOKING_STATUSES: tuple[BookingStatus, ...] = (
     BookingStatus.completed,
 )
 
+REFUNDABLE_ITEM_STATUSES: tuple[BookingItemStatus, ...] = (
+    BookingItemStatus.active,
+    BookingItemStatus.fulfilled,
+)
+
+
+def compute_line_item_refund_cents(item: BookingItem, booking: Booking) -> int:
+    """
+    Refund amount for one line item: proportional share of discount and tax (no tip).
+    """
+    item_subtotal = item.price_per_unit * item.quantity
+    if item_subtotal <= 0 or booking.subtotal <= 0:
+        return 0
+
+    after_discount_subtotal = max(0, booking.subtotal - booking.discount_amount)
+    item_after_discount = round(
+        item_subtotal * after_discount_subtotal / booking.subtotal
+    )
+    if after_discount_subtotal <= 0:
+        return item_after_discount
+
+    item_tax = round(booking.tax_amount * item_after_discount / after_discount_subtotal)
+    return item_after_discount + item_tax
+
+
+def _restore_merchandise_inventory_for_item(
+    session: Session, item: BookingItem
+) -> None:
+    if not item.merchandise_variation_id:
+        return
+    variation = session.get(MerchandiseVariation, item.merchandise_variation_id)
+    if not variation:
+        return
+    was_fulfilled = item.status == BookingItemStatus.fulfilled
+    variation.quantity_sold -= item.quantity
+    variation.quantity_sold = max(0, variation.quantity_sold)
+    if was_fulfilled:
+        variation.quantity_fulfilled -= item.quantity
+        variation.quantity_fulfilled = max(0, variation.quantity_fulfilled)
+    session.add(variation)
+
+
+def _mark_item_refunded(
+    *,
+    item: BookingItem,
+    refund_reason: str,
+    refund_notes: str | None,
+    refunded_amount_cents: int,
+) -> None:
+    item.status = BookingItemStatus.refunded
+    item.refunded_amount_cents = refunded_amount_cents
+    item.refund_reason = refund_reason
+    item.refund_notes = refund_notes
+
 
 def process_booking_refund(
     session: Session,
@@ -42,6 +97,7 @@ def process_booking_refund(
     refund_reason: str,
     refund_notes: str | None = None,
     refund_amount_cents: int | None = None,
+    refund_item_ids: Sequence[uuid.UUID] | None = None,
     allowed_booking_statuses: Sequence[
         BookingStatus
     ] = DEFAULT_REFUNDABLE_BOOKING_STATUSES,
@@ -50,6 +106,10 @@ def process_booking_refund(
     """
     Process a refund for a booking: Stripe (when payment_intent_id exists),
     update booking/items/inventory, and send confirmation email.
+
+    When refund_item_ids is set, refunds those line items (amount computed from
+    item price + proportional tax). Otherwise refund_amount_cents controls the
+    flat amount (full remaining balance when omitted).
     """
     if booking.booking_status not in allowed_booking_statuses:
         allowed = ", ".join(s.value for s in allowed_booking_statuses)
@@ -58,14 +118,59 @@ def process_booking_refund(
             f"Booking must be one of: {allowed}."
         )
 
+    items = session.exec(
+        select(BookingItem).where(BookingItem.booking_id == booking.id)
+    ).all()
+
     refunded_so_far = getattr(booking, "refunded_amount_cents", 0) or 0
     remaining_refundable = booking.total_amount - refunded_so_far
     if remaining_refundable <= 0:
         raise RefundProcessingError("No remaining amount to refund for this booking.")
 
-    amount_to_refund = (
-        refund_amount_cents if refund_amount_cents is not None else remaining_refundable
-    )
+    items_to_refund: list[BookingItem] = []
+    if refund_item_ids is not None:
+        if not refund_item_ids:
+            raise RefundProcessingError("At least one line item must be selected.")
+        if refund_amount_cents is not None:
+            raise RefundProcessingError(
+                "Specify either refund_item_ids or refund_amount_cents, not both."
+            )
+        item_by_id = {item.id: item for item in items}
+        seen: set[uuid.UUID] = set()
+        for item_id in refund_item_ids:
+            if item_id in seen:
+                continue
+            seen.add(item_id)
+            item = item_by_id.get(item_id)
+            if item is None:
+                raise RefundProcessingError(
+                    f"Line item {item_id} does not belong to this booking."
+                )
+            if item.status == BookingItemStatus.refunded:
+                raise RefundProcessingError(
+                    f"Line item '{item.item_type}' has already been refunded."
+                )
+            if item.status not in REFUNDABLE_ITEM_STATUSES:
+                raise RefundProcessingError(
+                    f"Line item '{item.item_type}' cannot be refunded "
+                    f"(status: {item.status.value})."
+                )
+            items_to_refund.append(item)
+
+        amount_to_refund = sum(
+            compute_line_item_refund_cents(item, booking) for item in items_to_refund
+        )
+        if amount_to_refund <= 0:
+            raise RefundProcessingError(
+                "Selected line items have no refundable amount."
+            )
+    else:
+        amount_to_refund = (
+            refund_amount_cents
+            if refund_amount_cents is not None
+            else remaining_refundable
+        )
+
     if amount_to_refund > remaining_refundable:
         raise RefundProcessingError(
             f"Refund amount cannot exceed remaining refundable amount "
@@ -81,11 +186,12 @@ def process_booking_refund(
         )
 
     logger.info(
-        "process_booking_refund reason=%r notes=%r booking=%s amount_cents=%s",
+        "process_booking_refund reason=%r notes=%r booking=%s amount_cents=%s item_ids=%s",
         refund_reason,
         refund_notes,
         booking.confirmation_code,
         amount_to_refund,
+        [str(i.id) for i in items_to_refund] if items_to_refund else None,
     )
 
     if payment_intent_id:
@@ -118,35 +224,43 @@ def process_booking_refund(
     booking.refund_notes = refund_notes
     session.add(booking)
 
-    items = session.exec(
-        select(BookingItem).where(BookingItem.booking_id == booking.id)
-    ).all()
+    if items_to_refund:
+        for item in items_to_refund:
+            item_refund_cents = compute_line_item_refund_cents(item, booking)
+            _mark_item_refunded(
+                item=item,
+                refund_reason=refund_reason,
+                refund_notes=refund_notes,
+                refunded_amount_cents=item_refund_cents,
+            )
+            session.add(item)
+            _restore_merchandise_inventory_for_item(session, item)
+    elif amount_to_refund >= remaining_refundable:
+        for item in items:
+            if item.status != BookingItemStatus.refunded:
+                item_refund_cents = compute_line_item_refund_cents(item, booking)
+                _mark_item_refunded(
+                    item=item,
+                    refund_reason=refund_reason,
+                    refund_notes=refund_notes,
+                    refunded_amount_cents=item_refund_cents,
+                )
+                session.add(item)
+                _restore_merchandise_inventory_for_item(session, item)
+    else:
+        for item in items:
+            item.refund_reason = refund_reason
+            item.refund_notes = refund_notes
+            session.add(item)
 
-    for item in items:
-        item.refund_reason = refund_reason
-        item.refund_notes = refund_notes
-        session.add(item)
+    fully_refunded = booking.refunded_amount_cents >= booking.total_amount
+    all_items_refunded = items and all(
+        item.status == BookingItemStatus.refunded for item in items
+    )
 
-    if booking.refunded_amount_cents >= booking.total_amount:
+    if fully_refunded or all_items_refunded:
         booking.booking_status = BookingStatus.cancelled
         booking.payment_status = PaymentStatus.refunded
-        for item in items:
-            was_fulfilled = item.status == BookingItemStatus.fulfilled
-            item.status = BookingItemStatus.refunded
-            session.add(item)
-            if item.merchandise_variation_id:
-                variation = session.get(
-                    MerchandiseVariation, item.merchandise_variation_id
-                )
-                if variation:
-                    variation.quantity_sold -= item.quantity
-                    variation.quantity_sold = max(0, variation.quantity_sold)
-                    if was_fulfilled:
-                        variation.quantity_fulfilled -= item.quantity
-                        variation.quantity_fulfilled = max(
-                            0, variation.quantity_fulfilled
-                        )
-                    session.add(variation)
     else:
         booking.payment_status = PaymentStatus.partially_refunded
 

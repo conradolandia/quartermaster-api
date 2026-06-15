@@ -1,6 +1,7 @@
 """Booking refund endpoint."""
 
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -28,12 +29,13 @@ class RefundRequest(BaseModel):
     refund_reason: str
     refund_notes: str | None = None
     refund_amount_cents: int | None = None
+    refund_item_ids: list[uuid.UUID] | None = None
 
 
 @router.post(
     "/refund/{confirmation_code}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def process_refund(
     confirmation_code: str,
@@ -45,12 +47,14 @@ def process_refund(
     Process a refund for a booking.
 
     refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
+    refund_item_ids: When set, refunds those line items (price + proportional tax).
     Validates the booking and processes the refund through Stripe,
     then updates the booking status to 'refunded'.
     """
     refund_reason = body.refund_reason
     refund_notes = body.refund_notes
     refund_amount_cents = body.refund_amount_cents
+    refund_item_ids = body.refund_item_ids
     try:
         validate_confirmation_code(confirmation_code)
 
@@ -74,6 +78,7 @@ def process_refund(
                 refund_reason=refund_reason,
                 refund_notes=refund_notes,
                 refund_amount_cents=refund_amount_cents,
+                refund_item_ids=refund_item_ids,
             )
         except RefundProcessingError as e:
             raise HTTPException(

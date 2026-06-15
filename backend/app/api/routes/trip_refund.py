@@ -67,7 +67,7 @@ class TripBulkRefundResult(SQLModel):
 @router.get(
     "/{trip_id}/refundable-bookings",
     response_model=TripRefundableBookingsPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def read_trip_refundable_bookings(
     trip_id: uuid.UUID,
@@ -122,7 +122,7 @@ def read_trip_refundable_bookings(
 @router.post(
     "/{trip_id}/refund-paid-bookings",
     response_model=TripBulkRefundResult,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def refund_trip_paid_bookings_endpoint(
     trip_id: uuid.UUID,

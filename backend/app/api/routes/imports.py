@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.api.routes.launches import _launch_to_public
 from app.api.routes.missions import _mission_to_public
 from app.api.routes.trip_utils import trip_to_public
@@ -27,7 +27,7 @@ class ImportResult(BaseModel):
 @router.post(
     "/yaml",
     response_model=ImportResult,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def import_yaml_document(
     *,

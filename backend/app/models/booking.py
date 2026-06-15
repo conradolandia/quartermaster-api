@@ -56,6 +56,7 @@ class BookingItemBase(SQLModel):
     quantity: int = Field(ge=1)
     price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
+    refunded_amount_cents: int = Field(default=0, ge=0)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
     # Selected variant for merchandise (e.g. "M" when variant_name is "Size")
@@ -77,6 +78,7 @@ class BookingItemCreate(SQLModel):
     quantity: int = Field(ge=1)
     price_per_unit: int = Field(ge=0)  # cents
     status: BookingItemStatus = Field(default=BookingItemStatus.active)
+    refunded_amount_cents: int = Field(default=0, ge=0)
     refund_reason: str | None = Field(default=None, max_length=255)
     refund_notes: str | None = Field(default=None, max_length=1000)
     variant_option: str | None = Field(default=None, max_length=64)

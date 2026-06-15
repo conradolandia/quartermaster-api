@@ -69,13 +69,13 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
     "/id/{booking_id}/duplicate",
     response_model=BookingPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def duplicate_booking(
     *,
     session: Session = Depends(deps.get_db),
     booking_id: uuid.UUID,
-    current_user: User = Depends(deps.get_current_active_superuser),
+    current_user: User = Depends(deps.get_current_admin),
 ) -> BookingPublic:
     """
     Duplicate a booking as a new draft (admin only).
@@ -144,7 +144,7 @@ def duplicate_booking(
 @router.get(
     "/",
     response_model=BookingsPaginatedResponse,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def list_bookings(
     *,
@@ -574,7 +574,7 @@ def list_bookings(
 @router.get(
     "/ticket-item-types",
     response_model=TicketItemTypesResponse,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def list_booking_ticket_item_types(
     *,
@@ -596,7 +596,7 @@ def list_booking_ticket_item_types(
 @router.get(
     "/id/{booking_id}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def get_booking_by_id(
     *,
@@ -668,7 +668,7 @@ def get_booking_by_id(
 @router.delete(
     "/id/{booking_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
     operation_id="bookings_delete_booking",
 )
 def delete_booking(
@@ -713,7 +713,7 @@ def delete_booking(
 @router.patch(
     "/id/{booking_id}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def update_booking(
     *,

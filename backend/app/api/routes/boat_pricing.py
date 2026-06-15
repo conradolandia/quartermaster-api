@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Boat,
     BoatPricing,
@@ -33,7 +33,7 @@ def _sum_constrained_boat_pricing_capacities(rows: list[BoatPricing]) -> int:
     "/",
     response_model=BoatPricingPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_boat_pricing(
     *,
@@ -83,7 +83,7 @@ def create_boat_pricing(
 @router.get(
     "/",
     response_model=list[BoatPricingPublic],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def list_boat_pricing(
     *,
@@ -100,7 +100,7 @@ def list_boat_pricing(
 @router.get(
     "/{boat_pricing_id}",
     response_model=BoatPricingPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def get_boat_pricing(
     *,
@@ -120,7 +120,7 @@ def get_boat_pricing(
 @router.put(
     "/{boat_pricing_id}",
     response_model=BoatPricingPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_boat_pricing(
     *,
@@ -195,7 +195,7 @@ def update_boat_pricing(
 @router.delete(
     "/{boat_pricing_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_boat_pricing(
     *,

@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Boat,
     TripBoat,
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/trip-boat-pricing", tags=["trip-boat-pricing"])
     "/",
     response_model=TripBoatPricingPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_trip_boat_pricing(
     *,
@@ -89,7 +89,7 @@ def create_trip_boat_pricing(
 @router.get(
     "/",
     response_model=list[TripBoatPricingPublic],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def list_trip_boat_pricing(
     *,
@@ -108,7 +108,7 @@ def list_trip_boat_pricing(
 @router.get(
     "/{trip_boat_pricing_id}",
     response_model=TripBoatPricingPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def get_trip_boat_pricing(
     *,
@@ -130,7 +130,7 @@ def get_trip_boat_pricing(
 @router.put(
     "/{trip_boat_pricing_id}",
     response_model=TripBoatPricingPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_trip_boat_pricing(
     *,
@@ -243,7 +243,7 @@ def update_trip_boat_pricing(
 @router.delete(
     "/{trip_boat_pricing_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_trip_boat_pricing(
     *,

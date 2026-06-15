@@ -577,6 +577,7 @@ export default function BookingDetails({
                       <Table.ColumnHeader>Quantity</Table.ColumnHeader>
                       <Table.ColumnHeader>Price per Unit</Table.ColumnHeader>
                       <Table.ColumnHeader>Total</Table.ColumnHeader>
+                      <Table.ColumnHeader>Refunded</Table.ColumnHeader>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
@@ -626,6 +627,24 @@ export default function BookingDetails({
                           $
                           {formatCents(
                             (item.price_per_unit || 0) * item.quantity,
+                          )}
+                        </Table.Cell>
+                        <Table.Cell>
+                          {(item.refunded_amount_cents ?? 0) > 0 ? (
+                            <VStack align="flex-start" gap={0}>
+                              <Text fontSize="sm" color="red.400">
+                                ${formatCents(item.refunded_amount_cents ?? 0)}
+                              </Text>
+                              {item.refund_reason && (
+                                <Text fontSize="xs" color="gray.400">
+                                  {item.refund_reason}
+                                </Text>
+                              )}
+                            </VStack>
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">
+                              —
+                            </Text>
                           )}
                         </Table.Cell>
                       </Table.Row>

@@ -4,12 +4,14 @@ import uuid
 from pydantic import EmailStr, field_validator
 from sqlmodel import Field, SQLModel
 
+from app.models.enums import UserRole
+
 
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
-    is_superuser: bool = False
+    role: UserRole = UserRole.staff
     full_name: str | None = Field(default=None, max_length=64)
 
     @field_validator("email", mode="before")

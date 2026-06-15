@@ -4,6 +4,7 @@ from sqlmodel import Session
 from app import crud
 from app.core.config import settings
 from app.models import User, UserCreate, UserUpdate
+from app.models.enums import UserRole
 from app.tests.utils.utils import random_email, random_lower_string
 
 
@@ -22,14 +23,13 @@ def user_authentication_headers(
     except Exception as e:
         print(f"Error authenticating user {email}: {e}")
         print(f"Response: {r.text if 'r' in locals() else 'No response'}")
-        # Return empty headers as fallback
         return {}
 
 
 def create_random_user(db: Session) -> User:
     email = random_email()
     password = random_lower_string()
-    user_in = UserCreate(email=email, password=password)
+    user_in = UserCreate(email=email, password=password, role=UserRole.staff)
     user = crud.create_user(session=db, user_create=user_in)
     return user
 
@@ -50,8 +50,8 @@ def authentication_token_from_email(
                 email=email,
                 password=password,
                 is_active=True,
-                is_superuser=False,
-                full_name="Test Normal User",
+                role=UserRole.staff,
+                full_name="Test Staff User",
             )
             user = crud.create_user(session=db, user_create=user_in_create)
         else:
@@ -65,5 +65,4 @@ def authentication_token_from_email(
         )
     except Exception as e:
         print(f"Error creating/authenticating user {email}: {e}")
-        # Return empty headers as fallback
         return {}

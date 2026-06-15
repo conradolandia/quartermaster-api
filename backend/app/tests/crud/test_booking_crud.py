@@ -24,6 +24,7 @@ from app.models import (
     TripMerchandise,
     User,
 )
+from app.models.enums import UserRole
 
 
 def _make_item(
@@ -133,7 +134,7 @@ def test_create_booking_superuser_bypasses_private_trip(
         __import__("sqlmodel", fromlist=["select"])
         .select(User)
         .where(
-            User.is_superuser == True  # noqa: E712
+            User.role == UserRole.admin  # noqa: E712
         )
     ).first()
     assert superuser is not None
@@ -316,7 +317,7 @@ def test_sales_disabled_on_boat_allowed_for_superuser(
         __import__("sqlmodel", fromlist=["select"])
         .select(User)
         .where(
-            User.is_superuser == True  # noqa: E712
+            User.role == UserRole.admin  # noqa: E712
         )
     ).first()
     assert superuser is not None

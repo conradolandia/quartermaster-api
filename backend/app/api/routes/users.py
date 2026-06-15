@@ -6,8 +6,9 @@ from sqlmodel import func, select
 
 from app import crud
 from app.api.deps import (
+    CurrentStaffUser,
     SessionDep,
-    get_current_active_superuser,
+    get_current_admin,
 )
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
@@ -21,6 +22,7 @@ from app.models import (
     UserUpdate,
     UserUpdateMe,
 )
+from app.models.enums import UserRole
 from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -28,7 +30,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
     response_model=UsersPublic,
 )
 def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
@@ -45,18 +47,15 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     return UsersPublic(data=users, count=count)
 
 
-@router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
-)
+@router.post("/", dependencies=[Depends(get_current_admin)], response_model=UserPublic)
 def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
     """
-    Create new user (superuser only - all users must be superusers).
+    Create new user (admin only).
     """
-    # Enforce that all users must be superusers
-    if not user_in.is_superuser:
+    if user_in.role not in (UserRole.admin, UserRole.staff):
         raise HTTPException(
             status_code=400,
-            detail="All users must be superusers. Regular users are not supported.",
+            detail="Invalid role. Must be 'admin' or 'staff'.",
         )
 
     user = crud.get_user_by_email(session=session, email=user_in.email)
@@ -84,10 +83,10 @@ def update_user_me(
     *,
     session: SessionDep,
     user_in: UserUpdateMe,
-    current_user: Annotated[User, Depends(get_current_active_superuser)],
+    current_user: CurrentStaffUser,
 ) -> Any:
     """
-    Update own user (superuser only).
+    Update own user profile.
     """
 
     if user_in.email:
@@ -109,10 +108,10 @@ def update_password_me(
     *,
     session: SessionDep,
     body: UpdatePassword,
-    current_user: Annotated[User, Depends(get_current_active_superuser)],
+    current_user: CurrentStaffUser,
 ) -> Any:
     """
-    Update own password (superuser only).
+    Update own password.
     """
     if not verify_password(body.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect password")
@@ -128,11 +127,9 @@ def update_password_me(
 
 
 @router.get("/me", response_model=UserPublic)
-def read_user_me(
-    current_user: Annotated[User, Depends(get_current_active_superuser)],
-) -> Any:
+def read_user_me(current_user: CurrentStaffUser) -> Any:
     """
-    Get current user (superuser only).
+    Get current user.
     """
     return current_user
 
@@ -140,21 +137,21 @@ def read_user_me(
 @router.delete("/me", response_model=Message)
 def delete_user_me() -> Any:
     """
-    Delete own user (superuser only, but not allowed).
+    Delete own user (not allowed).
     """
     raise HTTPException(
-        status_code=403, detail="Super users are not allowed to delete themselves"
+        status_code=403, detail="Users are not allowed to delete themselves"
     )
 
 
 @router.get(
     "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
     response_model=UserPublic,
 )
 def read_user_by_id(user_id: uuid.UUID, session: SessionDep) -> Any:
     """
-    Get a specific user by id (superuser only).
+    Get a specific user by id (admin only).
     """
     user = session.get(User, user_id)
     if not user:
@@ -164,7 +161,7 @@ def read_user_by_id(user_id: uuid.UUID, session: SessionDep) -> Any:
 
 @router.patch(
     "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
     response_model=UserPublic,
 )
 def update_user(
@@ -194,18 +191,18 @@ def update_user(
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{user_id}", dependencies=[Depends(get_current_admin)])
 def delete_user(
     session: SessionDep,
     user_id: uuid.UUID,
-    current_user: Annotated[User, Depends(get_current_active_superuser)],
+    current_user: Annotated[User, Depends(get_current_admin)],
 ) -> Message:
     """
-    Delete a user (superuser only). Superusers cannot delete themselves.
+    Delete a user (admin only). Admins cannot delete themselves.
     """
     if user_id == current_user.id:
         raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
+            status_code=403, detail="Users are not allowed to delete themselves"
         )
     user = session.get(User, user_id)
     if not user:

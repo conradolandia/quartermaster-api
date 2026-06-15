@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     LocationCreate,
     LocationPublic,
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/locations", tags=["locations"])
 @router.get(
     "/",
     response_model=LocationsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_locations(
     *,
@@ -42,7 +42,7 @@ def read_locations(
     "/",
     response_model=LocationPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_location(
     *,
@@ -59,7 +59,7 @@ def create_location(
 @router.get(
     "/{location_id}",
     response_model=LocationPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_location(
     *,
@@ -81,7 +81,7 @@ def read_location(
 @router.put(
     "/{location_id}",
     response_model=LocationPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_location(
     *,
@@ -107,7 +107,7 @@ def update_location(
 @router.delete(
     "/{location_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_location(
     *,

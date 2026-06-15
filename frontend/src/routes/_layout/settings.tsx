@@ -22,10 +22,8 @@ export const Route = createFileRoute("/_layout/settings")({
 
 function UserSettings() {
   const { user: currentUser } = useAuth()
-  // Hide "Danger zone" tab from superusers
-  const finalTabs = currentUser?.is_superuser
-    ? tabsConfig.slice(0, 3)
-    : tabsConfig
+  // Profile, display, and password only (no self-delete)
+  const finalTabs = tabsConfig.slice(0, 3)
 
   if (!currentUser) {
     return null

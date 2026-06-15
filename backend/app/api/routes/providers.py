@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     ProviderCreate,
     ProviderPublic,
@@ -43,7 +43,7 @@ def read_public_providers(
 @router.get(
     "/",
     response_model=ProvidersPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_providers(
     *,
@@ -71,7 +71,7 @@ def read_providers(
     "/",
     response_model=ProviderPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_provider(
     *,
@@ -98,7 +98,7 @@ def create_provider(
 @router.get(
     "/{provider_id}",
     response_model=ProviderPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_provider(
     *,
@@ -120,7 +120,7 @@ def read_provider(
 @router.put(
     "/{provider_id}",
     response_model=ProviderPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_provider(
     *,
@@ -161,7 +161,7 @@ def update_provider(
 @router.delete(
     "/{provider_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_provider(
     *,
@@ -190,7 +190,7 @@ def delete_provider(
 @router.get(
     "/jurisdiction/{jurisdiction_id}",
     response_model=ProvidersPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_providers_by_jurisdiction(
     *,

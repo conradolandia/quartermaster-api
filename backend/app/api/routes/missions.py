@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Mission,
     MissionCreate,
@@ -36,7 +36,7 @@ def _mission_to_public(session: Session, mission: Mission) -> MissionPublic:
 @router.get(
     "/",
     response_model=MissionsWithStatsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_missions(
     *,
@@ -63,7 +63,7 @@ def read_missions(
     "/",
     response_model=MissionPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_mission(
     *,
@@ -89,7 +89,7 @@ def create_mission(
     "/{mission_id}/duplicate",
     response_model=MissionPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def duplicate_mission(
     *,
@@ -121,7 +121,7 @@ def duplicate_mission(
 @router.get(
     "/{mission_id}",
     response_model=MissionPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_mission(
     *,
@@ -143,7 +143,7 @@ def read_mission(
 @router.put(
     "/{mission_id}",
     response_model=MissionPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_mission(
     *,
@@ -201,7 +201,7 @@ def update_mission(
 @router.delete(
     "/{mission_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_mission(
     *,
@@ -230,7 +230,7 @@ def delete_mission(
 @router.get(
     "/launch/{launch_id}",
     response_model=MissionsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_missions_by_launch(
     *,
@@ -284,7 +284,7 @@ def read_missions_by_launch(
 @router.get(
     "/active/",
     response_model=MissionsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_active_missions(
     *,
@@ -364,7 +364,7 @@ def read_public_missions(
 @router.post(
     "/import-yaml",
     response_model=MissionPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def import_mission_from_yaml(
     *,

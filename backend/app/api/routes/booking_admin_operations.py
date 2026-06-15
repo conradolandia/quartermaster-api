@@ -109,7 +109,7 @@ def _resolve_target_trip_merchandise(
 @router.post(
     "/id/{booking_id}/reschedule",
     response_model=RescheduleBookingResponse,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
     operation_id="bookings_reschedule",
 )
 def reschedule_booking(
@@ -364,7 +364,7 @@ def reschedule_booking(
 @router.post(
     "/check-in/{confirmation_code}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_check_in_user)],
 )
 def check_in_booking(
     *,
@@ -472,7 +472,7 @@ def check_in_booking(
 @router.post(
     "/revert-check-in/{confirmation_code}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_check_in_user)],
     operation_id="bookings_revert_check_in",
 )
 def revert_check_in(

@@ -31,6 +31,7 @@ from app.models import (
     PaymentStatus,
     User,
 )
+from app.models.enums import UserRole
 from app.utils import generate_booking_confirmation_email, send_email
 
 from .booking_utils import (
@@ -348,9 +349,9 @@ def get_booking_by_confirmation_code(
                     **{k: v for k, v in exp_dict.items() if k in model_fields}
                 )
 
-        # Strip admin_notes for non-admin (unauthenticated or non-superuser)
+        # Strip admin_notes for non-admin (unauthenticated or staff)
         current_user = deps.get_optional_current_user(session=session, request=request)
-        if not (current_user and current_user.is_superuser):
+        if not (current_user and current_user.role == UserRole.admin):
             booking_public.admin_notes = None
 
         return booking_public

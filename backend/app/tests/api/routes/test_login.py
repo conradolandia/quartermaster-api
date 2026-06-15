@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.security import verify_password
 from app.crud import create_user
 from app.models import UserCreate
+from app.models.enums import UserRole
 from app.tests.utils.user import user_authentication_headers
 from app.tests.utils.utils import random_email, random_lower_string
 from app.utils import generate_password_reset_token
@@ -81,7 +82,7 @@ def test_reset_password(client: TestClient, db: Session) -> None:
         full_name="Test User",
         password=password,
         is_active=True,
-        is_superuser=False,
+        role=UserRole.staff,
     )
     user = create_user(session=db, user_create=user_create)
     token = generate_password_reset_token(email=email)

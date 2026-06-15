@@ -37,7 +37,7 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
     "/id/{booking_id}/items",
     response_model=BookingPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
     operation_id="bookings_add_booking_item",
 )
 def add_booking_item(
@@ -185,7 +185,7 @@ def add_booking_item(
 @router.patch(
     "/id/{booking_id}/items/{item_id}",
     response_model=BookingPublic,
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
     operation_id="bookings_update_booking_item",
 )
 def update_booking_item(

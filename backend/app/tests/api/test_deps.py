@@ -10,6 +10,7 @@ from app import crud
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models import UserCreate
+from app.models.enums import UserRole
 from app.tests.utils.utils import (
     get_superuser_token_headers,
     random_email,
@@ -90,7 +91,7 @@ def test_protected_endpoint_inactive_user_returns_4xx(
             email=email,
             password=password,
             is_active=False,
-            is_superuser=False,
+            role=UserRole.staff,
         ),
     )
     db.commit()
@@ -105,18 +106,18 @@ def test_protected_endpoint_inactive_user_returns_4xx(
         assert "Inactive user" in (r.json().get("detail") or "")
 
 
-def test_superuser_endpoint_non_superuser_returns_403(
+def test_admin_endpoint_staff_returns_403(
     client: TestClient,
     db: Session,
 ) -> None:
-    """get_current_active_superuser: non-superuser -> 403."""
+    """get_current_admin: staff user -> 403 on admin-only endpoints."""
     user = crud.create_user(
         session=db,
         user_create=UserCreate(
             email=random_email(),
             password=random_lower_string(),
             is_active=True,
-            is_superuser=False,
+            role=UserRole.staff,
         ),
     )
     db.commit()

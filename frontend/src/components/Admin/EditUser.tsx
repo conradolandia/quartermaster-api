@@ -16,6 +16,7 @@ import { FaExchangeAlt } from "react-icons/fa"
 
 import { type UserPublic, type UserUpdate, UsersService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
 import { emailPattern, handleError } from "@/utils"
 import { Checkbox } from "../ui/checkbox"
@@ -74,8 +75,7 @@ const EditUser = ({ user }: EditUserProps) => {
     if (data.password === "") {
       data.password = undefined
     }
-    // Always set is_superuser to true (all users must be superusers)
-    mutation.mutate({ ...data, is_superuser: true })
+    mutation.mutate(data)
   }
 
   return (
@@ -177,6 +177,13 @@ const EditUser = ({ user }: EditUserProps) => {
                   placeholder="Password"
                   type="password"
                 />
+              </Field>
+
+              <Field label="Role" required>
+                <NativeSelect {...register("role", { required: true })}>
+                  <option value="staff">Staff (check-in only)</option>
+                  <option value="admin">Admin</option>
+                </NativeSelect>
               </Field>
             </VStack>
 

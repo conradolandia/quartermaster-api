@@ -2,6 +2,7 @@ import { Badge, Box, Flex, Heading, Text, VStack } from "@chakra-ui/react"
 
 import type { BookingPublic } from "@/client"
 import { formatCents, formatDateTimeInLocationTz } from "@/utils"
+import { RefundedItemsSummary } from "./RefundLineItemSelector"
 import {
   formatPaymentStatusLabel,
   getBookingStatusColor,
@@ -140,6 +141,7 @@ export default function BookingDetailInfoSections({
                         <Text>{notes}</Text>
                       </Flex>
                     )}
+                    <RefundedItemsSummary booking={booking} />
                   </>
                 )
               })()}

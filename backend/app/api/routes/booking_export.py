@@ -24,7 +24,7 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 @router.get(
     "/export/csv",
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
 )
 def export_bookings_csv(
     *,

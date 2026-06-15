@@ -33,7 +33,7 @@ setup("authenticate", async ({ page, request }) => {
     data: {
       email: testSuperuserEmail,
       password: testSuperuserPassword,
-      is_superuser: true,
+      role: "admin",
       full_name: "Test Superuser",
     },
   })

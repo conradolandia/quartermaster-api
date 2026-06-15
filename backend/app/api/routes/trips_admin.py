@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Boat,
     BoatPublic,
@@ -50,7 +50,7 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 @router.get(
     "/",
     response_model=TripsWithStatsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_trips(
     *,
@@ -115,7 +115,7 @@ def read_trips(
     "/",
     response_model=TripPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_trip(
     *,
@@ -187,7 +187,7 @@ def create_trip(
     "/create-full",
     response_model=TripPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_trip_full(
     *,
@@ -344,7 +344,7 @@ def create_trip_full(
 @router.get(
     "/{trip_id}",
     response_model=TripPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_trip(
     *,
@@ -367,7 +367,7 @@ def read_trip(
     "/{trip_id}/duplicate",
     response_model=TripPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def duplicate_trip(
     *,
@@ -473,7 +473,7 @@ class ReassignBoatResponse(BaseModel):
 @router.post(
     "/{trip_id}/reassign-boat",
     response_model=ReassignBoatResponse,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def reassign_trip_boat(
     *,
@@ -598,7 +598,7 @@ class TripCapacityResponse(BaseModel):
 @router.get(
     "/{trip_id}/capacity",
     response_model=TripCapacityResponse,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_trip_capacity(
     *,
@@ -638,7 +638,7 @@ def read_trip_capacity(
 @router.put(
     "/{trip_id}",
     response_model=TripPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_trip(
     *,
@@ -738,7 +738,7 @@ def update_trip(
 @router.delete(
     "/{trip_id}",
     response_model=TripPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_trip(
     *,
@@ -813,7 +813,7 @@ def delete_trip(
 @router.get(
     "/mission/{mission_id}",
     response_model=TripsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_trips_by_mission(
     *,

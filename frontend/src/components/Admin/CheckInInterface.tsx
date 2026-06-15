@@ -25,7 +25,9 @@ import {
   isPartiallyRefunded,
 } from "@/components/Bookings/types"
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
+import useAuth from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
+import { isAdmin } from "@/utils/permissions"
 import { formatCents } from "@/utils"
 
 const DetailRow = ({
@@ -67,6 +69,8 @@ const CheckInInterface = ({
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const canManageBookings = isAdmin(user)
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const qrLoadAttemptedRef = useRef<string | null>(null)
   const onAutoCheckInCompleteRef = useRef(onAutoCheckInComplete)
@@ -325,16 +329,19 @@ const CheckInInterface = ({
                   )}
                 </HStack>
                 <HStack gap={2} flexWrap="wrap">
-                  <Button variant="outline" size={{ base: "xs", md: "sm" }} asChild>
-                    <RouterLink
-                      to="/bookings"
-                      search={{ code: currentBooking.confirmation_code }}
-                    >
-                      <FiExternalLink />
-                      Full Details
-                    </RouterLink>
-                  </Button>
-                  {currentBooking.booking_status !== "checked_in" && (
+                  {canManageBookings && (
+                    <Button variant="outline" size={{ base: "xs", md: "sm" }} asChild>
+                      <RouterLink
+                        to="/bookings"
+                        search={{ code: currentBooking.confirmation_code }}
+                      >
+                        <FiExternalLink />
+                        Full Details
+                      </RouterLink>
+                    </Button>
+                  )}
+                  {canManageBookings &&
+                    currentBooking.booking_status !== "checked_in" && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -433,15 +440,17 @@ const CheckInInterface = ({
             </Card.Body>
           </Card.Root>
 
-          <EditBooking
-            booking={currentBooking}
-            isOpen={isEditOpen}
-            onClose={() => setIsEditOpen(false)}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["bookings"] })
-              void refetchCurrentBooking()
-            }}
-          />
+          {canManageBookings && (
+            <EditBooking
+              booking={currentBooking}
+              isOpen={isEditOpen}
+              onClose={() => setIsEditOpen(false)}
+              onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ["bookings"] })
+                void refetchCurrentBooking()
+              }}
+            />
+          )}
         </>
       )}
     </VStack>

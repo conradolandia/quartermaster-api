@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     Merchandise,
     TripMerchandise,
@@ -91,7 +91,7 @@ def _trip_merchandise_to_public(
     "/",
     response_model=TripMerchandisePublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_trip_merchandise(
     *,
@@ -122,7 +122,7 @@ def create_trip_merchandise(
 @router.get(
     "/",
     response_model=list[TripMerchandisePublic],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def list_trip_merchandise(
     *,
@@ -153,7 +153,7 @@ def list_trip_merchandise(
 @router.get(
     "/{trip_merchandise_id}",
     response_model=TripMerchandisePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def get_trip_merchandise(
     *,
@@ -184,7 +184,7 @@ def get_trip_merchandise(
 @router.put(
     "/{trip_merchandise_id}",
     response_model=TripMerchandisePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_trip_merchandise(
     *,
@@ -222,7 +222,7 @@ def update_trip_merchandise(
 @router.delete(
     "/{trip_merchandise_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_trip_merchandise(
     *,

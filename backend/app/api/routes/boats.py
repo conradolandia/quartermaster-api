@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     BoatCreate,
     BoatPublic,
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/boats", tags=["boats"])
 @router.get(
     "/",
     response_model=BoatsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_boats(
     *,
@@ -40,7 +40,7 @@ def read_boats(
     "/",
     response_model=BoatPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_boat(
     *,
@@ -63,7 +63,7 @@ def create_boat(
 @router.get(
     "/{boat_id}",
     response_model=BoatPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_boat(
     *,
@@ -85,7 +85,7 @@ def read_boat(
 @router.put(
     "/{boat_id}",
     response_model=BoatPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_boat(
     *,
@@ -158,7 +158,7 @@ def update_boat(
 @router.delete(
     "/{boat_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_boat(
     *,
@@ -187,7 +187,7 @@ def delete_boat(
 @router.get(
     "/jurisdiction/{jurisdiction_id}",
     response_model=BoatsPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_boats_by_jurisdiction(
     *,

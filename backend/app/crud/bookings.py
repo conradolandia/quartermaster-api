@@ -33,6 +33,7 @@ from app.models import (
     TripMerchandise,
     User,
 )
+from app.models.enums import UserRole
 
 from ..api.routes.booking_utils import (
     generate_qr_code,
@@ -164,15 +165,15 @@ def create_booking_impl(
     )
     logger.info(
         "create_booking access check: mission_id=%s any_private=%s any_early_bird=%s "
-        "discount_code_id=%s current_user=%s is_superuser=%s",
+        "discount_code_id=%s current_user=%s role=%s",
         mission_id,
         any_private,
         any_early_bird,
         booking_in.discount_code_id,
         current_user.id if current_user else None,
-        current_user.is_superuser if current_user else None,
+        current_user.role.value if current_user else None,
     )
-    if current_user and current_user.is_superuser:
+    if current_user and current_user.role == UserRole.admin:
         pass
     elif any_private:
         logger.warning(
@@ -251,7 +252,7 @@ def create_booking_impl(
                 detail=f"Boat {item.boat_id} is not associated with trip {item.trip_id}",
             )
         if not association.sales_enabled and not (
-            current_user and current_user.is_superuser
+            current_user and current_user.role == UserRole.admin
         ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

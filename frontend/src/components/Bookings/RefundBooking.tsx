@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   ButtonGroup,
+  HStack,
   NumberInput,
   Select,
   Text,
@@ -13,6 +14,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { BookingsService, type BookingPublic } from "@/client"
 import {
+  RefundLineItemSelector,
+} from "@/components/Bookings/RefundLineItemSelector"
+import {
+  type RefundMode,
+  isRefundableLineItem,
+  sumLineItemRefundCents,
+} from "@/components/Bookings/refundLineItems"
+import {
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -22,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DialogActionTrigger } from "@/components/ui/dialog"
+import { Radio, RadioGroup } from "@/components/ui/radio"
 import useCustomToast from "@/hooks/useCustomToast"
 import { formatCents } from "@/utils"
 import {
@@ -48,6 +58,8 @@ export default function RefundBooking({
   const [refundReason, setRefundReason] = useState("")
   const [refundNotes, setRefundNotes] = useState("")
   const [refundAmountCents, setRefundAmountCents] = useState<number | null>(null)
+  const [refundMode, setRefundMode] = useState<RefundMode>("amount")
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
 
   useEffect(() => {
     if (isOpen && booking) {
@@ -55,6 +67,8 @@ export default function RefundBooking({
       setRefundAmountCents(remaining > 0 ? remaining : null)
       setRefundReason("")
       setRefundNotes("")
+      setRefundMode("amount")
+      setSelectedItemIds([])
     }
   }, [isOpen, booking])
 
@@ -63,13 +77,19 @@ export default function RefundBooking({
       refundReason: string
       refundNotes?: string
       refundAmountCents?: number
+      refundItemIds?: string[]
     }) =>
       BookingsService.processRefund({
         confirmationCode: booking.confirmation_code,
         requestBody: {
           refund_reason: payload.refundReason,
           refund_notes: payload.refundNotes ?? undefined,
-          refund_amount_cents: payload.refundAmountCents,
+          refund_amount_cents: payload.refundItemIds?.length
+            ? undefined
+            : payload.refundAmountCents,
+          refund_item_ids: payload.refundItemIds?.length
+            ? payload.refundItemIds
+            : undefined,
         },
       }),
     onSuccess: () => {
@@ -90,6 +110,16 @@ export default function RefundBooking({
   })
 
   const isOtherReason = refundReason.trim() === REFUND_REASON_OTHER
+  const remaining = booking.total_amount - getRefundedCents(booking)
+  const refundableItems = booking.items?.filter(isRefundableLineItem) ?? []
+  const selectedItems =
+    booking.items?.filter((item) => selectedItemIds.includes(item.id)) ?? []
+  const selectedItemsRefundTotal = sumLineItemRefundCents(selectedItems, booking)
+  const canSubmitItemRefund =
+    refundMode === "items" &&
+    selectedItemIds.length > 0 &&
+    selectedItemsRefundTotal > 0 &&
+    selectedItemsRefundTotal <= remaining
 
   const handleProcessRefund = () => {
     if (!refundReason.trim()) {
@@ -100,7 +130,20 @@ export default function RefundBooking({
       showErrorToast("Please provide notes when selecting Other as the reason")
       return
     }
-    const remaining = booking.total_amount - getRefundedCents(booking)
+
+    if (refundMode === "items") {
+      if (selectedItemIds.length === 0) {
+        showErrorToast("Select at least one line item to refund")
+        return
+      }
+      refundMutation.mutate({
+        refundReason: refundReason.trim(),
+        refundNotes: refundNotes.trim() || undefined,
+        refundItemIds: selectedItemIds,
+      })
+      return
+    }
+
     if (
       refundAmountCents !== null &&
       refundAmountCents > remaining
@@ -176,41 +219,71 @@ export default function RefundBooking({
             </Box>
             <Box>
               <Text fontWeight="medium" mb={2}>
-                Refund amount (optional, full if empty)
+                Refund method
               </Text>
-              <NumberInput.Root
-                value={
-                  refundAmountCents !== null
-                    ? (refundAmountCents / 100).toFixed(2)
-                    : ""
-                }
+              <RadioGroup
+                value={refundMode}
                 onValueChange={(e) => {
-                  const v = e.value
-                  if (v === "" || v == null) {
-                    const remaining =
-                      booking.total_amount - getRefundedCents(booking)
-                    setRefundAmountCents(remaining > 0 ? remaining : null)
-                    return
+                  const mode = (e.value ?? "amount") as RefundMode
+                  setRefundMode(mode)
+                  if (mode === "amount") {
+                    setSelectedItemIds([])
                   }
-                  setRefundAmountCents(
-                    Math.round(Number.parseFloat(String(v)) * 100),
-                  )
                 }}
-                min={0}
-                max={
-                  (booking.total_amount - getRefundedCents(booking)) / 100
-                }
-                step={0.01}
               >
-                <NumberInput.Input placeholder="0.00" />
-              </NumberInput.Root>
-              <Text fontSize="sm" color="text.muted" mt={1}>
-                Max: $
-                {formatCents(
-                  booking.total_amount - getRefundedCents(booking),
-                )}
-              </Text>
+                <HStack gap={4} flexWrap="wrap">
+                  <Radio value="amount">Flat amount</Radio>
+                  <Radio
+                    value="items"
+                    disabled={refundableItems.length === 0}
+                  >
+                    Specific line items
+                  </Radio>
+                </HStack>
+              </RadioGroup>
             </Box>
+            {refundMode === "items" ? (
+              <RefundLineItemSelector
+                booking={booking}
+                selectedItemIds={selectedItemIds}
+                onSelectedItemIdsChange={setSelectedItemIds}
+              />
+            ) : (
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Refund amount (optional, full if empty)
+                </Text>
+                <NumberInput.Root
+                  value={
+                    refundAmountCents !== null
+                      ? (refundAmountCents / 100).toFixed(2)
+                      : ""
+                  }
+                  onValueChange={(e) => {
+                    const v = e.value
+                    if (v === "" || v == null) {
+                      const remainingAmount =
+                        booking.total_amount - getRefundedCents(booking)
+                      setRefundAmountCents(
+                        remainingAmount > 0 ? remainingAmount : null,
+                      )
+                      return
+                    }
+                    setRefundAmountCents(
+                      Math.round(Number.parseFloat(String(v)) * 100),
+                    )
+                  }}
+                  min={0}
+                  max={remaining / 100}
+                  step={0.01}
+                >
+                  <NumberInput.Input placeholder="0.00" />
+                </NumberInput.Root>
+                <Text fontSize="sm" color="text.muted" mt={1}>
+                  Max: ${formatCents(remaining)}
+                </Text>
+              </Box>
+            )}
             <Box>
               <Text fontWeight="medium" mb={2}>
                 Notes {isOtherReason ? "*" : "(optional)"}
@@ -237,7 +310,8 @@ export default function RefundBooking({
               loading={refundMutation.isPending}
               disabled={
                 !refundReason.trim() ||
-                (isOtherReason && !refundNotes.trim())
+                (isOtherReason && !refundNotes.trim()) ||
+                (refundMode === "items" && !canSubmitItemRefund)
               }
             >
               Process refund

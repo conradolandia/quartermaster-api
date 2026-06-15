@@ -5,6 +5,7 @@ import { Navigate, createFileRoute } from "@tanstack/react-router"
 import DashboardStats from "@/components/Admin/DashboardStats"
 import { DEFAULT_HOME_PATH } from "@/components/Common/SidebarItems"
 import useAuth from "@/hooks/useAuth"
+import { isAdmin } from "@/utils/permissions"
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -35,14 +36,11 @@ function Dashboard() {
     return <Navigate to="/login" />
   }
 
-  if (!currentUser.is_superuser) {
+  if (!isAdmin(currentUser)) {
     return (
       <Container maxW="full">
         <Box pt={12} m={4}>
-          <Text>
-            Only superusers can access the dashboard. Please use the public
-            booking form.
-          </Text>
+          <Text>Access denied.</Text>
         </Box>
       </Container>
     )

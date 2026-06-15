@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     MerchandiseCreate,
     MerchandisePublic,
@@ -46,7 +46,7 @@ def _merchandise_to_public(session: Session, merchandise: Any) -> MerchandisePub
 @router.get(
     "/",
     response_model=MerchandisesPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_merchandise_list(
     *,
@@ -69,7 +69,7 @@ def read_merchandise_list(
     "/",
     response_model=MerchandisePublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_merchandise(
     *,
@@ -90,7 +90,7 @@ def create_merchandise(
     "/{merchandise_id}/duplicate",
     response_model=MerchandisePublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def duplicate_merchandise(
     *,
@@ -154,7 +154,7 @@ def duplicate_merchandise(
 @router.get(
     "/{merchandise_id}",
     response_model=MerchandisePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_merchandise(
     *,
@@ -176,7 +176,7 @@ def read_merchandise(
 @router.put(
     "/{merchandise_id}",
     response_model=MerchandisePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_merchandise(
     *,
@@ -203,7 +203,7 @@ def update_merchandise(
 @router.delete(
     "/{merchandise_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_merchandise(
     *,
@@ -229,7 +229,7 @@ def delete_merchandise(
 @router.get(
     "/{merchandise_id}/variations",
     response_model=list[MerchandiseVariationPublic],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def list_merchandise_variations(
     *,
@@ -255,7 +255,7 @@ def list_merchandise_variations(
     "/{merchandise_id}/variations",
     response_model=MerchandiseVariationPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_merchandise_variation(
     *,
@@ -297,7 +297,7 @@ def create_merchandise_variation(
 @router.get(
     "/{merchandise_id}/variations/{variation_id}",
     response_model=MerchandiseVariationPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def get_merchandise_variation(
     *,
@@ -322,7 +322,7 @@ def get_merchandise_variation(
 @router.put(
     "/{merchandise_id}/variations/{variation_id}",
     response_model=MerchandiseVariationPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_merchandise_variation(
     *,
@@ -366,7 +366,7 @@ def update_merchandise_variation(
 @router.delete(
     "/{merchandise_id}/variations/{variation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def delete_merchandise_variation(
     *,

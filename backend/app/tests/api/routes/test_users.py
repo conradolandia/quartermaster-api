@@ -14,6 +14,7 @@ from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
 from app.models import User, UserCreate
+from app.models.enums import UserRole
 from app.tests.utils.utils import random_email, random_lower_string
 
 
@@ -22,7 +23,7 @@ def test_get_me(client: TestClient, superuser_token_headers: dict[str, str]) -> 
     assert r.status_code == 200
     u = r.json()
     assert u["email"] == settings.FIRST_SUPERUSER
-    assert u["is_superuser"]
+    assert u["role"] == UserRole.admin.value
 
 
 def test_create_user(
@@ -32,7 +33,7 @@ def test_create_user(
         data = {
             "email": random_email(),
             "password": random_lower_string(),
-            "is_superuser": True,
+            "role": UserRole.admin.value,
         }
         r = client.post(
             f"{settings.API_V1_STR}/users/", headers=superuser_token_headers, json=data
@@ -64,13 +65,17 @@ def test_create_user_duplicate_email(
     crud.create_user(
         session=db,
         user_create=UserCreate(
-            email=email, password=random_lower_string(), is_superuser=True
+            email=email, password=random_lower_string(), role=UserRole.admin
         ),
     )
     r = client.post(
         f"{settings.API_V1_STR}/users/",
         headers=superuser_token_headers,
-        json={"email": email, "password": random_lower_string(), "is_superuser": True},
+        json={
+            "email": email,
+            "password": random_lower_string(),
+            "role": UserRole.admin.value,
+        },
     )
     assert r.status_code == 400
 

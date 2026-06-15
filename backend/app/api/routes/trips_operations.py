@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlmodel import Session
 
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import TripPublic
 from app.services.yaml_importer import YamlImporter
 from app.services.yaml_validator import YamlValidationError
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/trips", tags=["trips"])
 @router.post(
     "/import-yaml",
     response_model=TripPublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def import_trip_from_yaml(
     *,

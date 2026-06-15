@@ -1,6 +1,11 @@
 import enum
 
 
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    staff = "staff"
+
+
 # --- Booking Mode Enum ---
 class BookingMode(str, enum.Enum):
     private = "private"  # Admin only, no public access

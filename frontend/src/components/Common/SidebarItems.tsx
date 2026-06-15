@@ -14,6 +14,7 @@ import {
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
+import { getUserRole, isAdmin } from "@/utils/permissions"
 import {
   FaAnchor,
   FaBalanceScale,
@@ -69,14 +70,29 @@ const defaultItems = [
   { icon: FiSettings, title: "Settings", path: "/settings" },
 ]
 
-interface SidebarItemsProps {
-  onClose?: () => void
-}
+const staffItems = defaultItems.filter((item) =>
+  ["/check-in", "/settings"].includes(item.path),
+)
 
 interface Item {
   icon: IconType
   title: string
   path: string
+}
+
+interface SidebarItemsProps {
+  onClose?: () => void
+}
+
+function getItemsForUser(user: UserPublic | null | undefined): Item[] {
+  const role = getUserRole(user)
+  if (role === "staff") {
+    return staffItems
+  }
+  if (isAdmin(user)) {
+    return [...defaultItems, { icon: FiUsers, title: "Users", path: "/users" }]
+  }
+  return defaultItems
 }
 
 // Load saved order from localStorage and apply it to items
@@ -202,20 +218,19 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
   // Track if a drag just ended (to prevent click on the dragged item)
   const wasDragging = useRef(false)
 
-  // Build full items list (including Users for superusers)
-  const allItems: Item[] = currentUser?.is_superuser
-    ? [...defaultItems, { icon: FiUsers, title: "Users", path: "/users" }]
-    : defaultItems
+  const allItems = getItemsForUser(currentUser)
+  const role = getUserRole(currentUser)
+  const enableReorder = role === "admin"
 
   // State for ordered items
   const [orderedItems, setOrderedItems] = useState<Item[]>(() =>
     getOrderedItems(allItems),
   )
 
-  // Update ordered items when allItems changes (e.g., user becomes superuser)
+  // Update ordered items when role-based menu changes
   useEffect(() => {
     setOrderedItems(getOrderedItems(allItems))
-  }, [currentUser?.is_superuser])
+  }, [currentUser?.role])
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -270,28 +285,61 @@ const SidebarItems = ({ onClose }: SidebarItemsProps) => {
         Menu
       </Text>
       <Box mt={2}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={orderedItems.map((item) => item.title)}
-            strategy={verticalListSortingStrategy}
+        {enableReorder ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            {orderedItems.map((item) => (
-              <SortableItem
-                key={item.title}
-                item={item}
-                isActive={!!matchRoute({ to: item.path })}
-                onClose={onClose}
-                wasDragging={wasDragging}
-                isAnyDragging={isDragging}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={orderedItems.map((item) => item.title)}
+              strategy={verticalListSortingStrategy}
+            >
+              {orderedItems.map((item) => (
+                <SortableItem
+                  key={item.title}
+                  item={item}
+                  isActive={!!matchRoute({ to: item.path })}
+                  onClose={onClose}
+                  wasDragging={wasDragging}
+                  isAnyDragging={isDragging}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          orderedItems.map((item) => {
+            const isActive = !!matchRoute({ to: item.path })
+            return (
+              <RouterLink key={item.title} to={item.path} onClick={() => onClose?.()}>
+                <Flex
+                  gap={3}
+                  px={3}
+                  py={3}
+                  mx={1}
+                  borderRadius="md"
+                  transition="all 0.2s"
+                  _hover={{
+                    bg: isActive ? "dark.accent.hover" : "dark.bg.hover",
+                    color: isActive ? "dark.bg.primary" : "text.primary",
+                  }}
+                  alignItems="center"
+                  fontSize="sm"
+                  color={isActive ? "dark.bg.primary" : "text.secondary"}
+                  borderLeft="3px solid"
+                  bg={isActive ? "dark.accent.primary" : "transparent"}
+                  fontWeight={isActive ? "bold" : "normal"}
+                  borderColor={isActive ? "dark.accent.primary" : "transparent"}
+                  cursor="pointer"
+                >
+                  <Icon as={item.icon} alignSelf="center" boxSize={4} />
+                  <Text>{item.title}</Text>
+                </Flex>
+              </RouterLink>
+            )
+          })
+        )}
       </Box>
     </>
   )

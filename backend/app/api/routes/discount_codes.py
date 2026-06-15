@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.models import (
     DiscountCode,
     DiscountCodeCreate,
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/discount-codes", tags=["discount-codes"])
     "/",
     response_model=DiscountCodePublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_discount_code(
     *,
@@ -76,7 +76,7 @@ def create_discount_code(
 @router.get(
     "/",
     response_model=list[DiscountCodePublic],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def list_discount_codes(
     *,
@@ -110,7 +110,7 @@ def list_discount_codes(
 @router.get(
     "/{discount_code_id}",
     response_model=DiscountCodePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def get_discount_code(
     *,
@@ -142,7 +142,7 @@ def get_discount_code(
 @router.put(
     "/{discount_code_id}",
     response_model=DiscountCodePublic,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def update_discount_code(
     *,
@@ -200,9 +200,7 @@ def update_discount_code(
         )
 
 
-@router.delete(
-    "/{discount_code_id}", dependencies=[Depends(get_current_active_superuser)]
-)
+@router.delete("/{discount_code_id}", dependencies=[Depends(get_current_admin)])
 def delete_discount_code(
     *,
     session: Session = Depends(deps.get_db),

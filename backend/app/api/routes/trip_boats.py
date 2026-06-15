@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.api import deps
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_admin
 from app.crud.trip_boats import effective_captain_for_trip_boat
 from app.models import (
     BoatPublic,
@@ -88,7 +88,7 @@ router = APIRouter(prefix="/trip-boats", tags=["trip-boats"])
     "/",
     response_model=TripBoatPublic,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def create_trip_boat(
     *,
@@ -173,7 +173,7 @@ def create_trip_boat(
 @router.get(
     "/trip/{trip_id}",
     response_model=list[TripBoatPublicWithAvailability],
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_admin)],
 )
 def read_trip_boats_by_trip(
     *,
@@ -233,7 +233,7 @@ def read_trip_boats_by_trip(
     return result
 
 
-@router.get("/boat/{boat_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.get("/boat/{boat_id}", dependencies=[Depends(get_current_admin)])
 def read_trip_boats_by_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -258,7 +258,7 @@ def read_trip_boats_by_boat(
     return trip_boats
 
 
-@router.put("/{trip_boat_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.put("/{trip_boat_id}", dependencies=[Depends(get_current_admin)])
 def update_trip_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -381,7 +381,7 @@ def update_trip_boat(
     return trip_boat
 
 
-@router.delete("/{trip_boat_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{trip_boat_id}", dependencies=[Depends(get_current_admin)])
 def delete_trip_boat(
     *,
     session: Session = Depends(deps.get_db),
@@ -541,7 +541,7 @@ def read_public_effective_pricing(
 @router.get(
     "/pricing",
     response_model=list[EffectivePricingItem],
-    dependencies=[Depends(deps.get_current_active_superuser)],
+    dependencies=[Depends(deps.get_current_admin)],
     operation_id="trip_boats_read_effective_pricing",
 )
 def read_effective_pricing(

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -10,6 +10,7 @@ import {
   UsersService,
 } from "@/client"
 import { handleError } from "@/utils"
+import { getDefaultHomePath, getUserRole } from "@/utils/permissions"
 
 const isLoggedIn = () => {
   return localStorage.getItem("access_token") !== null
@@ -18,6 +19,7 @@ const isLoggedIn = () => {
 const useAuth = () => {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const {
     data: user,
     isLoading: isUserLoading,
@@ -33,12 +35,14 @@ const useAuth = () => {
       formData: data,
     })
     localStorage.setItem("access_token", response.access_token)
+    return UsersService.readUserMe()
   }
 
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: () => {
-      navigate({ to: "/" })
+    onSuccess: (user) => {
+      queryClient.setQueryData(["currentUser"], user)
+      navigate({ to: getDefaultHomePath(getUserRole(user)) })
     },
     onError: (err: ApiError) => {
       handleError(err)

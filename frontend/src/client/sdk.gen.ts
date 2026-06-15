@@ -1195,6 +1195,7 @@ export class BookingsService {
    * Process a refund for a booking.
    *
    * refund_amount_cents: Amount to refund in cents. If None, refunds full booking total.
+   * refund_item_ids: When set, refunds those line items (price + proportional tax).
    * Validates the booking and processes the refund through Stripe,
    * then updates the booking status to 'refunded'.
    * @param data The data for the request.
@@ -3866,7 +3867,7 @@ export class UsersService {
 
   /**
    * Create User
-   * Create new user (superuser only - all users must be superusers).
+   * Create new user (admin only).
    * @param data The data for the request.
    * @param data.requestBody
    * @returns UserPublic Successful Response
@@ -3888,7 +3889,7 @@ export class UsersService {
 
   /**
    * Read User Me
-   * Get current user (superuser only).
+   * Get current user.
    * @returns UserPublic Successful Response
    * @throws ApiError
    */
@@ -3901,7 +3902,7 @@ export class UsersService {
 
   /**
    * Delete User Me
-   * Delete own user (superuser only, but not allowed).
+   * Delete own user (not allowed).
    * @returns Message Successful Response
    * @throws ApiError
    */
@@ -3914,7 +3915,7 @@ export class UsersService {
 
   /**
    * Update User Me
-   * Update own user (superuser only).
+   * Update own user profile.
    * @param data The data for the request.
    * @param data.requestBody
    * @returns UserPublic Successful Response
@@ -3936,7 +3937,7 @@ export class UsersService {
 
   /**
    * Update Password Me
-   * Update own password (superuser only).
+   * Update own password.
    * @param data The data for the request.
    * @param data.requestBody
    * @returns Message Successful Response
@@ -3958,7 +3959,7 @@ export class UsersService {
 
   /**
    * Read User By Id
-   * Get a specific user by id (superuser only).
+   * Get a specific user by id (admin only).
    * @param data The data for the request.
    * @param data.userId
    * @returns UserPublic Successful Response
@@ -4007,7 +4008,7 @@ export class UsersService {
 
   /**
    * Delete User
-   * Delete a user (superuser only). Superusers cannot delete themselves.
+   * Delete a user (admin only). Admins cannot delete themselves.
    * @param data The data for the request.
    * @param data.userId
    * @returns Message Successful Response

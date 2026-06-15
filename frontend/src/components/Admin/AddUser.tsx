@@ -3,7 +3,9 @@ import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 
 import { type UserCreate, UsersService } from "@/client"
 import type { ApiError } from "@/client/core/ApiError"
+import { NativeSelect } from "@/components/ui/native-select"
 import useCustomToast from "@/hooks/useCustomToast"
+import type { UserRole } from "@/utils/permissions"
 import { emailPattern, handleError } from "@/utils"
 import {
   Button,
@@ -51,7 +53,7 @@ const AddUser = () => {
       full_name: "",
       password: "",
       confirm_password: "",
-      is_superuser: true, // All users must be superusers
+      role: "staff" as UserRole,
       is_active: false,
     },
   })
@@ -73,8 +75,8 @@ const AddUser = () => {
   })
 
   const onSubmit: SubmitHandler<UserCreateForm> = (data) => {
-    // Always set is_superuser to true (all users must be superusers)
-    mutation.mutate({ ...data, is_superuser: true })
+    const { confirm_password: _confirmPassword, ...userData } = data
+    mutation.mutate(userData)
   }
 
   return (
@@ -184,6 +186,13 @@ const AddUser = () => {
                   placeholder="Password"
                   type="password"
                 />
+              </Field>
+
+              <Field label="Role" required>
+                <NativeSelect {...register("role", { required: true })}>
+                  <option value="staff">Staff (check-in only)</option>
+                  <option value="admin">Admin</option>
+                </NativeSelect>
               </Field>
             </VStack>
 
