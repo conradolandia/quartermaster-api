@@ -244,46 +244,50 @@ const CheckInInterface = ({
 
   return (
     <VStack gap={6} align="stretch">
-      <Box>
+      <Box display={{ base: "none", md: "block" }}>
         <Heading size="lg" mb={2}>
           Check-In Management
         </Heading>
       </Box>
 
-      <Card.Root>
-        <Card.Header>
-          <Heading size="md">Look Up Booking</Heading>
-        </Card.Header>
-        <Card.Body>
-          <VStack gap={4} align="stretch">
-            <Box>
-              <Text fontWeight="medium" mb={2}>
-                Confirmation Code
-              </Text>
-              <Flex
-                gap={2}
-                flexDirection={{ base: "column", sm: "row" }}
-                align={{ base: "stretch", sm: "center" }}
-              >
-                <Input
-                  placeholder="Enter confirmation code"
-                  value={confirmationCode}
-                  onChange={(e) => setConfirmationCode(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleLookupBooking()}
-                />
-                <Button
-                  colorPalette="blue"
-                  onClick={handleLookupBooking}
-                  loading={lookupBookingMutation.isPending}
+      {!initialCode?.trim() && (
+        <Card.Root>
+          <Card.Header>
+            <Heading size="md">Look Up Booking</Heading>
+          </Card.Header>
+          <Card.Body>
+            <VStack gap={4} align="stretch">
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Confirmation Code
+                </Text>
+                <Flex
+                  gap={2}
+                  flexDirection={{ base: "column", sm: "row" }}
+                  align={{ base: "stretch", sm: "center" }}
                 >
-                  <FiSearch />
-                  Look Up
-                </Button>
-              </Flex>
-            </Box>
-          </VStack>
-        </Card.Body>
-      </Card.Root>
+                  <Input
+                    placeholder="Enter confirmation code"
+                    value={confirmationCode}
+                    onChange={(e) => setConfirmationCode(e.target.value)}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && handleLookupBooking()
+                    }
+                  />
+                  <Button
+                    colorPalette="blue"
+                    onClick={handleLookupBooking}
+                    loading={lookupBookingMutation.isPending}
+                  >
+                    <FiSearch />
+                    Look Up
+                  </Button>
+                </Flex>
+              </Box>
+            </VStack>
+          </Card.Body>
+        </Card.Root>
+      )}
 
       {currentBooking && (
         <>
