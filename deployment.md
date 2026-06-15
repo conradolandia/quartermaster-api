@@ -4,7 +4,7 @@ You can deploy the project using Docker Compose to a remote server.
 
 This project expects you to have a Traefik proxy handling communication to the outside world and HTTPS certificates.
 
-CI/CD via GitHub Actions is planned but not yet configured. The section below describes the intended setup.
+CI runs on GitHub-hosted runners via `.github/workflows/ci.yml` on pushes and pull requests to `master` and `staging` (backend lint/tests, frontend lint/build). Deployment workflows below use self-hosted runners and are optional until you configure runners and secrets.
 
 You have to configure a couple things first.
 
@@ -198,9 +198,9 @@ docker compose -f docker-compose.yml up -d
 
 For production you wouldn't want to have the overrides in `docker-compose.override.yml`, that's why we explicitly specify `docker-compose.yml` as the file to use.
 
-## Continuous Deployment (CD) (planned)
+## Continuous Deployment (CD) (optional)
 
-> **Note:** GitHub Actions workflows have not been created yet. The following describes the intended setup for when CI/CD is implemented.
+> **Note:** CI runs via `.github/workflows/ci.yml`. The steps below describe optional CD using self-hosted runners when you are ready to deploy from GitHub Actions.
 
 ### Install GitHub Actions Runner
 
@@ -295,7 +295,7 @@ The current Github Actions workflows expect these secrets:
 * `LATEST_CHANGES`
 * `SMOKESHOW_AUTH_KEY`
 
-## GitHub Action Deployment Workflows (planned)
+## GitHub Action Deployment Workflows (optional)
 
 When implemented, the intended workflow triggers are:
 
