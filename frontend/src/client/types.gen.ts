@@ -1510,6 +1510,7 @@ export type LaunchesImportLaunchFromYamlData = {
 export type LaunchesImportLaunchFromYamlResponse = LaunchPublic
 
 export type LaunchesSendLaunchUpdateData = {
+  boatIds?: Array<string> | null
   launchId: string
   missionId?: string | null
   requestBody: LaunchUpdateMessage

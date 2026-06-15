@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy import exists, or_
 from sqlmodel import Session, select
@@ -374,6 +374,7 @@ def send_launch_update(
     update_data: LaunchUpdateMessage,
     mission_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = None,
+    boat_ids: list[uuid.UUID] | None = Query(None),
 ) -> Any:
     """
     Send a launch update email to customers with confirmed bookings for this
@@ -383,6 +384,9 @@ def send_launch_update(
     mission; trip_id restricts to bookings with items on that trip. If both
     are set, only bookings matching the trip (which must belong to the
     mission) receive the email.
+
+    When trip_id is set, boat_ids optionally restricts to passengers
+    (ticket items) on those boats for that trip.
 
     If priority is True, sends to all matching customers regardless of
     launch_updates_pref.
@@ -426,6 +430,22 @@ def send_launch_update(
         statement = statement.where(Mission.id == mission_id)
     if trip_id is not None:
         statement = statement.where(BookingItem.trip_id == trip_id)
+    if boat_ids:
+        if trip_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="trip_id is required when boat_ids is specified",
+            )
+        trip_boats = crud.get_trip_boats_by_trip(session=session, trip_id=trip_id)
+        valid_boat_ids = {tb.boat_id for tb in trip_boats}
+        invalid_boat_ids = set(boat_ids) - valid_boat_ids
+        if invalid_boat_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="One or more boat_ids are not associated with the trip",
+            )
+        statement = statement.where(BookingItem.trip_merchandise_id.is_(None))
+        statement = statement.where(BookingItem.boat_id.in_(boat_ids))
 
     # Only filter by launch_updates_pref if priority is False
     if not update_data.priority:

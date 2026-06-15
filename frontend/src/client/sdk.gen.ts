@@ -1849,6 +1849,9 @@ export class LaunchesService {
    * are set, only bookings matching the trip (which must belong to the
    * mission) receive the email.
    *
+   * When trip_id is set, boat_ids optionally restricts to passengers
+   * (ticket items) on those boats for that trip.
+   *
    * If priority is True, sends to all matching customers regardless of
    * launch_updates_pref.
    * @param data The data for the request.
@@ -1856,6 +1859,7 @@ export class LaunchesService {
    * @param data.requestBody
    * @param data.missionId
    * @param data.tripId
+   * @param data.boatIds
    * @returns LaunchUpdateResponse Successful Response
    * @throws ApiError
    */
@@ -1871,6 +1875,7 @@ export class LaunchesService {
       query: {
         mission_id: data.missionId,
         trip_id: data.tripId,
+        boat_ids: data.boatIds,
       },
       body: data.requestBody,
       mediaType: "application/json",

@@ -9,6 +9,7 @@ export interface SendLaunchUpdateParams {
   subject?: string | null
   missionId?: string | null
   tripId?: string | null
+  boatIds?: string[] | null
 }
 
 export interface SendLaunchUpdateResponse {
@@ -24,6 +25,11 @@ export async function sendLaunchUpdate(
   const search = new URLSearchParams()
   if (params.missionId) search.set("mission_id", params.missionId)
   if (params.tripId) search.set("trip_id", params.tripId)
+  if (params.boatIds?.length) {
+    for (const boatId of params.boatIds) {
+      search.append("boat_ids", boatId)
+    }
+  }
   const qs = search.toString()
   const baseUrl =
     (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env

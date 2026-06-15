@@ -4,15 +4,21 @@ import {
   createListCollection,
   DialogActionTrigger,
   Input,
+  Portal,
   Select,
   Text,
   Textarea,
   VStack,
 } from "@chakra-ui/react"
-import { LaunchesService } from "@/client"
-import type { LaunchPublic, MissionPublic, TripPublic } from "@/client"
+import { LaunchesService, TripBoatsService } from "@/client"
+import type {
+  LaunchPublic,
+  MissionPublic,
+  TripBoatPublicWithAvailability,
+  TripPublic,
+} from "@/client"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { FiMail } from "react-icons/fi"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -91,8 +97,9 @@ const SendLaunchUpdate = ({
     initialMissionId ?? null,
   )
   const [tripId, setTripId] = useState<string | null>(initialTripId ?? null)
+  const [boatIds, setBoatIds] = useState<string[]>([])
   const { showSuccessToast, showErrorToast } = useCustomToast()
-  const contentRef = useRef(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const { missions } = useMissionsByLaunch(effectiveLaunchId, isOpen)
   const { trips } = useTripsByMission(
@@ -100,22 +107,64 @@ const SendLaunchUpdate = ({
     isOpen && scope === "trip" && !!missionId,
   )
 
+  const { data: tripBoatsData, isLoading: tripBoatsLoading } = useQuery({
+    queryKey: ["trip-boats", tripId],
+    queryFn: () => TripBoatsService.readTripBoatsByTrip({ tripId: tripId! }),
+    enabled: isOpen && scope === "trip" && !!tripId,
+  })
+
+  const tripBoats: TripBoatPublicWithAvailability[] = Array.isArray(tripBoatsData)
+    ? tripBoatsData
+    : []
+  const boatsCollection = useMemo(
+    () =>
+      createListCollection({
+        items: tripBoats.map((tb) => ({
+          value: tb.boat_id,
+          label: tb.boat?.name ?? tb.boat_id,
+        })),
+      }),
+    [tripBoats],
+  )
+  const boatFilterLabel = useMemo(() => {
+    if (tripBoats.length === 0) return "No boats"
+    if (boatIds.length === 0 || boatIds.length === tripBoats.length) {
+      return "All boats"
+    }
+    if (boatIds.length === 1) {
+      return (
+        boatsCollection.items.find((item) => item.value === boatIds[0])?.label ??
+        "1 boat"
+      )
+    }
+    return `${boatIds.length} of ${tripBoats.length}`
+  }, [boatIds, tripBoats.length, boatsCollection.items])
+
   useEffect(() => {
     if (isOpen) {
       setScope(initialScope ?? "all")
       setMissionId(initialMissionId ?? null)
       setTripId(initialTripId ?? null)
+      setBoatIds([])
     } else {
       setScope(initialScope ?? "all")
       setMissionId(initialMissionId ?? null)
       setTripId(initialTripId ?? null)
+      setBoatIds([])
     }
   }, [isOpen, initialScope, initialMissionId, initialTripId])
 
   useEffect(() => {
-    if (scope !== "trip") setTripId(null)
+    if (scope !== "trip") {
+      setTripId(null)
+      setBoatIds([])
+    }
     if (scope === "all") setMissionId(null)
   }, [scope])
+
+  useEffect(() => {
+    setBoatIds([])
+  }, [tripId])
 
   const sendUpdateMutation = useMutation({
     mutationFn: async (payload: {
@@ -125,6 +174,7 @@ const SendLaunchUpdate = ({
       scope: ScopeKind
       missionId: string | null
       tripId: string | null
+      boatIds: string[]
     }) =>
       sendLaunchUpdate(effectiveLaunchId, {
         message: payload.message,
@@ -132,6 +182,10 @@ const SendLaunchUpdate = ({
         priority: payload.priority,
         missionId: payload.scope === "mission" ? payload.missionId : undefined,
         tripId: payload.scope === "trip" ? payload.tripId : undefined,
+        boatIds:
+          payload.scope === "trip" && payload.boatIds.length > 0
+            ? payload.boatIds
+            : undefined,
       }),
     onSuccess: (result) => {
       if (result.emails_sent > 0) {
@@ -151,6 +205,7 @@ const SendLaunchUpdate = ({
       setScope(initialScope ?? "all")
       setMissionId(initialMissionId ?? null)
       setTripId(initialTripId ?? null)
+      setBoatIds([])
       setOpen(false)
     },
     onError: () => {
@@ -175,6 +230,7 @@ const SendLaunchUpdate = ({
       scope,
       missionId: scope === "mission" ? missionId : null,
       tripId: scope === "trip" ? tripId : null,
+      boatIds: scope === "trip" ? boatIds : [],
     })
   }
 
@@ -281,6 +337,7 @@ const SendLaunchUpdate = ({
                     onValueChange={(e: { value: string[] }) => {
                       setMissionId(e.value[0] ?? null)
                       setTripId(null)
+                      setBoatIds([])
                     }}
                   >
                     <Select.Control width="100%">
@@ -344,6 +401,50 @@ const SendLaunchUpdate = ({
                     </Select.Positioner>
                   </Select.Root>
                 </Field>
+                {tripId && (tripBoatsLoading || tripBoats.length > 0) && (
+                  <Field
+                    label="Boats (optional)"
+                    helperText="Leave as All boats to email every passenger on the trip."
+                  >
+                    <Select.Root
+                      multiple
+                      closeOnSelect={false}
+                      collection={boatsCollection}
+                      value={boatIds}
+                      onValueChange={(e) => setBoatIds(e.value)}
+                      disabled={tripBoatsLoading}
+                    >
+                      <Select.Control width="100%">
+                        <Select.Trigger>
+                          <Text fontSize="sm" flex="1" minW={0} textAlign="left">
+                            {tripBoatsLoading ? "Loading boats..." : boatFilterLabel}
+                          </Text>
+                        </Select.Trigger>
+                        <Select.IndicatorGroup>
+                          <Select.Indicator />
+                        </Select.IndicatorGroup>
+                      </Select.Control>
+                      <Portal container={contentRef}>
+                        <Select.Positioner>
+                          <Select.Content>
+                            {tripBoats.map((tb) => (
+                              <Select.Item
+                                key={tb.boat_id}
+                                item={{
+                                  value: tb.boat_id,
+                                  label: tb.boat?.name ?? tb.boat_id,
+                                }}
+                              >
+                                {tb.boat?.name ?? tb.boat_id}
+                                <Select.ItemIndicator />
+                              </Select.Item>
+                            ))}
+                          </Select.Content>
+                        </Select.Positioner>
+                      </Portal>
+                    </Select.Root>
+                  </Field>
+                )}
               </>
             )}
 
