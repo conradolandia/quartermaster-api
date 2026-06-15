@@ -50,6 +50,7 @@ const EditBoat = ({ boat }: EditBoatProps) => {
     defaultValues: {
       name: boat.name,
       capacity: boat.capacity,
+      captain: boat.captain ?? "",
       provider_id: boat.provider_id,
     },
   })
@@ -60,10 +61,11 @@ const EditBoat = ({ boat }: EditBoatProps) => {
       reset({
         name: boat.name,
         capacity: boat.capacity,
+        captain: boat.captain ?? "",
         provider_id: boat.provider_id,
       })
     }
-  }, [isOpen, boat.name, boat.capacity, boat.provider_id, reset])
+  }, [isOpen, boat.name, boat.capacity, boat.captain, boat.provider_id, reset])
 
   const formCapacity = watch("capacity")
   const effectiveCapacity = formCapacity ?? boat.capacity
@@ -88,7 +90,10 @@ const EditBoat = ({ boat }: EditBoatProps) => {
   })
 
   const onSubmit: SubmitHandler<BoatUpdate> = async (data) => {
-    mutation.mutate(data)
+    mutation.mutate({
+      ...data,
+      captain: data.captain?.trim() ? data.captain.trim() : null,
+    })
   }
 
   return (
@@ -160,6 +165,24 @@ const EditBoat = ({ boat }: EditBoatProps) => {
                       placeholder="Capacity"
                     />
                   )}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.captain}
+                errorText={errors.captain?.message}
+                label="Captain"
+              >
+                <Input
+                  id="captain"
+                  {...register("captain", {
+                    maxLength: {
+                      value: 255,
+                      message: "Captain name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Optional"
+                  disabled={isSubmitting}
                 />
               </Field>
 

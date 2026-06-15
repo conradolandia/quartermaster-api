@@ -137,6 +137,9 @@ function BoatDepartureCard({
               <DetailRow label="Provider" value={boat.provider.name} />
             )}
             <DetailRow label="Boat" value={boat.name} />
+            {selectedTb?.effective_captain && (
+              <DetailRow label="Captain" value={selectedTb.effective_captain} />
+            )}
             {boat.provider?.address && (
               <DetailRow
                 label="Departure location"

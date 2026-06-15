@@ -8,6 +8,7 @@ from sqlmodel import Session
 from app import crud
 from app.api import deps
 from app.api.deps import get_current_active_superuser
+from app.crud.trip_boats import effective_captain_for_trip_boat
 from app.models import (
     BoatPublic,
     EffectivePricingItem,
@@ -50,6 +51,34 @@ def _remaining_capacity_from_pricing(
         return effective_max
     raw = sum(p.remaining for p in pricing)
     return min(raw, effective_max)
+
+
+def _trip_boat_public_with_availability(
+    *,
+    tb,
+    effective_max: int,
+    pricing: list[EffectivePricingItem],
+    remaining: int,
+    used_per_ticket_type: dict[str, int],
+    committed_per_ticket_type: dict[str, int],
+) -> TripBoatPublicWithAvailability:
+    return TripBoatPublicWithAvailability(
+        trip_id=tb.trip_id,
+        boat_id=tb.boat_id,
+        id=tb.id,
+        max_capacity=effective_max,
+        use_only_trip_pricing=tb.use_only_trip_pricing,
+        sales_enabled=tb.sales_enabled,
+        captain_override=tb.captain_override,
+        created_at=tb.created_at,
+        updated_at=tb.updated_at,
+        boat=BoatPublic.model_validate(tb.boat),
+        remaining_capacity=remaining,
+        pricing=pricing,
+        used_per_ticket_type=used_per_ticket_type,
+        committed_per_ticket_type=committed_per_ticket_type,
+        effective_captain=effective_captain_for_trip_boat(tb),
+    )
 
 
 router = APIRouter(prefix="/trip-boats", tags=["trip-boats"])
@@ -133,6 +162,8 @@ def create_trip_boat(
         boat_id=trip_boat.boat_id,
         max_capacity=trip_boat.max_capacity,
         use_only_trip_pricing=trip_boat.use_only_trip_pricing,
+        sales_enabled=trip_boat.sales_enabled,
+        captain_override=trip_boat.captain_override,
         created_at=trip_boat.created_at,
         updated_at=trip_boat.updated_at,
         boat=BoatPublic.model_validate(boat),
@@ -160,7 +191,7 @@ def read_trip_boats_by_trip(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip with ID {trip_id} not found",
         )
-    trip_boats = crud.get_trip_boats_by_trip(
+    trip_boats = crud.get_trip_boats_by_trip_with_boat_provider(
         session=session, trip_id=trip_id, skip=skip, limit=limit
     )
     paid_by_type = _paid_plus_held_by_type_for_trip(session=session, trip_id=trip_id)
@@ -190,18 +221,11 @@ def read_trip_boats_by_trip(
             boat_id=tb.boat_id,
         )
         result.append(
-            TripBoatPublicWithAvailability(
-                trip_id=tb.trip_id,
-                boat_id=tb.boat_id,
-                id=tb.id,
-                max_capacity=effective_max,
-                use_only_trip_pricing=tb.use_only_trip_pricing,
-                sales_enabled=tb.sales_enabled,
-                created_at=tb.created_at,
-                updated_at=tb.updated_at,
-                boat=BoatPublic.model_validate(tb.boat),
-                remaining_capacity=remaining,
+            _trip_boat_public_with_availability(
+                tb=tb,
+                effective_max=effective_max,
                 pricing=pricing,
+                remaining=remaining,
                 used_per_ticket_type=used_per_ticket_type,
                 committed_per_ticket_type=committed_per_ticket_type,
             )
@@ -458,18 +482,11 @@ def read_public_trip_boats_by_trip(
             boat_id=tb.boat_id,
         )
         result.append(
-            TripBoatPublicWithAvailability(
-                trip_id=tb.trip_id,
-                boat_id=tb.boat_id,
-                id=tb.id,
-                max_capacity=effective_max,
-                use_only_trip_pricing=tb.use_only_trip_pricing,
-                sales_enabled=tb.sales_enabled,
-                created_at=tb.created_at,
-                updated_at=tb.updated_at,
-                boat=BoatPublic.model_validate(tb.boat),
-                remaining_capacity=remaining,
+            _trip_boat_public_with_availability(
+                tb=tb,
+                effective_max=effective_max,
                 pricing=pricing,
+                remaining=remaining,
                 used_per_ticket_type=used_per_ticket_type,
                 committed_per_ticket_type=committed_per_ticket_type,
             )

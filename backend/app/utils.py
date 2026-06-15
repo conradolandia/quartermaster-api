@@ -65,6 +65,8 @@ def render_email_template(*, template_name: str, context: dict[str, Any]) -> str
             parts.append(f"<strong>Provider:</strong> {exp['provider_name']}<br>")
         if exp.get("boat_name"):
             parts.append(f"<strong>Boat:</strong> {exp['boat_name']}<br>")
+        if exp.get("captain_name"):
+            parts.append(f"<strong>Captain:</strong> {exp['captain_name']}<br>")
         if exp.get("departure_location"):
             if exp.get("map_link"):
                 parts.append(

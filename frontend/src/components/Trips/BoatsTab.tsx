@@ -97,6 +97,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     string | null
   >(null)
   const [capacityInputValue, setCapacityInputValue] = useState("")
+  const [captainInputValue, setCaptainInputValue] = useState("")
   const [hasPendingPricingChanges, setHasPendingPricingChanges] =
     useState(false)
 
@@ -138,6 +139,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
       max_capacity?: number | null
       use_only_trip_pricing?: boolean
       sales_enabled?: boolean
+      captain_override?: string | null
     }) =>
       TripBoatsService.updateTripBoat({
         tripBoatId: body.tripBoatId,
@@ -151,6 +153,9 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
           ...(body.sales_enabled !== undefined && {
             sales_enabled: body.sales_enabled,
           }),
+          ...(body.captain_override !== undefined && {
+            captain_override: body.captain_override,
+          }),
         },
       }),
     onSuccess: async (_, variables) => {
@@ -158,6 +163,8 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
         showSuccessToast("Capacity updated.")
         setEditingCapacityTripBoatId(null)
         setCapacityInputValue("")
+      } else if (variables.captain_override !== undefined) {
+        showSuccessToast("Captain updated.")
       } else if (variables.use_only_trip_pricing !== undefined) {
         showSuccessToast("Pricing mode updated.")
       } else if (variables.sales_enabled !== undefined) {
@@ -185,6 +192,14 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
     const num = Number.parseInt(trimmed, 10)
     if (Number.isNaN(num) || num < 1) return
     updateTripBoatMutation.mutate({ tripBoatId, max_capacity: num })
+  }
+
+  const handleSaveCaptain = (tripBoatId: string) => {
+    const trimmed = captainInputValue.trim()
+    updateTripBoatMutation.mutate({
+      tripBoatId,
+      captain_override: trimmed === "" ? null : trimmed,
+    })
   }
 
   const handleAddBoat = async () => {
@@ -499,6 +514,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                           if (isSettingsOpen) {
                             setEditingCapacityTripBoatId(null)
                             setCapacityInputValue("")
+                            setCaptainInputValue("")
                           } else {
                             setEditingCapacityTripBoatId(tripBoat.id)
                             setCapacityInputValue(
@@ -508,6 +524,7 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                                   ? String(boat.capacity)
                                   : "",
                             )
+                            setCaptainInputValue(tripBoat.captain_override ?? "")
                           }
                         }}
                       >
@@ -644,6 +661,45 @@ const BoatsTab = ({ tripId, isOpen, onPendingChange }: BoatsTabProps) => {
                           }}
                         >
                           Cancel
+                        </Button>
+                      </HStack>
+                      <Text fontSize="sm" fontWeight="medium" mb={1} mt={4}>
+                        Captain override
+                      </Text>
+                      <Text fontSize="xs" color="gray.500" mb={2}>
+                        Boat default: {boat?.captain?.trim() || "—"}. Set a
+                        custom captain for this trip or use the boat default.
+                      </Text>
+                      <HStack gap={2} align="center" flexWrap="wrap">
+                        <Input
+                          size="sm"
+                          width="48"
+                          placeholder={boat?.captain?.trim() || "Use boat default"}
+                          value={captainInputValue}
+                          onChange={(e) => setCaptainInputValue(e.target.value)}
+                          maxLength={255}
+                        />
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => {
+                            updateTripBoatMutation.mutate({
+                              tripBoatId: tripBoat.id,
+                              captain_override: null,
+                            })
+                            setCaptainInputValue("")
+                          }}
+                          loading={updateTripBoatMutation.isPending}
+                        >
+                          Use default
+                        </Button>
+                        <Button
+                          size="xs"
+                          onClick={() => handleSaveCaptain(tripBoat.id)}
+                          loading={updateTripBoatMutation.isPending}
+                          disabled={captainInputValue.trim() === ""}
+                        >
+                          Save
                         </Button>
                       </HStack>
                     </Box>

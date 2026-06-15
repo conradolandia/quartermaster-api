@@ -13,6 +13,7 @@ export type BoatCreate = {
   name: string
   slug?: string
   capacity: number
+  captain?: string | null
   provider_id: string
 }
 
@@ -43,6 +44,7 @@ export type BoatPublic = {
   name: string
   slug?: string
   capacity: number
+  captain?: string | null
   provider_id: string
   id: string
   created_at: string
@@ -58,6 +60,7 @@ export type BoatsPublic = {
 export type BoatUpdate = {
   name?: string | null
   capacity?: number | null
+  captain?: string | null
   provider_id?: string | null
 }
 
@@ -149,6 +152,7 @@ export type BookingExperienceDisplay = {
   launch_timezone?: string | null
   launch_summary?: string | null
   boat_name?: string | null
+  captain_name?: string | null
   provider_name?: string | null
   departure_location?: string | null
   map_link?: string | null
@@ -731,6 +735,10 @@ export type TripBoatCreate = {
    * When False, new bookings on this boat are blocked; existing reservations are kept.
    */
   sales_enabled?: boolean
+  /**
+   * When set, overrides the boat's default captain for this trip.
+   */
+  captain_override?: string | null
 }
 
 /**
@@ -788,6 +796,10 @@ export type TripBoatPublic = {
    * When False, new bookings on this boat are blocked; existing reservations are kept.
    */
   sales_enabled?: boolean
+  /**
+   * When set, overrides the boat's default captain for this trip.
+   */
+  captain_override?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -809,6 +821,10 @@ export type TripBoatPublicWithAvailability = {
    * When False, new bookings on this boat are blocked; existing reservations are kept.
    */
   sales_enabled?: boolean
+  /**
+   * When set, overrides the boat's default captain for this trip.
+   */
+  captain_override?: string | null
   id: string
   created_at: string
   updated_at: string
@@ -827,6 +843,10 @@ export type TripBoatPublicWithAvailability = {
   committed_per_ticket_type?: {
     [key: string]: number
   }
+  /**
+   * Captain for this trip/boat (trip override or boat default).
+   */
+  effective_captain?: string | null
 }
 
 export type TripBoatUpdate = {
@@ -835,6 +855,7 @@ export type TripBoatUpdate = {
   max_capacity?: number | null
   use_only_trip_pricing?: boolean | null
   sales_enabled?: boolean | null
+  captain_override?: string | null
 }
 
 export type TripBulkRefundRequest = {

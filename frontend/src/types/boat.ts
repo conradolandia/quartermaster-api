@@ -4,6 +4,7 @@ export interface Boat {
   name: string
   slug?: string
   capacity: number
+  captain?: string | null
   provider_id: string
   created_at: string
   updated_at: string

@@ -529,3 +529,27 @@ def test_put_trip_boat_use_only_trip_pricing_blocks_when_type_would_be_dropped(
     assert r.status_code == 400
     assert "in use" in r.json().get("detail", "").lower()
     assert "adult" in r.json().get("detail", "")
+
+
+def test_trip_boat_effective_captain_uses_override(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_trip,
+    test_trip_boat,
+    test_boat,
+) -> None:
+    test_boat.captain = "Captain Default"
+    test_trip_boat.captain_override = "Captain Trip"
+    db.add(test_boat)
+    db.add(test_trip_boat)
+    db.commit()
+
+    r = client.get(
+        f"{settings.API_V1_STR}/trip-boats/trip/{test_trip.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    row = next(x for x in r.json() if x["boat_id"] == str(test_boat.id))
+    assert row["effective_captain"] == "Captain Trip"
+    assert row["boat"]["captain"] == "Captain Default"

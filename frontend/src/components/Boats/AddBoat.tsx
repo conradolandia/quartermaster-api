@@ -68,6 +68,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
     defaultValues: {
       name: "",
       capacity: undefined,
+      captain: "",
       provider_id: "",
     },
   })
@@ -98,6 +99,7 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
       name: data.name,
       capacity: data.capacity,
       provider_id: data.provider_id,
+      captain: data.captain?.trim() ? data.captain.trim() : undefined,
     }
     const totalPendingCapacity = pendingPricing.reduce((sum, row) => {
       const capTrim = row.capacity.trim()
@@ -219,6 +221,24 @@ const AddBoat = ({ isOpen, onClose, onSuccess }: AddBoatProps) => {
                   })}
                   placeholder="Name"
                   type="text"
+                  disabled={createBoatMutation.isPending}
+                />
+              </Field>
+
+              <Field
+                invalid={!!errors.captain}
+                errorText={errors.captain?.message}
+                label="Captain"
+              >
+                <Input
+                  id="captain"
+                  {...register("captain", {
+                    maxLength: {
+                      value: 255,
+                      message: "Captain name cannot exceed 255 characters",
+                    },
+                  })}
+                  placeholder="Optional"
                   disabled={createBoatMutation.isPending}
                 />
               </Field>

@@ -17,6 +17,7 @@ class BoatBase(SQLModel):
     # Definimos slug como opcional con un valor predeterminado vacío
     slug: str = Field(default="", max_length=255, index=True)
     capacity: int = Field(ge=1)
+    captain: str | None = Field(default=None, max_length=255)
     provider_id: uuid.UUID = Field(foreign_key="provider.id")
 
 
@@ -28,6 +29,7 @@ class BoatUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     # El slug se generará automáticamente en crud.update_boat si el nombre cambia
     capacity: int | None = Field(default=None, ge=1)
+    captain: str | None = Field(default=None, max_length=255)
     provider_id: uuid.UUID | None = None
 
 

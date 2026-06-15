@@ -25,6 +25,11 @@ class TripBoatBase(SQLModel):
         default=True,
         description="When False, new bookings on this boat are blocked; existing reservations are kept.",
     )
+    captain_override: str | None = Field(
+        default=None,
+        max_length=255,
+        description="When set, overrides the boat's default captain for this trip.",
+    )
 
 
 class TripBoatCreate(TripBoatBase):
@@ -37,6 +42,7 @@ class TripBoatUpdate(SQLModel):
     max_capacity: int | None = None
     use_only_trip_pricing: bool | None = None
     sales_enabled: bool | None = None
+    captain_override: str | None = None
 
 
 class TripBoat(TripBoatBase, table=True):
@@ -92,6 +98,10 @@ class TripBoatPublicWithAvailability(TripBoatPublic):
             "Paid bookings only per item_type: confirmed, checked_in, or completed with active "
             "or fulfilled ticket items (excludes checkout holds)."
         ),
+    )
+    effective_captain: str | None = Field(
+        default=None,
+        description="Captain for this trip/boat (trip override or boat default).",
     )
 
 

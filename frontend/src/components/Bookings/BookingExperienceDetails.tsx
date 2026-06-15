@@ -16,6 +16,7 @@ import {
   BoatsService,
   LaunchesService,
   MissionsService,
+  TripBoatsService,
   TripsService,
 } from "@/client"
 import type { BookingPublic } from "@/client"
@@ -134,14 +135,46 @@ export default function BookingExperienceDetails({
     })),
   })
 
+  const { data: tripBoats } = useQuery({
+    queryKey: ["trip-boats-for-experience", tripId],
+    queryFn: () => TripBoatsService.readTripBoatsByTrip({ tripId: tripId! }),
+    enabled: !!tripId && !usePublicApis,
+  })
+
+  const { data: publicTripBoats } = useQuery({
+    queryKey: ["public-trip-boats-for-experience", tripId],
+    queryFn: () =>
+      TripBoatsService.readPublicTripBoatsByTrip({ tripId: tripId! }),
+    enabled: !!tripId && usePublicApis && !booking?.experience_display,
+  })
+
+  const exp = usePublicApis ? booking?.experience_display : null
+
+  const captainNames = useMemo(() => {
+    if (exp?.captain_name) return [exp.captain_name]
+    const boatsForTrip = usePublicApis ? publicTripBoats : tripBoats
+    if (!boatsForTrip?.length) return []
+    const names = uniqueBoatIds
+      .map((bid) => {
+        const tb = boatsForTrip.find((row) => String(row.boat_id) === String(bid))
+        return tb?.effective_captain?.trim() || null
+      })
+      .filter(Boolean) as string[]
+    return [...new Set(names)]
+  }, [
+    exp?.captain_name,
+    publicTripBoats,
+    tripBoats,
+    uniqueBoatIds,
+    usePublicApis,
+  ])
+
   const boatNames = useMemo(() => {
     const names = boatQueries
       .map((q) => (q.data as { name?: string } | undefined)?.name)
       .filter(Boolean) as string[]
     return [...new Set(names)]
   }, [boatQueries])
-
-  const exp = usePublicApis ? booking?.experience_display : null
 
   if (!tripId || !firstItem) return null
 
@@ -192,6 +225,9 @@ export default function BookingExperienceDetails({
           )}
           {boatNames.length > 0 && (
             <Row label="Boat" value={boatNames.join(", ")} />
+          )}
+          {captainNames.length > 0 && (
+            <Row label="Captain" value={captainNames.join(", ")} />
           )}
         </VStack>
       </Box>
@@ -290,6 +326,9 @@ export default function BookingExperienceDetails({
               <Row label="Provider" value={exp.provider_name} />
             )}
             {exp.boat_name && <Row label="Boat" value={exp.boat_name} />}
+            {exp.captain_name && (
+              <Row label="Captain" value={exp.captain_name} />
+            )}
             {exp.departure_location && (
               <Row
                 label="Location"
@@ -387,6 +426,9 @@ export default function BookingExperienceDetails({
           )}
           {boatNames.length > 0 && (
             <Row label="Boat" value={boatNames.join(", ")} />
+          )}
+          {captainNames.length > 0 && (
+            <Row label="Captain" value={captainNames.join(", ")} />
           )}
           {boatQueries[0]?.data?.provider?.address && (() => {
             const b = boatQueries[0].data as {

@@ -10,6 +10,18 @@ from sqlmodel import Session, select
 from app.models import Boat, TripBoat, TripBoatCreate, TripBoatUpdate
 
 
+def effective_captain_for_trip_boat(trip_boat: TripBoat) -> str | None:
+    """Resolve captain for a trip boat (override or boat default)."""
+    if trip_boat.captain_override is not None:
+        trimmed = trip_boat.captain_override.strip()
+        return trimmed or None
+    boat = trip_boat.boat
+    if boat and boat.captain:
+        trimmed = boat.captain.strip()
+        return trimmed or None
+    return None
+
+
 def get_trip_boat(*, session: Session, trip_boat_id: uuid.UUID) -> TripBoat | None:
     """Get a trip boat by ID."""
     return session.get(TripBoat, trip_boat_id)

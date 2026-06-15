@@ -27,6 +27,7 @@ from sqlmodel import Session, select
 
 from app import crud
 from app.core.config import settings
+from app.crud.trip_boats import effective_captain_for_trip_boat
 from app.models import Booking, BookingItem, Launch, Location, Mission, Trip
 
 # Set up logging
@@ -306,6 +307,7 @@ def build_experience_display_dict(session: Session, items: list) -> dict | None:
     )
     boat = selected_tb.boat if selected_tb else None
     provider = boat.provider if boat else None
+    captain_name = effective_captain_for_trip_boat(selected_tb) if selected_tb else None
     location = (
         session.get(Location, launch.location_id)
         if launch and launch.location_id
@@ -334,6 +336,7 @@ def build_experience_display_dict(session: Session, items: list) -> dict | None:
         "launch_timezone": tz,
         "launch_summary": launch.summary if launch else None,
         "boat_name": boat.name if boat else None,
+        "captain_name": captain_name,
         "provider_name": provider.name if provider else None,
         "departure_location": provider.address if provider else None,
         "map_link": provider.map_link if provider else None,
