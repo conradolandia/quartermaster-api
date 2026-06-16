@@ -224,3 +224,86 @@ def test_list_public_trip_merchandise_403_private_trip(
     )
     assert r.status_code == 403
     assert "not yet available" in r.json().get("detail", "").lower()
+
+
+def test_public_trip_merchandise_trip_not_found(client: TestClient) -> None:
+    r = client.get(
+        f"{TM_URL}/public/",
+        params={"trip_id": str(uuid.uuid4())},
+    )
+    assert r.status_code == 404
+
+
+def test_update_trip_merchandise_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.put(
+        f"{TM_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"price_override": 1000},
+    )
+    assert r.status_code == 404
+
+
+def test_delete_trip_merchandise_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.delete(
+        f"{TM_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_trip_merchandise_with_variations(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_trip,
+) -> None:
+    from app.crud import trip_merchandise as crud_tm
+    from app.models import Merchandise, MerchandiseVariation, TripMerchandiseCreate
+
+    merch = Merchandise(
+        name="Sized Shirt",
+        description="T-shirt",
+        price=2000,
+        quantity_available=0,
+    )
+    db.add(merch)
+    db.commit()
+    db.refresh(merch)
+    for size, total, sold in (("S", 5, 1), ("M", 8, 2)):
+        db.add(
+            MerchandiseVariation(
+                merchandise_id=merch.id,
+                variant_value=size,
+                quantity_total=total,
+                quantity_sold=sold,
+                quantity_fulfilled=0,
+            )
+        )
+    db.commit()
+
+    tm = crud_tm.create_trip_merchandise(
+        session=db,
+        trip_merchandise_in=TripMerchandiseCreate(
+            trip_id=test_trip.id,
+            merchandise_id=merch.id,
+            quantity_available_override=6,
+        ),
+    )
+    db.commit()
+    db.refresh(tm)
+
+    r = client.get(
+        f"{TM_URL}/{tm.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["variations_availability"] is not None
+    assert len(data["variations_availability"]) == 2
+    assert data["quantity_available"] == 6

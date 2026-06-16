@@ -178,6 +178,39 @@ def test_checkout_stripe_error_no_booking_row(
     )
 
 
+@patch("app.api.routes.booking_public.retrieve_payment_intent")
+@patch("app.core.stripe.create_payment_intent")
+def test_checkout_idempotency_replay(
+    mock_create: MagicMock,
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+    test_trip_boat: TripBoat,
+) -> None:
+    mock_create.return_value = _mock_payment_intent(
+        id="pi_idem", client_secret="cs_idem"
+    )
+    mock_retrieve.return_value = _mock_payment_intent(
+        id="pi_idem", client_secret="cs_idem"
+    )
+    payload = _make_booking_payload(
+        trip_id=test_trip.id,
+        boat_id=test_boat.id,
+        price_per_unit=test_boat_pricing.price,
+        confirmation_code=f"IDEM{uuid.uuid4().hex[:6].upper()}",
+    )
+    headers = {"Idempotency-Key": f"idem-{uuid.uuid4()}"}
+    r1 = client.post(f"{BOOKINGS_URL}/checkout", json=payload, headers=headers)
+    assert r1.status_code == 201
+    r2 = client.post(f"{BOOKINGS_URL}/checkout", json=payload, headers=headers)
+    assert r2.status_code == 201
+    assert r2.json()["booking"]["id"] == r1.json()["booking"]["id"]
+    assert mock_create.call_count == 1
+
+
 # --- GET /bookings/{code}/resume-payment ---
 
 

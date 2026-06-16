@@ -337,3 +337,54 @@ def test_resend_email_confirmed_booking(
     assert r.status_code == 200
     assert r.json()["status"] == "success"
     mock_send_email.assert_called_once()
+
+
+def test_update_draft_booking_no_data(
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db)
+    r = client.patch(
+        f"{BOOKINGS_URL}/{booking.confirmation_code}",
+        json={},
+    )
+    assert r.status_code == 400
+    assert "no update" in r.json()["detail"].lower()
+
+
+def test_update_draft_booking_negative_tip(
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db)
+    r = client.patch(
+        f"{BOOKINGS_URL}/{booking.confirmation_code}",
+        json={"tip_amount": -100},
+    )
+    assert r.status_code == 400
+    assert "negative" in r.json()["detail"].lower()
+
+
+def test_update_draft_booking_not_found(client: TestClient) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/NOTACODE",
+        json={"first_name": "Ghost"},
+    )
+    assert r.status_code == 404
+
+
+@patch("app.api.routes.booking_public.settings")
+def test_resend_email_disabled(
+    mock_settings,
+    client: TestClient,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    mock_settings.emails_enabled = False
+    r = client.post(f"{BOOKINGS_URL}/{test_booking.confirmation_code}/resend-email")
+    assert r.status_code == 503
+
+
+def test_resend_email_not_found(client: TestClient) -> None:
+    r = client.post(f"{BOOKINGS_URL}/NOTACODE/resend-email")
+    assert r.status_code == 404

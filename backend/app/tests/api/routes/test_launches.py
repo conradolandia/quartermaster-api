@@ -249,3 +249,243 @@ def test_send_launch_update_boat_ids_requires_trip_id(
         json={"message": "Update", "priority": True},
     )
     assert r.status_code == 400
+
+
+def test_duplicate_launch_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        f"{LAUNCHES_URL}/{uuid.uuid4()}/duplicate",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_update_launch_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.put(
+        f"{LAUNCHES_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"summary": "x"},
+    )
+    assert r.status_code == 404
+
+
+def test_update_launch_location_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_launch: Launch,
+) -> None:
+    r = client.put(
+        f"{LAUNCHES_URL}/{test_launch.id}",
+        headers=superuser_token_headers,
+        json={"location_id": str(uuid.uuid4())},
+    )
+    assert r.status_code == 404
+
+
+def test_update_launch_archive(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_launch: Launch,
+    test_mission,
+    test_trip: Trip,
+) -> None:
+    r = client.put(
+        f"{LAUNCHES_URL}/{test_launch.id}",
+        headers=superuser_token_headers,
+        json={"archived": True},
+    )
+    assert r.status_code == 200
+    db.refresh(test_launch)
+    db.refresh(test_mission)
+    db.refresh(test_trip)
+    assert test_launch.archived is True
+
+
+def test_delete_launch_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_location: Location,
+) -> None:
+    launch = Launch(
+        name="Deletable Launch",
+        launch_timestamp=datetime.now(timezone.utc) + timedelta(days=90),
+        summary="Delete me",
+        location_id=test_location.id,
+    )
+    db.add(launch)
+    db.commit()
+    db.refresh(launch)
+
+    r = client.delete(
+        f"{LAUNCHES_URL}/{launch.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 204
+    assert db.get(Launch, launch.id) is None
+
+
+def test_delete_launch_with_missions_fails(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_launch: Launch,
+    test_mission,
+) -> None:
+    r = client.delete(
+        f"{LAUNCHES_URL}/{test_launch.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+
+
+def test_delete_launch_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.delete(
+        f"{LAUNCHES_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_read_launches_by_location(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_location: Location,
+    test_launch: Launch,
+) -> None:
+    r = client.get(
+        f"{LAUNCHES_URL}/location/{test_location.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert any(launch["id"] == str(test_launch.id) for launch in data["data"])
+    assert data["data"][0]["timezone"] is not None
+
+
+def test_read_launches_by_location_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(
+        f"{LAUNCHES_URL}/location/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_public_launches(client: TestClient, test_launch: Launch) -> None:
+    r = client.get(LAUNCHES_URL + "/public/")
+    assert r.status_code == 200
+    assert "data" in r.json()
+
+
+def test_public_launch_success(client: TestClient, test_launch: Launch) -> None:
+    r = client.get(f"{LAUNCHES_URL}/public/{test_launch.id}")
+    assert r.status_code == 200
+    assert r.json()["id"] == str(test_launch.id)
+
+
+def test_public_launch_not_found(client: TestClient) -> None:
+    r = client.get(f"{LAUNCHES_URL}/public/{uuid.uuid4()}")
+    assert r.status_code == 404
+
+
+def test_import_launch_yaml_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_location: Location,
+) -> None:
+    ts = (
+        (datetime.now(timezone.utc) + timedelta(days=70))
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+    yaml_content = (
+        f'name: "YAML Launch"\n'
+        f'launch_timestamp: "{ts}"\n'
+        f'summary: "Imported"\n'
+        f'location_id: "{test_location.id}"\n'
+    )
+    r = client.post(
+        f"{LAUNCHES_URL}/import-yaml",
+        headers=superuser_token_headers,
+        files={"file": ("launch.yaml", yaml_content.encode(), "text/yaml")},
+    )
+    assert r.status_code == 200
+    assert r.json()["name"] == "YAML Launch"
+
+
+def test_import_launch_yaml_invalid_extension(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        f"{LAUNCHES_URL}/import-yaml",
+        headers=superuser_token_headers,
+        files={"file": ("launch.txt", b"name: x", "text/plain")},
+    )
+    assert r.status_code == 400
+
+
+def test_list_launches_include_archived(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_launch: Launch,
+) -> None:
+    test_launch.archived = True
+    db.add(test_launch)
+    db.commit()
+
+    r = client.get(
+        LAUNCHES_URL + "/",
+        headers=superuser_token_headers,
+        params={"include_archived": "true"},
+    )
+    assert r.status_code == 200
+    assert any(launch["id"] == str(test_launch.id) for launch in r.json()["data"])
+
+
+@patch("app.api.routes.launches.send_email")
+def test_send_launch_update_not_found(
+    mock_send_email,
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        f"{LAUNCHES_URL}/{uuid.uuid4()}/send-update",
+        headers=superuser_token_headers,
+        json={"message": "Update", "priority": True},
+    )
+    assert r.status_code == 404
+
+
+@patch("app.api.routes.launches.send_email")
+def test_send_launch_update_invalid_boat_ids(
+    mock_send_email,
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_launch: Launch,
+    test_trip: Trip,
+) -> None:
+    r = client.post(
+        f"{LAUNCHES_URL}/{test_launch.id}/send-update",
+        headers=superuser_token_headers,
+        params={
+            "trip_id": str(test_trip.id),
+            "boat_ids": [str(uuid.uuid4())],
+        },
+        json={"message": "Update", "priority": True},
+    )
+    assert r.status_code == 400
+    assert "boat_ids" in r.json()["detail"]

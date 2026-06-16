@@ -301,3 +301,237 @@ def test_webhook_payment_failed(
     db.refresh(booking)
     assert booking.booking_status == BookingStatus.draft
     assert booking.payment_status == PaymentStatus.failed
+
+
+@patch("app.api.routes.payments.send_booking_confirmation_email")
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_already_confirmed(
+    mock_retrieve: MagicMock,
+    mock_send_email: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_confirmed_booking(db, payment_intent_id="pi_already_confirmed")
+    mock_retrieve.return_value = SimpleNamespace(status="succeeded")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_already_confirmed",
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "confirmed"
+    mock_send_email.assert_not_called()
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_cancelled_capacity_conflict(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db, payment_intent_id="pi_cap_fail")
+    booking.booking_status = BookingStatus.cancelled
+    booking.payment_status = PaymentStatus.failed
+    db.add(booking)
+    db.commit()
+    mock_retrieve.return_value = SimpleNamespace(status="succeeded")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_cap_fail",
+    )
+    assert r.status_code == 409
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_other_statuses(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_draft_booking(db, payment_intent_id="pi_processing")
+    for status_name in (
+        "requires_confirmation",
+        "requires_action",
+        "processing",
+        "requires_capture",
+    ):
+        mock_retrieve.return_value = SimpleNamespace(status=status_name)
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/verify-payment/pi_processing",
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == status_name
+
+
+@patch("stripe.Webhook.construct_event")
+def test_webhook_succeeded_already_confirmed(
+    mock_construct: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_confirmed_booking(db, payment_intent_id="pi_wh_confirmed")
+    mock_construct.return_value = SimpleNamespace(
+        type="payment_intent.succeeded",
+        data=SimpleNamespace(object=SimpleNamespace(id="pi_wh_confirmed")),
+    )
+    with patch.object(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test"):
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/webhook",
+            content=b"{}",
+            headers={"stripe-signature": "sig"},
+        )
+    assert r.status_code == 200
+
+
+@patch("stripe.Webhook.construct_event")
+def test_webhook_succeeded_no_booking(
+    mock_construct: MagicMock,
+    client: TestClient,
+) -> None:
+    mock_construct.return_value = SimpleNamespace(
+        type="payment_intent.succeeded",
+        data=SimpleNamespace(object=SimpleNamespace(id="pi_orphan")),
+    )
+    with patch.object(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test"):
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/webhook",
+            content=b"{}",
+            headers={"stripe-signature": "sig"},
+        )
+    assert r.status_code == 200
+
+
+@patch("stripe.Webhook.construct_event")
+def test_webhook_payment_failed_already_applied(
+    mock_construct: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db, payment_intent_id="pi_already_failed")
+    booking.payment_status = PaymentStatus.failed
+    db.add(booking)
+    db.commit()
+    mock_construct.return_value = SimpleNamespace(
+        type="payment_intent.payment_failed",
+        data=SimpleNamespace(object=SimpleNamespace(id="pi_already_failed")),
+    )
+    with patch.object(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test"):
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/webhook",
+            content=b"{}",
+            headers={"stripe-signature": "sig"},
+        )
+    assert r.status_code == 200
+
+
+@patch("stripe.Webhook.construct_event")
+def test_webhook_payment_failed_skips_non_draft(
+    mock_construct: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_confirmed_booking(db, payment_intent_id="pi_confirmed_fail")
+    mock_construct.return_value = SimpleNamespace(
+        type="payment_intent.payment_failed",
+        data=SimpleNamespace(object=SimpleNamespace(id="pi_confirmed_fail")),
+    )
+    with patch.object(settings, "STRIPE_WEBHOOK_SECRET", "whsec_test"):
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/webhook",
+            content=b"{}",
+            headers={"stripe-signature": "sig"},
+        )
+    assert r.status_code == 200
+
+
+@patch("app.api.routes.payments.create_payment_intent")
+def test_create_payment_intent_endpoint_again_with_same_idempotency_key(
+    mock_create: MagicMock,
+    client: TestClient,
+) -> None:
+    mock_create.return_value = SimpleNamespace(
+        client_secret="cs_test",
+        id="pi_new",
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/create-payment-intent",
+        params={"amount": 5000, "currency": "usd"},
+    )
+    assert r.status_code == 200
+    assert r.json()["client_secret"] == "cs_test"
+    assert r.json()["payment_intent_id"] == "pi_new"
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_canceled_draft_booking(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db, payment_intent_id="pi_canceled_draft")
+    mock_retrieve.return_value = SimpleNamespace(status="canceled")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_canceled_draft",
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "draft"
+    db.refresh(booking)
+    assert booking.payment_status == PaymentStatus.failed
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_canceled_confirmed_booking(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_confirmed_booking(db, payment_intent_id="pi_canceled_conf")
+    mock_retrieve.return_value = SimpleNamespace(status="canceled")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_canceled_conf",
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "cancelled"
+    db.refresh(booking)
+    assert booking.booking_status == BookingStatus.cancelled
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_canceled_already_cancelled(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    booking = _create_draft_booking(db, payment_intent_id="pi_already_cancel")
+    booking.booking_status = BookingStatus.cancelled
+    booking.payment_status = PaymentStatus.failed
+    db.add(booking)
+    db.commit()
+    mock_retrieve.return_value = SimpleNamespace(status="canceled")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_already_cancel",
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "cancelled"
+
+
+@patch("app.api.routes.payments.retrieve_payment_intent")
+def test_verify_payment_unknown_status(
+    mock_retrieve: MagicMock,
+    client: TestClient,
+    db: Session,
+) -> None:
+    _create_draft_booking(db, payment_intent_id="pi_unknown")
+    mock_retrieve.return_value = SimpleNamespace(status="requires_source")
+    r = client.post(
+        f"{settings.API_V1_STR}/payments/verify-payment/pi_unknown",
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "requires_source"
+
+
+def test_webhook_missing_secret(client: TestClient) -> None:
+    with patch.object(settings, "STRIPE_WEBHOOK_SECRET", ""):
+        r = client.post(
+            f"{settings.API_V1_STR}/payments/webhook",
+            content=b"{}",
+            headers={"stripe-signature": "sig"},
+        )
+    assert r.status_code == 500

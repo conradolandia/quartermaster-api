@@ -136,3 +136,149 @@ def test_update_boat_pricing_clear_capacity_to_null(
     )
     assert r.status_code == 200
     assert r.json()["capacity"] is None
+
+
+def test_list_boat_pricing_without_boat_id_returns_empty(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(BOAT_PRICING_URL + "/", headers=superuser_token_headers)
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+def test_create_boat_pricing_duplicate_ticket_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(test_boat.id),
+            "ticket_type": test_boat_pricing.ticket_type,
+            "price": 3000,
+            "capacity": 10,
+        },
+    )
+    assert r.status_code == 400
+    assert "already exists" in r.json()["detail"]
+
+
+def test_create_boat_pricing_boat_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(uuid.uuid4()),
+            "ticket_type": "senior",
+            "price": 3000,
+            "capacity": 5,
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_update_boat_pricing_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.put(
+        f"{BOAT_PRICING_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"price": 1000},
+    )
+    assert r.status_code == 404
+
+
+def test_update_boat_pricing_duplicate_ticket_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(test_boat.id),
+            "ticket_type": "child",
+            "price": 2500,
+            "capacity": None,
+        },
+    )
+    assert r.status_code == 201
+    child_id = r.json()["id"]
+
+    r2 = client.put(
+        f"{BOAT_PRICING_URL}/{child_id}",
+        headers=superuser_token_headers,
+        json={"ticket_type": test_boat_pricing.ticket_type},
+    )
+    assert r2.status_code == 400
+    assert "already exists" in r2.json()["detail"]
+
+
+def test_update_boat_pricing_capacity_exceeded(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.put(
+        f"{BOAT_PRICING_URL}/{test_boat_pricing.id}",
+        headers=superuser_token_headers,
+        json={
+            "ticket_type": test_boat_pricing.ticket_type,
+            "price": test_boat_pricing.price,
+            "capacity": 999,
+        },
+    )
+    assert r.status_code == 400
+    assert "exceed" in r.json()["detail"].lower()
+
+
+def test_delete_boat_pricing_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+) -> None:
+    r = client.post(
+        BOAT_PRICING_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "boat_id": str(test_boat.id),
+            "ticket_type": "senior",
+            "price": 2000,
+            "capacity": None,
+        },
+    )
+    assert r.status_code == 201
+    pricing_id = r.json()["id"]
+
+    r2 = client.delete(
+        f"{BOAT_PRICING_URL}/{pricing_id}",
+        headers=superuser_token_headers,
+    )
+    assert r2.status_code == 204
+
+    r3 = client.get(
+        f"{BOAT_PRICING_URL}/{pricing_id}",
+        headers=superuser_token_headers,
+    )
+    assert r3.status_code == 404
+
+
+def test_delete_boat_pricing_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.delete(
+        f"{BOAT_PRICING_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404

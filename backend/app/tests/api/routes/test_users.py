@@ -191,3 +191,103 @@ def test_delete_me_forbidden(
         f"{settings.API_V1_STR}/users/me", headers=superuser_token_headers
     )
     assert r.status_code == 403
+
+
+@patch("app.api.routes.users.settings")
+@patch("app.api.routes.users.send_email")
+@patch("app.api.routes.users.generate_new_account_email")
+def test_create_user_sends_welcome_email_when_enabled(
+    mock_generate,
+    mock_send,
+    mock_settings,
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    mock_settings.emails_enabled = True
+    mock_generate.return_value.subject = "Welcome"
+    mock_generate.return_value.html_content = "<p>welcome</p>"
+    email = random_email()
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json={
+            "email": email,
+            "password": random_lower_string(),
+            "role": UserRole.staff.value,
+        },
+    )
+    assert r.status_code == 200
+    mock_send.assert_called_once()
+
+
+def test_get_user_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/users/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_update_user_me(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me",
+        headers=superuser_token_headers,
+        json={"full_name": "Admin Updated"},
+    )
+    assert r.status_code == 200
+    user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    assert user is not None
+    assert user.full_name == "Admin Updated"
+
+
+def test_update_user_me_duplicate_email(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    other = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=random_lower_string()),
+    )
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me",
+        headers=superuser_token_headers,
+        json={"email": other.email},
+    )
+    assert r.status_code == 409
+
+
+def test_update_user_duplicate_email(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    user_a = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=random_lower_string()),
+    )
+    user_b = crud.create_user(
+        session=db,
+        user_create=UserCreate(email=random_email(), password=random_lower_string()),
+    )
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user_a.id}",
+        headers=superuser_token_headers,
+        json={"email": user_b.email},
+    )
+    assert r.status_code == 409
+
+
+def test_update_password_same_as_current(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/password",
+        headers=superuser_token_headers,
+        json={
+            "current_password": settings.FIRST_SUPERUSER_PASSWORD,
+            "new_password": settings.FIRST_SUPERUSER_PASSWORD,
+        },
+    )
+    assert r.status_code == 400
+    assert "same" in r.json()["detail"].lower()

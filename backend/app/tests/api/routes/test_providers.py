@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from app.core.config import settings
 from app.models import Provider
@@ -94,3 +95,163 @@ def test_update_provider_success(
     )
     assert r.status_code == 200
     assert r.json()["name"] == "Updated Provider"
+
+
+def test_list_providers_by_jurisdiction(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_jurisdiction,
+    test_provider: Provider,
+) -> None:
+    r = client.get(
+        PROVIDERS_URL + "/",
+        headers=superuser_token_headers,
+        params={"jurisdiction_id": str(test_jurisdiction.id)},
+    )
+    assert r.status_code == 200
+    assert any(p["id"] == str(test_provider.id) for p in r.json()["data"])
+
+
+def test_public_providers_by_jurisdiction(
+    client: TestClient,
+    test_jurisdiction,
+    test_provider: Provider,
+) -> None:
+    r = client.get(
+        PROVIDERS_URL + "/public/",
+        params={"jurisdiction_id": str(test_jurisdiction.id)},
+    )
+    assert r.status_code == 200
+    assert any(p["id"] == str(test_provider.id) for p in r.json()["data"])
+
+
+def test_create_provider_jurisdiction_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        PROVIDERS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "name": "Orphan Provider",
+            "location": "Nowhere",
+            "address": "Nowhere",
+            "jurisdiction_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_update_provider_jurisdiction_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_provider: Provider,
+) -> None:
+    r = client.put(
+        f"{PROVIDERS_URL}/{test_provider.id}",
+        headers=superuser_token_headers,
+        json={"jurisdiction_id": str(uuid.uuid4())},
+    )
+    assert r.status_code == 404
+
+
+def test_update_provider_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.put(
+        f"{PROVIDERS_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"name": "Ghost"},
+    )
+    assert r.status_code == 404
+
+
+def test_delete_provider_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_jurisdiction,
+) -> None:
+    from app.models import Provider
+
+    provider = Provider(
+        name="Deletable Provider",
+        location="1 St",
+        address="1 St",
+        jurisdiction_id=test_jurisdiction.id,
+    )
+    db.add(provider)
+    db.commit()
+    db.refresh(provider)
+
+    r = client.delete(
+        f"{PROVIDERS_URL}/{provider.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 204
+    assert db.get(Provider, provider.id) is None
+
+
+def test_delete_provider_with_boats_fails(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_provider: Provider,
+    test_boat,
+) -> None:
+    r = client.delete(
+        f"{PROVIDERS_URL}/{test_provider.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+    assert "boat" in r.json()["detail"].lower()
+
+
+def test_delete_provider_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.delete(
+        f"{PROVIDERS_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_read_providers_by_jurisdiction(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_jurisdiction,
+    test_provider: Provider,
+) -> None:
+    r = client.get(
+        f"{PROVIDERS_URL}/jurisdiction/{test_jurisdiction.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    assert any(p["id"] == str(test_provider.id) for p in r.json()["data"])
+
+
+def test_read_providers_by_jurisdiction_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(
+        f"{PROVIDERS_URL}/jurisdiction/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_read_public_provider_success(
+    client: TestClient,
+    test_provider: Provider,
+) -> None:
+    r = client.get(f"{PROVIDERS_URL}/public/{test_provider.id}")
+    assert r.status_code == 200
+    assert r.json()["id"] == str(test_provider.id)
+
+
+def test_read_public_provider_not_found(client: TestClient) -> None:
+    r = client.get(f"{PROVIDERS_URL}/public/{uuid.uuid4()}")
+    assert r.status_code == 404

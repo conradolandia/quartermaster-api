@@ -284,3 +284,204 @@ def test_update_booking_item_success_refund_reason(
     assert r.status_code == 200
     data = r.json()
     assert any(i.get("refund_reason") == "Customer request" for i in data["items"])
+
+
+def test_add_booking_item_capacity_exceeded(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_trip_boat_pricing: TripBoatPricing,
+) -> None:
+    payload = {
+        "trip_id": str(test_trip.id),
+        "boat_id": str(test_boat.id),
+        "item_type": "adult",
+        "quantity": test_trip_boat_pricing.capacity,
+        "price_per_unit": 5000,
+    }
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items",
+        headers=superuser_token_headers,
+        json=payload,
+    )
+    assert r.status_code == 400
+    assert "exceeded" in r.json()["detail"].lower()
+
+
+def test_add_booking_item_different_mission_rejected(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+    test_trip_boat: TripBoat,
+    test_launch,
+) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from app.models import Mission, Trip, TripBoat
+
+    other_mission = Mission(
+        name="Other Mission",
+        launch_id=test_launch.id,
+        active=True,
+    )
+    db.add(other_mission)
+    db.commit()
+    db.refresh(other_mission)
+
+    departure = datetime.now(timezone.utc) + timedelta(days=21)
+    other_trip = Trip(
+        mission_id=other_mission.id,
+        name="Other Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="public",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(other_trip)
+    db.commit()
+    db.refresh(other_trip)
+
+    other_trip_boat = TripBoat(
+        trip_id=other_trip.id,
+        boat_id=test_boat.id,
+        max_capacity=None,
+        use_only_trip_pricing=False,
+    )
+    db.add(other_trip_boat)
+    db.commit()
+
+    payload = {
+        "trip_id": str(other_trip.id),
+        "boat_id": str(test_boat.id),
+        "item_type": "adult",
+        "quantity": 1,
+        "price_per_unit": test_boat_pricing.price,
+    }
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items",
+        headers=superuser_token_headers,
+        json=payload,
+    )
+    assert r.status_code == 400
+    assert "same mission" in r.json()["detail"].lower()
+
+
+def test_update_booking_item_checked_in_rejected(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    test_booking.booking_status = BookingStatus.checked_in
+    db.add(test_booking)
+    db.commit()
+
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items/{test_booking_item.id}",
+        headers=superuser_token_headers,
+        json={"item_type": "adult"},
+    )
+    assert r.status_code == 400
+    assert "checked-in" in r.json()["detail"].lower()
+
+
+def test_update_booking_item_target_boat_not_on_trip(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_provider,
+) -> None:
+    other_boat = Boat(
+        name="Off Trip Boat",
+        slug="off-trip-boat",
+        capacity=20,
+        provider_id=test_provider.id,
+    )
+    db.add(other_boat)
+    db.commit()
+    db.refresh(other_boat)
+
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items/{test_booking_item.id}",
+        headers=superuser_token_headers,
+        json={"boat_id": str(other_boat.id)},
+    )
+    assert r.status_code == 400
+    assert "not on this trip" in r.json()["detail"].lower()
+
+
+def test_update_booking_item_invalid_ticket_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items/{test_booking_item.id}",
+        headers=superuser_token_headers,
+        json={"item_type": "nonexistent_type"},
+    )
+    assert r.status_code == 400
+    assert "not available" in r.json()["detail"].lower()
+
+
+def test_update_booking_item_change_boat_success(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+    test_trip_boat: TripBoat,
+    test_provider,
+) -> None:
+    from app.models import TripBoat
+
+    other_boat = Boat(
+        name="Second Vessel",
+        slug="second-vessel",
+        capacity=30,
+        provider_id=test_provider.id,
+    )
+    db.add(other_boat)
+    db.commit()
+    db.refresh(other_boat)
+    db.add(
+        BoatPricing(
+            boat_id=other_boat.id,
+            ticket_type="adult",
+            price=5500,
+            capacity=25,
+        )
+    )
+    db.add(
+        TripBoat(
+            trip_id=test_trip.id,
+            boat_id=other_boat.id,
+            max_capacity=None,
+            use_only_trip_pricing=False,
+        )
+    )
+    db.commit()
+
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/items/{test_booking_item.id}",
+        headers=superuser_token_headers,
+        json={"boat_id": str(other_boat.id)},
+    )
+    assert r.status_code == 200
+    assert any(i["boat_id"] == str(other_boat.id) for i in r.json()["items"])

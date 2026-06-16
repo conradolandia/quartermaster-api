@@ -95,3 +95,108 @@ def test_update_jurisdiction_success(
     )
     assert r.status_code == 200
     assert r.json()["name"] == "Updated Jurisdiction"
+
+
+def test_list_jurisdictions_filter_by_location(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_jurisdiction: Jurisdiction,
+    test_location: "object",
+) -> None:
+    r = client.get(
+        JURISDICTIONS_URL + "/",
+        headers=superuser_token_headers,
+        params={"location_id": str(test_location.id)},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert any(j["id"] == str(test_jurisdiction.id) for j in data["data"])
+
+
+def test_public_jurisdictions_filter_by_location(
+    client: TestClient,
+    test_jurisdiction: Jurisdiction,
+    test_location: "object",
+) -> None:
+    r = client.get(
+        JURISDICTIONS_URL + "/public/",
+        params={"location_id": str(test_location.id)},
+    )
+    assert r.status_code == 200
+    assert any(j["id"] == str(test_jurisdiction.id) for j in r.json()["data"])
+
+
+def test_create_jurisdiction_location_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.post(
+        JURISDICTIONS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "name": "Orphan Jurisdiction",
+            "sales_tax_rate": 0.07,
+            "location_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_update_jurisdiction_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.put(
+        f"{JURISDICTIONS_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"name": "Ghost"},
+    )
+    assert r.status_code == 404
+
+
+def test_update_jurisdiction_invalid_location(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_jurisdiction: Jurisdiction,
+) -> None:
+    r = client.put(
+        f"{JURISDICTIONS_URL}/{test_jurisdiction.id}",
+        headers=superuser_token_headers,
+        json={"location_id": str(uuid.uuid4())},
+    )
+    assert r.status_code == 404
+
+
+def test_delete_jurisdiction_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_location: "object",
+) -> None:
+    r = client.post(
+        JURISDICTIONS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "name": "Deletable Jurisdiction",
+            "sales_tax_rate": 0.06,
+            "location_id": str(test_location.id),
+        },
+    )
+    assert r.status_code == 201
+    jurisdiction_id = r.json()["id"]
+
+    r2 = client.delete(
+        f"{JURISDICTIONS_URL}/{jurisdiction_id}",
+        headers=superuser_token_headers,
+    )
+    assert r2.status_code == 204
+
+
+def test_delete_jurisdiction_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.delete(
+        f"{JURISDICTIONS_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
