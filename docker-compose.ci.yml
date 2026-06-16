@@ -1,7 +1,44 @@
 # CI override: create traefik-public network instead of requiring it externally,
-# and limit services to those needed for backend tests.
-# Use: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db prestart backend
+# and add services needed for backend and frontend e2e tests.
+# Backend tests: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db prestart backend
+# E2E tests: docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm playwright
 
 networks:
   traefik-public:
     external: false
+
+services:
+  backend:
+    environment:
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      EMAILS_FROM_EMAIL: "noreply@example.com"
+
+  mailcatcher:
+    image: schickling/mailcatcher
+
+  playwright:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.playwright
+      args:
+        - VITE_API_URL=http://backend:8000
+        - NODE_ENV=production
+    ipc: host
+    depends_on:
+      backend:
+        condition: service_healthy
+      mailcatcher:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - MAILCATCHER_HOST=http://mailcatcher:1080
+      - E2E_IN_DOCKER=1
+      - CI=1
+    volumes:
+      - ./frontend/blob-report:/app/blob-report
+      - ./frontend/test-results:/app/test-results
+    command: ["npx", "playwright", "test"]

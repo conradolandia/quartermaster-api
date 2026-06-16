@@ -120,3 +120,63 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DOMAIN: localhost
+      FRONTEND_HOST: http://localhost:5173
+      ENVIRONMENT: local
+      PROJECT_NAME: Quartermaster API
+      EMAIL_BRAND_NAME: Star Fleet Tours
+      STACK_NAME: quartermaster-api
+      BACKEND_CORS_ORIGINS: http://localhost,http://localhost:5173
+      SECRET_KEY: ci-secret-key-not-for-production
+      FIRST_SUPERUSER: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: ci-admin-password
+      POSTGRES_SERVER: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: quartermaster_api_test
+      POSTGRES_DB_TEST: quartermaster_api_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ci-postgres-password
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_FRONTEND: frontend
+      STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      RUN_INITIAL_DATA: "1"
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Create .env for Docker Compose
+        run: cp .env.ci .env
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build images for e2e
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend playwright
+
+      - name: Start services and run Playwright tests
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db mailcatcher
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm prestart
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm playwright
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/blob-report
+            frontend/test-results
+          retention-days: 7
+
+      - name: Tear down Docker
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v --remove-orphans
