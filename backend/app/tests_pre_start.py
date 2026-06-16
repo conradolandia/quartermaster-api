@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 
 from app.core.config import settings
-from app.core.db import engine
+from app.core.db import engine, ensure_postgres_database_exists
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +46,7 @@ def migrate_test_database_if_configured() -> None:
         return
     if test_db == settings.POSTGRES_DB:
         return
+    ensure_postgres_database_exists(test_db)
     logger.info("Applying migrations to test database %s", test_db)
     env = os.environ.copy()
     env["POSTGRES_DB"] = test_db

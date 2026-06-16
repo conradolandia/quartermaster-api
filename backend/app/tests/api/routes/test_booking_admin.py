@@ -12,6 +12,7 @@ from app.models import (
     BookingItem,
     BookingItemStatus,
     BookingStatus,
+    Launch,
     Mission,
     Trip,
     TripBoat,
@@ -319,3 +320,364 @@ def test_delete_booking_not_found(
         headers=superuser_token_headers,
     )
     assert r.status_code == 404
+
+
+def test_duplicate_booking_no_items(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    booking = Booking(
+        confirmation_code=f"EMPTY{uuid.uuid4().hex[:6].upper()}",
+        first_name="Empty",
+        last_name="Booking",
+        user_email="empty@example.com",
+        user_phone="+1234567890",
+        billing_address="123 St",
+        subtotal=0,
+        discount_amount=0,
+        tax_amount=0,
+        tip_amount=0,
+        total_amount=0,
+        booking_status=BookingStatus.draft,
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{booking.id}/duplicate",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+    assert "no items" in r.json()["detail"]
+
+
+def test_list_bookings_negative_skip(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"skip": -1},
+    )
+    assert r.status_code == 400
+
+
+def test_list_bookings_invalid_limit(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"limit": 0},
+    )
+    assert r.status_code == 400
+
+
+def test_list_bookings_filter_launch_id(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_launch: Launch,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"launch_id": str(test_launch.id)},
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_bookings_filter_trip_id(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"trip_id": str(test_trip.id)},
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_bookings_filter_boat_id(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip_boat: TripBoat,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"boat_id": str(test_trip_boat.boat_id)},
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_bookings_filter_trip_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"trip_type": "launch_viewing"},
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_bookings_filter_statuses(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={
+            "booking_status": ["confirmed"],
+            "payment_status": ["paid"],
+        },
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_bookings_sort_by_trip_name(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_mission: Mission,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={
+            "mission_id": str(test_mission.id),
+            "sort_by": "trip_name",
+            "sort_direction": "asc",
+        },
+    )
+    assert r.status_code == 200
+    assert "data" in r.json()
+
+
+def test_list_bookings_sort_by_boat_name(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={
+            "trip_id": str(test_trip.id),
+            "sort_by": "boat_name",
+            "sort_direction": "desc",
+        },
+    )
+    assert r.status_code == 200
+
+
+def test_list_bookings_sort_by_total_quantity(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={
+            "trip_id": str(test_trip.id),
+            "sort_by": "total_quantity",
+            "sort_direction": "asc",
+        },
+    )
+    assert r.status_code == 200
+
+
+def test_list_bookings_sort_by_ticket_item_type(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_mission: Mission,
+) -> None:
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={
+            "mission_id": str(test_mission.id),
+            "sort_by": "ticket_item_type",
+            "sort_direction": "asc",
+        },
+    )
+    assert r.status_code == 200
+
+
+def test_list_bookings_include_archived(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    test_trip.archived = True
+    db.add(test_trip)
+    db.commit()
+
+    r = client.get(
+        BOOKINGS_URL + "/",
+        headers=superuser_token_headers,
+        params={"include_archived": "true"},
+    )
+    assert r.status_code == 200
+    assert any(b["id"] == str(test_booking.id) for b in r.json()["data"])
+
+
+def test_list_ticket_item_types_filter_by_trip(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    r = client.get(
+        f"{BOOKINGS_URL}/ticket-item-types",
+        headers=superuser_token_headers,
+        params={"trip_id": str(test_trip.id)},
+    )
+    assert r.status_code == 200
+    assert "adult" in r.json()["data"]
+
+
+def test_get_booking_generates_qr_code(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    test_booking.qr_code_base64 = None
+    db.add(test_booking)
+    db.commit()
+
+    r = client.get(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    db.refresh(test_booking)
+    assert test_booking.qr_code_base64 is not None
+
+
+def test_update_booking_checked_in_rejected(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    test_booking.booking_status = BookingStatus.checked_in
+    db.add(test_booking)
+    db.commit()
+
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+        json={"admin_notes": "Should fail"},
+    )
+    assert r.status_code == 400
+    assert "checked-in" in r.json()["detail"]
+
+
+def test_update_booking_invalid_status_transition(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+        json={"booking_status": "completed"},
+    )
+    assert r.status_code == 400
+    assert "Cannot transition" in r.json()["detail"]
+
+
+def test_update_booking_negative_tip(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+        json={"tip_amount": -100},
+    )
+    assert r.status_code == 400
+    assert "Tip amount cannot be negative" in r.json()["detail"]
+
+
+def test_update_booking_cancel_status(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+        json={"booking_status": "cancelled"},
+    )
+    assert r.status_code == 200
+    db.refresh(test_booking)
+    db.refresh(test_booking_item)
+    assert test_booking.booking_status == BookingStatus.cancelled
+    assert test_booking_item.status == BookingItemStatus.cancelled
+
+
+def test_update_booking_item_quantity(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.patch(
+        f"{BOOKINGS_URL}/id/{test_booking.id}",
+        headers=superuser_token_headers,
+        json={
+            "item_quantity_updates": [
+                {"id": str(test_booking_item.id), "quantity": 1},
+            ],
+        },
+    )
+    assert r.status_code == 200
+    db.refresh(test_booking_item)
+    assert test_booking_item.quantity == 1

@@ -1,5 +1,4 @@
 import os
-import re
 
 # Ensure seed runs in tests (before any app import loads settings)
 os.environ["RUN_INITIAL_DATA"] = "1"
@@ -9,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
 from sqlmodel import Session, create_engine, delete
 
 from app.api.deps import get_db
@@ -29,33 +27,17 @@ if settings.ENVIRONMENT == "staging" and not settings.POSTGRES_DB_TEST:
         returncode=2,
     )
 
-from app.core.db import engine, init_db
+from app.core.db import engine, ensure_postgres_database_exists, init_db
 from app.main import app
 
 
 def _ensure_test_database_exists() -> None:
     """Create POSTGRES_DB_TEST if it does not exist (PostgreSQL does not auto-create)."""
     db_name = settings.POSTGRES_DB_TEST
-    if not re.match(r"^[a-zA-Z0-9_]+$", db_name):
-        pytest.exit(
-            f"POSTGRES_DB_TEST must be alphanumeric and underscores only: {db_name!r}",
-            returncode=2,
-        )
-    # CREATE DATABASE cannot run inside a transaction in PostgreSQL
-    maint_engine = create_engine(
-        str(settings.SQLALCHEMY_DATABASE_URI_MAINTENANCE),
-        isolation_level="AUTOCOMMIT",
-    )
     try:
-        with maint_engine.connect() as conn:
-            row = conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = :name"),
-                {"name": db_name},
-            ).first()
-            if row is None:
-                conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-    finally:
-        maint_engine.dispose()
+        ensure_postgres_database_exists(db_name)
+    except ValueError as exc:
+        pytest.exit(str(exc), returncode=2)
 
 
 # Use a separate test DB when POSTGRES_DB_TEST is set (e.g. in CI or on staging)

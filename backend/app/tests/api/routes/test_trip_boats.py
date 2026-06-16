@@ -553,3 +553,311 @@ def test_trip_boat_effective_captain_uses_override(
     row = next(x for x in r.json() if x["boat_id"] == str(test_boat.id))
     assert row["effective_captain"] == "Captain Trip"
     assert row["boat"]["captain"] == "Captain Default"
+
+
+TRIP_BOATS_URL = f"{settings.API_V1_STR}/trip-boats"
+
+
+def test_create_trip_boat_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip: Trip,
+    db: Session,
+    test_provider: Provider,
+) -> None:
+    boat = Boat(
+        name="Assignable Boat",
+        slug="assignable-boat",
+        capacity=40,
+        provider_id=test_provider.id,
+    )
+    db.add(boat)
+    db.commit()
+    db.refresh(boat)
+
+    r = client.post(
+        TRIP_BOATS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "trip_id": str(test_trip.id),
+            "boat_id": str(boat.id),
+            "max_capacity": 35,
+        },
+    )
+    assert r.status_code == 201
+    assert r.json()["boat_id"] == str(boat.id)
+
+
+def test_create_trip_boat_trip_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_boat: Boat,
+) -> None:
+    import uuid
+
+    r = client.post(
+        TRIP_BOATS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "trip_id": str(uuid.uuid4()),
+            "boat_id": str(test_boat.id),
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_create_trip_boat_boat_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip: Trip,
+) -> None:
+    import uuid
+
+    r = client.post(
+        TRIP_BOATS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "trip_id": str(test_trip.id),
+            "boat_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_read_trip_boats_by_trip_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    import uuid
+
+    r = client.get(
+        f"{TRIP_BOATS_URL}/trip/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_read_trip_boats_by_boat_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip_boat: TripBoat,
+    test_boat: Boat,
+) -> None:
+    r = client.get(
+        f"{TRIP_BOATS_URL}/boat/{test_boat.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    assert len(r.json()) >= 1
+
+
+def test_read_trip_boats_by_boat_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    import uuid
+
+    r = client.get(
+        f"{TRIP_BOATS_URL}/boat/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_update_trip_boat_not_found(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    import uuid
+
+    r = client.put(
+        f"{TRIP_BOATS_URL}/{uuid.uuid4()}",
+        headers=superuser_token_headers,
+        json={"sales_enabled": False},
+    )
+    assert r.status_code == 404
+
+
+def test_update_trip_boat_max_capacity_below_booked(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip_boat: TripBoat,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.put(
+        f"{TRIP_BOATS_URL}/{test_trip_boat.id}",
+        headers=superuser_token_headers,
+        json={"max_capacity": 1},
+    )
+    assert r.status_code == 400
+
+
+def test_delete_trip_boat_with_bookings_fails(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip_boat: TripBoat,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.delete(
+        f"{TRIP_BOATS_URL}/{test_trip_boat.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+    assert "passenger" in r.json()["detail"].lower()
+
+
+def test_delete_trip_boat_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_trip: Trip,
+    test_provider: Provider,
+) -> None:
+    boat = Boat(
+        name="Removable Boat",
+        slug="removable-boat",
+        capacity=30,
+        provider_id=test_provider.id,
+    )
+    db.add(boat)
+    db.commit()
+    db.refresh(boat)
+    tb = TripBoat(trip_id=test_trip.id, boat_id=boat.id)
+    db.add(tb)
+    db.commit()
+    db.refresh(tb)
+
+    r = client.delete(
+        f"{TRIP_BOATS_URL}/{tb.id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+
+
+def test_public_effective_pricing_success(
+    client: TestClient,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_boat: Boat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.get(
+        f"{TRIP_BOATS_URL}/public/pricing",
+        params={"trip_id": str(test_trip.id), "boat_id": str(test_boat.id)},
+    )
+    assert r.status_code == 200
+    assert len(r.json()) >= 1
+
+
+def test_public_effective_pricing_private_trip(
+    client: TestClient,
+    db: Session,
+    test_mission: Mission,
+    test_boat: Boat,
+) -> None:
+    departure = datetime.now(timezone.utc) + timedelta(days=30, hours=-2)
+    private_trip = Trip(
+        mission_id=test_mission.id,
+        name="Private Pricing Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="private",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(private_trip)
+    db.commit()
+    db.refresh(private_trip)
+
+    r = client.get(
+        f"{TRIP_BOATS_URL}/public/pricing",
+        params={"trip_id": str(private_trip.id), "boat_id": str(test_boat.id)},
+    )
+    assert r.status_code == 403
+
+
+def test_admin_effective_pricing_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip: Trip,
+    test_boat: Boat,
+    test_trip_boat: TripBoat,
+    test_boat_pricing: BoatPricing,
+) -> None:
+    r = client.get(
+        f"{TRIP_BOATS_URL}/pricing",
+        headers=superuser_token_headers,
+        params={"trip_id": str(test_trip.id), "boat_id": str(test_boat.id)},
+    )
+    assert r.status_code == 200
+    assert len(r.json()) >= 1
+
+
+def test_create_trip_boat_capacity_below_pricing_sum(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_trip: Trip,
+    test_provider: Provider,
+) -> None:
+    boat = Boat(
+        name="Tight Capacity Boat",
+        slug="tight-capacity-boat",
+        capacity=100,
+        provider_id=test_provider.id,
+    )
+    db.add(boat)
+    db.commit()
+    db.refresh(boat)
+    db.add(
+        BoatPricing(
+            boat_id=boat.id,
+            ticket_type="adult",
+            price=5000,
+            capacity=60,
+        )
+    )
+    db.add(
+        BoatPricing(
+            boat_id=boat.id,
+            ticket_type="child",
+            price=3000,
+            capacity=50,
+        )
+    )
+    db.commit()
+
+    r = client.post(
+        TRIP_BOATS_URL + "/",
+        headers=superuser_token_headers,
+        json={
+            "trip_id": str(test_trip.id),
+            "boat_id": str(boat.id),
+            "max_capacity": 80,
+        },
+    )
+    assert r.status_code == 400
+    assert "ticket-type capacities" in r.json()["detail"]
+
+
+def test_update_trip_boat_invalid_trip_id(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_trip_boat: TripBoat,
+) -> None:
+    import uuid
+
+    r = client.put(
+        f"{TRIP_BOATS_URL}/{test_trip_boat.id}",
+        headers=superuser_token_headers,
+        json={"trip_id": str(uuid.uuid4())},
+    )
+    assert r.status_code == 404
+
+
+def test_public_trip_boats_not_found(client: TestClient) -> None:
+    import uuid
+
+    r = client.get(f"{TRIP_BOATS_URL}/public/trip/{uuid.uuid4()}")
+    assert r.status_code == 404

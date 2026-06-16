@@ -41,7 +41,7 @@ def import_trip_from_yaml(
     ```
     """
     try:
-        if not file.filename.endswith((".yaml", ".yml")):
+        if not file.filename or not file.filename.endswith((".yaml", ".yml")):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File must be a YAML file (.yaml or .yml)",
@@ -53,6 +53,8 @@ def import_trip_from_yaml(
 
         return trip_to_public(session, trip)
 
+    except HTTPException:
+        raise
     except YamlValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

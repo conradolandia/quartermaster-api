@@ -12,8 +12,10 @@ from app.models import (
     Booking,
     BookingItem,
     BookingItemStatus,
+    BookingStatus,
     Merchandise,
     Mission,
+    Provider,
     Trip,
     TripBoat,
     TripBoatPricing,
@@ -369,3 +371,293 @@ def test_check_in_booking_not_found(
         headers=superuser_token_headers,
     )
     assert r.status_code in (400, 404)
+
+
+def test_reschedule_checked_in_booking_rejected(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    test_booking.booking_status = BookingStatus.checked_in
+    db.add(test_booking)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(test_trip.id)},
+    )
+    assert r.status_code == 400
+    assert "checked-in" in r.json()["detail"]
+
+
+def test_reschedule_no_ticket_items(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_trip: Trip,
+) -> None:
+    booking = Booking(
+        confirmation_code=f"NOTKT{uuid.uuid4().hex[:6].upper()}",
+        first_name="No",
+        last_name="Tickets",
+        user_email="notkt@example.com",
+        user_phone="+1234567890",
+        billing_address="123 St",
+        subtotal=0,
+        discount_amount=0,
+        tax_amount=0,
+        tip_amount=0,
+        total_amount=0,
+        booking_status=BookingStatus.confirmed,
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(test_trip.id)},
+    )
+    assert r.status_code == 400
+    assert "no ticket items" in r.json()["detail"].lower()
+
+
+def test_reschedule_archived_trip_rejected(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+) -> None:
+    test_trip.archived = True
+    db.add(test_trip)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(test_trip.id)},
+    )
+    assert r.status_code == 400
+    assert "archived trip" in r.json()["detail"].lower()
+
+
+def test_reschedule_target_trip_no_boats(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_mission: Mission,
+) -> None:
+    departure = datetime.now(timezone.utc) + timedelta(days=40)
+    empty_trip = Trip(
+        mission_id=test_mission.id,
+        name="No Boats Trip",
+        type="launch_viewing",
+        active=True,
+        booking_mode="public",
+        check_in_time=departure - timedelta(hours=1),
+        boarding_time=departure - timedelta(minutes=30),
+        departure_time=departure,
+    )
+    db.add(empty_trip)
+    db.commit()
+    db.refresh(empty_trip)
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(empty_trip.id)},
+    )
+    assert r.status_code == 400
+    assert "no boats" in r.json()["detail"].lower()
+
+
+def test_reschedule_multi_boat_requires_boat_id(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_boat: Boat,
+    test_mission: Mission,
+    test_provider: Provider,
+) -> None:
+    trip2 = _create_target_trip(db, mission_id=test_mission.id, boat_id=test_boat.id)
+    second_boat = Boat(
+        name="Second Boat",
+        slug="second-boat",
+        capacity=40,
+        provider_id=test_provider.id,
+    )
+    db.add(second_boat)
+    db.commit()
+    db.refresh(second_boat)
+    db.add(TripBoat(trip_id=trip2.id, boat_id=second_boat.id))
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(trip2.id)},
+    )
+    assert r.status_code == 400
+    assert "boat_id is required" in r.json()["detail"]
+
+
+def test_reschedule_invalid_boat_id(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_trip: Trip,
+    test_trip_boat: TripBoat,
+    test_provider: Provider,
+) -> None:
+    second_boat = Boat(
+        name="Linked Boat",
+        slug="linked-boat",
+        capacity=40,
+        provider_id=test_provider.id,
+    )
+    db.add(second_boat)
+    db.commit()
+    db.refresh(second_boat)
+    db.add(TripBoat(trip_id=test_trip.id, boat_id=second_boat.id))
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={
+            "target_trip_id": str(test_trip.id),
+            "boat_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 400
+    assert "not associated" in r.json()["detail"]
+
+
+def test_reschedule_capacity_exceeded(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+    test_mission: Mission,
+    test_boat: Boat,
+) -> None:
+    trip2 = _create_target_trip(db, mission_id=test_mission.id, boat_id=test_boat.id)
+    tb = db.exec(
+        __import__("sqlmodel", fromlist=["select"])
+        .select(TripBoat)
+        .where(TripBoat.trip_id == trip2.id, TripBoat.boat_id == test_boat.id)
+    ).first()
+    assert tb is not None
+    tb.max_capacity = 1
+    db.add(tb)
+    for pricing in db.exec(
+        __import__("sqlmodel", fromlist=["select"])
+        .select(TripBoatPricing)
+        .where(TripBoatPricing.trip_boat_id == tb.id)
+    ).all():
+        pricing.capacity = 1
+        db.add(pricing)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/id/{test_booking.id}/reschedule",
+        headers=superuser_token_headers,
+        json={"target_trip_id": str(trip2.id)},
+    )
+    assert r.status_code == 400
+    assert "capacity" in r.json()["detail"].lower()
+
+
+def test_check_in_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.post(
+        f"{BOOKINGS_URL}/check-in/{test_booking.confirmation_code}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "checked_in"
+
+
+def test_check_in_invalid_status(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+) -> None:
+    test_booking.booking_status = BookingStatus.draft
+    db.add(test_booking)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/check-in/{test_booking.confirmation_code}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400
+
+
+def test_check_in_wrong_trip_boat_context(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    r = client.post(
+        f"{BOOKINGS_URL}/check-in/{test_booking.confirmation_code}",
+        headers=superuser_token_headers,
+        params={
+            "trip_id": str(uuid.uuid4()),
+            "boat_id": str(uuid.uuid4()),
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_revert_check_in_success(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    db: Session,
+    test_booking: Booking,
+    test_booking_item: BookingItem,
+) -> None:
+    test_booking.booking_status = BookingStatus.checked_in
+    test_booking_item.status = BookingItemStatus.fulfilled
+    db.add(test_booking)
+    db.add(test_booking_item)
+    db.commit()
+
+    r = client.post(
+        f"{BOOKINGS_URL}/revert-check-in/{test_booking.confirmation_code}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["booking_status"] == "confirmed"
+
+
+def test_revert_check_in_not_checked_in(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    test_booking: Booking,
+) -> None:
+    r = client.post(
+        f"{BOOKINGS_URL}/revert-check-in/{test_booking.confirmation_code}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 400

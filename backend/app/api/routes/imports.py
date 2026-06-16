@@ -65,6 +65,8 @@ def import_yaml_document(
             trips=[trip_to_public(session, trip) for trip in created_trips],
         )
 
+    except HTTPException:
+        raise
     except YamlValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
