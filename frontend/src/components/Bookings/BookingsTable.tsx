@@ -6,7 +6,7 @@ import {
   Text,
   createListCollection,
 } from "@chakra-ui/react"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 import type { TripPublic } from "@/client"
 import BookingsFilterBar from "@/components/Bookings/BookingsFilterBar"
@@ -93,6 +93,8 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     filteredBoats,
     missionsWithBookings,
     filteredTrips,
+    tripsReady,
+    tripBoatsReady,
     isBookingArchived,
     tripBoatsData,
     ticketItemTypeOptions,
@@ -113,6 +115,11 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
     includeArchived,
   })
 
+  const filteredTripIdsKey = useMemo(
+    () => filteredTrips.map((t) => t.id).join(","),
+    [filteredTrips],
+  )
+
   // Refocus search input when query finishes so table re-render doesn't leave focus lost
   const wasFetchingRef = useRef(false)
   useEffect(() => {
@@ -128,28 +135,36 @@ export default function BookingsTable({ onBookingClick }: BookingsTableProps) {
       }
     }
     wasFetchingRef.current = isFetching
-  }, [isFetching, debouncedSearchQuery])
+  }, [isFetching, debouncedSearchQuery, searchInputRef])
 
-  // Clear tripId when it is not in the filtered trip list (e.g. trip type changed)
+  // Clear tripId only after trips have loaded successfully (not while empty during API recovery)
   useEffect(() => {
-    if (isLoading || !tripId) return
-    if (!filteredTrips.some((t) => t.id === tripId)) {
+    if (!tripsReady || !tripId) return
+    const ids = filteredTripIdsKey ? filteredTripIdsKey.split(",") : []
+    if (!ids.includes(tripId)) {
       setTripId(undefined)
       setBoatId(undefined)
-      updateFiltersInUrl({ tripId: undefined, boatId: undefined })
+      updateFiltersInUrl({ tripId: null, boatId: null })
     }
-  }, [tripId, filteredTrips, isLoading])
+  }, [tripId, filteredTripIdsKey, tripsReady, setTripId, setBoatId, updateFiltersInUrl])
 
   // Clear boatId when it's invalid for the selected trip (e.g. from URL)
   useEffect(() => {
-    if (!tripId || !boatId) return
+    if (!tripId || !boatId || !tripBoatsReady) return
     const tb = Array.isArray(tripBoatsData) ? tripBoatsData : []
     const ids = new Set(tb.map((x: { boat_id: string }) => x.boat_id))
     if (ids.size > 0 && !ids.has(boatId)) {
       setBoatId(undefined)
-      updateFiltersInUrl({ boatId: undefined })
+      updateFiltersInUrl({ boatId: null })
     }
-  }, [tripId, boatId, tripBoatsData])
+  }, [
+    tripId,
+    boatId,
+    tripBoatsData,
+    tripBoatsReady,
+    setBoatId,
+    updateFiltersInUrl,
+  ])
 
   if (isLoading) {
     return <PendingBookings />

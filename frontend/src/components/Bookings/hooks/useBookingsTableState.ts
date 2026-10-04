@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { DEFAULT_PAGE_SIZE } from "@/components/ui/page-size-select"
 import { useIncludeArchived } from "@/contexts/IncludeArchivedContext"
@@ -8,6 +8,39 @@ import type { SortableColumn } from "../types"
 type SortDirection = "asc" | "desc"
 
 const initialSearch = () => new URLSearchParams(window.location.search)
+
+type FilterUrlUpdates = {
+  missionId?: string | null
+  launchId?: string | null
+  tripId?: string | null
+  boatId?: string | null
+  tripType?: string | null
+  ticketItemType?: string | null
+  bookingStatuses?: string[]
+  paymentStatuses?: string[]
+  search?: string | null
+}
+
+function applyOptionalParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | null | undefined,
+  present: boolean,
+) {
+  if (!present) return
+  if (value) params.set(key, value)
+  else params.delete(key)
+}
+
+function replaceSearchIfChanged(nextQuery: string): boolean {
+  const prevQuery = window.location.search.replace(/^\?/, "")
+  if (prevQuery === nextQuery) return false
+  const url = nextQuery
+    ? `${window.location.pathname}?${nextQuery}`
+    : window.location.pathname
+  window.history.replaceState({}, "", url)
+  return true
+}
 
 export function useBookingsTableState() {
   const [missionId, setMissionId] = useState<string | undefined>(
@@ -65,12 +98,10 @@ export function useBookingsTableState() {
       if (trimmed) params.set("search", trimmed)
       else params.delete("search")
       params.set("page", "1")
-      window.history.replaceState(
-        {},
-        "",
-        `${window.location.pathname}?${params.toString()}`,
-      )
-      setSearchParams(new URLSearchParams(params.toString()))
+      const nextQuery = params.toString()
+      if (replaceSearchIfChanged(nextQuery)) {
+        setSearchParams(new URLSearchParams(nextQuery))
+      }
       setTimeout(() => searchInputRef.current?.focus(), 0)
     }, 300)
     return () => {
@@ -102,69 +133,58 @@ export function useBookingsTableState() {
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  const updateFiltersInUrl = (updates: {
-    missionId?: string
-    launchId?: string
-    tripId?: string
-    boatId?: string
-    tripType?: string
-    ticketItemType?: string
-    bookingStatuses?: string[]
-    paymentStatuses?: string[]
-    search?: string
-  }) => {
+  const updateFiltersInUrl = useCallback((updates: FilterUrlUpdates) => {
     const params = new URLSearchParams(window.location.search)
-    if (updates.missionId !== undefined) {
-      if (updates.missionId) params.set("missionId", updates.missionId)
-      else params.delete("missionId")
-    }
-    if (updates.launchId !== undefined) {
-      if (updates.launchId) params.set("launchId", updates.launchId)
-      else params.delete("launchId")
-    }
-    if (updates.tripId !== undefined) {
-      if (updates.tripId) params.set("tripId", updates.tripId)
-      else params.delete("tripId")
-    }
-    if (updates.boatId !== undefined) {
-      if (updates.boatId) params.set("boatId", updates.boatId)
-      else params.delete("boatId")
-    }
-    if (updates.tripType !== undefined) {
-      if (updates.tripType) params.set("tripType", updates.tripType)
-      else params.delete("tripType")
-    }
-    if (updates.ticketItemType !== undefined) {
-      if (updates.ticketItemType)
-        params.set("ticketItemType", updates.ticketItemType)
-      else params.delete("ticketItemType")
-    }
-    if (updates.bookingStatuses !== undefined) {
+    // Use `in` so explicit undefined/null means "clear", while omitted keys are untouched.
+    applyOptionalParam(
+      params,
+      "missionId",
+      updates.missionId,
+      "missionId" in updates,
+    )
+    applyOptionalParam(
+      params,
+      "launchId",
+      updates.launchId,
+      "launchId" in updates,
+    )
+    applyOptionalParam(params, "tripId", updates.tripId, "tripId" in updates)
+    applyOptionalParam(params, "boatId", updates.boatId, "boatId" in updates)
+    applyOptionalParam(
+      params,
+      "tripType",
+      updates.tripType,
+      "tripType" in updates,
+    )
+    applyOptionalParam(
+      params,
+      "ticketItemType",
+      updates.ticketItemType,
+      "ticketItemType" in updates,
+    )
+    if ("bookingStatuses" in updates && updates.bookingStatuses) {
       const all =
         updates.bookingStatuses.length === BOOKING_STATUSES.length &&
         BOOKING_STATUSES.every((s) => updates.bookingStatuses!.includes(s))
       if (all) params.delete("bookingStatuses")
       else params.set("bookingStatuses", updates.bookingStatuses.join(","))
     }
-    if (updates.paymentStatuses !== undefined) {
+    if ("paymentStatuses" in updates && updates.paymentStatuses) {
       const all =
         updates.paymentStatuses.length === PAYMENT_STATUSES.length &&
         PAYMENT_STATUSES.every((s) => updates.paymentStatuses!.includes(s))
       if (all) params.delete("paymentStatuses")
       else params.set("paymentStatuses", updates.paymentStatuses.join(","))
     }
-    if (updates.search !== undefined) {
+    if ("search" in updates) {
       if (updates.search) params.set("search", updates.search)
       else params.delete("search")
     }
     params.set("page", "1")
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params.toString()}`,
-    )
-    setSearchParams(new URLSearchParams(params.toString()))
-  }
+    const nextQuery = params.toString()
+    if (!replaceSearchIfChanged(nextQuery)) return
+    setSearchParams(new URLSearchParams(nextQuery))
+  }, [])
 
   const handleSort = (column: SortableColumn) => {
     const newDirection: SortDirection =
@@ -172,12 +192,9 @@ export function useBookingsTableState() {
     const params = new URLSearchParams(window.location.search)
     params.set("sortBy", column)
     params.set("sortDirection", newDirection)
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params.toString()}`,
-    )
-    setSearchParams(new URLSearchParams(params.toString()))
+    const nextQuery = params.toString()
+    if (!replaceSearchIfChanged(nextQuery)) return
+    setSearchParams(new URLSearchParams(nextQuery))
   }
 
   const handleSearchChange = (value: string) => setSearchQuery(value)
@@ -188,10 +205,10 @@ export function useBookingsTableState() {
     setTripId(undefined)
     setTicketItemType(undefined)
     updateFiltersInUrl({
-      missionId: selectedMissionId,
-      launchId: undefined,
-      tripId: undefined,
-      ticketItemType: undefined,
+      missionId: selectedMissionId ?? null,
+      launchId: null,
+      tripId: null,
+      ticketItemType: null,
     })
   }
 
@@ -200,37 +217,34 @@ export function useBookingsTableState() {
     setBoatId(undefined)
     setTicketItemType(undefined)
     updateFiltersInUrl({
-      tripId: selectedTripId,
-      boatId: undefined,
-      ticketItemType: undefined,
+      tripId: selectedTripId ?? null,
+      boatId: null,
+      ticketItemType: null,
     })
   }
 
   const handleBoatFilter = (selectedBoatId?: string) => {
     setBoatId(selectedBoatId)
-    updateFiltersInUrl({ boatId: selectedBoatId })
+    updateFiltersInUrl({ boatId: selectedBoatId ?? null })
   }
 
   const handleTripTypeFilter = (selectedTripType?: string) => {
     setTripType(selectedTripType)
-    updateFiltersInUrl({ tripType: selectedTripType })
+    updateFiltersInUrl({ tripType: selectedTripType ?? null })
   }
 
   const handleTicketItemTypeFilter = (selected?: string) => {
     setTicketItemType(selected)
-    updateFiltersInUrl({ ticketItemType: selected })
+    updateFiltersInUrl({ ticketItemType: selected ?? null })
   }
 
   const handleIncludeArchivedChange = (checked: boolean) => {
     setIncludeArchived(checked)
     const params = new URLSearchParams(window.location.search)
     params.set("page", "1")
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params.toString()}`,
-    )
-    setSearchParams(new URLSearchParams(params.toString()))
+    const nextQuery = params.toString()
+    if (!replaceSearchIfChanged(nextQuery)) return
+    setSearchParams(new URLSearchParams(nextQuery))
   }
 
   const applyBookingStatus = (next: string[]) => {
@@ -258,24 +272,18 @@ export function useBookingsTableState() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set("page", newPage.toString())
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params.toString()}`,
-    )
-    setSearchParams(new URLSearchParams(params.toString()))
+    const nextQuery = params.toString()
+    if (!replaceSearchIfChanged(nextQuery)) return
+    setSearchParams(new URLSearchParams(nextQuery))
   }
 
   const handlePageSizeChange = (newPageSize: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set("pageSize", newPageSize.toString())
     params.set("page", "1")
-    window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params.toString()}`,
-    )
-    setSearchParams(new URLSearchParams(params.toString()))
+    const nextQuery = params.toString()
+    if (!replaceSearchIfChanged(nextQuery)) return
+    setSearchParams(new URLSearchParams(nextQuery))
   }
 
   const hasActiveFilters = !!(
@@ -300,14 +308,14 @@ export function useBookingsTableState() {
     setSearchQuery("")
     setDebouncedSearchQuery("")
     updateFiltersInUrl({
-      missionId: undefined,
-      tripId: undefined,
-      boatId: undefined,
-      tripType: undefined,
-      ticketItemType: undefined,
+      missionId: null,
+      tripId: null,
+      boatId: null,
+      tripType: null,
+      ticketItemType: null,
       bookingStatuses: [...BOOKING_STATUSES],
       paymentStatuses: [...PAYMENT_STATUSES],
-      search: undefined,
+      search: null,
     })
   }
 

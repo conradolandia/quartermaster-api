@@ -101,7 +101,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
       MissionsService.readMissions({ limit: 100, includeArchived: true }),
   })
 
-  const { data: tripsData } = useQuery({
+  const { data: tripsData, isSuccess: tripsReady } = useQuery({
     queryKey: ["trips", "for-bookings"],
     queryFn: () =>
       TripsService.readTrips({ limit: 500, includeArchived: true }),
@@ -112,7 +112,7 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     queryFn: () => BoatsService.readBoats({ limit: 200 }),
   })
 
-  const { data: tripBoatsData } = useQuery({
+  const { data: tripBoatsData, isSuccess: tripBoatsReady } = useQuery({
     queryKey: ["trip-boats", tripId],
     queryFn: () =>
       TripBoatsService.readTripBoatsByTrip({ tripId: tripId!, limit: 200 }),
@@ -190,6 +190,8 @@ export function useBookingsListQueries(params: UseBookingsListQueriesParams) {
     filteredBoats,
     missionsWithBookings,
     filteredTrips,
+    tripsReady,
+    tripBoatsReady,
     isBookingArchived,
     tripBoatsData,
     ticketItemTypeOptions,
