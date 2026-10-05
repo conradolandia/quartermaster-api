@@ -1,5 +1,6 @@
 import { useDateFormatPreference } from "@/contexts/DateFormatContext"
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -48,6 +49,8 @@ const Step1TripSelection = ({
     isLoadingLaunches,
     isLoadingBoats,
     isLoadingBoatNames,
+    catalogFeedback,
+    retryCatalog,
     isTripSoldOut,
     isTripPaused,
     canProceed,
@@ -62,6 +65,9 @@ const Step1TripSelection = ({
     tripTypeToLabel,
     formatLaunchOptionLabel,
   } = useStep1Queries({ bookingData, updateBookingData, accessCode })
+
+  const catalogBlocksSelection =
+    catalogFeedback.kind === "error" || catalogFeedback.kind === "empty"
 
   useEffect(() => {
     onTripOptionsLoadingChange?.(tripOptionsPending)
@@ -90,14 +96,66 @@ const Step1TripSelection = ({
           <Text color="text.muted" mb={8}>
             Choose your mission, then your trip and boat.
           </Text>
+
+          {catalogFeedback.kind === "slow" && (
+            <Alert.Root status="warning" mb={4}>
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>Still loading</Alert.Title>
+                <Alert.Description>
+                  The booking service is taking longer than usual. You can wait
+                  a bit longer or try again later.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert.Root>
+          )}
+
+          {(catalogFeedback.kind === "error" ||
+            catalogFeedback.kind === "empty") && (
+            <Alert.Root
+              status={catalogFeedback.kind === "error" ? "error" : "info"}
+              mb={4}
+            >
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>
+                  {catalogFeedback.kind === "error"
+                    ? "Unable to load missions"
+                    : "No missions available"}
+                </Alert.Title>
+                <Alert.Description>{catalogFeedback.message}</Alert.Description>
+              </Alert.Content>
+            </Alert.Root>
+          )}
+
+          {(catalogFeedback.kind === "error" ||
+            catalogFeedback.kind === "empty" ||
+            catalogFeedback.kind === "slow") && (
+            <Flex mb={6}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={retryCatalog}
+                loading={isLoadingLaunches}
+              >
+                Try again
+              </Button>
+            </Flex>
+          )}
+
           <VStack align="stretch" gap={4}>
             {/* Mission Selection */}
             <Box>
               <Text fontWeight="medium" mb={2}>
                 Mission
               </Text>
-              {isLoadingLaunches ? (
-                <Spinner size="sm" />
+              {catalogBlocksSelection ? null : isLoadingLaunches ? (
+                <Flex align="center" gap={2}>
+                  <Spinner size="sm" />
+                  <Text color="text.muted" fontSize="sm">
+                    Loading missions…
+                  </Text>
+                </Flex>
               ) : (
                 <Select.Root
                   collection={launchesCollection}
@@ -146,7 +204,7 @@ const Step1TripSelection = ({
               <Text fontWeight="medium" mb={2}>
                 Trip
               </Text>
-              {!bookingData.selectedLaunchId ? (
+              {catalogBlocksSelection ? null : !bookingData.selectedLaunchId ? (
                 <Text color="text.muted" fontSize="sm">
                   Select a mission to see available launch and pre-launch trips.
                 </Text>

@@ -1,5 +1,5 @@
 import { createListCollection } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 
 import {
@@ -20,22 +20,48 @@ import {
 
 import type { BookingStepData } from "../bookingTypes"
 
+/** Shown when Step 1 catalog queries are slow, fail, or return nothing. */
+export type Step1CatalogFeedback =
+  | { kind: "none" }
+  | { kind: "slow" }
+  | { kind: "error"; message: string }
+  | { kind: "empty"; message: string }
+
 interface UseStep1QueriesArgs {
   bookingData: BookingStepData
   updateBookingData: (updates: Partial<BookingStepData>) => void
   accessCode?: string | null
 }
 
+const SLOW_LOAD_MS = 5000
+
+const CATALOG_ERROR_MESSAGE =
+  "We could not load available missions right now. The booking service may be busy. Please try again later."
+
+const CATALOG_EMPTY_MESSAGE =
+  "No bookable missions are available right now. Please check back later."
+
 export function useStep1Queries({
   bookingData,
   updateBookingData,
   accessCode,
 }: UseStep1QueriesArgs) {
+  const queryClient = useQueryClient()
   const { showErrorToast } = useCustomToast()
+  const showErrorToastRef = React.useRef(showErrorToast)
+  showErrorToastRef.current = showErrorToast
+
+  const clearedSelectionKeyRef = React.useRef<string | null>(null)
 
   // --- Queries ---
 
-  const { data: launchesResponse, isLoading: isLoadingLaunches } = useQuery({
+  const {
+    data: launchesResponse,
+    isLoading: isLoadingLaunches,
+    isFetching: isFetchingLaunches,
+    isSuccess: launchesReady,
+    isError: isErrorLaunches,
+  } = useQuery({
     queryKey: ["public-launches"],
     queryFn: () => LaunchesService.readPublicLaunches({ limit: 100 }),
   })
@@ -44,6 +70,8 @@ export function useStep1Queries({
     data: missionsResponse,
     isLoading: isLoadingMissions,
     isFetching: isFetchingMissions,
+    isSuccess: missionsReady,
+    isError: isErrorMissions,
   } = useQuery({
     queryKey: ["public-missions"],
     queryFn: () => MissionsService.readPublicMissions({ limit: 500 }),
@@ -56,6 +84,8 @@ export function useStep1Queries({
     data: allTrips,
     isLoading: isLoadingTrips,
     isFetching: isFetchingTrips,
+    isSuccess: tripsReady,
+    isError: isErrorTrips,
   } = useQuery({
     queryKey: ["public-trips", accessCode, bookingData.selectedTripId],
     queryFn: () =>
@@ -66,10 +96,18 @@ export function useStep1Queries({
       }),
   })
 
+  const needsDirectTrip =
+    !!bookingData.selectedTripId &&
+    tripsReady &&
+    !(allTrips?.data?.some(
+      (t: TripPublic) => t.id === bookingData.selectedTripId,
+    ) ?? false)
+
   const {
     data: directLinkTrip,
     isLoading: isLoadingDirectTrip,
     isError: isDirectLinkTripError,
+    isFetched: isDirectTripFetched,
   } = useQuery({
     queryKey: ["public-trip", bookingData.selectedTripId, accessCode],
     queryFn: () =>
@@ -77,15 +115,17 @@ export function useStep1Queries({
         tripId: bookingData.selectedTripId,
         accessCode: accessCode || undefined,
       }),
-    enabled:
-      !!bookingData.selectedTripId &&
-      !!allTrips &&
-      !allTrips.data?.some(
-        (t: TripPublic) => t.id === bookingData.selectedTripId,
-      ),
+    enabled: needsDirectTrip,
   })
 
-  const { data: tripBoatsResponse, isLoading: isLoadingBoats } = useQuery({
+  const directTripSettled =
+    !needsDirectTrip || isDirectTripFetched || isDirectLinkTripError
+
+  const {
+    data: tripBoatsResponse,
+    isLoading: isLoadingBoats,
+    isSuccess: tripBoatsReady,
+  } = useQuery({
     queryKey: ["public-trip-boats", bookingData.selectedTripId],
     queryFn: () =>
       TripBoatsService.readPublicTripBoatsByTrip({
@@ -121,6 +161,25 @@ export function useStep1Queries({
     },
     enabled: !!tripBoats && tripBoats.length > 0,
   })
+
+  // --- Catalog feedback (loading / slow / error / empty) ---
+
+  const catalogLoading =
+    isLoadingLaunches || isLoadingTrips || isLoadingMissions
+  const catalogFetching =
+    isFetchingLaunches || isFetchingTrips || isFetchingMissions
+  const catalogError = isErrorLaunches || isErrorTrips || isErrorMissions
+  const catalogReady = launchesReady && tripsReady && missionsReady
+
+  const [loadIsSlow, setLoadIsSlow] = React.useState(false)
+  React.useEffect(() => {
+    if (!catalogLoading && !catalogFetching) {
+      setLoadIsSlow(false)
+      return
+    }
+    const id = window.setTimeout(() => setLoadIsSlow(true), SLOW_LOAD_MS)
+    return () => window.clearTimeout(id)
+  }, [catalogLoading, catalogFetching])
 
   // --- Computed values ---
 
@@ -208,6 +267,52 @@ export function useStep1Queries({
       )
   }, [launches, launchIdsWithVisibleTrips])
 
+  const visibleLaunchIdsKey = React.useMemo(
+    () => visibleLaunches.map((l) => l.id).join(","),
+    [visibleLaunches],
+  )
+  const activeTripIdsKey = React.useMemo(
+    () => activeTrips.map((t) => t.id).join(","),
+    [activeTrips],
+  )
+  const tripBoatIdsKey = React.useMemo(
+    () => tripBoats.map((tb) => String(tb.boat_id)).join(","),
+    [tripBoats],
+  )
+
+  const catalogEmpty =
+    catalogReady && !catalogError && visibleLaunches.length === 0
+
+  const catalogFeedback: Step1CatalogFeedback = React.useMemo(() => {
+    if (catalogError) {
+      return { kind: "error", message: CATALOG_ERROR_MESSAGE }
+    }
+    if (catalogEmpty) {
+      return { kind: "empty", message: CATALOG_EMPTY_MESSAGE }
+    }
+    if ((catalogLoading || catalogFetching) && loadIsSlow) {
+      return { kind: "slow" }
+    }
+    return { kind: "none" }
+  }, [
+    catalogError,
+    catalogEmpty,
+    catalogLoading,
+    catalogFetching,
+    loadIsSlow,
+  ])
+
+  const retryCatalog = React.useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["public-launches"] })
+    void queryClient.invalidateQueries({ queryKey: ["public-missions"] })
+    void queryClient.invalidateQueries({ queryKey: ["public-trips"] })
+    if (bookingData.selectedTripId) {
+      void queryClient.invalidateQueries({
+        queryKey: ["public-trip", bookingData.selectedTripId],
+      })
+    }
+  }, [queryClient, bookingData.selectedTripId])
+
   const canProceed =
     bookingData.selectedLaunchId &&
     bookingData.selectedTripId &&
@@ -222,6 +327,7 @@ export function useStep1Queries({
    */
   const tripOptionsPending = React.useMemo(() => {
     if (!bookingData.selectedLaunchId) return false
+    if (isErrorTrips || isErrorMissions) return false
     if (isLoadingTrips || isLoadingMissions) return true
     if (activeTrips.length === 0 && (isFetchingTrips || isFetchingMissions)) {
       return true
@@ -233,6 +339,8 @@ export function useStep1Queries({
     isLoadingMissions,
     isFetchingTrips,
     isFetchingMissions,
+    isErrorTrips,
+    isErrorMissions,
     activeTrips.length,
   ])
 
@@ -243,6 +351,7 @@ export function useStep1Queries({
     if (
       !bookingData.selectedTripId ||
       bookingData.selectedLaunchId ||
+      !missionsReady ||
       missions.length === 0
     )
       return
@@ -265,6 +374,7 @@ export function useStep1Queries({
     allTrips?.data,
     directLinkTrip,
     missions,
+    missionsReady,
     updateBookingData,
   ])
 
@@ -272,7 +382,7 @@ export function useStep1Queries({
   React.useEffect(() => {
     if (
       bookingData.selectedTripId &&
-      tripBoats &&
+      tripBoatsReady &&
       tripBoats.length > 0 &&
       !bookingData.selectedBoatId
     ) {
@@ -289,18 +399,20 @@ export function useStep1Queries({
   }, [
     bookingData.selectedTripId,
     tripBoats,
+    tripBoatsReady,
     bookingData.selectedBoatId,
     updateBookingData,
   ])
 
   // Keep boatRemainingCapacity in sync; clear when boat has no capacity
   React.useEffect(() => {
-    if (!bookingData.selectedBoatId || !tripBoats?.length) return
+    if (!bookingData.selectedBoatId || !tripBoatsReady || !tripBoats.length)
+      return
     const selected = tripBoats.find(
       (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
     )
     if (selected && selected.remaining_capacity <= 0) {
-      showErrorToast(
+      showErrorToastRef.current(
         "This boat has no remaining capacity. Please choose another boat.",
       )
       updateBookingData({ selectedBoatId: "", boatRemainingCapacity: null })
@@ -314,104 +426,112 @@ export function useStep1Queries({
     bookingData.selectedBoatId,
     bookingData.boatRemainingCapacity,
     tripBoats,
+    tripBoatsReady,
+    tripBoatIdsKey,
     updateBookingData,
-    showErrorToast,
   ])
 
-  // Clear launch when no longer available
+  // Clear launch only after catalog queries succeeded (not while empty during load/error)
   React.useEffect(() => {
-    if (
-      isLoadingLaunches ||
-      isLoadingMissions ||
-      isLoadingTrips ||
-      !bookingData.selectedLaunchId ||
-      visibleLaunches.some((l) => l.id === bookingData.selectedLaunchId)
-    )
+    if (!catalogReady || catalogError || !bookingData.selectedLaunchId) return
+    const ids = visibleLaunchIdsKey ? visibleLaunchIdsKey.split(",") : []
+    if (ids.includes(bookingData.selectedLaunchId)) {
+      clearedSelectionKeyRef.current = null
       return
-    queueMicrotask(() => {
-      showErrorToast(
-        "The selected launch is no longer available. Please choose another.",
-      )
-      updateBookingData({
-        selectedLaunchId: "",
-        selectedTripId: "",
-        selectedBoatId: "",
-        boatRemainingCapacity: null,
-      })
+    }
+    const key = `launch:${bookingData.selectedLaunchId}`
+    if (clearedSelectionKeyRef.current === key) return
+    clearedSelectionKeyRef.current = key
+    showErrorToastRef.current(
+      "The selected launch is no longer available. Please choose another.",
+    )
+    updateBookingData({
+      selectedLaunchId: "",
+      selectedTripId: "",
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
     })
   }, [
     bookingData.selectedLaunchId,
-    visibleLaunches,
+    visibleLaunchIdsKey,
+    catalogReady,
+    catalogError,
     updateBookingData,
-    showErrorToast,
-    isLoadingLaunches,
-    isLoadingMissions,
-    isLoadingTrips,
   ])
 
-  // Clear trip when no longer available
+  // Clear trip only after trips/missions succeeded and any direct-link lookup settled
   React.useEffect(() => {
     if (
-      isLoadingTrips ||
-      isLoadingMissions ||
-      isLoadingDirectTrip ||
+      !tripsReady ||
+      !missionsReady ||
+      isErrorTrips ||
+      isErrorMissions ||
       !bookingData.selectedTripId ||
-      activeTrips.some((t: TripPublic) => t.id === bookingData.selectedTripId)
+      !directTripSettled
     )
       return
+    const ids = activeTripIdsKey ? activeTripIdsKey.split(",") : []
+    if (ids.includes(bookingData.selectedTripId)) {
+      clearedSelectionKeyRef.current = null
+      return
+    }
+    const key = `trip:${bookingData.selectedTripId}`
+    if (clearedSelectionKeyRef.current === key) return
+    clearedSelectionKeyRef.current = key
     const message = isDirectLinkTripError
       ? "This trip is no longer available. It may have already departed or the launch for this mission may have already occurred."
       : "The selected trip is not available for this launch. Please choose another."
-    queueMicrotask(() => {
-      showErrorToast(message)
-      updateBookingData({
-        selectedTripId: "",
-        selectedBoatId: "",
-        boatRemainingCapacity: null,
-      })
+    showErrorToastRef.current(message)
+    updateBookingData({
+      selectedTripId: "",
+      selectedBoatId: "",
+      boatRemainingCapacity: null,
     })
   }, [
     bookingData.selectedTripId,
-    activeTrips,
-    updateBookingData,
-    showErrorToast,
-    isLoadingTrips,
-    isLoadingMissions,
-    isLoadingDirectTrip,
+    activeTripIdsKey,
+    tripsReady,
+    missionsReady,
+    isErrorTrips,
+    isErrorMissions,
+    directTripSettled,
     isDirectLinkTripError,
+    updateBookingData,
   ])
 
-  // Clear boat when not on trip
+  // Clear boat when not on trip (only after trip-boats query succeeded)
   React.useEffect(() => {
     if (
       !bookingData.selectedTripId ||
       !bookingData.selectedBoatId ||
-      isLoadingBoats
+      !tripBoatsReady
     )
       return
-    const selected = tripBoats.find(
-      (tb) => String(tb.boat_id) === String(bookingData.selectedBoatId),
+    const ids = tripBoatIdsKey ? tripBoatIdsKey.split(",") : []
+    if (ids.includes(String(bookingData.selectedBoatId))) {
+      clearedSelectionKeyRef.current = null
+      return
+    }
+    const key = `boat:${bookingData.selectedBoatId}`
+    if (clearedSelectionKeyRef.current === key) return
+    clearedSelectionKeyRef.current = key
+    showErrorToastRef.current(
+      "The selected boat is not available for this trip. Please choose another.",
     )
-    if (selected) return
-    queueMicrotask(() => {
-      showErrorToast(
-        "The selected boat is not available for this trip. Please choose another.",
-      )
-      updateBookingData({ selectedBoatId: "", boatRemainingCapacity: null })
-    })
+    updateBookingData({ selectedBoatId: "", boatRemainingCapacity: null })
   }, [
     bookingData.selectedTripId,
     bookingData.selectedBoatId,
-    tripBoats,
-    isLoadingBoats,
+    tripBoatIdsKey,
+    tripBoatsReady,
     updateBookingData,
-    showErrorToast,
   ])
 
   // --- Handlers ---
 
   const handleLaunchChange = (details: { value: string[] }) => {
     const launchId = details.value[0] || ""
+    clearedSelectionKeyRef.current = null
     updateBookingData({
       selectedLaunchId: launchId,
       selectedTripId: "",
@@ -422,6 +542,7 @@ export function useStep1Queries({
 
   const handleTripChange = (details: { value: string[] }) => {
     const tripId = details.value[0] || ""
+    clearedSelectionKeyRef.current = null
     updateBookingData({
       selectedTripId: tripId,
       selectedBoatId: "",
@@ -431,6 +552,7 @@ export function useStep1Queries({
 
   const handleBoatChange = (details: { value: string[] }) => {
     const boatId = details.value[0] || ""
+    clearedSelectionKeyRef.current = null
     const selected = tripBoats?.find(
       (tb) => String(tb.boat_id) === String(boatId),
     )
@@ -522,6 +644,10 @@ export function useStep1Queries({
     isLoadingMissions,
     isLoadingBoats,
     isLoadingBoatNames,
+    catalogLoading,
+    // Feedback
+    catalogFeedback,
+    retryCatalog,
     // Computed
     isTripSoldOut,
     isTripPaused,
