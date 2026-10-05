@@ -105,7 +105,6 @@ export function useStep1Queries({
 
   const {
     data: directLinkTrip,
-    isLoading: isLoadingDirectTrip,
     isError: isDirectLinkTripError,
     isFetched: isDirectTripFetched,
   } = useQuery({
