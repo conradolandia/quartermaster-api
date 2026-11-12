@@ -422,7 +422,7 @@ const CheckInInterface = ({
                   {currentBooking.items && currentBooking.items.length > 0 && (
                     <BookingExperienceDetails
                       booking={currentBooking}
-                      usePublicApis={false}
+                      usePublicApis={true}
                       heading="Trip Information"
                       variant="checkIn"
                       showSeparator={false}

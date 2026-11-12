@@ -93,13 +93,18 @@ export default function BookingExperienceDetails({
     return Array.from(ids)
   }, [booking?.items])
 
+  // Prefer embedded experience_display for public/staff views so we do not call
+  // admin-only or access-restricted trip/boat endpoints (403 would log staff out).
+  const exp = usePublicApis ? booking?.experience_display : null
+  const shouldFetchDetails = !exp
+
   const { data: trip } = useQuery({
     queryKey: [usePublicApis ? "public-trip" : "trip", tripId],
     queryFn: () =>
       usePublicApis
         ? TripsService.readPublicTrip({ tripId: tripId! })
         : TripsService.readTrip({ tripId: tripId! }),
-    enabled: !!tripId,
+    enabled: !!tripId && shouldFetchDetails,
   })
 
   const { data: mission } = useQuery({
@@ -110,7 +115,7 @@ export default function BookingExperienceDetails({
             res.data.find((m) => m.id === trip!.mission_id),
           )
         : MissionsService.readMission({ missionId: trip!.mission_id }),
-    enabled: !!trip?.mission_id,
+    enabled: !!trip?.mission_id && shouldFetchDetails,
   })
 
   const { data: launch } = useQuery({
@@ -121,7 +126,7 @@ export default function BookingExperienceDetails({
             launchId: mission!.launch_id,
           })
         : LaunchesService.readLaunch({ launchId: mission!.launch_id }),
-    enabled: !!mission?.launch_id,
+    enabled: !!mission?.launch_id && shouldFetchDetails,
   })
 
   const boatQueries = useQueries({
@@ -131,24 +136,22 @@ export default function BookingExperienceDetails({
         usePublicApis
           ? BoatsService.readPublicBoat({ boatId: bid })
           : BoatsService.readBoat({ boatId: bid }),
-      enabled: !!bid,
+      enabled: !!bid && shouldFetchDetails,
     })),
   })
 
   const { data: tripBoats } = useQuery({
     queryKey: ["trip-boats-for-experience", tripId],
     queryFn: () => TripBoatsService.readTripBoatsByTrip({ tripId: tripId! }),
-    enabled: !!tripId && !usePublicApis,
+    enabled: !!tripId && !usePublicApis && shouldFetchDetails,
   })
 
   const { data: publicTripBoats } = useQuery({
     queryKey: ["public-trip-boats-for-experience", tripId],
     queryFn: () =>
       TripBoatsService.readPublicTripBoatsByTrip({ tripId: tripId! }),
-    enabled: !!tripId && usePublicApis && !booking?.experience_display,
+    enabled: !!tripId && usePublicApis && shouldFetchDetails,
   })
-
-  const exp = usePublicApis ? booking?.experience_display : null
 
   const captainNames = useMemo(() => {
     if (exp?.captain_name) return [exp.captain_name]
@@ -198,6 +201,43 @@ export default function BookingExperienceDetails({
   )
 
   if (variant === "checkIn") {
+    if (exp) {
+      const tripLabel = exp.trip_name?.trim()
+        ? `${exp.trip_name.trim()} – ${tripTypeToLabel(exp.trip_type ?? "")}`
+        : exp.trip_type
+          ? tripTypeToLabel(exp.trip_type)
+          : null
+
+      return (
+        <Box {...boxProps}>
+          {showHeading && (
+            <Heading size="lg" mb={4}>
+              {heading}
+            </Heading>
+          )}
+          <VStack align="stretch" gap={3}>
+            {exp.mission_name && (
+              <Row label="Mission" value={exp.mission_name} />
+            )}
+            {tripLabel && <Row label="Trip" value={tripLabel} />}
+            {exp.departure_time && (
+              <Row
+                label="Departure"
+                value={formatDepartureDateTimeInLocationTz(
+                  exp.departure_time,
+                  exp.trip_timezone,
+                )}
+              />
+            )}
+            {exp.boat_name && <Row label="Boat" value={exp.boat_name} />}
+            {exp.captain_name && (
+              <Row label="Captain" value={exp.captain_name} />
+            )}
+          </VStack>
+        </Box>
+      )
+    }
+
     const tz = trip?.timezone ?? undefined
     const missionName = mission?.name
     const tripLabel = trip
